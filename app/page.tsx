@@ -44,6 +44,11 @@ type NewProject = {
 
 const emptyProject: NewProject = { name: '', client_name: '', location: '', description: '', assigned_to: '', due_date: '' };
 
+const roleLabel: Record<Role, string> = {
+  manager: 'מנהל מערכת',
+  field_worker: 'עובד שטח'
+};
+
 export default function Page() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -225,13 +230,45 @@ export default function Page() {
       return;
     }
 
-    await supabase.from('status_history').insert({
+    const { error: historyError } = await supabase.from('status_history').insert({
       project_id: project.id,
       old_status: project.status,
       new_status: newStatus,
       changed_by: user.id,
       note: note || 'עדכון סטטוס מהשטח'
     });
+
+    if (historyError) {
+      setMessage(historyError.message);
+      return;
+    }
+
+    // Email notifications are sent when a field worker changes status.
+    // If the Edge Function is not configured yet, the status update still succeeds.
+    if (profile?.role === 'field_worker') {
+      const { error: notifyError } = await supabase.functions.invoke('notify-status-change', {
+        body: {
+          projectId: project.id,
+          projectName: project.name,
+          clientName: project.client_name,
+          location: project.location,
+          oldStatus: project.status,
+          newStatus,
+          note: note || '',
+          changedByName: profile.full_name,
+          changedByEmail: profile.email,
+          changedByRole: profile.role,
+          appUrl: typeof window !== 'undefined' ? window.location.origin : ''
+        }
+      });
+
+      if (notifyError) {
+        console.warn('Email notification failed:', notifyError.message);
+        setMessage(`הסטטוס עודכן ל: ${newStatus}. שים לב: התראת המייל לא נשלחה (${notifyError.message}).`);
+        await Promise.all([loadProjects(), loadHistory()]);
+        return;
+      }
+    }
 
     setMessage(`הסטטוס של ${project.name} עודכן ל: ${newStatus}`);
     await Promise.all([loadProjects(), loadHistory()]);
@@ -372,7 +409,7 @@ export default function Page() {
       </div>
       <div className="userRow">
         <div className="avatar">{profile?.full_name?.[0] || 'ע'}</div>
-        <div><b>{profile?.full_name || session?.user?.email}</b><p className="muted">{isManager ? 'מנהל מערכת' : 'עובד שטח'}</p></div>
+        <div><b>{profile?.full_name || session?.user?.email}</b><p className="muted">{profile ? roleLabel[profile.role] : 'משתמש'}</p></div>
         <button className="secondary" onClick={logout}><LogOut size={16} /> יציאה</button>
       </div>
     </header>
@@ -395,7 +432,7 @@ export default function Page() {
           <Stat number={stats.done} label="הושלמו" icon={<CheckCircle />} />
         </div>
 
-        {profile && <div className="card message">מחובר כ: {profile.email} · הרשאה: {isManager ? 'מנהל מערכת' : 'עובד שטח'}</div>}
+        {profile && <div className="card message">מחובר כ: {profile.email} · הרשאה: {profile ? roleLabel[profile.role] : 'משתמש'}</div>}
         {message && <div className="card message">{message}</div>}
 
         {tab === 'new' && isManager && <NewProjectForm project={newProject} setProject={setNewProject} workers={workers} createProject={createProject} />}

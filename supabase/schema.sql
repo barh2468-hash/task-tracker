@@ -176,3 +176,5 @@ end $$;
 
 -- After the first manager logs in, run this with their email:
 -- update public.profiles set role = 'manager', full_name = 'שם המנהל' where email = 'manager@company.com';
+
+-- To define a team lead, run:

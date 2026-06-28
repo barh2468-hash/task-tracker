@@ -127,3 +127,48 @@ supabase/edit-delete-photos-fix.sql
 - מחיקת פרויקט למנהל
 - הצגת תמונות שהועלו לפרויקט
 - שימוש ב-Bucket בשם `project-photos`
+
+## Email notifications for field worker status changes
+
+This version includes a Supabase Edge Function named `notify-status-change`.
+When a user with role `field_worker` changes a project status, the app calls the function and sends an email to every profile whose role is `manager`.
+
+No new role is required. Team leaders can stay as regular `field_worker` users.
+
+### 1. Run the SQL patch
+
+In Supabase SQL Editor, run:
+
+```sql
+-- open and run this file:
+supabase/email-notifications-fix.sql
+```
+
+### 2. Add Edge Function secrets
+
+In Supabase, set these secrets for Edge Functions:
+
+```bash
+supabase secrets set RESEND_API_KEY=your_resend_api_key
+supabase secrets set FROM_EMAIL="MAYA Tracker <notifications@your-domain.com>"
+```
+
+Supabase already provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions.
+
+### 3. Deploy the Edge Function
+
+From the project folder:
+
+```bash
+supabase functions deploy notify-status-change
+```
+
+### 4. Deploy the web app as usual
+
+```bash
+git add .
+git commit -m "Add manager email notifications for field worker status changes"
+git push
+```
+
+Vercel will deploy the web app automatically.

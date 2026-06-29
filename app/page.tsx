@@ -1,12 +1,23 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Camera, CheckCircle, Clock, FilePlus2, FolderKanban, History, LogOut, Pencil, Search, Shield, Trash2, Users, X } from 'lucide-react';
+import { Camera, CheckCircle, Clock, Download, FilePlus2, FolderKanban, History, LogOut, Pencil, PlayCircle, Search, Shield, Square, Trash2, Users, X } from 'lucide-react';
 import { envReady, statusProgress, statuses, supabase } from '@/lib/supabase';
 
 type Role = 'manager' | 'field_worker';
 type Profile = { id: string; email: string | null; full_name: string; role: Role };
 type ProjectPhoto = { id: string; project_id?: string; file_path: string; created_at: string };
+type WorkSession = {
+  id: string;
+  project_id: string;
+  worker_id: string;
+  started_at: string;
+  ended_at: string | null;
+  created_at: string;
+  profiles?: { full_name: string; email: string | null } | null;
+  projects?: { name: string; client_name: string | null; location: string } | null;
+};
+type ProjectWorkSession = Pick<WorkSession, 'id' | 'worker_id' | 'started_at' | 'ended_at'>;
 
 type Project = {
   id: string;
@@ -21,6 +32,7 @@ type Project = {
   updated_at: string;
   profiles?: { full_name: string } | null;
   project_photos?: ProjectPhoto[];
+  work_sessions?: ProjectWorkSession[];
 };
 type StatusHistory = {
   id: string;
@@ -58,7 +70,8 @@ export default function Page() {
   const [workers, setWorkers] = useState<Profile[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [historyItems, setHistoryItems] = useState<StatusHistory[]>([]);
-  const [tab, setTab] = useState<'mine' | 'all' | 'new' | 'history'>('mine');
+  const [workSessions, setWorkSessions] = useState<WorkSession[]>([]);
+  const [tab, setTab] = useState<'mine' | 'all' | 'new' | 'history' | 'report'>('mine');
   const isManager = profile?.role === 'manager';
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -84,6 +97,7 @@ export default function Page() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadProjects(profile))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'status_history' }, () => loadHistory())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_photos' }, () => loadProjects(profile))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_sessions' }, () => { loadProjects(profile); loadWorkSessions(profile); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [profile]);
@@ -173,7 +187,7 @@ export default function Page() {
     const typedProfile = prof as Profile;
     setProfile(typedProfile);
     if (typedProfile.role === 'manager') setTab('all');
-    await Promise.all([loadProjects(typedProfile), loadWorkers(typedProfile), loadHistory(typedProfile)]);
+    await Promise.all([loadProjects(typedProfile), loadWorkers(typedProfile), loadHistory(typedProfile), loadWorkSessions(typedProfile)]);
   }
 
   async function loadWorkers(activeProfile = profile) {
@@ -196,7 +210,7 @@ export default function Page() {
 
     let request = supabase
       .from('projects')
-      .select('*, profiles:assigned_to(full_name), project_photos(id,file_path,created_at)')
+      .select('*, profiles:assigned_to(full_name), project_photos(id,file_path,created_at), work_sessions(id,worker_id,started_at,ended_at)')
       .order('updated_at', { ascending: false });
 
     if (activeProfile.role !== 'manager') request = request.eq('assigned_to', user.id);
@@ -213,6 +227,116 @@ export default function Page() {
       .order('created_at', { ascending: false })
       .limit(100);
     setHistoryItems((data || []) as StatusHistory[]);
+  }
+
+  async function loadWorkSessions(activeProfile = profile) {
+    if (activeProfile?.role !== 'manager') {
+      setWorkSessions([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('work_sessions')
+      .select('*, profiles:worker_id(full_name,email), projects:project_id(name,client_name,location)')
+      .order('started_at', { ascending: false });
+
+    if (error) {
+      setMessage(error.message);
+      setWorkSessions([]);
+      return;
+    }
+
+    setWorkSessions((data || []) as WorkSession[]);
+  }
+
+  async function startWork(project: Project) {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return;
+
+    const openSession = project.work_sessions?.find((w) => w.worker_id === user.id && !w.ended_at);
+    if (openSession) {
+      setMessage('כבר קיימת שעת התחלה פתוחה לפרויקט הזה. לחץ סיים עבודה כדי לסגור אותה.');
+      return;
+    }
+
+    const { error } = await supabase.from('work_sessions').insert({
+      project_id: project.id,
+      worker_id: user.id,
+      started_at: new Date().toISOString()
+    });
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    await supabase.from('status_history').insert({
+      project_id: project.id,
+      old_status: null,
+      new_status: 'התחלת עבודה',
+      changed_by: user.id,
+      note: `שעת התחלה: ${new Date().toLocaleString('he-IL')}`
+    });
+
+    setMessage(`נרשמה שעת התחלה עבור ${project.name}`);
+    await Promise.all([loadProjects(), loadHistory(), loadWorkSessions()]);
+  }
+
+  async function endWork(project: Project) {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return;
+
+    const openSession = project.work_sessions?.find((w) => w.worker_id === user.id && !w.ended_at);
+    if (!openSession) {
+      setMessage('לא נמצאה שעת התחלה פתוחה לפרויקט הזה.');
+      return;
+    }
+
+    const endedAt = new Date();
+    const startedAt = new Date(openSession.started_at);
+    const minutes = Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 60000));
+
+    const { error } = await supabase
+      .from('work_sessions')
+      .update({ ended_at: endedAt.toISOString() })
+      .eq('id', openSession.id);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    await supabase.from('status_history').insert({
+      project_id: project.id,
+      old_status: null,
+      new_status: 'סיום עבודה',
+      changed_by: user.id,
+      note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}`
+    });
+
+    setMessage(`נרשמה שעת סיום עבור ${project.name}. זמן עבודה: ${formatDuration(minutes)}`);
+    await Promise.all([loadProjects(), loadHistory(), loadWorkSessions()]);
+  }
+
+  function exportWorkReport() {
+    if (!workSessions.length) {
+      setMessage('אין נתוני שעות לייצוא כרגע.');
+      return;
+    }
+
+    const rows = buildWorkReportRows(workSessions);
+    const headers = ['עובד', 'מייל', 'פרויקט', 'לקוח', 'מיקום', 'מספר ימים', 'סה״כ דקות', 'סה״כ שעות', 'כניסות פתוחות'];
+    const csvRows = [headers, ...rows.map((r) => [r.workerName, r.email, r.projectName, r.clientName, r.location, String(r.days), String(r.totalMinutes), formatHoursDecimal(r.totalMinutes), String(r.openSessions)])];
+    const csv = '\uFEFF' + csvRows.map((row) => row.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `דוח-שעות-עובדים-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   async function updateStatus(project: Project, newStatus: string, note: string) {
@@ -421,6 +545,7 @@ export default function Page() {
         {isManager && <button className={`navBtn ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}><span>כל הפרויקטים</span><Users size={18} /></button>}
         {isManager && <button className={`navBtn ${tab === 'new' ? 'active' : ''}`} onClick={() => setTab('new')}><span>הוספת פרויקט</span><FilePlus2 size={18} /></button>}
         <button className={`navBtn ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}><span>היסטוריית שינויים</span><History size={18} /></button>
+        {isManager && <button className={`navBtn ${tab === 'report' ? 'active' : ''}`} onClick={() => setTab('report')}><span>דוח שעות עובדים</span><Download size={18} /></button>}
         <p style={{ marginTop: 30, color: 'rgba(255,255,255,.72)', lineHeight: 1.7 }}>מותאם לאייפון, אנדרואיד ומחשב. עדכונים בזמן אמת דרך Supabase.</p>
       </aside>
 
@@ -437,7 +562,8 @@ export default function Page() {
 
         {tab === 'new' && isManager && <NewProjectForm project={newProject} setProject={setNewProject} workers={workers} createProject={createProject} />}
         {tab === 'history' && <HistoryPanel historyItems={historyItems} projects={projects} />}
-        {tab !== 'new' && tab !== 'history' && <section className="card">
+        {tab === 'report' && isManager && <WorkReportPanel workSessions={workSessions} exportWorkReport={exportWorkReport} />}
+        {tab !== 'new' && tab !== 'history' && tab !== 'report' && <section className="card">
           <div className="toolbar">
             <div style={{ minWidth: 260, flex: 1 }}><input placeholder="חיפוש לפי שם, לקוח או מיקום..." value={query} onChange={(e) => setQuery(e.target.value)} /></div>
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ maxWidth: 220 }}>
@@ -449,7 +575,7 @@ export default function Page() {
           <h2>{tab === 'mine' && !isManager ? 'הפרויקטים שלי' : 'כל הפרויקטים'}</h2>
           <div className="projects">
             {visibleProjects.length === 0 && <div className="empty">אין פרויקטים להצגה כרגע</div>}
-            {visibleProjects.map((project) => <ProjectCard key={project.id} project={project} historyItems={historyItems.filter((h) => h.project_id === project.id).slice(0, 4)} updateStatus={updateStatus} uploadPhoto={uploadPhoto} isManager={isManager} workers={workers} saveProject={saveProject} deleteProject={deleteProject} />)}
+            {visibleProjects.map((project) => <ProjectCard key={project.id} project={project} historyItems={historyItems.filter((h) => h.project_id === project.id).slice(0, 4)} updateStatus={updateStatus} uploadPhoto={uploadPhoto} isManager={isManager} workers={workers} saveProject={saveProject} deleteProject={deleteProject} currentUserId={session?.user?.id} startWork={startWork} endWork={endWork} />)}
           </div>
         </section>}
       </section>
@@ -487,7 +613,7 @@ function NewProjectForm({ project, setProject, workers, createProject }: { proje
   </section>;
 }
 
-function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManager, workers, saveProject, deleteProject }: { project: Project; historyItems: StatusHistory[]; updateStatus: (p: Project, s: string, n: string) => void; uploadPhoto: (projectId: string, file: File) => void; isManager: boolean; workers: Profile[]; saveProject: (projectId: string, changes: NewProject) => void; deleteProject: (project: Project) => void }) {
+function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManager, workers, saveProject, deleteProject, currentUserId, startWork, endWork }: { project: Project; historyItems: StatusHistory[]; updateStatus: (p: Project, s: string, n: string) => void; uploadPhoto: (projectId: string, file: File) => void; isManager: boolean; workers: Profile[]; saveProject: (projectId: string, changes: NewProject) => void; deleteProject: (project: Project) => void; currentUserId?: string; startWork: (project: Project) => void; endWork: (project: Project) => void }) {
   const [status, setStatus] = useState(project.status);
   const [note, setNote] = useState('');
   const [editing, setEditing] = useState(false);
@@ -510,6 +636,11 @@ function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManag
       due_date: project.due_date || ''
     });
   }, [project]);
+
+  const myOpenSession = project.work_sessions?.find((w) => w.worker_id === currentUserId && !w.ended_at);
+  const lastEndedSession = project.work_sessions
+    ?.filter((w) => w.worker_id === currentUserId && w.ended_at)
+    .sort((a, b) => new Date(b.ended_at || '').getTime() - new Date(a.ended_at || '').getTime())[0];
 
   if (editing) {
     return <article className="project editProject">
@@ -557,6 +688,15 @@ function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManag
       <PhotoGallery photos={project.project_photos || []} />
     </div>
     <div className="form">
+      <div className="timeBox">
+        {myOpenSession ? <>
+          <div><b>עבודה פעילה</b><br /><span className="muted">התחלה: {new Date(myOpenSession.started_at).toLocaleString('he-IL')}</span></div>
+          <button className="smallBtn danger" onClick={() => endWork(project)}><Square size={15} /> סיים עבודה</button>
+        </> : <>
+          <div><b>שעות עבודה</b><br /><span className="muted">{lastEndedSession ? `סיום אחרון: ${new Date(lastEndedSession.ended_at || '').toLocaleString('he-IL')}` : 'לא נרשמה עבודה פתוחה'}</span></div>
+          <button className="smallBtn" onClick={() => startWork(project)}><PlayCircle size={15} /> התחל עבודה</button>
+        </>}
+      </div>
       <select value={status} onChange={(e) => setStatus(e.target.value)}>{statuses.map((s) => <option key={s} value={s}>{s}</option>)}</select>
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="הערה לעדכון, אופציונלי" />
       <button className="smallBtn" onClick={() => { updateStatus(project, status, note); setNote(''); }}>עדכן סטטוס</button>
@@ -597,6 +737,98 @@ function PhotoGallery({ photos }: { photos: ProjectPhoto[] }) {
 function StatusPill({ status }: { status: string }) {
   const cls = status === 'הושלם' ? 'done' : status === 'עבר לשרטוט' ? 'drafting' : status === 'נדרש GPR' ? 'gpr' : status === 'מחכה להיתרים' ? 'permits' : 'field';
   return <span className={`pill ${cls}`}>{status}</span>;
+}
+
+
+function formatDuration(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours <= 0) return `${mins} דק׳`;
+  return `${hours} שעות ו-${mins} דק׳`;
+}
+
+function formatHoursDecimal(minutes: number) {
+  return (minutes / 60).toFixed(2);
+}
+
+function csvEscape(value: string) {
+  const text = value ?? '';
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function buildWorkReportRows(workSessions: WorkSession[]) {
+  const map = new Map<string, {
+    workerName: string;
+    email: string;
+    projectName: string;
+    clientName: string;
+    location: string;
+    totalMinutes: number;
+    daysSet: Set<string>;
+    openSessions: number;
+  }>();
+
+  for (const item of workSessions) {
+    const key = `${item.worker_id}_${item.project_id}`;
+    const started = new Date(item.started_at);
+    const ended = item.ended_at ? new Date(item.ended_at) : new Date();
+    const minutes = Math.max(0, Math.round((ended.getTime() - started.getTime()) / 60000));
+    const existing = map.get(key) || {
+      workerName: item.profiles?.full_name || 'עובד',
+      email: item.profiles?.email || '',
+      projectName: item.projects?.name || 'פרויקט',
+      clientName: item.projects?.client_name || '',
+      location: item.projects?.location || '',
+      totalMinutes: 0,
+      daysSet: new Set<string>(),
+      openSessions: 0
+    };
+
+    existing.totalMinutes += minutes;
+    existing.daysSet.add(started.toISOString().slice(0, 10));
+    if (!item.ended_at) existing.openSessions += 1;
+    map.set(key, existing);
+  }
+
+  return Array.from(map.values())
+    .map((r) => ({ ...r, days: r.daysSet.size }))
+    .sort((a, b) => a.workerName.localeCompare(b.workerName, 'he'));
+}
+
+function WorkReportPanel({ workSessions, exportWorkReport }: { workSessions: WorkSession[]; exportWorkReport: () => void }) {
+  const rows = useMemo(() => buildWorkReportRows(workSessions), [workSessions]);
+  const totalMinutes = rows.reduce((sum, row) => sum + row.totalMinutes, 0);
+
+  return <section className="card">
+    <div className="reportHeader">
+      <div>
+        <h2>דוח שעות עובדים</h2>
+        <p className="muted">סיכום שעות לפי עובד ופרויקט. הקובץ יורד כ-CSV ונפתח באקסל.</p>
+      </div>
+      <button onClick={exportWorkReport}><Download size={16} /> ייצוא לאקסל</button>
+    </div>
+    <div className="reportStats">
+      <Stat number={rows.length} label="שורות בדוח" icon={<Users />} />
+      <Stat number={Math.round((totalMinutes / 60) * 10) / 10} label="סה״כ שעות" icon={<Clock />} />
+    </div>
+    <div className="tableWrap">
+      <table className="reportTable">
+        <thead><tr><th>עובד</th><th>פרויקט</th><th>לקוח</th><th>מיקום</th><th>ימים</th><th>זמן עבודה</th><th>פתוח</th></tr></thead>
+        <tbody>
+          {rows.length === 0 && <tr><td colSpan={7}>אין עדיין נתוני שעות</td></tr>}
+          {rows.map((row) => <tr key={`${row.email}_${row.projectName}`}>
+            <td><b>{row.workerName}</b><br /><span className="muted">{row.email}</span></td>
+            <td>{row.projectName}</td>
+            <td>{row.clientName || '-'}</td>
+            <td>{row.location || '-'}</td>
+            <td>{row.days}</td>
+            <td>{formatDuration(row.totalMinutes)}<br /><span className="muted">{formatHoursDecimal(row.totalMinutes)} שעות</span></td>
+            <td>{row.openSessions ? `${row.openSessions} פתוח` : '-'}</td>
+          </tr>)}
+        </tbody>
+      </table>
+    </div>
+  </section>;
 }
 
 function HistoryPanel({ historyItems, projects }: { historyItems: StatusHistory[]; projects: Project[] }) {

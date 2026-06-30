@@ -83,6 +83,7 @@ export default function Page() {
   const isManager = profile?.role === 'manager';
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [reportWorkerId, setReportWorkerId] = useState('all');
   const [message, setMessage] = useState('');
   const [newProject, setNewProject] = useState<NewProject>(emptyProject);
 
@@ -351,13 +352,14 @@ export default function Page() {
     await Promise.all([loadProjects(), loadHistory(), loadWorkSessions()]);
   }
 
-  function exportWorkReport() {
-    if (!workSessions.length) {
-      setMessage('אין נתוני שעות לייצוא כרגע.');
+  function exportWorkReport(workerId = reportWorkerId) {
+    const filteredSessions = workerId === 'all' ? workSessions : workSessions.filter((item) => item.worker_id === workerId);
+    if (!filteredSessions.length) {
+      setMessage(workerId === 'all' ? 'אין נתוני שעות לייצוא כרגע.' : 'אין נתוני שעות לעובד שנבחר.');
       return;
     }
 
-    const rows = buildWorkReportRows(workSessions);
+    const rows = buildWorkReportRows(filteredSessions);
     const headers = ['עובד', 'מייל', 'פרויקט', 'לקוח', 'מיקום', 'מספר ימים', 'סה״כ דקות', 'סה״כ שעות', 'כניסות פתוחות', 'מיקומי התחלה', 'מיקומי סיום'];
     const csvRows = [headers, ...rows.map((r) => [r.workerName, r.email, r.projectName, r.clientName, r.location, String(r.days), String(r.totalMinutes), formatHoursDecimal(r.totalMinutes), String(r.openSessions), r.startMapLinks.join(' | '), r.endMapLinks.join(' | ')])];
     const csv = '\uFEFF' + csvRows.map((row) => row.map(csvEscape).join(',')).join('\n');
@@ -365,7 +367,9 @@ export default function Page() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `דוח-שעות-עובדים-${new Date().toISOString().slice(0, 10)}.csv`;
+    const selectedWorker = workers.find((w) => w.id === workerId);
+    const workerPart = selectedWorker ? `-${selectedWorker.full_name.replace(/\s+/g, '-')}` : '-כל-העובדים';
+    a.download = `דוח-שעות-עובדים${workerPart}-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -595,7 +599,7 @@ export default function Page() {
 
         {tab === 'new' && isManager && <NewProjectForm project={newProject} setProject={setNewProject} workers={workers} createProject={createProject} />}
         {tab === 'history' && <HistoryPanel historyItems={historyItems} projects={projects} />}
-        {tab === 'report' && isManager && <WorkReportPanel workSessions={workSessions} exportWorkReport={exportWorkReport} />}
+        {tab === 'report' && isManager && <WorkReportPanel workSessions={workSessions} workers={workers} reportWorkerId={reportWorkerId} setReportWorkerId={setReportWorkerId} exportWorkReport={exportWorkReport} />}
         {tab !== 'new' && tab !== 'history' && tab !== 'report' && <section className="card">
           <div className="toolbar">
             <div style={{ minWidth: 260, flex: 1 }}><input placeholder="חיפוש לפי שם, לקוח או מיקום..." value={query} onChange={(e) => setQuery(e.target.value)} /></div>
@@ -880,8 +884,19 @@ function buildWorkReportRows(workSessions: WorkSession[]) {
     .sort((a, b) => a.workerName.localeCompare(b.workerName, 'he'));
 }
 
-function WorkReportPanel({ workSessions, exportWorkReport }: { workSessions: WorkSession[]; exportWorkReport: () => void }) {
-  const rows = useMemo(() => buildWorkReportRows(workSessions), [workSessions]);
+function WorkReportPanel({ workSessions, workers, reportWorkerId, setReportWorkerId, exportWorkReport }: { workSessions: WorkSession[]; workers: Profile[]; reportWorkerId: string; setReportWorkerId: (id: string) => void; exportWorkReport: (workerId?: string) => void }) {
+  const reportWorkers = useMemo(() => {
+    const seen = new Set<string>();
+    return workers
+      .filter((worker) => {
+        if (seen.has(worker.id)) return false;
+        seen.add(worker.id);
+        return true;
+      })
+      .sort((a, b) => a.full_name.localeCompare(b.full_name, 'he'));
+  }, [workers]);
+  const filteredSessions = useMemo(() => reportWorkerId === 'all' ? workSessions : workSessions.filter((item) => item.worker_id === reportWorkerId), [workSessions, reportWorkerId]);
+  const rows = useMemo(() => buildWorkReportRows(filteredSessions), [filteredSessions]);
   const totalMinutes = rows.reduce((sum, row) => sum + row.totalMinutes, 0);
 
   return <section className="card">
@@ -890,7 +905,16 @@ function WorkReportPanel({ workSessions, exportWorkReport }: { workSessions: Wor
         <h2>דוח שעות עובדים</h2>
         <p className="muted">סיכום שעות לפי עובד ופרויקט. הקובץ יורד כ-CSV ונפתח באקסל.</p>
       </div>
-      <button onClick={exportWorkReport}><Download size={16} /> ייצוא לאקסל</button>
+      <div className="reportActions">
+        <label>
+          עובד
+          <select value={reportWorkerId} onChange={(e) => setReportWorkerId(e.target.value)}>
+            <option value="all">כל העובדים</option>
+            {reportWorkers.map((worker) => <option key={worker.id} value={worker.id}>{worker.full_name} - {worker.email}</option>)}
+          </select>
+        </label>
+        <button onClick={() => exportWorkReport(reportWorkerId)}><Download size={16} /> ייצוא לאקסל</button>
+      </div>
     </div>
     <div className="reportStats">
       <Stat number={rows.length} label="שורות בדוח" icon={<Users />} />

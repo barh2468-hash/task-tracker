@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Camera, CheckCircle, Clock, Download, FilePlus2, FolderKanban, History, LogOut, Pencil, PlayCircle, Search, Shield, Square, Trash2, Users, X } from 'lucide-react';
+import { Camera, CheckCircle, Clock, Download, FilePlus2, FolderKanban, History, LogOut, MapPin, Pencil, PlayCircle, Search, Shield, Square, Trash2, Users, X } from 'lucide-react';
 import { envReady, statusProgress, statuses, supabase } from '@/lib/supabase';
 
 type Role = 'manager' | 'field_worker';
@@ -13,11 +13,17 @@ type WorkSession = {
   worker_id: string;
   started_at: string;
   ended_at: string | null;
+  started_lat: number | null;
+  started_lng: number | null;
+  started_accuracy: number | null;
+  ended_lat: number | null;
+  ended_lng: number | null;
+  ended_accuracy: number | null;
   created_at: string;
   profiles?: { full_name: string; email: string | null } | null;
   projects?: { name: string; client_name: string | null; location: string } | null;
 };
-type ProjectWorkSession = Pick<WorkSession, 'id' | 'worker_id' | 'started_at' | 'ended_at'>;
+type ProjectWorkSession = Pick<WorkSession, 'id' | 'worker_id' | 'started_at' | 'ended_at' | 'started_lat' | 'started_lng' | 'started_accuracy' | 'ended_lat' | 'ended_lng' | 'ended_accuracy'>;
 
 type Project = {
   id: string;
@@ -55,6 +61,8 @@ type NewProject = {
 };
 
 const emptyProject: NewProject = { name: '', client_name: '', location: '', description: '', assigned_to: '', due_date: '' };
+
+type GeoLocationPoint = { lat: number; lng: number; accuracy: number | null };
 
 const roleLabel: Record<Role, string> = {
   manager: 'מנהל מערכת',
@@ -210,7 +218,7 @@ export default function Page() {
 
     let request = supabase
       .from('projects')
-      .select('*, profiles:assigned_to(full_name), project_photos(id,file_path,created_at), work_sessions(id,worker_id,started_at,ended_at)')
+      .select('*, profiles:assigned_to(full_name), project_photos(id,file_path,created_at), work_sessions(id,worker_id,started_at,ended_at,started_lat,started_lng,started_accuracy,ended_lat,ended_lng,ended_accuracy)')
       .order('updated_at', { ascending: false });
 
     if (activeProfile.role !== 'manager') request = request.eq('assigned_to', user.id);
@@ -259,10 +267,21 @@ export default function Page() {
       return;
     }
 
+    setMessage('מבקש הרשאת מיקום מהמכשיר...');
+    const location = await getCurrentLocationWithFallback();
+    if (location === false) {
+      setMessage('התחלת העבודה בוטלה כי לא התקבל אישור מיקום.');
+      return;
+    }
+
+    const startedAt = new Date();
     const { error } = await supabase.from('work_sessions').insert({
       project_id: project.id,
       worker_id: user.id,
-      started_at: new Date().toISOString()
+      started_at: startedAt.toISOString(),
+      started_lat: location?.lat ?? null,
+      started_lng: location?.lng ?? null,
+      started_accuracy: location?.accuracy ?? null
     });
 
     if (error) {
@@ -270,15 +289,16 @@ export default function Page() {
       return;
     }
 
+    const locationText = location ? ` · מיקום התחלה: ${formatLocation(location)}` : ' · מיקום התחלה לא נשמר';
     await supabase.from('status_history').insert({
       project_id: project.id,
       old_status: null,
       new_status: 'התחלת עבודה',
       changed_by: user.id,
-      note: `שעת התחלה: ${new Date().toLocaleString('he-IL')}`
+      note: `שעת התחלה: ${startedAt.toLocaleString('he-IL')}${locationText}`
     });
 
-    setMessage(`נרשמה שעת התחלה עבור ${project.name}`);
+    setMessage(`נרשמה שעת התחלה עבור ${project.name}${location ? ' כולל מיקום' : ''}`);
     await Promise.all([loadProjects(), loadHistory(), loadWorkSessions()]);
   }
 
@@ -292,13 +312,25 @@ export default function Page() {
       return;
     }
 
+    setMessage('מבקש מיקום סיום מהמכשיר...');
+    const location = await getCurrentLocationWithFallback();
+    if (location === false) {
+      setMessage('סיום העבודה בוטל כי לא התקבל אישור מיקום.');
+      return;
+    }
+
     const endedAt = new Date();
     const startedAt = new Date(openSession.started_at);
     const minutes = Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 60000));
 
     const { error } = await supabase
       .from('work_sessions')
-      .update({ ended_at: endedAt.toISOString() })
+      .update({
+        ended_at: endedAt.toISOString(),
+        ended_lat: location?.lat ?? null,
+        ended_lng: location?.lng ?? null,
+        ended_accuracy: location?.accuracy ?? null
+      })
       .eq('id', openSession.id);
 
     if (error) {
@@ -306,15 +338,16 @@ export default function Page() {
       return;
     }
 
+    const locationText = location ? ` · מיקום סיום: ${formatLocation(location)}` : ' · מיקום סיום לא נשמר';
     await supabase.from('status_history').insert({
       project_id: project.id,
       old_status: null,
       new_status: 'סיום עבודה',
       changed_by: user.id,
-      note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}`
+      note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}${locationText}`
     });
 
-    setMessage(`נרשמה שעת סיום עבור ${project.name}. זמן עבודה: ${formatDuration(minutes)}`);
+    setMessage(`נרשמה שעת סיום עבור ${project.name}. זמן עבודה: ${formatDuration(minutes)}${location ? ' כולל מיקום' : ''}`);
     await Promise.all([loadProjects(), loadHistory(), loadWorkSessions()]);
   }
 
@@ -325,8 +358,8 @@ export default function Page() {
     }
 
     const rows = buildWorkReportRows(workSessions);
-    const headers = ['עובד', 'מייל', 'פרויקט', 'לקוח', 'מיקום', 'מספר ימים', 'סה״כ דקות', 'סה״כ שעות', 'כניסות פתוחות'];
-    const csvRows = [headers, ...rows.map((r) => [r.workerName, r.email, r.projectName, r.clientName, r.location, String(r.days), String(r.totalMinutes), formatHoursDecimal(r.totalMinutes), String(r.openSessions)])];
+    const headers = ['עובד', 'מייל', 'פרויקט', 'לקוח', 'מיקום', 'מספר ימים', 'סה״כ דקות', 'סה״כ שעות', 'כניסות פתוחות', 'מיקומי התחלה', 'מיקומי סיום'];
+    const csvRows = [headers, ...rows.map((r) => [r.workerName, r.email, r.projectName, r.clientName, r.location, String(r.days), String(r.totalMinutes), formatHoursDecimal(r.totalMinutes), String(r.openSessions), r.startMapLinks.join(' | '), r.endMapLinks.join(' | ')])];
     const csv = '\uFEFF' + csvRows.map((row) => row.map(csvEscape).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -690,10 +723,10 @@ function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManag
     <div className="form">
       <div className="timeBox">
         {myOpenSession ? <>
-          <div><b>עבודה פעילה</b><br /><span className="muted">התחלה: {new Date(myOpenSession.started_at).toLocaleString('he-IL')}</span></div>
+          <div><b>עבודה פעילה</b><br /><span className="muted">התחלה: {new Date(myOpenSession.started_at).toLocaleString('he-IL')}</span><LocationLine label="מיקום התחלה" lat={myOpenSession.started_lat} lng={myOpenSession.started_lng} accuracy={myOpenSession.started_accuracy} /></div>
           <button className="smallBtn danger" onClick={() => endWork(project)}><Square size={15} /> סיים עבודה</button>
         </> : <>
-          <div><b>שעות עבודה</b><br /><span className="muted">{lastEndedSession ? `סיום אחרון: ${new Date(lastEndedSession.ended_at || '').toLocaleString('he-IL')}` : 'לא נרשמה עבודה פתוחה'}</span></div>
+          <div><b>שעות עבודה</b><br /><span className="muted">{lastEndedSession ? `סיום אחרון: ${new Date(lastEndedSession.ended_at || '').toLocaleString('he-IL')}` : 'לא נרשמה עבודה פתוחה'}</span>{lastEndedSession && <LocationLine label="מיקום סיום אחרון" lat={lastEndedSession.ended_lat} lng={lastEndedSession.ended_lng} accuracy={lastEndedSession.ended_accuracy} />}</div>
           <button className="smallBtn" onClick={() => startWork(project)}><PlayCircle size={15} /> התחל עבודה</button>
         </>}
       </div>
@@ -740,6 +773,50 @@ function StatusPill({ status }: { status: string }) {
 }
 
 
+function getCurrentLocation(): Promise<GeoLocationPoint> {
+  return new Promise((resolve, reject) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      reject(new Error('הדפדפן לא תומך בשירותי מיקום.'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        accuracy: Number.isFinite(position.coords.accuracy) ? Math.round(position.coords.accuracy) : null
+      }),
+      (error) => reject(error),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+    );
+  });
+}
+
+async function getCurrentLocationWithFallback(): Promise<GeoLocationPoint | null | false> {
+  try {
+    return await getCurrentLocation();
+  } catch (_error) {
+    const shouldContinue = window.confirm('לא הצלחתי לקבל מיקום מהמכשיר. ודא ששירותי מיקום פעילים ושהרשאת מיקום מאושרת לדפדפן. האם להמשיך בלי לשמור מיקום?');
+    return shouldContinue ? null : false;
+  }
+}
+
+function mapsLink(lat: number | null | undefined, lng: number | null | undefined) {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return '';
+  return `https://www.google.com/maps?q=${lat},${lng}`;
+}
+
+function formatLocation(location: GeoLocationPoint) {
+  const accuracy = typeof location.accuracy === 'number' ? ` · דיוק כ-${location.accuracy} מ׳` : '';
+  return `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}${accuracy}`;
+}
+
+function LocationLine({ label, lat, lng, accuracy }: { label: string; lat?: number | null; lng?: number | null; accuracy?: number | null }) {
+  const link = mapsLink(lat, lng);
+  if (!link) return <><br /><span className="muted locationLine"><MapPin size={13} /> {label}: לא נשמר</span></>;
+  return <><br /><a className="muted locationLine" href={link} target="_blank" rel="noreferrer"><MapPin size={13} /> {label}: פתח במפה{typeof accuracy === 'number' ? ` · דיוק כ-${Math.round(accuracy)} מ׳` : ''}</a></>;
+}
+
 function formatDuration(minutes: number) {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
@@ -766,6 +843,8 @@ function buildWorkReportRows(workSessions: WorkSession[]) {
     totalMinutes: number;
     daysSet: Set<string>;
     openSessions: number;
+    startMapLinks: string[];
+    endMapLinks: string[];
   }>();
 
   for (const item of workSessions) {
@@ -781,11 +860,17 @@ function buildWorkReportRows(workSessions: WorkSession[]) {
       location: item.projects?.location || '',
       totalMinutes: 0,
       daysSet: new Set<string>(),
-      openSessions: 0
+      openSessions: 0,
+      startMapLinks: [],
+      endMapLinks: []
     };
 
     existing.totalMinutes += minutes;
     existing.daysSet.add(started.toISOString().slice(0, 10));
+    const startLink = mapsLink(item.started_lat, item.started_lng);
+    const endLink = mapsLink(item.ended_lat, item.ended_lng);
+    if (startLink && !existing.startMapLinks.includes(startLink)) existing.startMapLinks.push(startLink);
+    if (endLink && !existing.endMapLinks.includes(endLink)) existing.endMapLinks.push(endLink);
     if (!item.ended_at) existing.openSessions += 1;
     map.set(key, existing);
   }
@@ -813,9 +898,9 @@ function WorkReportPanel({ workSessions, exportWorkReport }: { workSessions: Wor
     </div>
     <div className="tableWrap">
       <table className="reportTable">
-        <thead><tr><th>עובד</th><th>פרויקט</th><th>לקוח</th><th>מיקום</th><th>ימים</th><th>זמן עבודה</th><th>פתוח</th></tr></thead>
+        <thead><tr><th>עובד</th><th>פרויקט</th><th>לקוח</th><th>מיקום</th><th>ימים</th><th>זמן עבודה</th><th>פתוח</th><th>מיקומי שטח</th></tr></thead>
         <tbody>
-          {rows.length === 0 && <tr><td colSpan={7}>אין עדיין נתוני שעות</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={8}>אין עדיין נתוני שעות</td></tr>}
           {rows.map((row) => <tr key={`${row.email}_${row.projectName}`}>
             <td><b>{row.workerName}</b><br /><span className="muted">{row.email}</span></td>
             <td>{row.projectName}</td>
@@ -824,11 +909,21 @@ function WorkReportPanel({ workSessions, exportWorkReport }: { workSessions: Wor
             <td>{row.days}</td>
             <td>{formatDuration(row.totalMinutes)}<br /><span className="muted">{formatHoursDecimal(row.totalMinutes)} שעות</span></td>
             <td>{row.openSessions ? `${row.openSessions} פתוח` : '-'}</td>
+            <td><MapLinks startLinks={row.startMapLinks} endLinks={row.endMapLinks} /></td>
           </tr>)}
         </tbody>
       </table>
     </div>
   </section>;
+}
+
+function MapLinks({ startLinks, endLinks }: { startLinks: string[]; endLinks: string[] }) {
+  if (!startLinks.length && !endLinks.length) return <span className="muted">לא נשמר מיקום</span>;
+  return <div className="mapLinks">
+    {startLinks.slice(0, 3).map((link, i) => <a key={`s-${link}`} href={link} target="_blank" rel="noreferrer">התחלה {i + 1}</a>)}
+    {endLinks.slice(0, 3).map((link, i) => <a key={`e-${link}`} href={link} target="_blank" rel="noreferrer">סיום {i + 1}</a>)}
+    {(startLinks.length + endLinks.length) > 6 && <span className="muted">ועוד...</span>}
+  </div>;
 }
 
 function HistoryPanel({ historyItems, projects }: { historyItems: StatusHistory[]; projects: Project[] }) {

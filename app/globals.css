@@ -97,3 +97,5 @@
   .modalActions{display:grid;grid-template-columns:1fr;}
   .modalActions button{width:100%;}
 }
+.reportActionsWide{align-items:end}.reportActionsWide label{min-width:190px}.reportActionsWide input[type="month"],.reportActionsWide input[type="date"]{min-width:160px}.reportStats{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+@media(max-width:760px){.reportActionsWide label{min-width:0}.reportActionsWide input[type="month"],.reportActionsWide input[type="date"]{min-width:0}}

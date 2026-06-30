@@ -67,6 +67,24 @@ const emptyProject: NewProject = { name: '', client_name: '', location: '', desc
 
 type GeoLocationPoint = { lat: number; lng: number; accuracy: number | null };
 
+function toDateInputValue(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+function getMonthRange(date = new Date()) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const start = new Date(year, month, 1);
+  const end = new Date(year, month + 1, 0);
+  return { from: toDateInputValue(start), to: toDateInputValue(end), month: `${year}-${String(month + 1).padStart(2, '0')}` };
+}
+
+function sessionStartedInRange(item: WorkSession, fromDate: string, toDate: string) {
+  const started = item.started_at.slice(0, 10);
+  return (!fromDate || started >= fromDate) && (!toDate || started <= toDate);
+}
+
+
 const roleLabel: Record<Role, string> = {
   manager: 'מנהל מערכת',
   field_worker: 'עובד שטח'
@@ -88,7 +106,11 @@ export default function Page() {
   const isManager = profile?.role === 'manager';
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const defaultReportRange = getMonthRange();
   const [reportWorkerId, setReportWorkerId] = useState('all');
+  const [reportMonth, setReportMonth] = useState(defaultReportRange.month);
+  const [reportFromDate, setReportFromDate] = useState(defaultReportRange.from);
+  const [reportToDate, setReportToDate] = useState(defaultReportRange.to);
   const [message, setMessage] = useState('');
   const [newProject, setNewProject] = useState<NewProject>(emptyProject);
 
@@ -396,16 +418,19 @@ export default function Page() {
     await Promise.all([loadProjects(), loadHistory(), loadWorkSessions()]);
   }
 
-  function exportWorkReport(workerId = reportWorkerId) {
-    const filteredSessions = workerId === 'all' ? workSessions : workSessions.filter((item) => item.worker_id === workerId);
+  function exportWorkReport(workerId = reportWorkerId, fromDate = reportFromDate, toDate = reportToDate) {
+    const filteredSessions = workSessions
+      .filter((item) => workerId === 'all' || item.worker_id === workerId)
+      .filter((item) => sessionStartedInRange(item, fromDate, toDate));
+
     if (!filteredSessions.length) {
-      setMessage(workerId === 'all' ? 'אין נתוני שעות לייצוא כרגע.' : 'אין נתוני שעות לעובד שנבחר.');
+      setMessage(workerId === 'all' ? 'אין נתוני שעות לייצוא בטווח התאריכים שנבחר.' : 'אין נתוני שעות לעובד שנבחר בטווח התאריכים.');
       return;
     }
 
     const rows = buildWorkReportRows(filteredSessions);
-    const headers = ['עובד', 'מייל', 'פרויקט', 'לקוח', 'מיקום', 'מספר ימים', 'סה״כ דקות', 'סה״כ שעות', 'כניסות פתוחות', 'מיקומי התחלה', 'מיקומי סיום'];
-    const csvRows = [headers, ...rows.map((r) => [r.workerName, r.email, r.projectName, r.clientName, r.location, String(r.days), String(r.totalMinutes), formatHoursDecimal(r.totalMinutes), String(r.openSessions), r.startMapLinks.join(' | '), r.endMapLinks.join(' | ')])];
+    const headers = ['מתאריך', 'עד תאריך', 'עובד', 'מייל', 'פרויקט', 'לקוח', 'מיקום', 'תאריכי עבודה', 'מספר ימים', 'סה״כ דקות', 'סה״כ שעות', 'כניסות פתוחות', 'מיקומי התחלה', 'מיקומי סיום'];
+    const csvRows = [headers, ...rows.map((r) => [fromDate || '', toDate || '', r.workerName, r.email, r.projectName, r.clientName, r.location, r.workDates.join(' | '), String(r.days), String(r.totalMinutes), formatHoursDecimal(r.totalMinutes), String(r.openSessions), r.startMapLinks.join(' | '), r.endMapLinks.join(' | ')])];
     const csv = '\uFEFF' + csvRows.map((row) => row.map(csvEscape).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -413,7 +438,8 @@ export default function Page() {
     a.href = url;
     const selectedWorker = workers.find((w) => w.id === workerId);
     const workerPart = selectedWorker ? `-${selectedWorker.full_name.replace(/\s+/g, '-')}` : '-כל-העובדים';
-    a.download = `דוח-שעות-עובדים${workerPart}-${new Date().toISOString().slice(0, 10)}.csv`;
+    const rangePart = `${fromDate || 'ללא-התחלה'}-עד-${toDate || 'ללא-סיום'}`;
+    a.download = `דוח-שעות-עובדים${workerPart}-${rangePart}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -814,7 +840,7 @@ export default function Page() {
         {tab === 'new' && isManager && <NewProjectForm project={newProject} setProject={setNewProject} workers={workers} createProject={createProject} />}
         {tab === 'history' && <HistoryPanel historyItems={historyItems} projects={projects} />}
         {tab === 'notifications' && <NotificationsPanel notifications={notifications} markRead={markNotificationRead} markAllRead={markAllNotificationsRead} />}
-        {tab === 'report' && isManager && <WorkReportPanel workSessions={workSessions} workers={workers} reportWorkerId={reportWorkerId} setReportWorkerId={setReportWorkerId} exportWorkReport={exportWorkReport} />}
+        {tab === 'report' && isManager && <WorkReportPanel workSessions={workSessions} workers={workers} reportWorkerId={reportWorkerId} setReportWorkerId={setReportWorkerId} reportMonth={reportMonth} setReportMonth={setReportMonth} reportFromDate={reportFromDate} setReportFromDate={setReportFromDate} reportToDate={reportToDate} setReportToDate={setReportToDate} exportWorkReport={exportWorkReport} />}
         {tab !== 'new' && tab !== 'history' && tab !== 'report' && tab !== 'notifications' && <section className="card">
           <div className="toolbar">
             <div style={{ minWidth: 260, flex: 1 }}><input placeholder="חיפוש לפי שם, לקוח או מיקום..." value={query} onChange={(e) => setQuery(e.target.value)} /></div>
@@ -1113,6 +1139,7 @@ function buildWorkReportRows(workSessions: WorkSession[]) {
     openSessions: number;
     startMapLinks: string[];
     endMapLinks: string[];
+    workDatesSet: Set<string>;
   }>();
 
   for (const item of workSessions) {
@@ -1130,11 +1157,14 @@ function buildWorkReportRows(workSessions: WorkSession[]) {
       daysSet: new Set<string>(),
       openSessions: 0,
       startMapLinks: [],
-      endMapLinks: []
+      endMapLinks: [],
+      workDatesSet: new Set<string>()
     };
 
     existing.totalMinutes += minutes;
-    existing.daysSet.add(started.toISOString().slice(0, 10));
+    const workDate = started.toISOString().slice(0, 10);
+    existing.daysSet.add(workDate);
+    existing.workDatesSet.add(workDate);
     const startLink = mapsLink(item.started_lat, item.started_lng);
     const endLink = mapsLink(item.ended_lat, item.ended_lng);
     if (startLink && !existing.startMapLinks.includes(startLink)) existing.startMapLinks.push(startLink);
@@ -1144,7 +1174,7 @@ function buildWorkReportRows(workSessions: WorkSession[]) {
   }
 
   return Array.from(map.values())
-    .map((r) => ({ ...r, days: r.daysSet.size }))
+    .map((r) => ({ ...r, days: r.daysSet.size, workDates: Array.from(r.workDatesSet).sort() }))
     .sort((a, b) => a.workerName.localeCompare(b.workerName, 'he'));
 }
 
@@ -1201,7 +1231,7 @@ function NotificationsPanel({ notifications, markRead, markAllRead }: { notifica
   </section>;
 }
 
-function WorkReportPanel({ workSessions, workers, reportWorkerId, setReportWorkerId, exportWorkReport }: { workSessions: WorkSession[]; workers: Profile[]; reportWorkerId: string; setReportWorkerId: (id: string) => void; exportWorkReport: (workerId?: string) => void }) {
+function WorkReportPanel({ workSessions, workers, reportWorkerId, setReportWorkerId, reportMonth, setReportMonth, reportFromDate, setReportFromDate, reportToDate, setReportToDate, exportWorkReport }: { workSessions: WorkSession[]; workers: Profile[]; reportWorkerId: string; setReportWorkerId: (id: string) => void; reportMonth: string; setReportMonth: (value: string) => void; reportFromDate: string; setReportFromDate: (value: string) => void; reportToDate: string; setReportToDate: (value: string) => void; exportWorkReport: (workerId?: string, fromDate?: string, toDate?: string) => void }) {
   const reportWorkers = useMemo(() => {
     const seen = new Set<string>();
     return workers
@@ -1212,17 +1242,31 @@ function WorkReportPanel({ workSessions, workers, reportWorkerId, setReportWorke
       })
       .sort((a, b) => a.full_name.localeCompare(b.full_name, 'he'));
   }, [workers]);
-  const filteredSessions = useMemo(() => reportWorkerId === 'all' ? workSessions : workSessions.filter((item) => item.worker_id === reportWorkerId), [workSessions, reportWorkerId]);
+  const filteredSessions = useMemo(() => workSessions
+    .filter((item) => reportWorkerId === 'all' || item.worker_id === reportWorkerId)
+    .filter((item) => sessionStartedInRange(item, reportFromDate, reportToDate)),
+    [workSessions, reportWorkerId, reportFromDate, reportToDate]
+  );
   const rows = useMemo(() => buildWorkReportRows(filteredSessions), [filteredSessions]);
   const totalMinutes = rows.reduce((sum, row) => sum + row.totalMinutes, 0);
+  const totalDays = rows.reduce((sum, row) => sum + row.days, 0);
+
+  function applyMonth(value: string) {
+    setReportMonth(value);
+    if (!value) return;
+    const [year, month] = value.split('-').map(Number);
+    if (!year || !month) return;
+    setReportFromDate(toDateInputValue(new Date(year, month - 1, 1)));
+    setReportToDate(toDateInputValue(new Date(year, month, 0)));
+  }
 
   return <section className="card">
     <div className="reportHeader">
       <div>
         <h2>דוח שעות עובדים</h2>
-        <p className="muted">סיכום שעות לפי עובד ופרויקט. הקובץ יורד כ-CSV ונפתח באקסל.</p>
+        <p className="muted">סיכום שעות לפי עובד, פרויקט וטווח תאריכים. אפשר לבחור חודש מלא או טווח מותאם ולייצא לאקסל.</p>
       </div>
-      <div className="reportActions">
+      <div className="reportActions reportActionsWide">
         <label>
           עובד
           <select value={reportWorkerId} onChange={(e) => setReportWorkerId(e.target.value)}>
@@ -1230,23 +1274,37 @@ function WorkReportPanel({ workSessions, workers, reportWorkerId, setReportWorke
             {reportWorkers.map((worker) => <option key={worker.id} value={worker.id}>{worker.full_name} - {worker.email}</option>)}
           </select>
         </label>
-        <button onClick={() => exportWorkReport(reportWorkerId)}><Download size={16} /> ייצוא לאקסל</button>
+        <label>
+          חודש
+          <input type="month" value={reportMonth} onChange={(e) => applyMonth(e.target.value)} />
+        </label>
+        <label>
+          מתאריך
+          <input type="date" value={reportFromDate} onChange={(e) => setReportFromDate(e.target.value)} />
+        </label>
+        <label>
+          עד תאריך
+          <input type="date" value={reportToDate} onChange={(e) => setReportToDate(e.target.value)} />
+        </label>
+        <button onClick={() => exportWorkReport(reportWorkerId, reportFromDate, reportToDate)}><Download size={16} /> ייצוא לאקסל</button>
       </div>
     </div>
     <div className="reportStats">
       <Stat number={rows.length} label="שורות בדוח" icon={<Users />} />
       <Stat number={Math.round((totalMinutes / 60) * 10) / 10} label="סה״כ שעות" icon={<Clock />} />
+      <Stat number={totalDays} label="ימי עבודה בדוח" icon={<History />} />
     </div>
     <div className="tableWrap">
       <table className="reportTable">
-        <thead><tr><th>עובד</th><th>פרויקט</th><th>לקוח</th><th>מיקום</th><th>ימים</th><th>זמן עבודה</th><th>פתוח</th><th>מיקומי שטח</th></tr></thead>
+        <thead><tr><th>עובד</th><th>פרויקט</th><th>לקוח</th><th>מיקום</th><th>תאריכי עבודה</th><th>ימים</th><th>זמן עבודה</th><th>פתוח</th><th>מיקומי שטח</th></tr></thead>
         <tbody>
-          {rows.length === 0 && <tr><td colSpan={8}>אין עדיין נתוני שעות</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={9}>אין נתוני שעות בטווח שנבחר</td></tr>}
           {rows.map((row) => <tr key={`${row.email}_${row.projectName}`}>
             <td><b>{row.workerName}</b><br /><span className="muted">{row.email}</span></td>
             <td>{row.projectName}</td>
             <td>{row.clientName || '-'}</td>
             <td>{row.location || '-'}</td>
+            <td>{row.workDates.join(', ') || '-'}</td>
             <td>{row.days}</td>
             <td>{formatDuration(row.totalMinutes)}<br /><span className="muted">{formatHoursDecimal(row.totalMinutes)} שעות</span></td>
             <td>{row.openSessions ? `${row.openSessions} פתוח` : '-'}</td>

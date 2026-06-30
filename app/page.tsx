@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Camera, CheckCircle, Clock, Download, FilePlus2, FolderKanban, History, LogOut, MapPin, Pencil, PlayCircle, Search, Shield, Square, Trash2, Users, X } from 'lucide-react';
+import { Camera, CheckCircle, Clock, Download, FilePlus2, FolderKanban, History, LogOut, MapPin, Pencil, PlayCircle, PlusCircle, Search, Shield, Square, Trash2, Users, X } from 'lucide-react';
 import { envReady, statusProgress, statuses, supabase } from '@/lib/supabase';
 
 type Role = 'manager' | 'field_worker';
 type Profile = { id: string; email: string | null; full_name: string; role: Role };
 type ProjectPhoto = { id: string; project_id?: string; file_path: string; created_at: string };
+type ProjectTask = { id: string; project_id: string; title: string; description: string | null; is_done: boolean; created_by: string | null; created_at: string; updated_at: string; profiles?: { full_name: string } | null };
 type WorkSession = {
   id: string;
   project_id: string;
@@ -38,6 +39,7 @@ type Project = {
   updated_at: string;
   profiles?: { full_name: string } | null;
   project_photos?: ProjectPhoto[];
+  project_tasks?: ProjectTask[];
   work_sessions?: ProjectWorkSession[];
 };
 type StatusHistory = {
@@ -106,6 +108,7 @@ export default function Page() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadProjects(profile))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'status_history' }, () => loadHistory())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_photos' }, () => loadProjects(profile))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_tasks' }, () => loadProjects(profile))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'work_sessions' }, () => { loadProjects(profile); loadWorkSessions(profile); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -219,7 +222,7 @@ export default function Page() {
 
     let request = supabase
       .from('projects')
-      .select('*, profiles:assigned_to(full_name), project_photos(id,file_path,created_at), work_sessions(id,worker_id,started_at,ended_at,started_lat,started_lng,started_accuracy,ended_lat,ended_lng,ended_accuracy)')
+      .select('*, profiles:assigned_to(full_name), project_photos(id,file_path,created_at), project_tasks(id,project_id,title,description,is_done,created_by,created_at,updated_at,profiles:created_by(full_name)), work_sessions(id,worker_id,started_at,ended_at,started_lat,started_lng,started_accuracy,ended_lat,ended_lng,ended_accuracy)')
       .order('updated_at', { ascending: false });
 
     if (activeProfile.role !== 'manager') request = request.eq('assigned_to', user.id);
@@ -492,19 +495,80 @@ export default function Page() {
     await Promise.all([loadProjects(), loadHistory()]);
   }
 
+
+  async function addProjectTask(projectId: string, title: string, description: string) {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user || profile?.role !== 'manager') return;
+    const cleanTitle = title.trim();
+    if (!cleanTitle) {
+      setMessage('יש למלא כותרת למשימה.');
+      return;
+    }
+
+    const { error } = await supabase.from('project_tasks').insert({
+      project_id: projectId,
+      title: cleanTitle,
+      description: description.trim() || null,
+      created_by: user.id,
+      is_done: false
+    });
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    await supabase.from('status_history').insert({
+      project_id: projectId,
+      old_status: null,
+      new_status: 'נוספה משימה',
+      changed_by: user.id,
+      note: cleanTitle
+    });
+
+    setMessage('המשימה נוספה לפרויקט');
+    await Promise.all([loadProjects(), loadHistory()]);
+  }
+
+  async function toggleProjectTask(task: ProjectTask) {
+    if (profile?.role !== 'manager') return;
+    const { error } = await supabase.from('project_tasks').update({ is_done: !task.is_done }).eq('id', task.id);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setMessage(task.is_done ? 'המשימה סומנה כפתוחה' : 'המשימה סומנה כהושלמה');
+    await loadProjects();
+  }
+
+  async function deleteProjectTask(task: ProjectTask) {
+    if (profile?.role !== 'manager') return;
+    const ok = window.confirm(`למחוק את המשימה "${task.title}"?`);
+    if (!ok) return;
+    const { error } = await supabase.from('project_tasks').delete().eq('id', task.id);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setMessage('המשימה נמחקה');
+    await loadProjects();
+  }
+
   async function createProject() {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user || profile?.role !== 'manager') return;
-    if (!newProject.name || !newProject.location || !newProject.assigned_to) {
-      setMessage('חובה למלא שם פרויקט, מיקום ושיוך לעובד.');
+    if (!newProject.name || !newProject.location) {
+      setMessage('חובה למלא שם פרויקט ומיקום. שיוך לעובד אפשר לבצע גם בהמשך.');
       return;
     }
 
     const { error } = await supabase.from('projects').insert({
-      ...newProject,
-      due_date: newProject.due_date || null,
+      name: newProject.name,
       client_name: newProject.client_name || null,
+      location: newProject.location,
       description: newProject.description || null,
+      assigned_to: newProject.assigned_to || null,
+      due_date: newProject.due_date || null,
       created_by: user.id,
       status: 'בעבודה בשטח',
       progress: 25
@@ -517,7 +581,7 @@ export default function Page() {
 
     setNewProject(emptyProject);
     setTab('all');
-    setMessage('הפרויקט נוצר ושויך לעובד השטח');
+    setMessage(newProject.assigned_to ? 'הפרויקט נוצר ושויך לעובד השטח' : 'הפרויקט נוצר ללא שיוך לעובד. אפשר לשייך אותו בהמשך דרך עריכה.');
     await loadProjects();
   }
 
@@ -612,7 +676,7 @@ export default function Page() {
           <h2>{tab === 'mine' && !isManager ? 'הפרויקטים שלי' : 'כל הפרויקטים'}</h2>
           <div className="projects">
             {visibleProjects.length === 0 && <div className="empty">אין פרויקטים להצגה כרגע</div>}
-            {visibleProjects.map((project) => <ProjectCard key={project.id} project={project} historyItems={historyItems.filter((h) => h.project_id === project.id).slice(0, 4)} updateStatus={updateStatus} uploadPhoto={uploadPhoto} isManager={isManager} workers={workers} saveProject={saveProject} deleteProject={deleteProject} currentUserId={session?.user?.id} startWork={startWork} endWork={endWork} />)}
+            {visibleProjects.map((project) => <ProjectCard key={project.id} project={project} historyItems={historyItems.filter((h) => h.project_id === project.id).slice(0, 4)} updateStatus={updateStatus} uploadPhoto={uploadPhoto} isManager={isManager} workers={workers} saveProject={saveProject} deleteProject={deleteProject} currentUserId={session?.user?.id} startWork={startWork} endWork={endWork} addProjectTask={addProjectTask} toggleProjectTask={toggleProjectTask} deleteProjectTask={deleteProjectTask} />)}
           </div>
         </section>}
       </section>
@@ -639,20 +703,23 @@ function NewProjectForm({ project, setProject, workers, createProject }: { proje
       <label>שם פרויקט<input value={project.name} onChange={(e) => setProject({ ...project, name: e.target.value })} placeholder="לדוגמה: כביש 531 - קטע צפוני" /></label>
       <label>לקוח<input value={project.client_name} onChange={(e) => setProject({ ...project, client_name: e.target.value })} placeholder="לדוגמה: עיריית הרצליה" /></label>
       <label>מיקום<input value={project.location} onChange={(e) => setProject({ ...project, location: e.target.value })} placeholder="עיר / רחוב / אזור" /></label>
-      <label>שיוך לעובד שטח<select value={project.assigned_to} onChange={(e) => setProject({ ...project, assigned_to: e.target.value })}>
-        <option value="">בחר עובד</option>
+      <label>שיוך לעובד שטח, אופציונלי<select value={project.assigned_to} onChange={(e) => setProject({ ...project, assigned_to: e.target.value })}>
+        <option value="">ללא שיוך כרגע</option>
         {workers.map((w) => <option key={w.id} value={w.id}>{w.full_name} - {w.email}</option>)}
       </select></label>
       <label>תאריך יעד<input type="date" value={project.due_date} onChange={(e) => setProject({ ...project, due_date: e.target.value })} /></label>
     </div>
     <label>תיאור העבודה<textarea value={project.description} onChange={(e) => setProject({ ...project, description: e.target.value })} placeholder="פירוט איתור תשתיות, דרישות לקוח, חסמים וכו׳" /></label>
-    <button onClick={createProject}>צור פרויקט ושייך לעובד</button>
+    <button onClick={createProject}>צור פרויקט</button>
   </section>;
 }
 
-function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManager, workers, saveProject, deleteProject, currentUserId, startWork, endWork }: { project: Project; historyItems: StatusHistory[]; updateStatus: (p: Project, s: string, n: string) => void; uploadPhoto: (projectId: string, file: File) => void; isManager: boolean; workers: Profile[]; saveProject: (projectId: string, changes: NewProject) => void; deleteProject: (project: Project) => void; currentUserId?: string; startWork: (project: Project) => void; endWork: (project: Project) => void }) {
+function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManager, workers, saveProject, deleteProject, currentUserId, startWork, endWork, addProjectTask, toggleProjectTask, deleteProjectTask }: { project: Project; historyItems: StatusHistory[]; updateStatus: (p: Project, s: string, n: string) => void; uploadPhoto: (projectId: string, file: File) => void; isManager: boolean; workers: Profile[]; saveProject: (projectId: string, changes: NewProject) => void; deleteProject: (project: Project) => void; currentUserId?: string; startWork: (project: Project) => void; endWork: (project: Project) => void; addProjectTask: (projectId: string, title: string, description: string) => void; toggleProjectTask: (task: ProjectTask) => void; deleteProjectTask: (task: ProjectTask) => void }) {
   const [status, setStatus] = useState(project.status);
   const [note, setNote] = useState('');
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDescription, setTaskDescription] = useState('');
   const [editing, setEditing] = useState(false);
   const [editProject, setEditProject] = useState<NewProject>({
     name: project.name,
@@ -739,12 +806,45 @@ function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManag
       <button className="smallBtn" onClick={() => { updateStatus(project, status, note); setNote(''); }}>עדכן סטטוס</button>
       <label className="smallBtn secondary" style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Camera size={16} /> העלאת תמונה<input className="photoInput" style={{ display: 'none' }} type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadPhoto(project.id, e.target.files[0])} /></label>
     </div>
+    <TaskPanel tasks={project.project_tasks || []} isManager={isManager} showTaskForm={showTaskForm} setShowTaskForm={setShowTaskForm} taskTitle={taskTitle} setTaskTitle={setTaskTitle} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onAdd={() => { addProjectTask(project.id, taskTitle, taskDescription); setTaskTitle(''); setTaskDescription(''); setShowTaskForm(false); }} onToggle={toggleProjectTask} onDelete={deleteProjectTask} />
     <div className="history">
       <b>עדכונים אחרונים</b>
       {historyItems.length === 0 && <div className="muted">אין עדכונים עדיין</div>}
       {historyItems.map((h) => <div className="historyItem" key={h.id}>• {h.new_status}<br /><span>{h.profiles?.full_name || 'משתמש'} · {new Date(h.created_at).toLocaleString('he-IL')}</span>{h.note && <><br /><span>{h.note}</span></>}</div>)}
     </div>
   </article>;
+}
+
+
+function TaskPanel({ tasks, isManager, showTaskForm, setShowTaskForm, taskTitle, setTaskTitle, taskDescription, setTaskDescription, onAdd, onToggle, onDelete }: { tasks: ProjectTask[]; isManager: boolean; showTaskForm: boolean; setShowTaskForm: (value: boolean) => void; taskTitle: string; setTaskTitle: (value: string) => void; taskDescription: string; setTaskDescription: (value: string) => void; onAdd: () => void; onToggle: (task: ProjectTask) => void; onDelete: (task: ProjectTask) => void }) {
+  const sortedTasks = [...tasks].sort((a, b) => Number(a.is_done) - Number(b.is_done) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  return <div className="tasksBox">
+    <div className="tasksHeader">
+      <b>משימות</b>
+      {isManager && <button className="ghost tinyBtn" onClick={() => setShowTaskForm(!showTaskForm)}><PlusCircle size={15} /> משימה</button>}
+    </div>
+    {showTaskForm && isManager && <div className="taskForm">
+      <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="כותרת משימה" />
+      <textarea value={taskDescription} onChange={(e) => setTaskDescription(e.target.value)} placeholder="פירוט המשימה, אופציונלי" />
+      <div className="actionsRow">
+        <button className="smallBtn" onClick={onAdd}>הוסף משימה</button>
+        <button className="ghost smallBtn" onClick={() => setShowTaskForm(false)}>ביטול</button>
+      </div>
+    </div>}
+    {sortedTasks.length === 0 && <div className="muted taskEmpty">אין משימות בפרויקט</div>}
+    {sortedTasks.map((task) => <div className={`taskItem ${task.is_done ? 'doneTask' : ''}`} key={task.id}>
+      <div>
+        <b>{task.title}</b>
+        {task.description && <p className="muted">{task.description}</p>}
+        <span className="muted">נוצר על ידי {task.profiles?.full_name || 'מנהל'} · {new Date(task.created_at).toLocaleDateString('he-IL')}</span>
+      </div>
+      {isManager && <div className="taskActions">
+        <button className="ghost tinyBtn" onClick={() => onToggle(task)}>{task.is_done ? 'פתח' : 'בוצע'}</button>
+        <button className="danger ghost tinyBtn" onClick={() => onDelete(task)}>מחיקה</button>
+      </div>}
+    </div>)}
+  </div>;
 }
 
 function PhotoGallery({ photos }: { photos: ProjectPhoto[] }) {

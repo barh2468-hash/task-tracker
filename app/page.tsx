@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Camera, CheckCircle, Clock, Download, FilePlus2, FolderKanban, History, LogOut, MapPin, Pencil, PlayCircle, PlusCircle, Search, Shield, Square, Trash2, Users, X } from 'lucide-react';
+import { Camera, CheckCircle, ChevronDown, Clock, Download, FilePlus2, FolderKanban, History, LogOut, MapPin, Pencil, PlayCircle, PlusCircle, Search, Shield, Square, Trash2, Users, X } from 'lucide-react';
 import { envReady, statusProgress, statuses, supabase } from '@/lib/supabase';
 
 type Role = 'manager' | 'field_worker';
@@ -721,6 +721,7 @@ function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManag
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [editing, setEditing] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [editProject, setEditProject] = useState<NewProject>({
     name: project.name,
     client_name: project.client_name || '',
@@ -807,10 +808,18 @@ function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManag
       <label className="smallBtn secondary" style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Camera size={16} /> העלאת תמונה<input className="photoInput" style={{ display: 'none' }} type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadPhoto(project.id, e.target.files[0])} /></label>
     </div>
     <TaskPanel tasks={project.project_tasks || []} isManager={isManager} showTaskForm={showTaskForm} setShowTaskForm={setShowTaskForm} taskTitle={taskTitle} setTaskTitle={setTaskTitle} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onAdd={() => { addProjectTask(project.id, taskTitle, taskDescription); setTaskTitle(''); setTaskDescription(''); setShowTaskForm(false); }} onToggle={toggleProjectTask} onDelete={deleteProjectTask} />
-    <div className="history">
-      <b>עדכונים אחרונים</b>
-      {historyItems.length === 0 && <div className="muted">אין עדכונים עדיין</div>}
-      {historyItems.map((h) => <div className="historyItem" key={h.id}>• {h.new_status}<br /><span>{h.profiles?.full_name || 'משתמש'} · {new Date(h.created_at).toLocaleString('he-IL')}</span>{h.note && <><br /><span>{h.note}</span></>}</div>)}
+    <div className={`history collapsibleHistory ${historyOpen ? 'open' : ''}`}>
+      <button className="historyToggle" onClick={() => setHistoryOpen(!historyOpen)} aria-expanded={historyOpen}>
+        <span>
+          <b>עדכונים אחרונים</b>
+          <small>{historyItems.length === 0 ? 'אין עדכונים' : `${historyItems.length} עדכונים`}</small>
+        </span>
+        <ChevronDown className="historyChevron" size={18} />
+      </button>
+      {historyOpen && <div className="historyList">
+        {historyItems.length === 0 && <div className="muted">אין עדכונים עדיין</div>}
+        {historyItems.map((h) => <div className="historyItem" key={h.id}>• {h.new_status}<br /><span>{h.profiles?.full_name || 'משתמש'} · {new Date(h.created_at).toLocaleString('he-IL')}</span>{h.note && <><br /><span>{h.note}</span></>}</div>)}
+      </div>}
     </div>
   </article>;
 }

@@ -554,12 +554,16 @@ export default function Page() {
   async function saveProject(projectId: string, changes: Partial<NewProject & { status: string; progress: number }>) {
     if (profile?.role !== 'manager') return;
 
+    const originalProject = projects.find((item) => item.id === projectId);
+    const previousAssignedTo = originalProject?.assigned_to || null;
+    const nextAssignedTo = changes.assigned_to || null;
+
     const payload = {
       name: changes.name,
       client_name: changes.client_name || null,
       location: changes.location,
       description: changes.description || null,
-      assigned_to: changes.assigned_to || null,
+      assigned_to: nextAssignedTo,
       due_date: changes.due_date || null
     };
 
@@ -569,8 +573,20 @@ export default function Page() {
       return;
     }
 
-    setMessage('הפרויקט עודכן בהצלחה');
-    await loadProjects();
+    if (nextAssignedTo && nextAssignedTo !== previousAssignedTo) {
+      const projectName = changes.name || originalProject?.name || 'פרויקט';
+      const managerName = profile?.full_name || 'מנהל מערכת';
+      await createUserNotification(
+        nextAssignedTo,
+        'project_assigned',
+        `שויך אליך פרויקט חדש: ${projectName}`,
+        `${managerName} שייך אליך את הפרויקט ${projectName}.${changes.location ? ` מיקום: ${changes.location}` : ''}`,
+        projectId
+      );
+    }
+
+    setMessage(nextAssignedTo && nextAssignedTo !== previousAssignedTo ? 'הפרויקט עודכן והעובד קיבל התראה במערכת' : 'הפרויקט עודכן בהצלחה');
+    await Promise.all([loadProjects(), loadNotifications()]);
   }
 
   async function deleteProject(project: Project) {
@@ -701,7 +717,7 @@ export default function Page() {
       return;
     }
 
-    const { error } = await supabase.from('projects').insert({
+    const { data: insertedProject, error } = await supabase.from('projects').insert({
       name: newProject.name,
       client_name: newProject.client_name || null,
       location: newProject.location,
@@ -711,17 +727,27 @@ export default function Page() {
       created_by: user.id,
       status: 'בעבודה בשטח',
       progress: 25
-    });
+    }).select('id').single();
 
     if (error) {
       setMessage(error.message);
       return;
     }
 
+    if (newProject.assigned_to && insertedProject?.id) {
+      await createUserNotification(
+        newProject.assigned_to,
+        'project_assigned',
+        `שויך אליך פרויקט חדש: ${newProject.name}`,
+        `${profile.full_name} שייך אליך את הפרויקט ${newProject.name}. מיקום: ${newProject.location}`,
+        insertedProject.id
+      );
+    }
+
     setNewProject(emptyProject);
     setTab('all');
-    setMessage(newProject.assigned_to ? 'הפרויקט נוצר ושויך לעובד השטח' : 'הפרויקט נוצר ללא שיוך לעובד. אפשר לשייך אותו בהמשך דרך עריכה.');
-    await loadProjects();
+    setMessage(newProject.assigned_to ? 'הפרויקט נוצר, שויך לעובד השטח והעובד קיבל התראה במערכת' : 'הפרויקט נוצר ללא שיוך לעובד. אפשר לשייך אותו בהמשך דרך עריכה.');
+    await Promise.all([loadProjects(), loadNotifications()]);
   }
 
   const visibleProjects = useMemo(() => {

@@ -83,6 +83,7 @@ export default function Page() {
   const [historyItems, setHistoryItems] = useState<StatusHistory[]>([]);
   const [workSessions, setWorkSessions] = useState<WorkSession[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [tab, setTab] = useState<'mine' | 'all' | 'new' | 'history' | 'report' | 'notifications'>('mine');
   const isManager = profile?.role === 'manager';
   const [query, setQuery] = useState('');
@@ -711,10 +712,15 @@ export default function Page() {
     total: projects.length,
     field: projects.filter((p) => p.status === 'בעבודה בשטח').length,
     gpr: projects.filter((p) => p.status === 'נדרש GPR').length,
-    done: projects.filter((p) => p.status === 'הושלם').length
+    done: projects.filter((p) => p.status === 'הושלם').length,
+    unassigned: projects.filter((p) => !p.assigned_to).length,
+    openTasks: projects.reduce((sum, p) => sum + (p.project_tasks || []).filter((t) => !t.is_done).length, 0),
+    activeWork: projects.reduce((sum, p) => sum + (p.work_sessions || []).filter((w) => !w.ended_at).length, 0)
   }), [projects]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const tabTitle = tab === 'mine' ? 'הפרויקטים שלי' : tab === 'all' ? 'כל הפרויקטים' : tab === 'new' ? 'הוספת פרויקט' : tab === 'history' ? 'היסטוריית שינויים' : tab === 'report' ? 'דוח שעות עובדים' : 'התראות';
+  const tabSubtitle = isManager ? 'תצוגת ניהול מלאה לפרויקטים, משימות, עובדים והתראות' : 'תצוגת עובד שטח לפרויקטים, שעות עבודה ומשימות';
 
   if (!envReady) return <SetupScreen />;
 
@@ -747,10 +753,20 @@ export default function Page() {
         </div>
       </div>
       <div className="userRow">
-        <button className="notificationBell" onClick={() => setTab('notifications')} title="התראות">
-          <Bell size={18} />
-          {unreadCount > 0 && <span>{unreadCount}</span>}
-        </button>
+        <div className="notificationWrap">
+          <button className={`notificationBell ${notificationsOpen ? 'active' : ''}`} onClick={() => setNotificationsOpen((open) => !open)} title="התראות">
+            <Bell size={18} />
+            {unreadCount > 0 && <span>{unreadCount}</span>}
+          </button>
+          {notificationsOpen && <NotificationsPopover
+            notifications={notifications}
+            unreadCount={unreadCount}
+            markRead={markNotificationRead}
+            markAllRead={markAllNotificationsRead}
+            close={() => setNotificationsOpen(false)}
+            openFullPage={() => { setTab('notifications'); setNotificationsOpen(false); }}
+          />}
+        </div>
         <div className="avatar">{profile?.full_name?.[0] || 'ע'}</div>
         <div><b>{profile?.full_name || session?.user?.email}</b><p className="muted">{profile ? roleLabel[profile.role] : 'משתמש'}</p></div>
         <button className="secondary" onClick={logout}><LogOut size={16} /> יציאה</button>
@@ -769,12 +785,27 @@ export default function Page() {
         <p style={{ marginTop: 30, color: 'rgba(255,255,255,.72)', lineHeight: 1.7 }}>מותאם לאייפון, אנדרואיד ומחשב. עדכונים בזמן אמת דרך Supabase.</p>
       </aside>
 
-      <section>
+      <section className="mainContent">
+        <div className="dashboardHero">
+          <div>
+            <span className="eyebrow">MAYA TASKS</span>
+            <h2>{tabTitle}</h2>
+            <p>{tabSubtitle}</p>
+          </div>
+          <div className="heroChips">
+            <span>התראות חדשות: {unreadCount}</span>
+            {isManager && <span>פרויקטים ללא שיוך: {stats.unassigned}</span>}
+            <span>עבודות פעילות: {stats.activeWork}</span>
+          </div>
+        </div>
+
         <div className="grid">
           <Stat number={stats.total} label="סה״כ פרויקטים" icon={<FolderKanban />} />
           <Stat number={stats.field} label="בעבודה בשטח" icon={<Clock />} />
           <Stat number={stats.gpr} label="נדרש GPR" icon={<Shield />} />
           <Stat number={stats.done} label="הושלמו" icon={<CheckCircle />} />
+          {isManager && <Stat number={stats.unassigned} label="ללא שיוך" icon={<Users />} />}
+          <Stat number={stats.openTasks} label="משימות פתוחות" icon={<PlusCircle />} />
         </div>
 
         {profile && <div className="card message">מחובר כ: {profile.email} · הרשאה: {profile ? roleLabel[profile.role] : 'משתמש'}</div>}
@@ -867,11 +898,14 @@ function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManag
     ?.filter((w) => w.worker_id === currentUserId && w.ended_at)
     .sort((a, b) => new Date(b.ended_at || '').getTime() - new Date(a.ended_at || '').getTime())[0];
 
-  if (editing) {
-    return <article className="project editProject">
-      <div className="editHeader">
-        <h3>עריכת פרויקט</h3>
-        <button className="ghost smallBtn" onClick={() => setEditing(false)}><X size={16} /> ביטול</button>
+  const editModal = editing ? <div className="modalBackdrop" role="dialog" aria-modal="true" onClick={() => setEditing(false)}>
+    <div className="editModal" onClick={(e) => e.stopPropagation()}>
+      <div className="editHeader modalHeader">
+        <div>
+          <h3>עריכת פרויקט</h3>
+          <p className="muted">עדכון פרטי הפרויקט, שיוך עובד ותאריך יעד.</p>
+        </div>
+        <button className="ghost smallBtn iconBtn" onClick={() => setEditing(false)} aria-label="סגור"><X size={18} /></button>
       </div>
       <div className="formGrid editGrid">
         <label>שם פרויקט<input value={editProject.name} onChange={(e) => setEditProject({ ...editProject, name: e.target.value })} /></label>
@@ -883,15 +917,16 @@ function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManag
         </select></label>
         <label>תאריך יעד<input type="date" value={editProject.due_date} onChange={(e) => setEditProject({ ...editProject, due_date: e.target.value })} /></label>
       </div>
-      <label>תיאור<textarea value={editProject.description} onChange={(e) => setEditProject({ ...editProject, description: e.target.value })} /></label>
-      <div className="actionsRow">
+      <label>תיאור<textarea className="modalTextarea" value={editProject.description} onChange={(e) => setEditProject({ ...editProject, description: e.target.value })} /></label>
+      <div className="modalActions">
         <button onClick={() => { saveProject(project.id, editProject); setEditing(false); }}>שמור שינויים</button>
-        <button className="danger" onClick={() => deleteProject(project)}><Trash2 size={16} /> מחיקת פרויקט</button>
+        <button className="ghost" onClick={() => setEditing(false)}>ביטול</button>
+        <button className="danger ghost" onClick={() => deleteProject(project)}><Trash2 size={16} /> מחיקת פרויקט</button>
       </div>
-    </article>;
-  }
+    </div>
+  </div> : null;
 
-  return <article className="project">
+  return <><article className="project">
     <div>
       <div className="title">{project.name}</div>
       <div className="muted">{project.client_name || 'ללא לקוח'} · {project.description || 'אין תיאור'}</div>
@@ -941,7 +976,7 @@ function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManag
         {historyItems.map((h) => <div className="historyItem" key={h.id}>• {h.new_status}<br /><span>{h.profiles?.full_name || 'משתמש'} · {new Date(h.created_at).toLocaleString('he-IL')}</span>{h.note && <><br /><span>{h.note}</span></>}</div>)}
       </div>}
     </div>
-  </article>;
+  </article>{editModal}</>;
 }
 
 
@@ -1111,6 +1146,35 @@ function buildWorkReportRows(workSessions: WorkSession[]) {
   return Array.from(map.values())
     .map((r) => ({ ...r, days: r.daysSet.size }))
     .sort((a, b) => a.workerName.localeCompare(b.workerName, 'he'));
+}
+
+
+function NotificationsPopover({ notifications, unreadCount, markRead, markAllRead, close, openFullPage }: { notifications: AppNotification[]; unreadCount: number; markRead: (id: string) => void; markAllRead: () => void; close: () => void; openFullPage: () => void }) {
+  const recent = notifications.slice(0, 6);
+  return <div className="notificationsPopover" dir="rtl">
+    <div className="popoverHeader">
+      <div>
+        <b>התראות</b>
+        <span>{unreadCount > 0 ? `${unreadCount} חדשות` : 'אין התראות חדשות'}</span>
+      </div>
+      <button className="iconOnly" onClick={close} title="סגור"><X size={16} /></button>
+    </div>
+    <div className="popoverList">
+      {recent.length === 0 && <div className="popoverEmpty">אין התראות כרגע</div>}
+      {recent.map((item) => <button key={item.id} className={`popoverItem ${item.is_read ? '' : 'unread'}`} onClick={() => !item.is_read && markRead(item.id)}>
+        <span className="dot" />
+        <span className="popoverText">
+          <b>{item.title}</b>
+          {item.body && <small>{item.body}</small>}
+          <em>{new Date(item.created_at).toLocaleString('he-IL')}</em>
+        </span>
+      </button>)}
+    </div>
+    <div className="popoverActions">
+      <button className="ghost tinyBtn" onClick={openFullPage}>לכל ההתראות</button>
+      <button className="ghost tinyBtn" onClick={markAllRead} disabled={unreadCount === 0}>סמן הכל כנקרא</button>
+    </div>
+  </div>;
 }
 
 function NotificationsPanel({ notifications, markRead, markAllRead }: { notifications: AppNotification[]; markRead: (id: string) => void; markAllRead: () => void }) {

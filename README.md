@@ -212,3 +212,28 @@ supabase/unassigned-projects-tasks-fix.sql
 - לכל פרויקט יש אזור משימות.
 - מנהל יכול להוסיף משימה בכפתור הפלוס, לסמן כבוצעה או למחוק משימה.
 - עובד שטח רואה את המשימות בפרויקטים ששויכו אליו.
+
+## עדכון: התראות פנימיות + מייל על משימה שבוצעה
+
+מה נוסף:
+- מרכז התראות פנימי עם פעמון בראש המערכת.
+- מנהלים מקבלים התראה פנימית כשעובד שטח משנה סטטוס, מתחיל/מסיים עבודה או מסמן משימה כבוצעה.
+- עובד שטח מקבל התראה פנימית כשמנהל מוסיף משימה לפרויקט שמשויך אליו.
+- כאשר עובד שטח לוחץ "בוצע" על משימה, נשלח מייל לכל מנהלי המערכת דרך Edge Function חדשה בשם `notify-task-done`.
+
+שלבי התקנה:
+1. להריץ ב-Supabase SQL Editor את הקובץ:
+   `supabase/internal-notifications-task-done-fix.sql`
+2. לפרוס את פונקציית המייל החדשה:
+   `supabase functions deploy notify-task-done`
+3. לוודא שה-Secrets הבאים קיימים ב-Supabase:
+   `RESEND_API_KEY`, `FROM_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY`
+4. להריץ מקומית ולבדוק:
+   `npm install`
+   `npm run dev`
+5. לאחר בדיקה:
+   `git add .`
+   `git commit -m "Add internal notifications and task done email"`
+   `git push`
+
+הערה: `.vercelignore` כבר מונע מ-Vercel לבנות את תיקיית `supabase/functions`, כי הפונקציות האלה מיועדות ל-Supabase בלבד.

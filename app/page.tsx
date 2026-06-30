@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Camera, CheckCircle, ChevronDown, Clock, Download, FilePlus2, FolderKanban, History, LogOut, MapPin, Pencil, PlayCircle, PlusCircle, Search, Shield, Square, Trash2, Users, X } from 'lucide-react';
+import { Bell, Camera, CheckCircle, ChevronDown, Clock, Download, FilePlus2, FolderKanban, History, LogOut, MapPin, Pencil, PlayCircle, PlusCircle, Search, Shield, Square, Trash2, Users, X } from 'lucide-react';
 import { envReady, statusProgress, statuses, supabase } from '@/lib/supabase';
 
 type Role = 'manager' | 'field_worker';
 type Profile = { id: string; email: string | null; full_name: string; role: Role };
 type ProjectPhoto = { id: string; project_id?: string; file_path: string; created_at: string };
 type ProjectTask = { id: string; project_id: string; title: string; description: string | null; is_done: boolean; created_by: string | null; created_at: string; updated_at: string; profiles?: { full_name: string } | null };
+type AppNotification = { id: string; recipient_id: string; type: string; title: string; body: string | null; project_id: string | null; task_id: string | null; created_by: string | null; is_read: boolean; created_at: string; profiles?: { full_name: string } | null; projects?: { name: string } | null };
 type WorkSession = {
   id: string;
   project_id: string;
@@ -81,7 +82,8 @@ export default function Page() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [historyItems, setHistoryItems] = useState<StatusHistory[]>([]);
   const [workSessions, setWorkSessions] = useState<WorkSession[]>([]);
-  const [tab, setTab] = useState<'mine' | 'all' | 'new' | 'history' | 'report'>('mine');
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [tab, setTab] = useState<'mine' | 'all' | 'new' | 'history' | 'report' | 'notifications'>('mine');
   const isManager = profile?.role === 'manager';
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -110,6 +112,7 @@ export default function Page() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_photos' }, () => loadProjects(profile))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_tasks' }, () => loadProjects(profile))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'work_sessions' }, () => { loadProjects(profile); loadWorkSessions(profile); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => loadNotifications(profile))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [profile]);
@@ -155,6 +158,7 @@ export default function Page() {
     setProfile(null);
     setProjects([]);
     setHistoryItems([]);
+    setNotifications([]);
   }
 
   async function loadProfileAndData() {
@@ -199,7 +203,7 @@ export default function Page() {
     const typedProfile = prof as Profile;
     setProfile(typedProfile);
     if (typedProfile.role === 'manager') setTab('all');
-    await Promise.all([loadProjects(typedProfile), loadWorkers(typedProfile), loadHistory(typedProfile), loadWorkSessions(typedProfile)]);
+    await Promise.all([loadProjects(typedProfile), loadWorkers(typedProfile), loadHistory(typedProfile), loadWorkSessions(typedProfile), loadNotifications(typedProfile)]);
   }
 
   async function loadWorkers(activeProfile = profile) {
@@ -261,6 +265,34 @@ export default function Page() {
     setWorkSessions((data || []) as WorkSession[]);
   }
 
+
+  async function loadNotifications(_activeProfile = profile) {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*, profiles:created_by(full_name), projects:project_id(name)')
+      .order('created_at', { ascending: false })
+      .limit(80);
+
+    if (error) {
+      // The table may not exist until the SQL migration is run, so do not block the app.
+      console.warn('Notifications load failed:', error.message);
+      setNotifications([]);
+      return;
+    }
+
+    setNotifications((data || []) as AppNotification[]);
+  }
+
+  async function markNotificationRead(notificationId: string) {
+    await supabase.from('notifications').update({ is_read: true }).eq('id', notificationId);
+    await loadNotifications();
+  }
+
+  async function markAllNotificationsRead() {
+    await supabase.from('notifications').update({ is_read: true }).eq('is_read', false);
+    await loadNotifications();
+  }
+
   async function startWork(project: Project) {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) return;
@@ -301,6 +333,10 @@ export default function Page() {
       changed_by: user.id,
       note: `שעת התחלה: ${startedAt.toLocaleString('he-IL')}${locationText}`
     });
+
+    if (profile?.role === 'field_worker') {
+      await createManagerNotification('work_started', `התחלת עבודה: ${project.name}`, `${profile.full_name} התחיל עבודה בפרויקט ${project.name}.${location ? ` מיקום: ${formatLocation(location)}` : ''}`, project.id);
+    }
 
     setMessage(`נרשמה שעת התחלה עבור ${project.name}${location ? ' כולל מיקום' : ''}`);
     await Promise.all([loadProjects(), loadHistory(), loadWorkSessions()]);
@@ -351,6 +387,10 @@ export default function Page() {
       note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}${locationText}`
     });
 
+    if (profile?.role === 'field_worker') {
+      await createManagerNotification('work_ended', `סיום עבודה: ${project.name}`, `${profile.full_name} סיים עבודה בפרויקט ${project.name}. זמן עבודה: ${formatDuration(minutes)}.${location ? ` מיקום: ${formatLocation(location)}` : ''}`, project.id);
+    }
+
     setMessage(`נרשמה שעת סיום עבור ${project.name}. זמן עבודה: ${formatDuration(minutes)}${location ? ' כולל מיקום' : ''}`);
     await Promise.all([loadProjects(), loadHistory(), loadWorkSessions()]);
   }
@@ -377,6 +417,30 @@ export default function Page() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  }
+
+  async function createManagerNotification(type: string, title: string, body: string, projectId?: string, taskId?: string) {
+    const { error } = await supabase.rpc('create_manager_notifications', {
+      p_type: type,
+      p_title: title,
+      p_body: body,
+      p_project_id: projectId || null,
+      p_task_id: taskId || null
+    });
+    if (error) console.warn('Internal notification failed:', error.message);
+  }
+
+  async function createUserNotification(userId: string | null | undefined, type: string, title: string, body: string, projectId?: string, taskId?: string) {
+    if (!userId) return;
+    const { error } = await supabase.rpc('create_user_notification', {
+      p_user_id: userId,
+      p_type: type,
+      p_title: title,
+      p_body: body,
+      p_project_id: projectId || null,
+      p_task_id: taskId || null
+    });
+    if (error) console.warn('User notification failed:', error.message);
   }
 
   async function updateStatus(project: Project, newStatus: string, note: string) {
@@ -407,9 +471,11 @@ export default function Page() {
       return;
     }
 
-    // Email notifications are sent when a field worker changes status.
+    // Internal + email notifications are sent when a field worker changes status.
     // If the Edge Function is not configured yet, the status update still succeeds.
     if (profile?.role === 'field_worker') {
+      await createManagerNotification('status_change', `עדכון סטטוס: ${project.name}`, `${profile.full_name} עדכן סטטוס בפרויקט ${project.name}: ${project.status} → ${newStatus}${note ? `. הערה: ${note}` : ''}`, project.id);
+
       const { error: notifyError } = await supabase.functions.invoke('notify-status-change', {
         body: {
           projectId: project.id,
@@ -526,19 +592,65 @@ export default function Page() {
       note: cleanTitle
     });
 
+    const project = projects.find((p) => p.id === projectId);
+    if (project?.assigned_to) {
+      await createUserNotification(project.assigned_to, 'task_added', `משימה חדשה: ${project.name}`, `נוספה משימה חדשה לפרויקט ${project.name}: ${cleanTitle}`, projectId);
+    }
+
     setMessage('המשימה נוספה לפרויקט');
-    await Promise.all([loadProjects(), loadHistory()]);
+    await Promise.all([loadProjects(), loadHistory(), loadNotifications()]);
   }
 
-  async function toggleProjectTask(task: ProjectTask) {
-    if (profile?.role !== 'manager') return;
-    const { error } = await supabase.from('project_tasks').update({ is_done: !task.is_done }).eq('id', task.id);
+  async function toggleProjectTask(task: ProjectTask, project: Project) {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user || !profile) return;
+
+    const isAssignedWorker = profile.role === 'field_worker' && project.assigned_to === user.id;
+    if (!isManager && !isAssignedWorker) return;
+
+    const nextDone = !task.is_done;
+    const { error } = await supabase.from('project_tasks').update({ is_done: nextDone }).eq('id', task.id);
     if (error) {
       setMessage(error.message);
       return;
     }
-    setMessage(task.is_done ? 'המשימה סומנה כפתוחה' : 'המשימה סומנה כהושלמה');
-    await loadProjects();
+
+    await supabase.from('status_history').insert({
+      project_id: project.id,
+      old_status: null,
+      new_status: nextDone ? 'משימה בוצעה' : 'משימה נפתחה מחדש',
+      changed_by: user.id,
+      note: task.title
+    });
+
+    if (nextDone && profile.role === 'field_worker') {
+      await createManagerNotification('task_done', `משימה בוצעה: ${project.name}`, `${profile.full_name} סימן משימה כבוצעה בפרויקט ${project.name}: ${task.title}`, project.id, task.id);
+
+      const { error: notifyError } = await supabase.functions.invoke('notify-task-done', {
+        body: {
+          projectId: project.id,
+          projectName: project.name,
+          clientName: project.client_name,
+          location: project.location,
+          taskId: task.id,
+          taskTitle: task.title,
+          taskDescription: task.description,
+          changedByName: profile.full_name,
+          changedByEmail: profile.email,
+          appUrl: typeof window !== 'undefined' ? window.location.origin : ''
+        }
+      });
+
+      if (notifyError) {
+        console.warn('Task email notification failed:', notifyError.message);
+        setMessage(`המשימה סומנה כבוצעה. שים לב: התראת המייל לא נשלחה (${notifyError.message}).`);
+        await Promise.all([loadProjects(), loadHistory(), loadNotifications()]);
+        return;
+      }
+    }
+
+    setMessage(nextDone ? 'המשימה סומנה כבוצעה' : 'המשימה סומנה כפתוחה');
+    await Promise.all([loadProjects(), loadHistory(), loadNotifications()]);
   }
 
   async function deleteProjectTask(task: ProjectTask) {
@@ -602,6 +714,8 @@ export default function Page() {
     done: projects.filter((p) => p.status === 'הושלם').length
   }), [projects]);
 
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
   if (!envReady) return <SetupScreen />;
 
   if (!session) {
@@ -633,6 +747,10 @@ export default function Page() {
         </div>
       </div>
       <div className="userRow">
+        <button className="notificationBell" onClick={() => setTab('notifications')} title="התראות">
+          <Bell size={18} />
+          {unreadCount > 0 && <span>{unreadCount}</span>}
+        </button>
         <div className="avatar">{profile?.full_name?.[0] || 'ע'}</div>
         <div><b>{profile?.full_name || session?.user?.email}</b><p className="muted">{profile ? roleLabel[profile.role] : 'משתמש'}</p></div>
         <button className="secondary" onClick={logout}><LogOut size={16} /> יציאה</button>
@@ -646,6 +764,7 @@ export default function Page() {
         {isManager && <button className={`navBtn ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}><span>כל הפרויקטים</span><Users size={18} /></button>}
         {isManager && <button className={`navBtn ${tab === 'new' ? 'active' : ''}`} onClick={() => setTab('new')}><span>הוספת פרויקט</span><FilePlus2 size={18} /></button>}
         <button className={`navBtn ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}><span>היסטוריית שינויים</span><History size={18} /></button>
+        <button className={`navBtn ${tab === 'notifications' ? 'active' : ''}`} onClick={() => setTab('notifications')}><span>התראות {unreadCount > 0 ? `(${unreadCount})` : ''}</span><Bell size={18} /></button>
         {isManager && <button className={`navBtn ${tab === 'report' ? 'active' : ''}`} onClick={() => setTab('report')}><span>דוח שעות עובדים</span><Download size={18} /></button>}
         <p style={{ marginTop: 30, color: 'rgba(255,255,255,.72)', lineHeight: 1.7 }}>מותאם לאייפון, אנדרואיד ומחשב. עדכונים בזמן אמת דרך Supabase.</p>
       </aside>
@@ -663,8 +782,9 @@ export default function Page() {
 
         {tab === 'new' && isManager && <NewProjectForm project={newProject} setProject={setNewProject} workers={workers} createProject={createProject} />}
         {tab === 'history' && <HistoryPanel historyItems={historyItems} projects={projects} />}
+        {tab === 'notifications' && <NotificationsPanel notifications={notifications} markRead={markNotificationRead} markAllRead={markAllNotificationsRead} />}
         {tab === 'report' && isManager && <WorkReportPanel workSessions={workSessions} workers={workers} reportWorkerId={reportWorkerId} setReportWorkerId={setReportWorkerId} exportWorkReport={exportWorkReport} />}
-        {tab !== 'new' && tab !== 'history' && tab !== 'report' && <section className="card">
+        {tab !== 'new' && tab !== 'history' && tab !== 'report' && tab !== 'notifications' && <section className="card">
           <div className="toolbar">
             <div style={{ minWidth: 260, flex: 1 }}><input placeholder="חיפוש לפי שם, לקוח או מיקום..." value={query} onChange={(e) => setQuery(e.target.value)} /></div>
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ maxWidth: 220 }}>
@@ -714,7 +834,7 @@ function NewProjectForm({ project, setProject, workers, createProject }: { proje
   </section>;
 }
 
-function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManager, workers, saveProject, deleteProject, currentUserId, startWork, endWork, addProjectTask, toggleProjectTask, deleteProjectTask }: { project: Project; historyItems: StatusHistory[]; updateStatus: (p: Project, s: string, n: string) => void; uploadPhoto: (projectId: string, file: File) => void; isManager: boolean; workers: Profile[]; saveProject: (projectId: string, changes: NewProject) => void; deleteProject: (project: Project) => void; currentUserId?: string; startWork: (project: Project) => void; endWork: (project: Project) => void; addProjectTask: (projectId: string, title: string, description: string) => void; toggleProjectTask: (task: ProjectTask) => void; deleteProjectTask: (task: ProjectTask) => void }) {
+function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManager, workers, saveProject, deleteProject, currentUserId, startWork, endWork, addProjectTask, toggleProjectTask, deleteProjectTask }: { project: Project; historyItems: StatusHistory[]; updateStatus: (p: Project, s: string, n: string) => void; uploadPhoto: (projectId: string, file: File) => void; isManager: boolean; workers: Profile[]; saveProject: (projectId: string, changes: NewProject) => void; deleteProject: (project: Project) => void; currentUserId?: string; startWork: (project: Project) => void; endWork: (project: Project) => void; addProjectTask: (projectId: string, title: string, description: string) => void; toggleProjectTask: (task: ProjectTask, project: Project) => void; deleteProjectTask: (task: ProjectTask) => void }) {
   const [status, setStatus] = useState(project.status);
   const [note, setNote] = useState('');
   const [showTaskForm, setShowTaskForm] = useState(false);
@@ -807,7 +927,7 @@ function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManag
       <button className="smallBtn" onClick={() => { updateStatus(project, status, note); setNote(''); }}>עדכן סטטוס</button>
       <label className="smallBtn secondary" style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Camera size={16} /> העלאת תמונה<input className="photoInput" style={{ display: 'none' }} type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadPhoto(project.id, e.target.files[0])} /></label>
     </div>
-    <TaskPanel tasks={project.project_tasks || []} isManager={isManager} showTaskForm={showTaskForm} setShowTaskForm={setShowTaskForm} taskTitle={taskTitle} setTaskTitle={setTaskTitle} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onAdd={() => { addProjectTask(project.id, taskTitle, taskDescription); setTaskTitle(''); setTaskDescription(''); setShowTaskForm(false); }} onToggle={toggleProjectTask} onDelete={deleteProjectTask} />
+    <TaskPanel tasks={project.project_tasks || []} isManager={isManager} canCompleteTasks={isManager || project.assigned_to === currentUserId} showTaskForm={showTaskForm} setShowTaskForm={setShowTaskForm} taskTitle={taskTitle} setTaskTitle={setTaskTitle} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onAdd={() => { addProjectTask(project.id, taskTitle, taskDescription); setTaskTitle(''); setTaskDescription(''); setShowTaskForm(false); }} onToggle={(task) => toggleProjectTask(task, project)} onDelete={deleteProjectTask} />
     <div className={`history collapsibleHistory ${historyOpen ? 'open' : ''}`}>
       <button className="historyToggle" onClick={() => setHistoryOpen(!historyOpen)} aria-expanded={historyOpen}>
         <span>
@@ -825,7 +945,7 @@ function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManag
 }
 
 
-function TaskPanel({ tasks, isManager, showTaskForm, setShowTaskForm, taskTitle, setTaskTitle, taskDescription, setTaskDescription, onAdd, onToggle, onDelete }: { tasks: ProjectTask[]; isManager: boolean; showTaskForm: boolean; setShowTaskForm: (value: boolean) => void; taskTitle: string; setTaskTitle: (value: string) => void; taskDescription: string; setTaskDescription: (value: string) => void; onAdd: () => void; onToggle: (task: ProjectTask) => void; onDelete: (task: ProjectTask) => void }) {
+function TaskPanel({ tasks, isManager, canCompleteTasks, showTaskForm, setShowTaskForm, taskTitle, setTaskTitle, taskDescription, setTaskDescription, onAdd, onToggle, onDelete }: { tasks: ProjectTask[]; isManager: boolean; canCompleteTasks: boolean; showTaskForm: boolean; setShowTaskForm: (value: boolean) => void; taskTitle: string; setTaskTitle: (value: string) => void; taskDescription: string; setTaskDescription: (value: string) => void; onAdd: () => void; onToggle: (task: ProjectTask) => void; onDelete: (task: ProjectTask) => void }) {
   const sortedTasks = [...tasks].sort((a, b) => Number(a.is_done) - Number(b.is_done) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   return <div className="tasksBox">
@@ -848,9 +968,9 @@ function TaskPanel({ tasks, isManager, showTaskForm, setShowTaskForm, taskTitle,
         {task.description && <p className="muted">{task.description}</p>}
         <span className="muted">נוצר על ידי {task.profiles?.full_name || 'מנהל'} · {new Date(task.created_at).toLocaleDateString('he-IL')}</span>
       </div>
-      {isManager && <div className="taskActions">
+      {canCompleteTasks && <div className="taskActions">
         <button className="ghost tinyBtn" onClick={() => onToggle(task)}>{task.is_done ? 'פתח' : 'בוצע'}</button>
-        <button className="danger ghost tinyBtn" onClick={() => onDelete(task)}>מחיקה</button>
+        {isManager && <button className="danger ghost tinyBtn" onClick={() => onDelete(task)}>מחיקה</button>}
       </div>}
     </div>)}
   </div>;
@@ -991,6 +1111,30 @@ function buildWorkReportRows(workSessions: WorkSession[]) {
   return Array.from(map.values())
     .map((r) => ({ ...r, days: r.daysSet.size }))
     .sort((a, b) => a.workerName.localeCompare(b.workerName, 'he'));
+}
+
+function NotificationsPanel({ notifications, markRead, markAllRead }: { notifications: AppNotification[]; markRead: (id: string) => void; markAllRead: () => void }) {
+  const unread = notifications.filter((n) => !n.is_read).length;
+  return <section className="card notificationsPanel">
+    <div className="reportHeader">
+      <div>
+        <h2>התראות</h2>
+        <p className="muted">התראות פנימיות על שינויי סטטוס, התחלת/סיום עבודה ומשימות.</p>
+      </div>
+      <button className="ghost" onClick={markAllRead} disabled={unread === 0}>סמן הכל כנקרא</button>
+    </div>
+    <div className="notificationsList">
+      {notifications.length === 0 && <div className="empty">אין התראות כרגע</div>}
+      {notifications.map((item) => <div key={item.id} className={`notificationItem ${item.is_read ? '' : 'unread'}`}>
+        <div>
+          <b>{item.title}</b>
+          {item.body && <p>{item.body}</p>}
+          <span className="muted">{item.projects?.name ? `${item.projects.name} · ` : ''}{item.profiles?.full_name ? `${item.profiles.full_name} · ` : ''}{new Date(item.created_at).toLocaleString('he-IL')}</span>
+        </div>
+        {!item.is_read && <button className="ghost tinyBtn" onClick={() => markRead(item.id)}>סמן כנקרא</button>}
+      </div>)}
+    </div>
+  </section>;
 }
 
 function WorkReportPanel({ workSessions, workers, reportWorkerId, setReportWorkerId, exportWorkReport }: { workSessions: WorkSession[]; workers: Profile[]; reportWorkerId: string; setReportWorkerId: (id: string) => void; exportWorkReport: (workerId?: string) => void }) {

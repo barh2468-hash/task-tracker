@@ -551,6 +551,30 @@ export default function Page() {
   }
 
 
+
+  async function sendProjectAssignmentEmail(workerId: string, project: { id: string; name: string; client_name?: string | null; location?: string | null; description?: string | null; due_date?: string | null }) {
+    const { error } = await supabase.functions.invoke('notify-project-assigned', {
+      body: {
+        workerId,
+        projectId: project.id,
+        projectName: project.name,
+        clientName: project.client_name || null,
+        location: project.location || null,
+        description: project.description || null,
+        dueDate: project.due_date || null,
+        assignedByName: profile?.full_name || 'מנהל מערכת',
+        appUrl: typeof window !== 'undefined' ? window.location.origin : undefined
+      }
+    });
+
+    if (error) {
+      console.warn('Project assignment email failed:', error.message);
+      return false;
+    }
+
+    return true;
+  }
+
   async function saveProject(projectId: string, changes: Partial<NewProject & { status: string; progress: number }>) {
     if (profile?.role !== 'manager') return;
 
@@ -573,6 +597,7 @@ export default function Page() {
       return;
     }
 
+    let assignmentEmailSent = true;
     if (nextAssignedTo && nextAssignedTo !== previousAssignedTo) {
       const projectName = changes.name || originalProject?.name || 'פרויקט';
       const managerName = profile?.full_name || 'מנהל מערכת';
@@ -583,9 +608,18 @@ export default function Page() {
         `${managerName} שייך אליך את הפרויקט ${projectName}.${changes.location ? ` מיקום: ${changes.location}` : ''}`,
         projectId
       );
+
+      assignmentEmailSent = await sendProjectAssignmentEmail(nextAssignedTo, {
+        id: projectId,
+        name: projectName,
+        client_name: changes.client_name || originalProject?.client_name || null,
+        location: changes.location || originalProject?.location || null,
+        description: changes.description || originalProject?.description || null,
+        due_date: changes.due_date || originalProject?.due_date || null
+      });
     }
 
-    setMessage(nextAssignedTo && nextAssignedTo !== previousAssignedTo ? 'הפרויקט עודכן והעובד קיבל התראה במערכת' : 'הפרויקט עודכן בהצלחה');
+    setMessage(nextAssignedTo && nextAssignedTo !== previousAssignedTo ? (assignmentEmailSent ? 'הפרויקט עודכן, העובד קיבל התראה במערכת ומייל' : 'הפרויקט עודכן והעובד קיבל התראה במערכת. שים לב: המייל לא נשלח') : 'הפרויקט עודכן בהצלחה');
     await Promise.all([loadProjects(), loadNotifications()]);
   }
 
@@ -734,6 +768,7 @@ export default function Page() {
       return;
     }
 
+    let assignmentEmailSent = true;
     if (newProject.assigned_to && insertedProject?.id) {
       await createUserNotification(
         newProject.assigned_to,
@@ -742,11 +777,20 @@ export default function Page() {
         `${profile.full_name} שייך אליך את הפרויקט ${newProject.name}. מיקום: ${newProject.location}`,
         insertedProject.id
       );
+
+      assignmentEmailSent = await sendProjectAssignmentEmail(newProject.assigned_to, {
+        id: insertedProject.id,
+        name: newProject.name,
+        client_name: newProject.client_name || null,
+        location: newProject.location || null,
+        description: newProject.description || null,
+        due_date: newProject.due_date || null
+      });
     }
 
     setNewProject(emptyProject);
     setTab('all');
-    setMessage(newProject.assigned_to ? 'הפרויקט נוצר, שויך לעובד השטח והעובד קיבל התראה במערכת' : 'הפרויקט נוצר ללא שיוך לעובד. אפשר לשייך אותו בהמשך דרך עריכה.');
+    setMessage(newProject.assigned_to ? (assignmentEmailSent ? 'הפרויקט נוצר, שויך לעובד השטח והעובד קיבל התראה במערכת ומייל' : 'הפרויקט נוצר והעובד קיבל התראה במערכת. שים לב: המייל לא נשלח') : 'הפרויקט נוצר ללא שיוך לעובד. אפשר לשייך אותו בהמשך דרך עריכה.');
     await Promise.all([loadProjects(), loadNotifications()]);
   }
 

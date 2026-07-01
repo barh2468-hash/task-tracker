@@ -99,3 +99,143 @@
 }
 .reportActionsWide{align-items:end}.reportActionsWide label{min-width:190px}.reportActionsWide input[type="month"],.reportActionsWide input[type="date"]{min-width:160px}.reportStats{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
 @media(max-width:760px){.reportActionsWide label{min-width:0}.reportActionsWide input[type="month"],.reportActionsWide input[type="date"]{min-width:0}}
+
+/* Compact project card layout: top summary + horizontal action bar + clean full-width sections */
+.projects{
+  gap:14px;
+}
+.project{
+  grid-template-columns:minmax(280px,1.4fr) minmax(160px,.7fr) minmax(190px,.85fr);
+  gap:12px;
+  padding:16px 18px;
+  align-items:stretch;
+}
+.project > div:nth-child(1),
+.project > div:nth-child(2),
+.project > div:nth-child(3){
+  background:#fbfdff;
+  border:1px solid #e7edf4;
+  border-radius:18px;
+  padding:13px 14px;
+  min-height:116px;
+}
+.project .title{
+  font-size:18px;
+  margin-bottom:4px;
+}
+.project .muted{
+  font-size:13px;
+  line-height:1.45;
+}
+.project .cardActions{
+  margin-top:10px;
+}
+.project .smallBtn,
+.project .tinyBtn{
+  min-height:36px;
+}
+.project > .form{
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:minmax(260px,1.15fr) minmax(170px,.75fr) minmax(220px,1fr) minmax(132px,.55fr) minmax(142px,.6fr);
+  gap:10px;
+  align-items:stretch;
+  background:linear-gradient(180deg,#f8fbff,#fff);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:12px;
+}
+.project > .form .timeBox{
+  padding:10px 12px;
+  min-height:58px;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  gap:10px;
+}
+.project > .form .timeBox b{
+  font-size:14px;
+}
+.project > .form input,
+.project > .form select{
+  min-height:48px;
+  padding:10px 13px;
+}
+.project > .form > button,
+.project > .form > label.smallBtn{
+  min-height:48px;
+  margin:0;
+}
+.project > .tasksBox,
+.project > .collapsibleHistory{
+  grid-column:1 / -1;
+}
+.project > .tasksBox{
+  padding:11px;
+  gap:8px;
+}
+.tasksHeader{
+  padding-bottom:8px;
+}
+.taskItem{
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  padding:10px 12px;
+}
+.taskItem p{
+  margin:2px 0 4px;
+}
+.taskActions{
+  justify-content:flex-start;
+  white-space:nowrap;
+}
+.collapsibleHistory .historyToggle{
+  padding:11px 13px;
+}
+.photos{
+  margin-top:9px;
+  grid-template-columns:repeat(4,50px);
+}
+.photos img,.photoSkeleton{
+  width:50px;
+  height:50px;
+}
+.progress{
+  margin:8px 0 8px;
+}
+
+@media(max-width:1180px){
+  .project{
+    grid-template-columns:1fr 1fr;
+  }
+  .project > div:nth-child(1){grid-column:1 / -1;}
+  .project > .form{
+    grid-template-columns:1fr 1fr;
+  }
+}
+@media(max-width:760px){
+  .project{
+    grid-template-columns:1fr;
+    padding:14px;
+    gap:10px;
+  }
+  .project > div:nth-child(1),
+  .project > div:nth-child(2),
+  .project > div:nth-child(3){
+    min-height:auto;
+    padding:12px;
+  }
+  .project > .form{
+    grid-template-columns:1fr;
+    padding:10px;
+  }
+  .project > .form .timeBox{
+    grid-template-columns:1fr;
+  }
+  .taskItem{
+    grid-template-columns:1fr;
+  }
+  .taskActions{
+    white-space:normal;
+  }
+}

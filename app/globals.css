@@ -239,3 +239,58 @@
     white-space:normal;
   }
 }
+
+/* Clear project separation: stronger cards + status color strip */
+.projects{
+  gap:22px;
+}
+.project{
+  border:1.5px solid #cfe0f3;
+  border-radius:28px;
+  box-shadow:0 18px 46px rgba(7,30,65,.10);
+  background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);
+  margin-bottom:4px;
+  padding:18px 20px 20px;
+  border-right:7px solid var(--blue);
+  border-left:1.5px solid #cfe0f3;
+}
+.project:hover{
+  transform:translateY(-2px);
+  border-color:#b7d4f0;
+  box-shadow:0 24px 60px rgba(7,30,65,.14);
+}
+.project:before{
+  display:none;
+}
+.project.status-field{border-right-color:#f59e0b;}
+.project.status-drafting{border-right-color:#7c3aed;}
+.project.status-gpr{border-right-color:#258fc4;}
+.project.status-permits{border-right-color:#ff7f32;}
+.project.status-done{border-right-color:#149647;}
+.project + .project{
+  margin-top:6px;
+}
+.project > div:nth-child(1),
+.project > div:nth-child(2),
+.project > div:nth-child(3),
+.project > .form,
+.project > .tasksBox,
+.project > .collapsibleHistory{
+  border-color:#dce9f6;
+}
+.project > div:nth-child(1),
+.project > div:nth-child(2),
+.project > div:nth-child(3){
+  background:linear-gradient(180deg,#ffffff,#f8fbff);
+}
+.projectSeparatorLabel{
+  display:none;
+}
+@media(max-width:760px){
+  .project{
+    border-right-width:6px;
+    border-radius:24px;
+    padding:15px;
+  }
+  .projects{gap:18px;}
+}

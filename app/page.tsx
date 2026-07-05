@@ -1022,7 +1022,7 @@ function ProjectCard({ project, historyItems, updateStatus, uploadPhoto, isManag
     </div>
   </div> : null;
 
-  return <><article className="project">
+  return <><article className={`project status-${getStatusClass(project.status)}`}>
     <div>
       <div className="title">{project.name}</div>
       <div className="muted">{project.client_name || 'ללא לקוח'} · {project.description || 'אין תיאור'}</div>
@@ -1131,8 +1131,12 @@ function PhotoGallery({ photos }: { photos: ProjectPhoto[] }) {
   </div>;
 }
 
+function getStatusClass(status: string) {
+  return status === 'הושלם' ? 'done' : status === 'עבר לשרטוט' ? 'drafting' : status === 'נדרש GPR' ? 'gpr' : status === 'מחכה להיתרים' ? 'permits' : 'field';
+}
+
 function StatusPill({ status }: { status: string }) {
-  const cls = status === 'הושלם' ? 'done' : status === 'עבר לשרטוט' ? 'drafting' : status === 'נדרש GPR' ? 'gpr' : status === 'מחכה להיתרים' ? 'permits' : 'field';
+  const cls = getStatusClass(status);
   return <span className={`pill ${cls}`}>{status}</span>;
 }
 

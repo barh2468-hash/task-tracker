@@ -294,3 +294,122 @@
   }
   .projects{gap:18px;}
 }
+
+/* Add-ons: unassigned projects, exceptions, photo categories and PDF button */
+.photoUploadBox{
+  display:grid;
+  grid-template-columns:minmax(140px,1fr) auto;
+  gap:8px;
+  align-items:stretch;
+}
+.photoUploadBox select{min-height:48px;padding:9px 12px}
+.photoThumb{position:relative;display:block;text-decoration:none;color:inherit}
+.photoThumb span{position:absolute;right:4px;left:4px;bottom:4px;background:rgba(7,30,65,.82);color:#fff;font-size:9px;font-weight:900;border-radius:8px;padding:2px 4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exceptionsPanel .reportHeader{align-items:flex-start}.exceptionsList{display:grid;gap:12px}.exceptionItem{display:grid;grid-template-columns:42px minmax(0,1fr);gap:12px;align-items:flex-start;border:1px solid var(--line);background:#fff;border-radius:18px;padding:14px;box-shadow:var(--soft);border-right:6px solid #f59e0b}.exceptionItem.severity-high{border-right-color:#dc2626;background:#fffafa}.exceptionItem.severity-medium{border-right-color:#f59e0b;background:#fffdf7}.exceptionItem.severity-low{border-right-color:#258fc4;background:#f8fcff}.exceptionIcon{width:38px;height:38px;border-radius:14px;background:#fff4e6;color:#c2410c;display:grid;place-items:center;border:1px solid #fed7aa}.exceptionItem b{color:var(--navy)}.exceptionItem p{margin:5px 0;color:var(--text);line-height:1.45}.project.status-field{border-right-color:#f59e0b}.project.status-drafting{border-right-color:#8b5cf6}.project.status-gpr{border-right-color:#258fc4}.project.status-permits{border-right-color:#f97316}.project.status-done{border-right-color:#16a34a}
+@media(max-width:760px){.photoUploadBox{grid-template-columns:1fr}.photoUploadBox label{width:100%}.exceptionItem{grid-template-columns:1fr}.exceptionIcon{display:none}}
+
+/* Archive projects support */
+.archiveBadge{
+  display:inline-flex;
+  align-items:center;
+  margin-right:8px;
+  padding:4px 9px;
+  border-radius:999px;
+  background:#eef3f8;
+  color:#475569;
+  border:1px solid #dbe5ef;
+  font-size:12px;
+  font-weight:900;
+  vertical-align:middle;
+}
+.project:has(.archiveBadge){
+  opacity:.92;
+  background:linear-gradient(180deg,#fff,#fbfdff);
+}
+
+/* Fix photo upload control alignment inside project action bar */
+.project > .form{
+  grid-template-columns:minmax(260px,1.1fr) minmax(170px,.75fr) minmax(220px,1fr) minmax(132px,.55fr) minmax(260px,.95fr);
+}
+.project > .form .photoUploadBox{
+  min-width:0;
+  width:100%;
+  max-width:100%;
+  justify-self:stretch;
+  align-self:stretch;
+  display:grid;
+  grid-template-columns:minmax(130px,1fr) minmax(145px,auto);
+  gap:8px;
+}
+.project > .form .photoUploadBox select,
+.project > .form .photoUploadBox .smallBtn{
+  min-height:48px;
+  width:100%;
+  margin:0;
+}
+.project > .form .photoUploadBox .smallBtn{
+  white-space:nowrap;
+  padding-inline:12px;
+}
+@media(max-width:1180px){
+  .project > .form .photoUploadBox{
+    grid-column:1 / -1;
+    max-width:460px;
+    justify-self:start;
+  }
+}
+@media(max-width:760px){
+  .project > .form .photoUploadBox{
+    max-width:none;
+    grid-template-columns:1fr;
+    justify-self:stretch;
+  }
+}
+
+/* Strong fix: keep photo upload fully inside the project card */
+.project > .form{
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:minmax(220px,1fr) minmax(180px,.75fr) minmax(260px,1.1fr) minmax(160px,.65fr);
+  gap:12px;
+  align-items:stretch;
+  width:100%;
+  min-width:0;
+  overflow:hidden;
+}
+.project > .form .photoUploadBox{
+  grid-column:1 / -1 !important;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  justify-self:stretch !important;
+  display:grid !important;
+  grid-template-columns:minmax(180px,260px) minmax(180px,240px);
+  justify-content:start;
+  align-items:stretch;
+  gap:10px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#f8fbff;
+  overflow:hidden;
+}
+.project > .form .photoUploadBox select,
+.project > .form .photoUploadBox .smallBtn{
+  width:100% !important;
+  max-width:100%;
+  min-width:0;
+}
+.project > .form .photoUploadBox .smallBtn{
+  white-space:normal;
+  line-height:1.25;
+}
+@media(max-width:900px){
+  .project > .form{
+    grid-template-columns:1fr;
+  }
+  .project > .form .photoUploadBox{
+    grid-template-columns:1fr;
+    justify-content:stretch;
+  }
+}

@@ -1,39 +1,39 @@
-# MAYA Infrastructure Tracker
+# MAYA Infrastructure Tracker - Archive Projects Addon
 
-עדכון זה מוסיף שליחת מייל לעובד כאשר מנהל משייך אליו פרויקט.
+עדכון זה מוסיף **ארכיון פרויקטים** בצורה בטוחה:
 
-## מה חדש
-- כאשר מנהל יוצר פרויקט ומשייך אותו לעובד — העובד מקבל התראה פנימית וגם מייל.
-- כאשר מנהל עורך פרויקט ומשנה שיוך לעובד חדש — העובד החדש מקבל התראה פנימית וגם מייל.
-- אם השיוך לא השתנה — לא נשלחת התראה כפולה.
-- אין צורך להריץ SQL חדש אם כבר קיימות ההתראות הפנימיות.
+- מנהל יכול להעביר פרויקט לארכיון במקום למחוק אותו.
+- פרויקטים בארכיון לא מוצגים ברשימת הפרויקטים הפעילים.
+- נוסף מסך/תפריט **ארכיון** למנהלים.
+- אפשר לשחזר פרויקט מהארכיון.
+- כל הנתונים נשמרים: שעות, משימות, תמונות, התראות והיסטוריה.
 
-## פריסת פונקציית המייל החדשה
-יש לפרוס את הפונקציה החדשה ל-Supabase:
+## Supabase
 
-```bash
-supabase functions deploy notify-project-assigned
+לפני העלאה לייצור, הרץ ב-Supabase SQL Editor את הקובץ:
+
+```text
+supabase/archive-projects-fix.sql
 ```
 
-ודא שכבר מוגדרים הסודות:
+הקובץ מוסיף רק עמודות ואינדקסים:
 
-```bash
-supabase secrets list
-```
+- `projects.is_archived`
+- `projects.archived_at`
 
-צריכים להופיע:
-- RESEND_API_KEY
-- FROM_EMAIL
+אין מחיקה של מידע קיים.
 
-## הרצה
+## Local run
+
 ```bash
 npm install
 npm run dev
 ```
 
-## העלאה
+## Deploy
+
 ```bash
 git add .
-git commit -m "Email worker when assigned to project"
+git commit -m "Add project archive support"
 git push
 ```

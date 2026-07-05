@@ -80,6 +80,7 @@ type WorkSession = {
   ended_lat: number | null;
   ended_lng: number | null;
   ended_accuracy: number | null;
+  end_note?: string | null;
   created_at: string;
   profiles?: { full_name: string; email: string | null } | null;
   projects?: {
@@ -100,6 +101,7 @@ type ProjectWorkSession = Pick<
   | "ended_lat"
   | "ended_lng"
   | "ended_accuracy"
+  | "end_note"
 >;
 
 type Project = {
@@ -119,6 +121,7 @@ type Project = {
   project_photos?: ProjectPhoto[];
   project_tasks?: ProjectTask[];
   work_sessions?: ProjectWorkSession[];
+  project_workers?: { worker_id: string; profiles?: { full_name: string; email: string | null } | null }[];
 };
 type StatusHistory = {
   id: string;
@@ -137,6 +140,7 @@ type NewProject = {
   location: string;
   description: string;
   assigned_to: string;
+  assigned_workers: string[];
   due_date: string;
 };
 
@@ -146,6 +150,7 @@ const emptyProject: NewProject = {
   location: "",
   description: "",
   assigned_to: "",
+  assigned_workers: [],
   due_date: "",
 };
 const photoCategories = [
@@ -204,6 +209,7 @@ export default function Page() {
   const [tab, setTab] = useState<
     | "mine"
     | "all"
+    | "today"
     | "unassigned"
     | "archive"
     | "exceptions"
@@ -418,12 +424,22 @@ export default function Page() {
     let request = supabase
       .from("projects")
       .select(
-        "*, profiles:assigned_to(full_name), project_photos(id,file_path,category,created_at), project_tasks(id,project_id,title,description,is_done,created_by,created_at,updated_at,profiles:created_by(full_name)), work_sessions(id,worker_id,started_at,ended_at,started_lat,started_lng,started_accuracy,ended_lat,ended_lng,ended_accuracy)",
+        "*, profiles:assigned_to(full_name), project_workers(worker_id,profiles:worker_id(full_name,email)), project_photos(id,file_path,category,created_at), project_tasks(id,project_id,title,description,is_done,created_by,created_at,updated_at,profiles:created_by(full_name)), work_sessions(id,worker_id,started_at,ended_at,started_lat,started_lng,started_accuracy,ended_lat,ended_lng,ended_accuracy,end_note)",
       )
       .order("updated_at", { ascending: false });
 
-    if (activeProfile.role !== "manager")
-      request = request.eq("assigned_to", user.id);
+    if (activeProfile.role !== "manager") {
+      const { data: extraAssignments } = await supabase
+        .from("project_workers")
+        .select("project_id")
+        .eq("worker_id", user.id);
+      const extraIds = Array.from(
+        new Set((extraAssignments || []).map((row: any) => row.project_id).filter(Boolean)),
+      );
+      const filters = [`assigned_to.eq.${user.id}`];
+      if (extraIds.length) filters.push(`id.in.(${extraIds.join(",")})`);
+      request = request.or(filters.join(","));
+    }
 
     const { data, error } = await request;
     if (error) setMessage(error.message);
@@ -575,6 +591,7 @@ export default function Page() {
       return;
     }
 
+    const endNote = window.prompt("הערת סיום עבודה, אופציונלי:", "") || "";
     const endedAt = new Date();
     const startedAt = new Date(openSession.started_at);
     const minutes = Math.max(
@@ -589,6 +606,7 @@ export default function Page() {
         ended_lat: location?.lat ?? null,
         ended_lng: location?.lng ?? null,
         ended_accuracy: location?.accuracy ?? null,
+        end_note: endNote.trim() || null,
       })
       .eq("id", openSession.id);
 
@@ -605,14 +623,14 @@ export default function Page() {
       old_status: null,
       new_status: "סיום עבודה",
       changed_by: user.id,
-      note: `שעת סיום: ${endedAt.toLocaleString("he-IL")} · זמן עבודה: ${formatDuration(minutes)}${locationText}`,
+      note: `שעת סיום: ${endedAt.toLocaleString("he-IL")} · זמן עבודה: ${formatDuration(minutes)}${locationText}${endNote.trim() ? ` · הערת סיום: ${endNote.trim()}` : ""}`,
     });
 
     if (profile?.role === "field_worker") {
       await createManagerNotification(
         "work_ended",
         `סיום עבודה: ${project.name}`,
-        `${profile.full_name} סיים עבודה בפרויקט ${project.name}. זמן עבודה: ${formatDuration(minutes)}.${location ? ` מיקום: ${formatLocation(location)}` : ""}`,
+        `${profile.full_name} סיים עבודה בפרויקט ${project.name}. זמן עבודה: ${formatDuration(minutes)}.${location ? ` מיקום: ${formatLocation(location)}` : ""}${endNote.trim() ? ` הערת סיום: ${endNote.trim()}` : ""}`,
         project.id,
       );
     }
@@ -914,7 +932,44 @@ export default function Page() {
       return;
     }
 
+    const previousExtraWorkers = new Set((originalProject?.project_workers || []).map((w) => w.worker_id));
+    const nextExtraWorkers = new Set(changes.assigned_workers || []);
+    const addedExtraWorkers = Array.from(nextExtraWorkers).filter((id) => !previousExtraWorkers.has(id));
+
+    await supabase.from("project_workers").delete().eq("project_id", projectId);
+    if (nextExtraWorkers.size) {
+      const user = (await supabase.auth.getUser()).data.user;
+      await supabase.from("project_workers").insert(
+        Array.from(nextExtraWorkers).map((workerId) => ({
+          project_id: projectId,
+          worker_id: workerId,
+          assigned_by: user?.id || null,
+        })),
+      );
+    }
+
     let assignmentEmailSent = true;
+    const projectNameForNotify = changes.name || originalProject?.name || "פרויקט";
+    const managerNameForNotify = profile?.full_name || "מנהל מערכת";
+    for (const workerId of addedExtraWorkers) {
+      await createUserNotification(
+        workerId,
+        "project_assigned",
+        `שויך אליך פרויקט חדש: ${projectNameForNotify}`,
+        `${managerNameForNotify} צירף אותך לפרויקט ${projectNameForNotify}.${changes.location ? ` מיקום: ${changes.location}` : ""}`,
+        projectId,
+      );
+      const ok = await sendProjectAssignmentEmail(workerId, {
+        id: projectId,
+        name: projectNameForNotify,
+        client_name: changes.client_name || originalProject?.client_name || null,
+        location: changes.location || originalProject?.location || null,
+        description: changes.description || originalProject?.description || null,
+        due_date: changes.due_date || originalProject?.due_date || null,
+      });
+      if (!ok) assignmentEmailSent = false;
+    }
+
     if (nextAssignedTo && nextAssignedTo !== previousAssignedTo) {
       const projectName = changes.name || originalProject?.name || "פרויקט";
       const managerName = profile?.full_name || "מנהל מערכת";
@@ -938,11 +993,13 @@ export default function Page() {
       });
     }
 
+    const assignmentChanged =
+      (nextAssignedTo && nextAssignedTo !== previousAssignedTo) || addedExtraWorkers.length > 0;
     setMessage(
-      nextAssignedTo && nextAssignedTo !== previousAssignedTo
+      assignmentChanged
         ? assignmentEmailSent
-          ? "הפרויקט עודכן, העובד קיבל התראה במערכת ומייל"
-          : "הפרויקט עודכן והעובד קיבל התראה במערכת. שים לב: המייל לא נשלח"
+          ? "הפרויקט עודכן והעובדים החדשים קיבלו התראה במערכת ומייל"
+          : "הפרויקט עודכן והעובדים החדשים קיבלו התראה במערכת. שים לב: חלק מהמיילים לא נשלחו"
         : "הפרויקט עודכן בהצלחה",
     );
     await Promise.all([loadProjects(), loadNotifications()]);
@@ -1190,6 +1247,16 @@ export default function Page() {
     }
 
     let assignmentEmailSent = true;
+    if (insertedProject?.id && newProject.assigned_workers.length) {
+      await supabase.from("project_workers").insert(
+        newProject.assigned_workers.map((workerId) => ({
+          project_id: insertedProject.id,
+          worker_id: workerId,
+          assigned_by: user.id,
+        })),
+      );
+    }
+
     if (newProject.assigned_to && insertedProject?.id) {
       await createUserNotification(
         newProject.assigned_to,
@@ -1212,13 +1279,39 @@ export default function Page() {
       );
     }
 
+    if (insertedProject?.id) {
+      const workerIdsToNotify = Array.from(
+        new Set([newProject.assigned_to, ...newProject.assigned_workers].filter(Boolean)),
+      );
+      for (const workerId of workerIdsToNotify) {
+        if (workerId === newProject.assigned_to) continue;
+        await createUserNotification(
+          workerId,
+          "project_assigned",
+          `שויך אליך פרויקט חדש: ${newProject.name}`,
+          `${profile.full_name} צירף אותך לפרויקט ${newProject.name}. מיקום: ${newProject.location}`,
+          insertedProject.id,
+        );
+        const ok = await sendProjectAssignmentEmail(workerId, {
+          id: insertedProject.id,
+          name: newProject.name,
+          client_name: newProject.client_name || null,
+          location: newProject.location || null,
+          description: newProject.description || null,
+          due_date: newProject.due_date || null,
+        });
+        if (!ok) assignmentEmailSent = false;
+      }
+    }
+
     setNewProject(emptyProject);
     setTab("all");
+    const hasAssignedWorkers = !!newProject.assigned_to || newProject.assigned_workers.length > 0;
     setMessage(
-      newProject.assigned_to
+      hasAssignedWorkers
         ? assignmentEmailSent
-          ? "הפרויקט נוצר, שויך לעובד השטח והעובד קיבל התראה במערכת ומייל"
-          : "הפרויקט נוצר והעובד קיבל התראה במערכת. שים לב: המייל לא נשלח"
+          ? "הפרויקט נוצר, שויך לעובדים והעובדים קיבלו התראה במערכת ומייל"
+          : "הפרויקט נוצר והעובדים קיבלו התראה במערכת. שים לב: חלק מהמיילים לא נשלחו"
         : "הפרויקט נוצר ללא שיוך לעובד. אפשר לשייך אותו בהמשך דרך עריכה.",
     );
     await Promise.all([loadProjects(), loadNotifications()]);
@@ -1424,6 +1517,15 @@ export default function Page() {
           )}
           {isManager && (
             <button
+              className={`navBtn ${tab === "today" ? "active" : ""}`}
+              onClick={() => setTab("today")}
+            >
+              <span>היום בשטח</span>
+              <Clock size={18} />
+            </button>
+          )}
+          {isManager && (
+            <button
               className={`navBtn ${tab === "unassigned" ? "active" : ""}`}
               onClick={() => setTab("unassigned")}
             >
@@ -1552,6 +1654,9 @@ export default function Page() {
           )}
           {message && <div className="card message">{message}</div>}
 
+          {tab === "today" && isManager && (
+            <TodayFieldPanel projects={activeProjects} workSessions={workSessions} workers={workers} />
+          )}
           {tab === "new" && isManager && (
             <NewProjectForm
               project={newProject}
@@ -1589,6 +1694,7 @@ export default function Page() {
             />
           )}
           {tab !== "new" &&
+            tab !== "today" &&
             tab !== "history" &&
             tab !== "report" &&
             tab !== "notifications" &&
@@ -1757,6 +1863,26 @@ function NewProjectForm({
             ))}
           </select>
         </label>
+        <label className="wideField">
+          עובדים נוספים בפרויקט, אופציונלי
+          <div className="workerChecks">
+            {workers.map((w) => (
+              <label key={w.id} className="checkLine">
+                <input
+                  type="checkbox"
+                  checked={project.assigned_workers.includes(w.id)}
+                  onChange={(e) => {
+                    const next = e.target.checked
+                      ? Array.from(new Set([...project.assigned_workers, w.id]))
+                      : project.assigned_workers.filter((id) => id !== w.id);
+                    setProject({ ...project, assigned_workers: next });
+                  }}
+                />
+                {w.full_name} - {w.email}
+              </label>
+            ))}
+          </div>
+        </label>
         <label>
           תאריך יעד
           <input
@@ -1836,6 +1962,7 @@ function ProjectCard({
     location: project.location,
     description: project.description || "",
     assigned_to: project.assigned_to || "",
+    assigned_workers: (project.project_workers || []).map((w) => w.worker_id),
     due_date: project.due_date || "",
   });
   useEffect(() => {
@@ -1846,6 +1973,7 @@ function ProjectCard({
       location: project.location,
       description: project.description || "",
       assigned_to: project.assigned_to || "",
+      assigned_workers: (project.project_workers || []).map((w) => w.worker_id),
       due_date: project.due_date || "",
     });
   }, [project]);
@@ -1925,6 +2053,26 @@ function ProjectCard({
                 </option>
               ))}
             </select>
+          </label>
+          <label className="wideField">
+            עובדים נוספים בפרויקט
+            <div className="workerChecks compactChecks">
+              {workers.map((w) => (
+                <label key={w.id} className="checkLine">
+                  <input
+                    type="checkbox"
+                    checked={editProject.assigned_workers.includes(w.id)}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? Array.from(new Set([...editProject.assigned_workers, w.id]))
+                        : editProject.assigned_workers.filter((id) => id !== w.id);
+                      setEditProject({ ...editProject, assigned_workers: next });
+                    }}
+                  />
+                  {w.full_name} - {w.email}
+                </label>
+              ))}
+            </div>
           </label>
           <label>
             תאריך יעד
@@ -2008,6 +2156,11 @@ function ProjectCard({
           <div className="muted">
             עובד אחראי: {project.profiles?.full_name || "לא משויך"}
           </div>
+          {!!project.project_workers?.length && (
+            <div className="muted">
+              עובדים נוספים: {project.project_workers.map((w) => w.profiles?.full_name || "עובד").join(", ")}
+            </div>
+          )}
           {isManager && (
             <div className="actionsRow cardActions">
               <button
@@ -2178,7 +2331,11 @@ function ProjectCard({
         <TaskPanel
           tasks={project.project_tasks || []}
           isManager={isManager}
-          canCompleteTasks={isManager || project.assigned_to === currentUserId}
+          canCompleteTasks={
+            isManager ||
+            project.assigned_to === currentUserId ||
+            !!project.project_workers?.some((w) => w.worker_id === currentUserId)
+          }
           showTaskForm={showTaskForm}
           setShowTaskForm={setShowTaskForm}
           taskTitle={taskTitle}
@@ -2890,6 +3047,89 @@ function exportExceptionsCsv(
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+
+function TodayFieldPanel({
+  projects,
+  workSessions,
+  workers,
+}: {
+  projects: Project[];
+  workSessions: WorkSession[];
+  workers: Profile[];
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const todaySessions = workSessions.filter((session) =>
+    session.started_at.startsWith(today),
+  );
+  const activeSessions = workSessions.filter((session) => !session.ended_at);
+  const activeWorkerIds = new Set(activeSessions.map((s) => s.worker_id));
+  const todayWorkerIds = new Set(todaySessions.map((s) => s.worker_id));
+  const fieldWorkers = workers.filter((w) => w.role === "field_worker");
+  const notStarted = fieldWorkers.filter((worker) => !todayWorkerIds.has(worker.id));
+
+  async function sendDailySummaryNow() {
+    const { error } = await supabase.functions.invoke("daily-manager-summary", {
+      body: { appUrl: typeof window !== "undefined" ? window.location.origin : "" },
+    });
+    alert(error ? `שליחת הסיכום נכשלה: ${error.message}` : "סיכום יומי נשלח למנהלים");
+  }
+
+  return (
+    <section className="card">
+      <div className="panelHeader">
+        <div>
+          <h2>היום בשטח</h2>
+          <p className="muted">מעקב יומי אחר עובדים פעילים, עובדים שלא התחילו ופרויקטים בשטח.</p>
+        </div>
+        <button className="ghost smallBtn" onClick={sendDailySummaryNow}>שלח סיכום יומי עכשיו</button>
+      </div>
+      <div className="grid miniStats">
+        <Stat number={todaySessions.length} label="כניסות עבודה היום" icon={<Clock />} />
+        <Stat number={activeSessions.length} label="עבודות פתוחות" icon={<PlayCircle />} />
+        <Stat number={activeWorkerIds.size} label="עובדים פעילים עכשיו" icon={<Users />} />
+        <Stat number={notStarted.length} label="עובדים שלא התחילו" icon={<AlertTriangle />} />
+      </div>
+      <div className="twoColumns">
+        <div className="innerPanel">
+          <h3>עובדים פעילים עכשיו</h3>
+          {activeSessions.length === 0 && <p className="muted">אין עבודות פתוחות כרגע.</p>}
+          {activeSessions.map((session) => (
+            <div className="listRow" key={session.id}>
+              <b>{session.profiles?.full_name || "עובד"}</b>
+              <span>{session.projects?.name || "פרויקט"}</span>
+              <small>{new Date(session.started_at).toLocaleString("he-IL")}</small>
+            </div>
+          ))}
+        </div>
+        <div className="innerPanel">
+          <h3>טרם התחילו היום</h3>
+          {notStarted.length === 0 && <p className="muted">כל העובדים התחילו או שאין עובדים להצגה.</p>}
+          {notStarted.map((worker) => (
+            <div className="listRow" key={worker.id}>
+              <b>{worker.full_name}</b>
+              <span>{worker.email}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="innerPanel" style={{ marginTop: 16 }}>
+        <h3>כל פעולות העבודה היום</h3>
+        {todaySessions.length === 0 && <p className="muted">אין רישומי עבודה להיום.</p>}
+        {todaySessions.map((session) => (
+          <div className="listRow" key={session.id}>
+            <b>{session.profiles?.full_name || "עובד"}</b>
+            <span>{session.projects?.name || "פרויקט"} · {session.projects?.location || ""}</span>
+            <small>
+              התחלה: {new Date(session.started_at).toLocaleTimeString("he-IL")} · {session.ended_at ? `סיום: ${new Date(session.ended_at).toLocaleTimeString("he-IL")}` : "פתוח"}
+              {session.end_note ? ` · הערה: ${session.end_note}` : ""}
+            </small>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function WorkReportPanel({

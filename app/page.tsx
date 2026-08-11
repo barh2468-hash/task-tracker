@@ -17,6 +17,7 @@ import {
   LogOut,
   MapPin,
   Pencil,
+  Phone,
   PlayCircle,
   PlusCircle,
   RotateCcw,
@@ -87,6 +88,7 @@ type WorkSession = {
     name: string;
     client_name: string | null;
     location: string;
+    contact_phone?: string | null;
   } | null;
 };
 type ProjectWorkSession = Pick<
@@ -109,6 +111,7 @@ type Project = {
   name: string;
   client_name: string | null;
   location: string;
+  contact_phone?: string | null;
   description: string | null;
   assigned_to: string | null;
   status: string;
@@ -138,6 +141,7 @@ type NewProject = {
   name: string;
   client_name: string;
   location: string;
+  contact_phone: string;
   description: string;
   assigned_to: string;
   assigned_workers: string[];
@@ -148,6 +152,7 @@ const emptyProject: NewProject = {
   name: "",
   client_name: "",
   location: "",
+  contact_phone: "",
   description: "",
   assigned_to: "",
   assigned_workers: [],
@@ -874,6 +879,7 @@ export default function Page() {
       name: string;
       client_name?: string | null;
       location?: string | null;
+      contact_phone?: string | null;
       description?: string | null;
       due_date?: string | null;
     },
@@ -887,6 +893,7 @@ export default function Page() {
           projectName: project.name,
           clientName: project.client_name || null,
           location: project.location || null,
+          contactPhone: project.contact_phone || null,
           description: project.description || null,
           dueDate: project.due_date || null,
           assignedByName: profile?.full_name || "מנהל מערכת",
@@ -918,6 +925,7 @@ export default function Page() {
       name: changes.name,
       client_name: changes.client_name || null,
       location: changes.location,
+      contact_phone: changes.contact_phone || null,
       description: changes.description || null,
       assigned_to: nextAssignedTo,
       due_date: changes.due_date || null,
@@ -964,6 +972,7 @@ export default function Page() {
         name: projectNameForNotify,
         client_name: changes.client_name || originalProject?.client_name || null,
         location: changes.location || originalProject?.location || null,
+        contact_phone: changes.contact_phone || originalProject?.contact_phone || null,
         description: changes.description || originalProject?.description || null,
         due_date: changes.due_date || originalProject?.due_date || null,
       });
@@ -987,6 +996,7 @@ export default function Page() {
         client_name:
           changes.client_name || originalProject?.client_name || null,
         location: changes.location || originalProject?.location || null,
+        contact_phone: changes.contact_phone || originalProject?.contact_phone || null,
         description:
           changes.description || originalProject?.description || null,
         due_date: changes.due_date || originalProject?.due_date || null,
@@ -1231,6 +1241,7 @@ export default function Page() {
         name: newProject.name,
         client_name: newProject.client_name || null,
         location: newProject.location,
+        contact_phone: newProject.contact_phone || null,
         description: newProject.description || null,
         assigned_to: newProject.assigned_to || null,
         due_date: newProject.due_date || null,
@@ -1273,6 +1284,7 @@ export default function Page() {
           name: newProject.name,
           client_name: newProject.client_name || null,
           location: newProject.location || null,
+          contact_phone: newProject.contact_phone || null,
           description: newProject.description || null,
           due_date: newProject.due_date || null,
         },
@@ -1297,6 +1309,7 @@ export default function Page() {
           name: newProject.name,
           client_name: newProject.client_name || null,
           location: newProject.location || null,
+          contact_phone: newProject.contact_phone || null,
           description: newProject.description || null,
           due_date: newProject.due_date || null,
         });
@@ -1329,7 +1342,7 @@ export default function Page() {
   const visibleProjects = useMemo(() => {
     return projects.filter((p) => {
       const text =
-        `${p.name} ${p.location} ${p.client_name || ""} ${p.description || ""}`.toLowerCase();
+        `${p.name} ${p.location} ${p.contact_phone || ""} ${p.client_name || ""} ${p.description || ""}`.toLowerCase();
       const okQuery = !query || text.includes(query.toLowerCase());
       const okStatus = !statusFilter || p.status === statusFilter;
       const okArchive = tab === "archive" ? !!p.is_archived : !p.is_archived;
@@ -1848,6 +1861,18 @@ function NewProjectForm({
           />
         </label>
         <label>
+          טלפון איש קשר בשטח
+          <input
+            type="tel"
+            dir="ltr"
+            value={project.contact_phone}
+            onChange={(e) =>
+              setProject({ ...project, contact_phone: e.target.value })
+            }
+            placeholder="לדוגמה: 050-1234567"
+          />
+        </label>
+        <label>
           שיוך לעובד שטח, אופציונלי
           <select
             value={project.assigned_to}
@@ -1960,6 +1985,7 @@ function ProjectCard({
     name: project.name,
     client_name: project.client_name || "",
     location: project.location,
+    contact_phone: project.contact_phone || "",
     description: project.description || "",
     assigned_to: project.assigned_to || "",
     assigned_workers: (project.project_workers || []).map((w) => w.worker_id),
@@ -1971,6 +1997,7 @@ function ProjectCard({
       name: project.name,
       client_name: project.client_name || "",
       location: project.location,
+      contact_phone: project.contact_phone || "",
       description: project.description || "",
       assigned_to: project.assigned_to || "",
       assigned_workers: (project.project_workers || []).map((w) => w.worker_id),
@@ -2036,6 +2063,18 @@ function ProjectCard({
               onChange={(e) =>
                 setEditProject({ ...editProject, location: e.target.value })
               }
+            />
+          </label>
+          <label>
+            טלפון איש קשר בשטח
+            <input
+              type="tel"
+              dir="ltr"
+              value={editProject.contact_phone}
+              onChange={(e) =>
+                setEditProject({ ...editProject, contact_phone: e.target.value })
+              }
+              placeholder="050-1234567"
             />
           </label>
           <label>
@@ -2204,6 +2243,15 @@ function ProjectCard({
           <div className="muted" style={{ marginTop: 10 }}>
             {project.location}
           </div>
+          {project.contact_phone && (
+            <a
+              className="phoneLink"
+              href={`tel:${project.contact_phone.replace(/[^0-9+]/g, "")}`}
+              title="התקשר לאיש קשר בשטח"
+            >
+              <Phone size={15} /> {project.contact_phone}
+            </a>
+          )}
           <div className="muted">
             עודכן: {new Date(project.updated_at).toLocaleDateString("he-IL")}
           </div>

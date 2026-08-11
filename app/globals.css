@@ -430,3 +430,24 @@
 .listRow{display:grid;grid-template-columns:minmax(150px,.7fr) minmax(180px,1fr) auto;gap:10px;align-items:center;border-top:1px dashed #dbeafe;padding:10px 0;color:var(--text)}
 .listRow:first-of-type{border-top:0}.listRow small{color:var(--muted);font-weight:700}.workerChecks{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:8px;border:1px solid var(--line);border-radius:16px;padding:10px;background:#f8fbff;max-height:190px;overflow:auto}.compactChecks{max-height:150px}.checkLine{display:flex!important;align-items:center;gap:8px;font-size:13px;font-weight:800;color:var(--text);padding:6px 8px;border:1px solid #e5eef8;border-radius:12px;background:#fff}.checkLine input{width:auto!important;min-height:auto!important}.wideField{grid-column:1 / -1}
 @media(max-width:900px){.miniStats{grid-template-columns:1fr 1fr}.twoColumns{grid-template-columns:1fr}.listRow{grid-template-columns:1fr}.workerChecks{grid-template-columns:1fr}}
+
+.phoneLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid #d8e8f8;
+  border-radius: 999px;
+  background: #f7fbff;
+  color: #082b5f;
+  font-weight: 700;
+  text-decoration: none;
+  width: fit-content;
+  direction: ltr;
+}
+
+.phoneLink:hover {
+  background: #eaf5ff;
+  border-color: #b9dcf4;
+}

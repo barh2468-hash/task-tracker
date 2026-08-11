@@ -82,3 +82,21 @@ supabase functions deploy daily-manager-summary
 supabase/daily-manager-summary-schedule.sql
 ```
 
+
+## עדכון: טלפון איש קשר בשטח
+
+נוסף שדה `טלפון איש קשר בשטח` לכל פרויקט.
+
+מה נוסף:
+- בעת יצירת פרויקט אפשר להזין מספר טלפון של איש קשר בשטח.
+- בעריכת פרויקט אפשר לעדכן את המספר.
+- בכרטיס הפרויקט המספר מוצג כלינק לחיץ.
+- במובייל לחיצה על המספר פותחת שיחה דרך `tel:`.
+
+לפני שימוש יש להריץ ב-Supabase SQL Editor את הקובץ:
+
+```text
+supabase/project-contact-phone-fix.sql
+```
+
+הקובץ רק מוסיף עמודה אופציונלית `contact_phone` לטבלת `projects`, ולא מוחק מידע.

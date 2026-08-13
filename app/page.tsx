@@ -1981,6 +1981,7 @@ function ProjectCard({
   const [taskDescription, setTaskDescription] = useState("");
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [editProject, setEditProject] = useState<NewProject>({
     name: project.name,
     client_name: project.client_name || "",
@@ -2180,7 +2181,84 @@ function ProjectCard({
 
   return (
     <>
-      <article className={`project status-${getStatusClass(project.status)}`}>
+      <article className={`project status-${getStatusClass(project.status)} ${detailsOpen ? "project-open" : "project-closed"}`}>
+        <button
+          type="button"
+          className="projectCompactHeader"
+          onClick={() => setDetailsOpen((open) => !open)}
+          aria-expanded={detailsOpen}
+          style={{
+            gridColumn: "1 / -1",
+            width: "100%",
+            border: 0,
+            background: "transparent",
+            padding: 0,
+            cursor: "pointer",
+            textAlign: "right",
+            color: "inherit",
+            display: "block",
+            minHeight: 96,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 18,
+              alignItems: "center",
+              width: "100%",
+              minHeight: 96,
+              padding: "18px 22px",
+            }}
+          >
+            <span
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 999,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#eef6ff",
+                color: "#0b376d",
+                transform: detailsOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform .2s ease",
+              }}
+            >
+              <ChevronDown size={18} />
+            </span>
+            <span style={{ flex: "1 1 520px", minWidth: 360 }}>
+              <span className="title" style={{ display: "block", marginBottom: 7, fontSize: 21, lineHeight: 1.25 }}>
+                {project.name}{" "}
+                {project.is_archived && <span className="archiveBadge">בארכיון</span>}
+              </span>
+              <span className="muted" style={{ display: "block", fontSize: 14, lineHeight: 1.6 }}>
+                מספר הזמנה / לקוח: {project.client_name || "לא הוגדר"} · {project.location}
+              </span>
+            </span>
+            <StatusPill status={project.status} />
+            <span className="muted" style={{ whiteSpace: "nowrap", fontWeight: 700 }}>
+              {project.progress}% התקדמות
+            </span>
+            <span className="muted" style={{ whiteSpace: "nowrap", fontWeight: 700 }}>
+              יעד: {project.due_date ? new Date(project.due_date).toLocaleDateString("he-IL") : "לא הוגדר"}
+            </span>
+          </div>
+        </button>
+
+        {detailsOpen && (
+          <div
+            className="projectExpandedBody"
+            style={{
+              gridColumn: "1 / -1",
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: 18,
+              width: "100%",
+              marginTop: 18,
+              alignItems: "start",
+            }}
+          >
         <div>
           <div className="title">
             {project.name}{" "}
@@ -2441,6 +2519,8 @@ function ProjectCard({
             </div>
           )}
         </div>
+          </div>
+        )}
       </article>
       {editModal}
     </>

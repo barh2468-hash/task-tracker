@@ -2181,6 +2181,51 @@ function ProjectCard({
 
   return (
     <>
+
+      <style jsx>{`
+        @media (max-width: 720px) {
+          .projectCompactHeader > div {
+            grid-template-columns: auto minmax(0, 1fr) !important;
+            gap: 10px !important;
+            padding: 14px 12px !important;
+          }
+          .projectCompactHeader .pill,
+          .projectCompactHeader .archiveBadge {
+            justify-self: start;
+          }
+          .projectCompactHeader > div > span:nth-child(3),
+          .projectCompactHeader > div > span:nth-child(4),
+          .projectCompactHeader > div > span:nth-child(5) {
+            grid-column: 2;
+            white-space: normal !important;
+            font-size: 13px;
+          }
+          .projectCompactHeader .title {
+            font-size: 18px !important;
+          }
+          .projectExpandedBody {
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 14px !important;
+            overflow: visible !important;
+          }
+          .projectExpandedBody > * {
+            min-width: 0 !important;
+            max-width: 100% !important;
+          }
+          .projectExpandedBody .actionsRow,
+          .projectExpandedBody .cardActions,
+          .projectExpandedBody .photoUploadBox,
+          .projectExpandedBody .taskActions {
+            flex-wrap: wrap !important;
+          }
+          .projectExpandedBody input,
+          .projectExpandedBody select,
+          .projectExpandedBody textarea,
+          .projectExpandedBody button {
+            max-width: 100%;
+          }
+        }
+      `}</style>
       <article className={`project status-${getStatusClass(project.status)} ${detailsOpen ? "project-open" : "project-closed"}`}>
         <button
           type="button"
@@ -2197,24 +2242,24 @@ function ProjectCard({
             textAlign: "right",
             color: "inherit",
             display: "block",
-            minHeight: 96,
+            minHeight: 0,
           }}
         >
           <div
             style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 18,
+              display: "grid",
+              gridTemplateColumns: "auto minmax(0, 1fr) auto auto auto",
+              gap: 14,
               alignItems: "center",
               width: "100%",
-              minHeight: 96,
-              padding: "18px 22px",
+              minHeight: 0,
+              padding: "14px 16px",
             }}
           >
             <span
               style={{
-                width: 42,
-                height: 42,
+                width: 38,
+                height: 38,
                 borderRadius: 999,
                 display: "inline-flex",
                 alignItems: "center",
@@ -2227,12 +2272,12 @@ function ProjectCard({
             >
               <ChevronDown size={18} />
             </span>
-            <span style={{ flex: "1 1 520px", minWidth: 360 }}>
-              <span className="title" style={{ display: "block", marginBottom: 7, fontSize: 21, lineHeight: 1.25 }}>
+            <span style={{ minWidth: 0 }}>
+              <span className="title" style={{ display: "block", marginBottom: 6, fontSize: 20, lineHeight: 1.25, overflowWrap: "anywhere" }}>
                 {project.name}{" "}
                 {project.is_archived && <span className="archiveBadge">בארכיון</span>}
               </span>
-              <span className="muted" style={{ display: "block", fontSize: 14, lineHeight: 1.6 }}>
+              <span className="muted" style={{ display: "block", fontSize: 14, lineHeight: 1.5, overflowWrap: "anywhere" }}>
                 מספר הזמנה / לקוח: {project.client_name || "לא הוגדר"} · {project.location}
               </span>
             </span>
@@ -2252,10 +2297,12 @@ function ProjectCard({
             style={{
               gridColumn: "1 / -1",
               display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-              gap: 18,
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: 16,
               width: "100%",
-              marginTop: 18,
+              maxWidth: "100%",
+              overflow: "hidden",
+              marginTop: 14,
               alignItems: "start",
             }}
           >

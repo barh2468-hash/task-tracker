@@ -1038,6 +1038,49 @@ export default function Page() {
     await Promise.all([loadProjects(), loadHistory(), loadNotifications()]);
   }
 
+  async function deleteProjectReviewFile(file: ProjectReviewFile, projectId: string) {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user || !profile) return;
+    if (profile.role !== "manager" && profile.role !== "drafter") {
+      setMessage("רק מנהל או שרטט יכולים למחוק קובץ PDF של הגהה.");
+      return;
+    }
+
+    const ok = window.confirm(`למחוק את קובץ ההגהה "${file.file_name || "קובץ PDF"}"? פעולה זו מוחקת רק את ה-PDF ולא את הפרויקט.`);
+    if (!ok) return;
+
+    const { error: storageError } = await supabase.storage
+      .from("project-review-files")
+      .remove([file.file_path]);
+
+    if (storageError) {
+      setMessage(`מחיקת הקובץ מהאחסון נכשלה: ${storageError.message}`);
+      return;
+    }
+
+    const { error: deleteError } = await supabase
+      .from("project_review_files")
+      .delete()
+      .eq("id", file.id);
+
+    if (deleteError) {
+      setMessage(`הקובץ נמחק מהאחסון, אבל מחיקת הרשומה נכשלה: ${deleteError.message}`);
+      return;
+    }
+
+    await supabase.from("status_history").insert({
+      project_id: projectId,
+      old_status: null,
+      new_status: "נמחק קובץ הגהה",
+      changed_by: user.id,
+      note: file.file_name || "קובץ PDF",
+    });
+
+    setMessage("קובץ ה-PDF נמחק מההגהה. הפרויקט עצמו לא נמחק.");
+    await Promise.all([loadProjects(), loadHistory()]);
+  }
+
+
   async function saveProject(
     projectId: string,
     changes: Partial<NewProject & { status: string; progress: number }>,
@@ -1902,6 +1945,7 @@ export default function Page() {
                       toggleProjectTask={toggleProjectTask}
                       deleteProjectTask={deleteProjectTask}
                       sendProjectToReview={sendProjectToReview}
+                      deleteProjectReviewFile={deleteProjectReviewFile}
                     />
                   ))}
                 </div>
@@ -2084,6 +2128,7 @@ function ProjectCard({
   toggleProjectTask,
   deleteProjectTask,
   sendProjectToReview,
+  deleteProjectReviewFile,
 }: {
   project: Project;
   historyItems: StatusHistory[];
@@ -2107,6 +2152,7 @@ function ProjectCard({
   toggleProjectTask: (task: ProjectTask, project: Project) => void;
   deleteProjectTask: (task: ProjectTask) => void;
   sendProjectToReview: (project: Project, file: File, note: string) => void;
+  deleteProjectReviewFile: (file: ProjectReviewFile, projectId: string) => void;
 }) {
   const [status, setStatus] = useState(project.status);
   const [note, setNote] = useState("");
@@ -2649,7 +2695,11 @@ function ProjectCard({
           </div>
         </div>
 
-        <ReviewFilesPanel files={project.project_review_files || []} />
+        <ReviewFilesPanel
+          files={project.project_review_files || []}
+          canDelete={isManager || isDrafter}
+          onDelete={(file) => deleteProjectReviewFile(file, project.id)}
+        />
         {(isDrafter || isManager) && project.status === "עבר לשרטוט" && (
           <DrafterReviewBox
             reviewFile={reviewFile}
@@ -2792,7 +2842,15 @@ function DrafterReviewBox({
   );
 }
 
-function ReviewFilesPanel({ files }: { files: ProjectReviewFile[] }) {
+function ReviewFilesPanel({
+  files,
+  canDelete,
+  onDelete,
+}: {
+  files: ProjectReviewFile[];
+  canDelete: boolean;
+  onDelete: (file: ProjectReviewFile) => void;
+}) {
   const [urls, setUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -2828,11 +2886,18 @@ function ReviewFilesPanel({ files }: { files: ProjectReviewFile[] }) {
               הועלה על ידי {file.profiles?.full_name || "שרטט"} · {new Date(file.created_at).toLocaleString("he-IL")}
             </p>
           </div>
-          {urls[file.id] && (
-            <a className="ghost tinyBtn" href={urls[file.id]} target="_blank" rel="noreferrer">
-              פתיחת PDF
-            </a>
-          )}
+          <div className="taskActions">
+            {urls[file.id] && (
+              <a className="ghost tinyBtn" href={urls[file.id]} target="_blank" rel="noreferrer">
+                פתיחת PDF
+              </a>
+            )}
+            {canDelete && (
+              <button className="danger ghost tinyBtn" onClick={() => onDelete(file)}>
+                מחיקת PDF
+              </button>
+            )}
+          </div>
         </div>
       ))}
     </div>

@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { envReady, statusProgress, statuses, supabase } from "@/lib/supabase";
 
-type Role = "manager" | "field_worker";
+type Role = "manager" | "field_worker" | "drafter";
 type Profile = {
   id: string;
   email: string | null;
@@ -44,6 +44,16 @@ type ProjectPhoto = {
   category?: string | null;
   created_at: string;
 };
+type ProjectReviewFile = {
+  id: string;
+  project_id: string;
+  uploaded_by: string | null;
+  file_path: string;
+  file_name: string | null;
+  created_at: string;
+  profiles?: { full_name: string } | null;
+};
+
 type ProjectTask = {
   id: string;
   project_id: string;
@@ -123,6 +133,7 @@ type Project = {
   profiles?: { full_name: string } | null;
   project_photos?: ProjectPhoto[];
   project_tasks?: ProjectTask[];
+  project_review_files?: ProjectReviewFile[];
   work_sessions?: ProjectWorkSession[];
   project_workers?: { worker_id: string; profiles?: { full_name: string; email: string | null } | null }[];
 };
@@ -194,9 +205,13 @@ function sessionStartedInRange(
   return (!fromDate || started >= fromDate) && (!toDate || started <= toDate);
 }
 
+const reviewStatus = "נשלח להגהה";
+const appStatuses = (statuses as readonly string[]).includes(reviewStatus) ? statuses : [...statuses, reviewStatus];
+
 const roleLabel: Record<Role, string> = {
   manager: "מנהל מערכת",
   field_worker: "עובד שטח",
+  drafter: "שרטט",
 };
 
 export default function Page() {
@@ -224,6 +239,7 @@ export default function Page() {
     | "notifications"
   >("mine");
   const isManager = profile?.role === "manager";
+  const isDrafter = profile?.role === "drafter";
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const defaultReportRange = getMonthRange();
@@ -429,11 +445,13 @@ export default function Page() {
     let request = supabase
       .from("projects")
       .select(
-        "*, profiles:assigned_to(full_name), project_workers(worker_id,profiles:worker_id(full_name,email)), project_photos(id,file_path,category,created_at), project_tasks(id,project_id,title,description,is_done,created_by,created_at,updated_at,profiles:created_by(full_name)), work_sessions(id,worker_id,started_at,ended_at,started_lat,started_lng,started_accuracy,ended_lat,ended_lng,ended_accuracy,end_note)",
+        "*, profiles:assigned_to(full_name), project_workers(worker_id,profiles:worker_id(full_name,email)), project_photos(id,file_path,category,created_at), project_tasks(id,project_id,title,description,is_done,created_by,created_at,updated_at,profiles:created_by(full_name)), project_review_files(id,project_id,uploaded_by,file_path,file_name,created_at,profiles:uploaded_by(full_name)), work_sessions(id,worker_id,started_at,ended_at,started_lat,started_lng,started_accuracy,ended_lat,ended_lng,ended_accuracy,end_note)",
       )
       .order("updated_at", { ascending: false });
 
-    if (activeProfile.role !== "manager") {
+    if (activeProfile.role === "drafter") {
+      request = request.in("status", ["עבר לשרטוט", reviewStatus]);
+    } else if (activeProfile.role !== "manager") {
       const { data: extraAssignments } = await supabase
         .from("project_workers")
         .select("project_id")
@@ -763,7 +781,7 @@ export default function Page() {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) return;
 
-    const nextProgress = statusProgress[newStatus] ?? project.progress;
+    const nextProgress = newStatus === reviewStatus ? 85 : statusProgress[newStatus] ?? project.progress;
     const { error } = await supabase
       .from("projects")
       .update({ status: newStatus, progress: nextProgress })
@@ -909,6 +927,115 @@ export default function Page() {
     }
 
     return true;
+  }
+
+  function getProjectFieldWorkerIds(project: Project) {
+    return Array.from(
+      new Set(
+        [project.assigned_to, ...(project.project_workers || []).map((worker) => worker.worker_id)]
+          .filter(Boolean) as string[],
+      ),
+    );
+  }
+
+  async function sendProjectToReview(project: Project, file: File, note: string) {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user || !profile) return;
+    if (profile.role !== "drafter" && profile.role !== "manager") {
+      setMessage("רק שרטט או מנהל יכולים לשלוח פרויקט להגהה.");
+      return;
+    }
+    if (project.status !== "עבר לשרטוט") {
+      setMessage("אפשר לשלוח להגהה רק פרויקט שנמצא בסטטוס עבר לשרטוט.");
+      return;
+    }
+    if (!file) {
+      setMessage("יש לבחור קובץ PDF לפני שליחה להגהה.");
+      return;
+    }
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      setMessage("אפשר להעלות להגהה קובץ PDF בלבד.");
+      return;
+    }
+
+    setMessage("מעלה PDF ושולח את הפרויקט להגהה...");
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+    const path = `${project.id}/${Date.now()}-${safeName}`;
+    const { error: uploadError } = await supabase.storage
+      .from("project-review-files")
+      .upload(path, file, { upsert: false, contentType: "application/pdf" });
+    if (uploadError) {
+      setMessage(uploadError.message);
+      return;
+    }
+
+    const { error: fileError } = await supabase.from("project_review_files").insert({
+      project_id: project.id,
+      uploaded_by: user.id,
+      file_path: path,
+      file_name: file.name,
+    });
+    if (fileError) {
+      setMessage(fileError.message);
+      return;
+    }
+
+    const nextProgress = 85;
+    const { error: projectError } = await supabase
+      .from("projects")
+      .update({ status: reviewStatus, progress: nextProgress })
+      .eq("id", project.id);
+    if (projectError) {
+      setMessage(projectError.message);
+      return;
+    }
+
+    const cleanNote = note.trim();
+    await supabase.from("status_history").insert({
+      project_id: project.id,
+      old_status: project.status,
+      new_status: reviewStatus,
+      changed_by: user.id,
+      note: `נשלח להגהה על ידי ${profile.full_name}. PDF: ${file.name}${cleanNote ? ` · הערה: ${cleanNote}` : ""}`,
+    });
+
+    const workerIds = getProjectFieldWorkerIds(project);
+    for (const workerId of workerIds) {
+      await createUserNotification(
+        workerId,
+        "project_review_sent",
+        `נשלח להגהה: ${project.name}`,
+        `השרטט ${profile.full_name} שלח את הפרויקט להגהה וצירף PDF לבדיקה.${cleanNote ? ` הערה: ${cleanNote}` : ""}`,
+        project.id,
+      );
+    }
+
+    const { error: notifyError } = await supabase.functions.invoke("notify-project-review", {
+      body: {
+        projectId: project.id,
+        projectName: project.name,
+        clientName: project.client_name,
+        location: project.location,
+        contactPhone: project.contact_phone || null,
+        pdfFileName: file.name,
+        pdfFilePath: path,
+        note: cleanNote,
+        changedByName: profile.full_name,
+        changedByEmail: profile.email,
+        appUrl: typeof window !== "undefined" ? window.location.origin : "",
+      },
+    });
+
+    if (notifyError) {
+      console.warn("Review email notification failed:", notifyError.message);
+      setMessage(`הפרויקט נשלח להגהה והעובדים קיבלו התראה פנימית. שים לב: מייל ההגהה לא נשלח (${notifyError.message}).`);
+      await Promise.all([loadProjects(), loadHistory(), loadNotifications()]);
+      return;
+    }
+
+    setMessage("הפרויקט נשלח להגהה, ה-PDF נשמר ונשלחו התראות ומיילים.");
+    await Promise.all([loadProjects(), loadHistory(), loadNotifications()]);
   }
 
   async function saveProject(
@@ -1400,7 +1527,9 @@ export default function Page() {
                     : "התראות";
   const tabSubtitle = isManager
     ? "תצוגת ניהול מלאה לפרויקטים, משימות, עובדים והתראות"
-    : "תצוגת עובד שטח לפרויקטים, שעות עבודה ומשימות";
+    : isDrafter
+      ? "תצוגת שרטט לפרויקטים שעברו לשרטוט ושליחה להגהה"
+      : "תצוגת עובד שטח לפרויקטים, שעות עבודה ומשימות";
 
   if (!envReady) return <SetupScreen />;
 
@@ -1727,7 +1856,7 @@ export default function Page() {
                     style={{ maxWidth: 220 }}
                   >
                     <option value="">כל הסטטוסים</option>
-                    {statuses.map((s) => (
+                    {appStatuses.map((s) => (
                       <option key={s} value={s}>
                         {s}
                       </option>
@@ -1760,6 +1889,7 @@ export default function Page() {
                       updateStatus={updateStatus}
                       uploadPhoto={uploadPhoto}
                       isManager={isManager}
+                      isDrafter={isDrafter}
                       workers={workers}
                       saveProject={saveProject}
                       deleteProject={deleteProject}
@@ -1771,6 +1901,7 @@ export default function Page() {
                       addProjectTask={addProjectTask}
                       toggleProjectTask={toggleProjectTask}
                       deleteProjectTask={deleteProjectTask}
+                      sendProjectToReview={sendProjectToReview}
                     />
                   ))}
                 </div>
@@ -1940,6 +2071,7 @@ function ProjectCard({
   updateStatus,
   uploadPhoto,
   isManager,
+  isDrafter,
   workers,
   saveProject,
   deleteProject,
@@ -1951,12 +2083,14 @@ function ProjectCard({
   addProjectTask,
   toggleProjectTask,
   deleteProjectTask,
+  sendProjectToReview,
 }: {
   project: Project;
   historyItems: StatusHistory[];
   updateStatus: (p: Project, s: string, n: string) => void;
   uploadPhoto: (projectId: string, file: File, category?: string) => void;
   isManager: boolean;
+  isDrafter: boolean;
   workers: Profile[];
   saveProject: (projectId: string, changes: NewProject) => void;
   deleteProject: (project: Project) => void;
@@ -1972,6 +2106,7 @@ function ProjectCard({
   ) => void;
   toggleProjectTask: (task: ProjectTask, project: Project) => void;
   deleteProjectTask: (task: ProjectTask) => void;
+  sendProjectToReview: (project: Project, file: File, note: string) => void;
 }) {
   const [status, setStatus] = useState(project.status);
   const [note, setNote] = useState("");
@@ -1979,6 +2114,8 @@ function ProjectCard({
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
+  const [reviewFile, setReviewFile] = useState<File | null>(null);
+  const [reviewNote, setReviewNote] = useState("");
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -2004,6 +2141,8 @@ function ProjectCard({
       assigned_workers: (project.project_workers || []).map((w) => w.worker_id),
       due_date: project.due_date || "",
     });
+    setReviewFile(null);
+    setReviewNote("");
   }, [project]);
 
   const myOpenSession = project.work_sessions?.find(
@@ -2016,6 +2155,7 @@ function ProjectCard({
         new Date(b.ended_at || "").getTime() -
         new Date(a.ended_at || "").getTime(),
     )[0];
+  const isReviewSent = project.status === reviewStatus;
 
   const editModal = editing ? (
     <div
@@ -2226,7 +2366,14 @@ function ProjectCard({
           }
         }
       `}</style>
-      <article className={`project status-${getStatusClass(project.status)} ${detailsOpen ? "project-open" : "project-closed"}`}>
+      <article
+        className={`project status-${getStatusClass(project.status)} ${detailsOpen ? "project-open" : "project-closed"}`}
+        style={
+          isReviewSent
+            ? { background: "#fff1f2", borderColor: "#fecdd3", boxShadow: "0 16px 40px rgba(190, 18, 60, .10)" }
+            : undefined
+        }
+      >
         <button
           type="button"
           className="projectCompactHeader"
@@ -2445,7 +2592,7 @@ function ProjectCard({
             )}
           </div>
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
-            {statuses.map((s) => (
+            {appStatuses.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
@@ -2501,6 +2648,24 @@ function ProjectCard({
             </label>
           </div>
         </div>
+
+        <ReviewFilesPanel files={project.project_review_files || []} />
+        {(isDrafter || isManager) && project.status === "עבר לשרטוט" && (
+          <DrafterReviewBox
+            reviewFile={reviewFile}
+            setReviewFile={setReviewFile}
+            reviewNote={reviewNote}
+            setReviewNote={setReviewNote}
+            onSend={() => {
+              if (!reviewFile) {
+                return;
+              }
+              sendProjectToReview(project, reviewFile, reviewNote);
+              setReviewFile(null);
+              setReviewNote("");
+            }}
+          />
+        )}
         <TaskPanel
           tasks={project.project_tasks || []}
           isManager={isManager}
@@ -2571,6 +2736,106 @@ function ProjectCard({
       </article>
       {editModal}
     </>
+  );
+}
+
+
+function DrafterReviewBox({
+  reviewFile,
+  setReviewFile,
+  reviewNote,
+  setReviewNote,
+  onSend,
+}: {
+  reviewFile: File | null;
+  setReviewFile: (file: File | null) => void;
+  reviewNote: string;
+  setReviewNote: (value: string) => void;
+  onSend: () => void;
+}) {
+  return (
+    <div
+      className="reviewBox"
+      style={{
+        border: "1px solid #fecdd3",
+        background: "#fff7f7",
+        borderRadius: 18,
+        padding: 16,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div>
+        <b>שליחה להגהה</b>
+        <p className="muted" style={{ margin: "4px 0 0" }}>
+          העלה PDF ושלח התראה לעובדי השטח, למנהלים ולשרטטים.
+        </p>
+      </div>
+      <label>
+        קובץ PDF להגהה
+        <input
+          type="file"
+          accept="application/pdf,.pdf"
+          onChange={(e) => setReviewFile(e.target.files?.[0] || null)}
+        />
+      </label>
+      {reviewFile && <span className="muted">נבחר: {reviewFile.name}</span>}
+      <textarea
+        value={reviewNote}
+        onChange={(e) => setReviewNote(e.target.value)}
+        placeholder="הערה לעובדי השטח, אופציונלי"
+      />
+      <button className="smallBtn danger" onClick={onSend} disabled={!reviewFile}>
+        שלח להגהה
+      </button>
+    </div>
+  );
+}
+
+function ReviewFilesPanel({ files }: { files: ProjectReviewFile[] }) {
+  const [urls, setUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadUrls() {
+      const next: Record<string, string> = {};
+      for (const file of files) {
+        const { data } = await supabase.storage
+          .from("project-review-files")
+          .createSignedUrl(file.file_path, 60 * 60);
+        if (data?.signedUrl) next[file.id] = data.signedUrl;
+      }
+      if (!cancelled) setUrls(next);
+    }
+    loadUrls();
+    return () => {
+      cancelled = true;
+    };
+  }, [files]);
+
+  if (!files.length) return null;
+  return (
+    <div className="tasksBox reviewFilesBox">
+      <div className="tasksHeader">
+        <b>קבצי הגהה</b>
+        <span className="muted">{files.length} קבצים</span>
+      </div>
+      {files.map((file) => (
+        <div className="taskItem" key={file.id}>
+          <div>
+            <b>{file.file_name || "קובץ PDF"}</b>
+            <p className="muted">
+              הועלה על ידי {file.profiles?.full_name || "שרטט"} · {new Date(file.created_at).toLocaleString("he-IL")}
+            </p>
+          </div>
+          {urls[file.id] && (
+            <a className="ghost tinyBtn" href={urls[file.id]} target="_blank" rel="noreferrer">
+              פתיחת PDF
+            </a>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -2731,6 +2996,7 @@ function PhotoGallery({ photos }: { photos: ProjectPhoto[] }) {
 function exportProjectPdf(project: Project, historyItems: StatusHistory[]) {
   const tasks = project.project_tasks || [];
   const photos = project.project_photos || [];
+  const reviewFiles = project.project_review_files || [];
   const sessions = project.work_sessions || [];
   const html = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>דוח פרויקט - ${escapeHtml(project.name)}</title><style>
     body{font-family:Arial,sans-serif;margin:32px;color:#10213f;direction:rtl}h1{color:#071e41;margin:0 0 8px}.meta{color:#64748b;margin-bottom:24px}.box{border:1px solid #dfe8f2;border-radius:14px;padding:16px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.badge{display:inline-block;border-radius:999px;background:#eef6ff;padding:6px 12px;font-weight:bold}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border-bottom:1px solid #e5edf5;padding:9px;text-align:right;vertical-align:top}th{background:#f3f7fb}@media print{button{display:none}body{margin:18px}}
@@ -2740,6 +3006,7 @@ function exportProjectPdf(project: Project, historyItems: StatusHistory[]) {
   <div class="box"><h2>משימות</h2><table><thead><tr><th>משימה</th><th>סטטוס</th><th>תיאור</th><th>תאריך</th></tr></thead><tbody>${tasks.length ? tasks.map((t) => `<tr><td>${escapeHtml(t.title)}</td><td>${t.is_done ? "בוצע" : "פתוח"}</td><td>${escapeHtml(t.description || "-")}</td><td>${new Date(t.created_at).toLocaleDateString("he-IL")}</td></tr>`).join("") : '<tr><td colspan="4">אין משימות</td></tr>'}</tbody></table></div>
   <div class="box"><h2>שעות עבודה</h2><table><thead><tr><th>התחלה</th><th>סיום</th><th>מיקום התחלה</th><th>מיקום סיום</th></tr></thead><tbody>${sessions.length ? sessions.map((w) => `<tr><td>${new Date(w.started_at).toLocaleString("he-IL")}</td><td>${w.ended_at ? new Date(w.ended_at).toLocaleString("he-IL") : "פתוח"}</td><td>${mapsLink(w.started_lat, w.started_lng) ? `<a href="${mapsLink(w.started_lat, w.started_lng)}">מפה</a>` : "-"}</td><td>${mapsLink(w.ended_lat, w.ended_lng) ? `<a href="${mapsLink(w.ended_lat, w.ended_lng)}">מפה</a>` : "-"}</td></tr>`).join("") : '<tr><td colspan="4">אין שעות עבודה</td></tr>'}</tbody></table></div>
   <div class="box"><h2>תמונות</h2>${photos.length ? `<ul>${photos.map((p) => `<li>${escapeHtml(p.category || "תמונת שטח")} · ${new Date(p.created_at).toLocaleString("he-IL")}</li>`).join("")}</ul>` : "אין תמונות"}</div>
+  <div class="box"><h2>קבצי הגהה</h2>${reviewFiles.length ? `<ul>${reviewFiles.map((f) => `<li>${escapeHtml(f.file_name || "קובץ PDF")} · ${new Date(f.created_at).toLocaleString("he-IL")}</li>`).join("")}</ul>` : "אין קבצי הגהה"}</div>
   <div class="box"><h2>עדכונים אחרונים</h2>${historyItems.length ? `<ul>${historyItems.map((h) => `<li><b>${escapeHtml(h.new_status)}</b> · ${new Date(h.created_at).toLocaleString("he-IL")}${h.note ? ` · ${escapeHtml(h.note)}` : ""}</li>`).join("")}</ul>` : "אין עדכונים"}</div>
   </body></html>`;
   const win = window.open("", "_blank");
@@ -2760,8 +3027,10 @@ function escapeHtml(value: string) {
 }
 
 function getStatusClass(status: string) {
-  return status === "הושלם"
-    ? "done"
+  return status === reviewStatus
+    ? "review"
+    : status === "הושלם"
+      ? "done"
     : status === "עבר לשרטוט"
       ? "drafting"
       : status === "נדרש GPR"

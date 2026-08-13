@@ -1,2 +1,5 @@
-supabase/functions
-supabase/functions/**
+/supabase/functions/daily-manager-summary/index.ts
+/supabase/functions/notify-project-assigned/index.ts
+/supabase/functions/notify-status-change/index.ts
+/supabase/functions/notify-task-done/index.ts
+/supabase/functions/notify-project-review/index.ts

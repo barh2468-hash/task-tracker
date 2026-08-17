@@ -451,3 +451,91 @@
   background: #eaf5ff;
   border-color: #b9dcf4;
 }
+
+/* Projects grouped by assigned field worker */
+.assignmentSummary{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(170px,1fr));
+  gap:12px;
+  margin-bottom:16px;
+}
+.assignmentSummary > div{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:15px 17px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:linear-gradient(180deg,#f8fbff,#fff);
+}
+.assignmentSummary strong{font-size:27px;color:var(--navy)}
+.assignmentSummary span{color:var(--muted);font-size:13px;font-weight:900}
+.assignmentToolbar input{max-width:none;flex:1;min-width:240px}
+.assignmentToolbar select{max-width:220px}
+.archiveToggle{
+  display:flex;
+  grid-template-columns:auto 1fr;
+  align-items:center;
+  gap:8px;
+  padding:0 8px;
+  white-space:nowrap;
+}
+.archiveToggle input{width:auto;box-shadow:none}
+.workerAssignmentGrid{display:grid;gap:16px}
+.workerAssignmentGrid > .empty{grid-column:1 / -1}
+.workerAssignmentCard{
+  border:1px solid var(--line);
+  border-radius:24px;
+  overflow:hidden;
+  background:#fff;
+  box-shadow:var(--soft);
+}
+.workerAssignmentCard > header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:16px 18px;
+  background:linear-gradient(135deg,#f4f9ff,#fff);
+  border-bottom:1px solid var(--line);
+}
+.workerAssignmentCard h3{margin:0 0 4px;color:var(--navy)}
+.workerAssignmentCard header p{margin:0;color:var(--muted);font-size:13px}
+.assignmentCount{
+  margin-right:auto;
+  padding:7px 11px;
+  border-radius:999px;
+  background:#eaf5ff;
+  color:#075985;
+  font-size:13px;
+  font-weight:950;
+  white-space:nowrap;
+}
+.assignedProjectList{display:grid;padding:0 18px}
+.assignedProjectRow{padding:16px 0;border-bottom:1px dashed var(--line)}
+.assignedProjectRow:last-child{border-bottom:0}
+.assignedProjectHeading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.assignedProjectHeading > div{display:grid;gap:5px;min-width:0}
+.assignedProjectHeading b{font-size:16px;color:var(--text)}
+.assignedProjectHeading span{font-size:13px;color:var(--muted);line-height:1.45}
+.assignedProjectMeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:11px}
+.assignedProjectMeta > span{
+  padding:5px 9px;
+  border-radius:999px;
+  background:#f4f7fb;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:850;
+}
+.assignedProjectMeta .primaryAssignment{background:#e7f7ee;color:#087a36}
+.assignedProjectMeta .extraAssignment{background:#fff4df;color:#9a5800}
+.assignmentProgress{max-width:360px;height:7px;margin-top:11px}
+.assignmentEmpty{padding:22px;text-align:center;color:var(--muted);font-size:14px;font-weight:800}
+@media(max-width:760px){
+  .assignmentSummary{grid-template-columns:1fr}
+  .assignmentToolbar{align-items:stretch}
+  .assignmentToolbar input,.assignmentToolbar select{max-width:none;width:100%}
+  .workerAssignmentCard > header{align-items:flex-start;flex-wrap:wrap}
+  .assignmentCount{margin-right:0;margin-left:auto}
+  .assignedProjectHeading{display:grid}
+  .assignedProjectHeading .pill{justify-self:start}
+}

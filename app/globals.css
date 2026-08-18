@@ -662,9 +662,9 @@ body{background:radial-gradient(circle at 12% 3%,rgba(255,127,50,.10),transparen
   .mobileMenuButton{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;padding:0;border:1px solid var(--line);border-radius:50%;background:#eef4f9;color:var(--navy);box-shadow:none}
   .mobileMenuButton:hover{transform:none;box-shadow:none;background:#e4eef6}
   .mobileMenuButton.active{background:linear-gradient(135deg,#0b3768,#258fc4);color:#fff;border-color:transparent}
-  .mobileMenuBackdrop{display:block;position:fixed;inset:0;z-index:69;padding:0;border:0;border-radius:0;background:rgba(3,20,45,.48);backdrop-filter:blur(3px);box-shadow:none;animation:mobileMenuFade .2s ease}
+  .mobileMenuBackdrop{display:block;position:fixed;inset:0;z-index:69;padding:0;border:0;border-radius:0;background:rgba(3,20,45,.48);backdrop-filter:blur(3px);box-shadow:none;animation:mobileMenuFade .2s ease;touch-action:none;overscroll-behavior:contain}
   .mobileMenuBackdrop:hover{transform:none;filter:none;box-shadow:none}
-  .sidebar{display:block;position:fixed;top:0;right:0;bottom:0;z-index:70;width:min(310px,86vw);min-height:100vh;padding:18px;overflow-y:auto;overflow-x:hidden;border-radius:28px 0 0 28px;transform:translateX(105%);opacity:0;visibility:hidden;transition:transform .24s ease,opacity .2s ease,visibility .24s;box-shadow:-25px 0 70px rgba(3,20,45,.35)}
+  .sidebar{display:block;position:fixed;top:0;right:0;bottom:0;z-index:70;width:min(310px,86vw);min-height:100vh;padding:18px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-radius:28px 0 0 28px;transform:translateX(105%);opacity:0;visibility:hidden;transition:transform .24s ease,opacity .2s ease,visibility .24s;box-shadow:-25px 0 70px rgba(3,20,45,.35)}
   .sidebar.mobileOpen{transform:translateX(0);opacity:1;visibility:visible}
   .sidebar:after,.sidebar:before{display:block}
   .sidebar .logoBox{display:flex;margin-bottom:14px}

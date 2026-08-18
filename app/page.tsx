@@ -16,6 +16,7 @@ import {
   History,
   LogOut,
   MapPin,
+  Menu,
   Pencil,
   Phone,
   PlayCircle,
@@ -226,6 +227,7 @@ export default function Page() {
   const [workSessions, setWorkSessions] = useState<WorkSession[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [tab, setTab] = useState<
     | "mine"
     | "all"
@@ -252,6 +254,11 @@ export default function Page() {
   const [message, setMessage] = useState("");
   const [newProject, setNewProject] = useState<NewProject>(emptyProject);
 
+  function openTab(nextTab: typeof tab) {
+    setTab(nextTab);
+    setMobileMenuOpen(false);
+  }
+
   useEffect(() => {
     if (!envReady) return;
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -271,6 +278,21 @@ export default function Page() {
     const timeout = window.setTimeout(() => setMessage(""), 4500);
     return () => window.clearTimeout(timeout);
   }, [message, session]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const resetMenuScroll = window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>(".sidebar")?.scrollTo({ left: 0 });
+    });
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.cancelAnimationFrame(resetMenuScroll);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     if (!profile) return;
@@ -1669,12 +1691,24 @@ export default function Page() {
                 markAllRead={markAllNotificationsRead}
                 close={() => setNotificationsOpen(false)}
                 openFullPage={() => {
-                  setTab("notifications");
+                  openTab("notifications");
                   setNotificationsOpen(false);
                 }}
               />
             )}
           </div>
+          <button
+            className={`mobileMenuButton ${mobileMenuOpen ? "active" : ""}`}
+            onClick={() => {
+              setMobileMenuOpen((open) => !open);
+              setNotificationsOpen(false);
+            }}
+            aria-label={mobileMenuOpen ? "סגירת תפריט" : "פתיחת תפריט"}
+            aria-expanded={mobileMenuOpen}
+            title="תפריט"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
           <div className="avatar">{profile?.full_name?.[0] || "ע"}</div>
           <div>
             <b>{profile?.full_name || session?.user?.email}</b>
@@ -1689,7 +1723,30 @@ export default function Page() {
       </header>
 
       <section className="container layout">
-        <aside className="sidebar">
+        {mobileMenuOpen && (
+          <button
+            className="mobileMenuBackdrop"
+            aria-label="סגירת תפריט"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+        <aside
+          className={`sidebar ${mobileMenuOpen ? "mobileOpen" : ""}`}
+          aria-label="תפריט ראשי"
+        >
+          <div className="mobileMenuHeader">
+            <div>
+              <b>תפריט ראשי</b>
+              <small>{profile ? roleLabel[profile.role] : "משתמש"}</small>
+            </div>
+            <button
+              className="mobileMenuClose"
+              aria-label="סגירת תפריט"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <X size={19} />
+            </button>
+          </div>
           <div className="logoBox">
             <img src="/logo.png" alt="לוגו" />
             <b>
@@ -1700,7 +1757,7 @@ export default function Page() {
           </div>
           <button
             className={`navBtn ${tab === "mine" ? "active" : ""}`}
-            onClick={() => setTab("mine")}
+            onClick={() => openTab("mine")}
           >
             <span>הפרויקטים שלי</span>
             <FolderKanban size={18} />
@@ -1708,7 +1765,7 @@ export default function Page() {
           {isManager && (
             <button
               className={`navBtn ${tab === "all" ? "active" : ""}`}
-              onClick={() => setTab("all")}
+              onClick={() => openTab("all")}
             >
               <span>כל הפרויקטים</span>
               <Users size={18} />
@@ -1717,7 +1774,7 @@ export default function Page() {
           {isManager && (
             <button
               className={`navBtn ${tab === "assignments" ? "active" : ""}`}
-              onClick={() => setTab("assignments")}
+              onClick={() => openTab("assignments")}
             >
               <span>פרויקטים משויכים</span>
               <FolderKanban size={18} />
@@ -1726,7 +1783,7 @@ export default function Page() {
           {isManager && (
             <button
               className={`navBtn ${tab === "today" ? "active" : ""}`}
-              onClick={() => setTab("today")}
+              onClick={() => openTab("today")}
             >
               <span>היום בשטח</span>
               <Clock size={18} />
@@ -1735,7 +1792,7 @@ export default function Page() {
           {isManager && (
             <button
               className={`navBtn ${tab === "projectStatus" ? "active" : ""}`}
-              onClick={() => setTab("projectStatus")}
+              onClick={() => openTab("projectStatus")}
             >
               <span>דו״ח מצב פרויקטים</span>
               <FileText size={18} />
@@ -1744,7 +1801,7 @@ export default function Page() {
           {isManager && (
             <button
               className={`navBtn ${tab === "unassigned" ? "active" : ""}`}
-              onClick={() => setTab("unassigned")}
+              onClick={() => openTab("unassigned")}
             >
               <span>ללא שיוך ({stats.unassigned})</span>
               <FolderKanban size={18} />
@@ -1753,7 +1810,7 @@ export default function Page() {
           {isManager && (
             <button
               className={`navBtn ${tab === "archive" ? "active" : ""}`}
-              onClick={() => setTab("archive")}
+              onClick={() => openTab("archive")}
             >
               <span>ארכיון ({stats.archived})</span>
               <Archive size={18} />
@@ -1762,7 +1819,7 @@ export default function Page() {
           {isManager && (
             <button
               className={`navBtn ${tab === "exceptions" ? "active" : ""}`}
-              onClick={() => setTab("exceptions")}
+              onClick={() => openTab("exceptions")}
             >
               <span>דוח חריגות ({stats.exceptions})</span>
               <AlertTriangle size={18} />
@@ -1771,7 +1828,7 @@ export default function Page() {
           {isManager && (
             <button
               className={`navBtn ${tab === "new" ? "active" : ""}`}
-              onClick={() => setTab("new")}
+              onClick={() => openTab("new")}
             >
               <span>הוספת פרויקט</span>
               <FilePlus2 size={18} />
@@ -1779,14 +1836,14 @@ export default function Page() {
           )}
           <button
             className={`navBtn ${tab === "history" ? "active" : ""}`}
-            onClick={() => setTab("history")}
+            onClick={() => openTab("history")}
           >
             <span>היסטוריית שינויים</span>
             <History size={18} />
           </button>
           <button
             className={`navBtn ${tab === "notifications" ? "active" : ""}`}
-            onClick={() => setTab("notifications")}
+            onClick={() => openTab("notifications")}
           >
             <span>התראות {unreadCount > 0 ? `(${unreadCount})` : ""}</span>
             <Bell size={18} />
@@ -1794,7 +1851,7 @@ export default function Page() {
           {isManager && (
             <button
               className={`navBtn ${tab === "report" ? "active" : ""}`}
-              onClick={() => setTab("report")}
+              onClick={() => openTab("report")}
             >
               <span>דוח שעות עובדים</span>
               <Download size={18} />

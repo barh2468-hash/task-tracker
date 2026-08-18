@@ -654,3 +654,26 @@ body{background:radial-gradient(circle at 12% 3%,rgba(255,127,50,.10),transparen
 .appToastIcon{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:#daf5e6;color:#16834b}.appToast p{margin:0;font-size:13px;font-weight:850;line-height:1.45}.appToastClose{width:32px;height:32px;padding:0;border-radius:10px;background:transparent;color:#547267;border:0;box-shadow:none}.appToastClose:hover{transform:none;background:#e7f4ec;box-shadow:none}
 @keyframes toastEnter{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:760px){.appToast{top:auto;bottom:18px;left:16px;width:calc(100vw - 32px)}}
+
+/* Floating mobile navigation drawer */
+.mobileMenuButton,.mobileMenuBackdrop,.mobileMenuHeader{display:none}
+@keyframes mobileMenuFade{from{opacity:0}to{opacity:1}}
+@media(max-width:760px){
+  .mobileMenuButton{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;padding:0;border:1px solid var(--line);border-radius:50%;background:#eef4f9;color:var(--navy);box-shadow:none}
+  .mobileMenuButton:hover{transform:none;box-shadow:none;background:#e4eef6}
+  .mobileMenuButton.active{background:linear-gradient(135deg,#0b3768,#258fc4);color:#fff;border-color:transparent}
+  .mobileMenuBackdrop{display:block;position:fixed;inset:0;z-index:69;padding:0;border:0;border-radius:0;background:rgba(3,20,45,.48);backdrop-filter:blur(3px);box-shadow:none;animation:mobileMenuFade .2s ease}
+  .mobileMenuBackdrop:hover{transform:none;filter:none;box-shadow:none}
+  .sidebar{display:block;position:fixed;top:0;right:0;bottom:0;z-index:70;width:min(310px,86vw);min-height:100vh;padding:18px;overflow-y:auto;overflow-x:hidden;border-radius:28px 0 0 28px;transform:translateX(105%);opacity:0;visibility:hidden;transition:transform .24s ease,opacity .2s ease,visibility .24s;box-shadow:-25px 0 70px rgba(3,20,45,.35)}
+  .sidebar.mobileOpen{transform:translateX(0);opacity:1;visibility:visible}
+  .sidebar:after,.sidebar:before{display:block}
+  .sidebar .logoBox{display:flex;margin-bottom:14px}
+  .sidebar > p{display:block}
+  .sidebar .navBtn{display:flex;width:100%;margin:0 0 8px;padding:11px 13px;white-space:normal;scroll-snap-align:none}
+  .sidebar .navBtn svg{width:18px;height:18px}
+  .mobileMenuHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding:3px 2px 13px;border-bottom:1px solid rgba(255,255,255,.13)}
+  .mobileMenuHeader b{color:#fff}
+  .mobileMenuHeader small{display:block;margin-top:3px;color:rgba(255,255,255,.62);font-size:11px;font-weight:750}
+  .mobileMenuClose{display:grid;place-items:center;width:36px;height:36px;padding:0;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:rgba(255,255,255,.09);color:#fff;box-shadow:none}
+  .mobileMenuClose:hover{transform:none;background:rgba(255,255,255,.16);box-shadow:none}
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Download, FileSignature, PenLine, PlusCircle, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -329,7 +330,7 @@ export default function WorkDiaryPanel({
         <div className="workDiaryEmpty">עדיין לא נוצר יומן עבודה לפרויקט זה.</div>
       )}
 
-      {formOpen && (
+      {formOpen && typeof document !== "undefined" && createPortal(
         <div className="modalBackdrop workDiaryBackdrop" role="dialog" aria-modal="true" onClick={() => setFormOpen(false)}>
           <div className="workDiaryModal" onClick={(event) => event.stopPropagation()}>
             <header className="workDiaryModalHeader">
@@ -431,7 +432,8 @@ export default function WorkDiaryPanel({
               <button className="ghost" onClick={() => setFormOpen(false)}>ביטול</button>
             </footer>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </section>
   );

@@ -77,13 +77,16 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'worker_has_no_email' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const subject = `שויך אליך פרויקט חדש: ${payload.projectName}`;
+    const isDrafterAssignment = worker.role === 'drafter';
+    const subject = isDrafterAssignment
+      ? `שויך אליך פרויקט לשרטוט: ${payload.projectName}`
+      : `שויך אליך פרויקט חדש: ${payload.projectName}`;
     const assignedBy = payload.assignedByName || requester.full_name || 'מנהל מערכת';
     const html = `
       <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.7;color:#0b1b3a">
-        <h2 style="margin:0 0 12px">שויך אליך פרויקט חדש</h2>
+        <h2 style="margin:0 0 12px">${isDrafterAssignment ? 'שויך אליך פרויקט לשרטוט' : 'שויך אליך פרויקט חדש'}</h2>
         <p>שלום ${escapeHtml(worker.full_name || worker.email)},</p>
-        <p>מנהל המערכת ${escapeHtml(assignedBy)} שייך אליך פרויקט במערכת איתור התשתיות.</p>
+        <p>מנהל המערכת ${escapeHtml(assignedBy)} שייך אליך ${isDrafterAssignment ? 'פרויקט לטיפול בשרטוט' : 'פרויקט'} במערכת איתור התשתיות.</p>
         <p><b>פרויקט:</b> ${escapeHtml(payload.projectName)}</p>
         <p><b>לקוח:</b> ${escapeHtml(payload.clientName || 'לא צוין')}</p>
         <p><b>מיקום:</b> ${escapeHtml(payload.location || 'לא צוין')}</p>
@@ -93,7 +96,7 @@ Deno.serve(async (req) => {
       </div>`;
 
     const text = [
-      'שויך אליך פרויקט חדש',
+      isDrafterAssignment ? 'שויך אליך פרויקט לשרטוט' : 'שויך אליך פרויקט חדש',
       `פרויקט: ${payload.projectName}`,
       `לקוח: ${payload.clientName || 'לא צוין'}`,
       `מיקום: ${payload.location || 'לא צוין'}`,

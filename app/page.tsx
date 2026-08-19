@@ -138,7 +138,7 @@ type Project = {
   project_tasks?: ProjectTask[];
   project_review_files?: ProjectReviewFile[];
   work_sessions?: ProjectWorkSession[];
-  project_workers?: { worker_id: string; profiles?: { full_name: string; email: string | null } | null }[];
+  project_workers?: { worker_id: string; profiles?: { full_name: string; email: string | null; role: Role } | null }[];
 };
 type StatusHistory = {
   id: string;
@@ -506,12 +506,25 @@ export default function Page() {
     let request = supabase
       .from("projects")
       .select(
-        "*, profiles:assigned_to(full_name), project_workers(worker_id,profiles:worker_id(full_name,email)), project_photos(id,file_path,category,created_at), project_tasks(id,project_id,title,description,is_done,created_by,created_at,updated_at,profiles:created_by(full_name)), project_review_files(id,project_id,uploaded_by,file_path,file_name,created_at,profiles:uploaded_by(full_name)), work_sessions(id,worker_id,started_at,ended_at,started_lat,started_lng,started_accuracy,ended_lat,ended_lng,ended_accuracy,end_note)",
+        "*, profiles:assigned_to(full_name), project_workers(worker_id,profiles:worker_id(full_name,email,role)), project_photos(id,file_path,category,created_at), project_tasks(id,project_id,title,description,is_done,created_by,created_at,updated_at,profiles:created_by(full_name)), project_review_files(id,project_id,uploaded_by,file_path,file_name,created_at,profiles:uploaded_by(full_name)), work_sessions(id,worker_id,started_at,ended_at,started_lat,started_lng,started_accuracy,ended_lat,ended_lng,ended_accuracy,end_note)",
       )
       .order("updated_at", { ascending: false });
 
     if (activeProfile.role === "drafter") {
-      request = request.in("status", ["עבר לשרטוט", reviewStatus]);
+      const { data: drafterAssignments } = await supabase
+        .from("project_workers")
+        .select("project_id")
+        .eq("worker_id", user.id);
+      const drafterProjectIds = Array.from(
+        new Set((drafterAssignments || []).map((row: any) => row.project_id).filter(Boolean)),
+      );
+      if (!drafterProjectIds.length) {
+        setProjects([]);
+        return;
+      }
+      request = request
+        .in("id", drafterProjectIds)
+        .in("status", ["עבר לשרטוט", reviewStatus]);
     } else if (activeProfile.role !== "manager") {
       const { data: extraAssignments } = await supabase
         .from("project_workers")
@@ -993,10 +1006,100 @@ export default function Page() {
   function getProjectFieldWorkerIds(project: Project) {
     return Array.from(
       new Set(
-        [project.assigned_to, ...(project.project_workers || []).map((worker) => worker.worker_id)]
+        [
+          project.assigned_to,
+          ...(project.project_workers || [])
+            .filter((worker) => !worker.profiles?.role || worker.profiles.role === "field_worker")
+            .map((worker) => worker.worker_id),
+        ]
           .filter(Boolean) as string[],
       ),
     );
+  }
+
+  async function assignProjectDrafter(project: Project, drafterId: string) {
+    if (profile?.role !== "manager") return;
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return;
+
+    const drafters = workers.filter((worker) => worker.role === "drafter");
+    const drafterIds = drafters.map((worker) => worker.id);
+    const currentDrafterId = project.project_workers?.find(
+      (assignment) => assignment.profiles?.role === "drafter",
+    )?.worker_id;
+    if ((currentDrafterId || "") === drafterId) {
+      setMessage(drafterId ? "הפרויקט כבר משויך לשרטט שנבחר" : "הפרויקט אינו משויך לשרטט");
+      return;
+    }
+
+    if (!drafterId) {
+      if (drafterIds.length) {
+        const { error: deleteError } = await supabase
+          .from("project_workers")
+          .delete()
+          .eq("project_id", project.id)
+          .in("worker_id", drafterIds);
+        if (deleteError) {
+          setMessage(`הסרת שיוך השרטט נכשלה: ${deleteError.message}`);
+          return;
+        }
+      }
+      setMessage(`שיוך השרטט הוסר מהפרויקט ${project.name}`);
+      await Promise.all([loadProjects(), loadHistory()]);
+      return;
+    }
+
+    const drafter = drafters.find((worker) => worker.id === drafterId);
+    if (!drafter) {
+      setMessage("השרטט שנבחר לא נמצא");
+      return;
+    }
+
+    const { error: insertError } = await supabase.from("project_workers").insert({
+      project_id: project.id,
+      worker_id: drafterId,
+      assigned_by: user.id,
+    });
+    if (insertError) {
+      setMessage(`שיוך השרטט נכשל: ${insertError.message}`);
+      return;
+    }
+
+    const otherDrafterIds = drafterIds.filter((id) => id !== drafterId);
+    if (otherDrafterIds.length) {
+      const { error: deleteError } = await supabase
+        .from("project_workers")
+        .delete()
+        .eq("project_id", project.id)
+        .in("worker_id", otherDrafterIds);
+      if (deleteError) {
+        setMessage(`השרטט החדש שויך, אך ניקוי השיוך הקודם נכשל: ${deleteError.message}`);
+        await loadProjects();
+        return;
+      }
+    }
+
+    await supabase.from("status_history").insert({
+      project_id: project.id,
+      old_status: project.status,
+      new_status: project.status,
+      changed_by: user.id,
+      note: `הפרויקט שויך לשרטט ${drafter.full_name}`,
+    });
+    await createUserNotification(
+      drafterId,
+      "drafter_assigned",
+      `שויך אליך פרויקט לשרטוט: ${project.name}`,
+      `${profile.full_name} שייך אליך את הפרויקט ${project.name} שנמצא בסטטוס עבר לשרטוט.`,
+      project.id,
+    );
+    const emailSent = await sendProjectAssignmentEmail(drafterId, project);
+    setMessage(
+      emailSent
+        ? `${project.name} שויך לשרטט ${drafter.full_name}, ונשלחו התראה ומייל`
+        : `${project.name} שויך לשרטט ${drafter.full_name} ונשלחה התראה. המייל לא נשלח`,
+    );
+    await Promise.all([loadProjects(), loadHistory(), loadNotifications()]);
   }
 
   async function sendProjectToReview(project: Project, file: File, note: string) {
@@ -1172,15 +1275,25 @@ export default function Page() {
       return;
     }
 
-    const previousExtraWorkers = new Set((originalProject?.project_workers || []).map((w) => w.worker_id));
+    const preservedDrafterIds = (originalProject?.project_workers || [])
+      .filter((assignment) => assignment.profiles?.role === "drafter")
+      .map((assignment) => assignment.worker_id);
+    const previousExtraWorkers = new Set(
+      (originalProject?.project_workers || [])
+        .filter((assignment) => !assignment.profiles?.role || assignment.profiles.role === "field_worker")
+        .map((assignment) => assignment.worker_id),
+    );
     const nextExtraWorkers = new Set(changes.assigned_workers || []);
     const addedExtraWorkers = Array.from(nextExtraWorkers).filter((id) => !previousExtraWorkers.has(id));
+    const nextProjectAssignments = Array.from(
+      new Set([...Array.from(nextExtraWorkers), ...preservedDrafterIds]),
+    );
 
     await supabase.from("project_workers").delete().eq("project_id", projectId);
-    if (nextExtraWorkers.size) {
+    if (nextProjectAssignments.length) {
       const user = (await supabase.auth.getUser()).data.user;
       await supabase.from("project_workers").insert(
-        Array.from(nextExtraWorkers).map((workerId) => ({
+        nextProjectAssignments.map((workerId) => ({
           project_id: projectId,
           worker_id: workerId,
           assigned_by: user?.id || null,
@@ -2088,6 +2201,7 @@ export default function Page() {
                       deleteProjectTask={deleteProjectTask}
                       sendProjectToReview={sendProjectToReview}
                       deleteProjectReviewFile={deleteProjectReviewFile}
+                      assignProjectDrafter={assignProjectDrafter}
                     />
                   ))}
                 </div>
@@ -2145,6 +2259,7 @@ function NewProjectForm({
   workers: Profile[];
   createProject: () => void;
 }) {
+  const fieldWorkers = workers.filter((worker) => worker.role === "field_worker");
   return (
     <section className="card form">
       <h2>הוספת פרויקט חדש</h2>
@@ -2198,7 +2313,7 @@ function NewProjectForm({
             }
           >
             <option value="">ללא שיוך כרגע</option>
-            {workers.map((w) => (
+            {fieldWorkers.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.full_name} - {w.email}
               </option>
@@ -2208,7 +2323,7 @@ function NewProjectForm({
         <label className="wideField">
           עובדים נוספים בפרויקט, אופציונלי
           <div className="workerChecks">
-            {workers.map((w) => (
+            {fieldWorkers.map((w) => (
               <label key={w.id} className="checkLine">
                 <input
                   type="checkbox"
@@ -2283,6 +2398,7 @@ function ProjectCard({
   deleteProjectTask,
   sendProjectToReview,
   deleteProjectReviewFile,
+  assignProjectDrafter,
 }: {
   project: Project;
   historyItems: StatusHistory[];
@@ -2309,6 +2425,7 @@ function ProjectCard({
   deleteProjectTask: (task: ProjectTask) => void;
   sendProjectToReview: (project: Project, file: File, note: string) => void;
   deleteProjectReviewFile: (file: ProjectReviewFile, projectId: string) => void;
+  assignProjectDrafter: (project: Project, drafterId: string) => void;
 }) {
   const [status, setStatus] = useState(project.status);
   const [note, setNote] = useState("");
@@ -2321,6 +2438,12 @@ function ProjectCard({
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const assignedDrafterId = project.project_workers?.find(
+    (assignment) => assignment.profiles?.role === "drafter",
+  )?.worker_id || "";
+  const [selectedDrafterId, setSelectedDrafterId] = useState(assignedDrafterId);
+  const fieldWorkers = workers.filter((worker) => worker.role === "field_worker");
+  const drafters = workers.filter((worker) => worker.role === "drafter");
   const [editProject, setEditProject] = useState<NewProject>({
     name: project.name,
     client_name: project.client_name || "",
@@ -2328,7 +2451,9 @@ function ProjectCard({
     contact_phone: project.contact_phone || "",
     description: project.description || "",
     assigned_to: project.assigned_to || "",
-    assigned_workers: (project.project_workers || []).map((w) => w.worker_id),
+    assigned_workers: (project.project_workers || [])
+      .filter((assignment) => !assignment.profiles?.role || assignment.profiles.role === "field_worker")
+      .map((assignment) => assignment.worker_id),
     due_date: project.due_date || "",
     requires_work_diary: Boolean(project.requires_work_diary),
   });
@@ -2352,12 +2477,17 @@ function ProjectCard({
       contact_phone: project.contact_phone || "",
       description: project.description || "",
       assigned_to: project.assigned_to || "",
-      assigned_workers: (project.project_workers || []).map((w) => w.worker_id),
+      assigned_workers: (project.project_workers || [])
+        .filter((assignment) => !assignment.profiles?.role || assignment.profiles.role === "field_worker")
+        .map((assignment) => assignment.worker_id),
       due_date: project.due_date || "",
       requires_work_diary: Boolean(project.requires_work_diary),
     });
     setReviewFile(null);
     setReviewNote("");
+    setSelectedDrafterId(
+      project.project_workers?.find((assignment) => assignment.profiles?.role === "drafter")?.worker_id || "",
+    );
   }, [project]);
 
   const myOpenSession = project.work_sessions?.find(
@@ -2442,7 +2572,7 @@ function ProjectCard({
               }
             >
               <option value="">לא משויך</option>
-              {workers.map((w) => (
+              {fieldWorkers.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.full_name} - {w.email}
                 </option>
@@ -2452,7 +2582,7 @@ function ProjectCard({
           <label className="wideField">
             עובדים נוספים בפרויקט
             <div className="workerChecks compactChecks">
-              {workers.map((w) => (
+              {fieldWorkers.map((w) => (
                 <label key={w.id} className="checkLine">
                   <input
                     type="checkbox"
@@ -2696,9 +2826,21 @@ function ProjectCard({
           <div className="muted">
             עובד אחראי: {project.profiles?.full_name || "לא משויך"}
           </div>
-          {!!project.project_workers?.length && (
+          {!!project.project_workers?.some(
+            (assignment) => !assignment.profiles?.role || assignment.profiles.role === "field_worker",
+          ) && (
             <div className="muted">
-              עובדים נוספים: {project.project_workers.map((w) => w.profiles?.full_name || "עובד").join(", ")}
+              עובדים נוספים: {project.project_workers
+                .filter((assignment) => !assignment.profiles?.role || assignment.profiles.role === "field_worker")
+                .map((assignment) => assignment.profiles?.full_name || "עובד")
+                .join(", ")}
+            </div>
+          )}
+          {assignedDrafterId && (
+            <div className="muted">
+              שרטט משויך: {project.project_workers?.find(
+                (assignment) => assignment.worker_id === assignedDrafterId,
+              )?.profiles?.full_name || "שרטט"}
             </div>
           )}
           {isManager && (
@@ -2884,6 +3026,37 @@ function ProjectCard({
             currentUserName={currentUserName}
             canDelete={isManager}
           />
+        )}
+
+        {isManager && project.status === "עבר לשרטוט" && (
+          <section className="drafterAssignmentBox">
+            <div>
+              <b>שיוך הפרויקט לשרטט</b>
+              <span>
+                {assignedDrafterId
+                  ? "הפרויקט משויך כעת לשרטט. אפשר לשנות את השיוך."
+                  : "הפרויקט ממתין לבחירת שרטט על ידי מנהל."}
+              </span>
+            </div>
+            <select
+              value={selectedDrafterId}
+              onChange={(event) => setSelectedDrafterId(event.target.value)}
+            >
+              <option value="">ללא שרטט משויך</option>
+              {drafters.map((drafter) => (
+                <option key={drafter.id} value={drafter.id}>
+                  {drafter.full_name} - {drafter.email}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => assignProjectDrafter(project, selectedDrafterId)}
+              disabled={!drafters.length && !assignedDrafterId}
+            >
+              <Pencil size={16} /> {assignedDrafterId ? "עדכון שיוך" : "שיוך לשרטט"}
+            </button>
+          </section>
         )}
 
         <ReviewFilesPanel

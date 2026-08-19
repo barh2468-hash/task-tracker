@@ -121,7 +121,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    const subject = `עדכון סטטוס: ${payload.projectName} → ${payload.newStatus}`;
+    const awaitingDrafterAssignment = payload.newStatus === 'עבר לשרטוט';
+    const subject = awaitingDrafterAssignment
+      ? `ממתין לשיוך שרטט: ${payload.projectName}`
+      : `עדכון סטטוס: ${payload.projectName} → ${payload.newStatus}`;
     const projectUrl = payload.appUrl ? `${payload.appUrl}` : '';
     const html = `
       <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.7;color:#0b1b3a">
@@ -131,6 +134,7 @@ Deno.serve(async (req) => {
         <p><b>מיקום:</b> ${escapeHtml(payload.location || 'לא צוין')}</p>
         <p><b>סטטוס קודם:</b> ${escapeHtml(payload.oldStatus || 'לא צוין')}</p>
         <p><b>סטטוס חדש:</b> ${escapeHtml(payload.newStatus)}</p>
+        ${awaitingDrafterAssignment ? '<p style="padding:12px;border-radius:10px;background:#f3edff;color:#4c1d95"><b>נדרשת פעולת מנהל:</b> יש להיכנס למערכת ולשייך את הפרויקט לשרטט.</p>' : ''}
         <p><b>עודכן על ידי:</b> ${escapeHtml(changer.full_name)} (${escapeHtml(changer.email)})</p>
         ${attachedDiaryNumber ? `<p><b>מצורף:</b> יומן עבודה ${attachedDiaryNumber} (PDF)</p>` : ''}
         ${payload.newStatus === 'הושלם' && !attachedDiaryNumber ? '<p><b>לתשומת לב:</b> לא נמצא יומן עבודה חתום לצירוף.</p>' : ''}
@@ -145,6 +149,7 @@ Deno.serve(async (req) => {
       `מיקום: ${payload.location || 'לא צוין'}`,
       `סטטוס קודם: ${payload.oldStatus || 'לא צוין'}`,
       `סטטוס חדש: ${payload.newStatus}`,
+      awaitingDrafterAssignment ? 'נדרשת פעולת מנהל: יש לשייך את הפרויקט לשרטט במערכת.' : '',
       `עודכן על ידי: ${changer.full_name} (${changer.email})`,
       attachedDiaryNumber ? `מצורף: יומן עבודה ${attachedDiaryNumber} (PDF)` : '',
       payload.newStatus === 'הושלם' && !attachedDiaryNumber ? 'לא נמצא יומן עבודה חתום לצירוף.' : '',

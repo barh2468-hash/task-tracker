@@ -532,6 +532,7 @@
 .assignmentProgress{max-width:360px;height:7px;margin-top:11px}
 .assignmentEmpty{padding:22px;text-align:center;color:var(--muted);font-size:14px;font-weight:800}
 .assignedProjectOpen{margin-top:12px}.project-focused{scroll-margin-top:110px;animation:projectFocusPulse 1.4s ease-out}.project-focused:after{content:"";position:absolute;inset:0;border:2px solid rgba(37,143,196,.55);border-radius:inherit;pointer-events:none;animation:projectFocusFade 1.4s ease-out forwards}@keyframes projectFocusPulse{0%{box-shadow:0 0 0 7px rgba(37,143,196,.18)}100%{box-shadow:var(--soft)}}@keyframes projectFocusFade{0%{opacity:1}100%{opacity:0}}
+.drafterAssignmentBox{grid-column:1/-1;display:grid;grid-template-columns:minmax(230px,1fr) minmax(230px,.8fr) auto;align-items:end;gap:12px;padding:16px;border:1px solid #c8d8f0;border-radius:18px;background:linear-gradient(135deg,#f4f0ff,#f8fbff)}.drafterAssignmentBox>div{display:grid;gap:5px}.drafterAssignmentBox b{color:#4c1d95}.drafterAssignmentBox span{color:var(--muted);font-size:13px;font-weight:750;line-height:1.45}.drafterAssignmentBox select{min-width:0}.drafterAssignmentBox button{white-space:nowrap}
 @media(max-width:760px){
   .assignmentSummary{grid-template-columns:1fr}
   .assignmentToolbar{align-items:stretch}
@@ -541,6 +542,7 @@
   .assignedProjectHeading{display:grid}
   .assignedProjectHeading .pill{justify-self:start}
   .assignedProjectOpen{width:100%}
+  .drafterAssignmentBox{grid-template-columns:1fr;align-items:stretch}.drafterAssignmentBox button{width:100%}
 }
 
 /* Full project status report and Excel export */

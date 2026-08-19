@@ -2259,6 +2259,7 @@ function NewProjectForm({
   workers: Profile[];
   createProject: () => void;
 }) {
+  const projectLeads = workers.filter((worker) => worker.role !== "drafter");
   const fieldWorkers = workers.filter((worker) => worker.role === "field_worker");
   return (
     <section className="card form">
@@ -2305,7 +2306,7 @@ function NewProjectForm({
           />
         </label>
         <label>
-          שיוך לעובד שטח, אופציונלי
+          שיוך לאחראי ראשי (מנהל או עובד שטח), אופציונלי
           <select
             value={project.assigned_to}
             onChange={(e) =>
@@ -2313,7 +2314,7 @@ function NewProjectForm({
             }
           >
             <option value="">ללא שיוך כרגע</option>
-            {fieldWorkers.map((w) => (
+            {projectLeads.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.full_name} - {w.email}
               </option>
@@ -2442,6 +2443,7 @@ function ProjectCard({
     (assignment) => assignment.profiles?.role === "drafter",
   )?.worker_id || "";
   const [selectedDrafterId, setSelectedDrafterId] = useState(assignedDrafterId);
+  const projectLeads = workers.filter((worker) => worker.role !== "drafter");
   const fieldWorkers = workers.filter((worker) => worker.role === "field_worker");
   const drafters = workers.filter((worker) => worker.role === "drafter");
   const [editProject, setEditProject] = useState<NewProject>({
@@ -2564,7 +2566,7 @@ function ProjectCard({
             />
           </label>
           <label>
-            שיוך לעובד
+            שיוך לאחראי ראשי (מנהל או עובד שטח)
             <select
               value={editProject.assigned_to}
               onChange={(e) =>
@@ -2572,7 +2574,7 @@ function ProjectCard({
               }
             >
               <option value="">לא משויך</option>
-              {fieldWorkers.map((w) => (
+              {projectLeads.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.full_name} - {w.email}
                 </option>

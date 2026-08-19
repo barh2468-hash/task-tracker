@@ -257,9 +257,19 @@ export default function Page() {
   const [reportToDate, setReportToDate] = useState(defaultReportRange.to);
   const [message, setMessage] = useState("");
   const [newProject, setNewProject] = useState<NewProject>(emptyProject);
+  const [focusedProjectId, setFocusedProjectId] = useState<string | null>(null);
 
   function openTab(nextTab: typeof tab) {
+    setFocusedProjectId(null);
     setTab(nextTab);
+    setMobileMenuOpen(false);
+  }
+
+  function openAssignedProject(project: Project) {
+    setQuery("");
+    setStatusFilter("");
+    setFocusedProjectId(project.id);
+    setTab(project.is_archived ? "archive" : "all");
     setMobileMenuOpen(false);
   }
 
@@ -1964,7 +1974,11 @@ export default function Page() {
             <ProjectStatusReport projects={projects} />
           )}
           {tab === "assignments" && isManager && (
-            <WorkerAssignmentsPanel projects={projects} workers={workers} />
+            <WorkerAssignmentsPanel
+              projects={projects}
+              workers={workers}
+              openProject={openAssignedProject}
+            />
           )}
           {tab === "new" && isManager && (
             <NewProjectForm
@@ -2066,6 +2080,7 @@ export default function Page() {
                       restoreProject={restoreProject}
                       currentUserId={session?.user?.id}
                       currentUserName={profile?.full_name || ""}
+                      focusRequested={project.id === focusedProjectId}
                       startWork={startWork}
                       endWork={endWork}
                       addProjectTask={addProjectTask}
@@ -2260,6 +2275,7 @@ function ProjectCard({
   restoreProject,
   currentUserId,
   currentUserName,
+  focusRequested,
   startWork,
   endWork,
   addProjectTask,
@@ -2281,6 +2297,7 @@ function ProjectCard({
   restoreProject: (project: Project) => void;
   currentUserId?: string;
   currentUserName: string;
+  focusRequested?: boolean;
   startWork: (project: Project) => void;
   endWork: (project: Project) => void;
   addProjectTask: (
@@ -2315,6 +2332,17 @@ function ProjectCard({
     due_date: project.due_date || "",
     requires_work_diary: Boolean(project.requires_work_diary),
   });
+  useEffect(() => {
+    if (!focusRequested) return;
+    setDetailsOpen(true);
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`project-${project.id}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusRequested, project.id]);
   useEffect(() => {
     setStatus(project.status);
     setEditProject({
@@ -2567,7 +2595,8 @@ function ProjectCard({
         }
       `}</style>
       <article
-        className={`project status-${getStatusClass(project.status)} ${detailsOpen ? "project-open" : "project-closed"}`}
+        id={`project-${project.id}`}
+        className={`project status-${getStatusClass(project.status)} ${detailsOpen ? "project-open" : "project-closed"} ${focusRequested ? "project-focused" : ""}`}
         style={
           isReviewSent
             ? { background: "#fff1f2", borderColor: "#fecdd3", boxShadow: "0 16px 40px rgba(190, 18, 60, .10)" }
@@ -3723,9 +3752,11 @@ function exportExceptionsCsv(
 function WorkerAssignmentsPanel({
   projects,
   workers,
+  openProject,
 }: {
   projects: Project[];
   workers: Profile[];
+  openProject: (project: Project) => void;
 }) {
   const [search, setSearch] = useState("");
   const [assignmentStatus, setAssignmentStatus] = useState("");
@@ -3884,6 +3915,13 @@ function WorkerAssignmentsPanel({
                     <div className="progress assignmentProgress">
                       <i style={{ width: `${project.progress}%` }} />
                     </div>
+                    <button
+                      type="button"
+                      className="ghost smallBtn assignedProjectOpen"
+                      onClick={() => openProject(project)}
+                    >
+                      <FolderKanban size={16} /> פתיחת פרויקט
+                    </button>
                   </div>
                 );
               })}

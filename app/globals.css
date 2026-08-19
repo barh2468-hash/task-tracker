@@ -531,6 +531,7 @@
 .assignedProjectMeta .extraAssignment{background:#fff4df;color:#9a5800}
 .assignmentProgress{max-width:360px;height:7px;margin-top:11px}
 .assignmentEmpty{padding:22px;text-align:center;color:var(--muted);font-size:14px;font-weight:800}
+.assignedProjectOpen{margin-top:12px}.project-focused{scroll-margin-top:110px;animation:projectFocusPulse 1.4s ease-out}.project-focused:after{content:"";position:absolute;inset:0;border:2px solid rgba(37,143,196,.55);border-radius:inherit;pointer-events:none;animation:projectFocusFade 1.4s ease-out forwards}@keyframes projectFocusPulse{0%{box-shadow:0 0 0 7px rgba(37,143,196,.18)}100%{box-shadow:var(--soft)}}@keyframes projectFocusFade{0%{opacity:1}100%{opacity:0}}
 @media(max-width:760px){
   .assignmentSummary{grid-template-columns:1fr}
   .assignmentToolbar{align-items:stretch}
@@ -539,6 +540,7 @@
   .assignmentCount{margin-right:0;margin-left:auto}
   .assignedProjectHeading{display:grid}
   .assignedProjectHeading .pill{justify-self:start}
+  .assignedProjectOpen{width:100%}
 }
 
 /* Full project status report and Excel export */

@@ -185,26 +185,18 @@ export default function WorkDiaryPanel({
 
   useEffect(() => {
     if (!formOpen) return;
-    const lockedScrollY = window.scrollY;
     const previous = {
       overflow: document.body.style.overflow,
-      position: document.body.style.position,
-      top: document.body.style.top,
-      width: document.body.style.width,
       htmlOverflow: document.documentElement.style.overflow,
+      overscrollBehavior: document.body.style.overscrollBehavior,
     };
     document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${lockedScrollY}px`;
-    document.body.style.width = "100%";
+    document.body.style.overscrollBehavior = "none";
     document.documentElement.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previous.overflow;
-      document.body.style.position = previous.position;
-      document.body.style.top = previous.top;
-      document.body.style.width = previous.width;
+      document.body.style.overscrollBehavior = previous.overscrollBehavior;
       document.documentElement.style.overflow = previous.htmlOverflow;
-      window.scrollTo(0, lockedScrollY);
     };
   }, [formOpen]);
 
@@ -290,7 +282,15 @@ export default function WorkDiaryPanel({
           <h3><FileSignature size={20} /> יומני עבודה חתומים</h3>
           <p>מילוי בשטח, חתימת מזמין העבודה וראש צוות מאיה והפקת PDF.</p>
         </div>
-        <button className="smallBtn workDiaryAdd" onClick={openNewDiary}>
+        <button
+          type="button"
+          className="smallBtn workDiaryAdd"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            openNewDiary();
+          }}
+        >
           <PlusCircle size={17} /> יומן עבודה חדש
         </button>
       </header>
@@ -310,11 +310,12 @@ export default function WorkDiaryPanel({
                 </span>
               </div>
               <div className="workDiaryRowActions">
-                <button className="ghost tinyBtn" onClick={() => exportWorkDiaryPdf(project, diary)}>
+                <button type="button" className="ghost tinyBtn" onClick={() => exportWorkDiaryPdf(project, diary)}>
                   <Download size={15} /> PDF
                 </button>
                 {canDelete && (
                   <button
+                    type="button"
                     className="ghost tinyBtn dangerBtn"
                     disabled={deletingId === diary.id}
                     onClick={() => deleteDiary(diary)}
@@ -339,7 +340,7 @@ export default function WorkDiaryPanel({
                 <h2>יומן עבודה חדש</h2>
                 <p>{project.name} · המספר יינתן אוטומטית בשמירה</p>
               </div>
-              <button className="ghost iconBtn" aria-label="סגירה" onClick={() => setFormOpen(false)}><X size={19} /></button>
+              <button type="button" className="ghost iconBtn" aria-label="סגירה" onClick={() => setFormOpen(false)}><X size={19} /></button>
             </header>
 
             <div className="workDiaryForm">
@@ -428,8 +429,8 @@ export default function WorkDiaryPanel({
 
             {message && <div className="workDiaryMessage stickyMessage">{message}</div>}
             <footer className="workDiaryActions">
-              <button onClick={saveDiary} disabled={saving}><PenLine size={17} /> {saving ? "שומר..." : "שמירה וסגירת היומן"}</button>
-              <button className="ghost" onClick={() => setFormOpen(false)}>ביטול</button>
+              <button type="button" onClick={saveDiary} disabled={saving}><PenLine size={17} /> {saving ? "שומר..." : "שמירה וסגירת היומן"}</button>
+              <button type="button" className="ghost" onClick={() => setFormOpen(false)}>ביטול</button>
             </footer>
           </div>
         </div>,

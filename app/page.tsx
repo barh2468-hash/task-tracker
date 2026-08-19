@@ -30,6 +30,7 @@ import {
   X,
 } from "lucide-react";
 import { envReady, statusProgress, statuses, supabase } from "@/lib/supabase";
+import WorkDiaryPanel from "@/app/components/WorkDiaryPanel";
 
 type Role = "manager" | "field_worker" | "drafter";
 type Profile = {
@@ -131,6 +132,7 @@ type Project = {
   updated_at: string;
   is_archived?: boolean | null;
   archived_at?: string | null;
+  requires_work_diary?: boolean;
   profiles?: { full_name: string } | null;
   project_photos?: ProjectPhoto[];
   project_tasks?: ProjectTask[];
@@ -158,6 +160,7 @@ type NewProject = {
   assigned_to: string;
   assigned_workers: string[];
   due_date: string;
+  requires_work_diary: boolean;
 };
 
 const emptyProject: NewProject = {
@@ -169,6 +172,7 @@ const emptyProject: NewProject = {
   assigned_to: "",
   assigned_workers: [],
   due_date: "",
+  requires_work_diary: false,
 };
 const photoCategories = [
   "תמונת שטח",
@@ -1146,6 +1150,7 @@ export default function Page() {
       description: changes.description || null,
       assigned_to: nextAssignedTo,
       due_date: changes.due_date || null,
+      requires_work_diary: Boolean(changes.requires_work_diary),
     };
 
     const { error } = await supabase
@@ -1465,6 +1470,7 @@ export default function Page() {
         created_by: user.id,
         status: "בעבודה בשטח",
         progress: 25,
+        requires_work_diary: Boolean(newProject.requires_work_diary),
       })
       .select("id")
       .single();
@@ -2059,6 +2065,7 @@ export default function Page() {
                       archiveProject={archiveProject}
                       restoreProject={restoreProject}
                       currentUserId={session?.user?.id}
+                      currentUserName={profile?.full_name || ""}
                       startWork={startWork}
                       endWork={endWork}
                       addProjectTask={addProjectTask}
@@ -2213,6 +2220,16 @@ function NewProjectForm({
             }
           />
         </label>
+        <label className="workDiaryProjectToggle">
+          <input
+            type="checkbox"
+            checked={Boolean(project.requires_work_diary)}
+            onChange={(e) =>
+              setProject({ ...project, requires_work_diary: e.target.checked })
+            }
+          />
+          הפרויקט דורש יומן עבודה וחתימות
+        </label>
       </div>
       <label>
         תיאור העבודה
@@ -2242,6 +2259,7 @@ function ProjectCard({
   archiveProject,
   restoreProject,
   currentUserId,
+  currentUserName,
   startWork,
   endWork,
   addProjectTask,
@@ -2262,6 +2280,7 @@ function ProjectCard({
   archiveProject: (project: Project) => void;
   restoreProject: (project: Project) => void;
   currentUserId?: string;
+  currentUserName: string;
   startWork: (project: Project) => void;
   endWork: (project: Project) => void;
   addProjectTask: (
@@ -2294,6 +2313,7 @@ function ProjectCard({
     assigned_to: project.assigned_to || "",
     assigned_workers: (project.project_workers || []).map((w) => w.worker_id),
     due_date: project.due_date || "",
+    requires_work_diary: Boolean(project.requires_work_diary),
   });
   useEffect(() => {
     setStatus(project.status);
@@ -2306,6 +2326,7 @@ function ProjectCard({
       assigned_to: project.assigned_to || "",
       assigned_workers: (project.project_workers || []).map((w) => w.worker_id),
       due_date: project.due_date || "",
+      requires_work_diary: Boolean(project.requires_work_diary),
     });
     setReviewFile(null);
     setReviewNote("");
@@ -2429,6 +2450,19 @@ function ProjectCard({
                 setEditProject({ ...editProject, due_date: e.target.value })
               }
             />
+          </label>
+          <label className="workDiaryProjectToggle wideField">
+            <input
+              type="checkbox"
+              checked={Boolean(editProject.requires_work_diary)}
+              onChange={(e) =>
+                setEditProject({
+                  ...editProject,
+                  requires_work_diary: e.target.checked,
+                })
+              }
+            />
+            הפרויקט דורש יומן עבודה וחתימות
           </label>
         </div>
         <label>
@@ -2814,6 +2848,14 @@ function ProjectCard({
             </label>
           </div>
         </div>
+
+        {project.requires_work_diary && (
+          <WorkDiaryPanel
+            project={project}
+            currentUserName={currentUserName}
+            canDelete={isManager}
+          />
+        )}
 
         <ReviewFilesPanel
           files={project.project_review_files || []}

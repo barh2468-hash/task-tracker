@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createWorkDiaryPdf } from './work-diary-pdf.ts';
 
 type Payload = {
   projectId: string;
@@ -27,6 +28,15 @@ function escapeHtml(value: unknown) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
 }
 
 Deno.serve(async (req) => {
@@ -86,6 +96,31 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'no_manager_emails' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    let attachedDiaryNumber: number | null = null;
+    const attachments: Array<{ filename: string; content: string }> = [];
+    if (payload.newStatus === 'הושלם') {
+      const { data: latestDiary, error: diaryError } = await adminClient
+        .from('work_diaries')
+        .select('diary_number,form_data,customer_signature,team_lead_signature,signed_at')
+        .eq('project_id', payload.projectId)
+        .order('diary_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (diaryError) throw diaryError;
+      if (latestDiary) {
+        const pdfBytes = await createWorkDiaryPdf({
+          name: payload.projectName,
+          clientName: payload.clientName,
+          location: payload.location,
+        }, latestDiary);
+        attachedDiaryNumber = latestDiary.diary_number;
+        attachments.push({
+          filename: `work-diary-${latestDiary.diary_number}.pdf`,
+          content: bytesToBase64(pdfBytes),
+        });
+      }
+    }
+
     const subject = `עדכון סטטוס: ${payload.projectName} → ${payload.newStatus}`;
     const projectUrl = payload.appUrl ? `${payload.appUrl}` : '';
     const html = `
@@ -97,6 +132,8 @@ Deno.serve(async (req) => {
         <p><b>סטטוס קודם:</b> ${escapeHtml(payload.oldStatus || 'לא צוין')}</p>
         <p><b>סטטוס חדש:</b> ${escapeHtml(payload.newStatus)}</p>
         <p><b>עודכן על ידי:</b> ${escapeHtml(changer.full_name)} (${escapeHtml(changer.email)})</p>
+        ${attachedDiaryNumber ? `<p><b>מצורף:</b> יומן עבודה ${attachedDiaryNumber} (PDF)</p>` : ''}
+        ${payload.newStatus === 'הושלם' && !attachedDiaryNumber ? '<p><b>לתשומת לב:</b> לא נמצא יומן עבודה חתום לצירוף.</p>' : ''}
         ${payload.note ? `<p><b>הערה:</b> ${escapeHtml(payload.note)}</p>` : ''}
         ${projectUrl ? `<p><a href="${escapeHtml(projectUrl)}" style="color:#0b5fff">פתיחת המערכת</a></p>` : ''}
       </div>`;
@@ -109,6 +146,8 @@ Deno.serve(async (req) => {
       `סטטוס קודם: ${payload.oldStatus || 'לא צוין'}`,
       `סטטוס חדש: ${payload.newStatus}`,
       `עודכן על ידי: ${changer.full_name} (${changer.email})`,
+      attachedDiaryNumber ? `מצורף: יומן עבודה ${attachedDiaryNumber} (PDF)` : '',
+      payload.newStatus === 'הושלם' && !attachedDiaryNumber ? 'לא נמצא יומן עבודה חתום לצירוף.' : '',
       payload.note ? `הערה: ${payload.note}` : '',
       projectUrl ? `מערכת: ${projectUrl}` : ''
     ].filter(Boolean).join('\n');
@@ -119,7 +158,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ from: fromEmail, to: recipients, subject, html, text })
+      body: JSON.stringify({ from: fromEmail, to: recipients, subject, html, text, ...(attachments.length ? { attachments } : {}) })
     });
 
     if (!resendResponse.ok) {
@@ -128,7 +167,7 @@ Deno.serve(async (req) => {
     }
 
     const result = await resendResponse.json();
-    return new Response(JSON.stringify({ ok: true, sentTo: recipients.length, result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ ok: true, sentTo: recipients.length, attachedDiaryNumber, result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }

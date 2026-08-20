@@ -244,6 +244,7 @@ export default function Page() {
     | "all"
     | "assignments"
     | "today"
+    | "liveMap"
     | "projectStatus"
     | "unassigned"
     | "archive"
@@ -1820,8 +1821,10 @@ export default function Page() {
         ? "כל הפרויקטים"
         : tab === "assignments"
           ? "פרויקטים משויכים"
-          : tab === "today"
+        : tab === "today"
             ? "היום בשטח"
+          : tab === "liveMap"
+            ? "מפה חיה"
             : tab === "projectStatus"
               ? "דו״ח מצב פרויקטים"
             : tab === "unassigned"
@@ -2042,6 +2045,15 @@ export default function Page() {
           )}
           {isManager && (
             <button
+              className={`navBtn ${tab === "liveMap" ? "active" : ""}`}
+              onClick={() => openTab("liveMap")}
+            >
+              <span>מפה חיה</span>
+              <MapPin size={18} />
+            </button>
+          )}
+          {isManager && (
+            <button
               className={`navBtn ${tab === "projectStatus" ? "active" : ""}`}
               onClick={() => openTab("projectStatus")}
             >
@@ -2120,7 +2132,7 @@ export default function Page() {
         </aside>
 
         <section className="mainContent">
-          {tab !== "projectStatus" && <div className="dashboardHero">
+          {tab !== "projectStatus" && tab !== "liveMap" && <div className="dashboardHero">
             <div>
               <span className="eyebrow">MAYA TASKS</span>
               <h2>{tabTitle}</h2>
@@ -2134,7 +2146,7 @@ export default function Page() {
             </div>
           </div>}
 
-          {tab !== "projectStatus" && <div className="grid">
+          {tab !== "projectStatus" && tab !== "liveMap" && <div className="grid">
             <Stat
               number={stats.total}
               label="סה״כ פרויקטים"
@@ -2188,6 +2200,13 @@ export default function Page() {
           {tab === "today" && isManager && (
             <TodayFieldPanel projects={activeProjects} workSessions={workSessions} workers={workers} />
           )}
+          {tab === "liveMap" && isManager && (
+            <LiveMapPanel
+              projects={projects}
+              workSessions={workSessions}
+              openProject={openAssignedProject}
+            />
+          )}
           {tab === "projectStatus" && isManager && (
             <ProjectStatusReport projects={projects} />
           )}
@@ -2237,6 +2256,7 @@ export default function Page() {
           )}
           {tab !== "new" &&
             tab !== "today" &&
+            tab !== "liveMap" &&
             tab !== "projectStatus" &&
             tab !== "assignments" &&
             tab !== "history" &&
@@ -4553,6 +4573,225 @@ function TodayFieldPanel({
             </small>
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+type LiveMapPoint = {
+  id: string;
+  workerId: string;
+  workerName: string;
+  projectId: string;
+  projectName: string;
+  projectLocation: string;
+  lat: number;
+  lng: number;
+  accuracy: number | null;
+  reportedAt: string;
+  isActive: boolean;
+};
+
+function LiveMapPanel({
+  projects,
+  workSessions,
+  openProject,
+}: {
+  projects: Project[];
+  workSessions: WorkSession[];
+  openProject: (project: Project) => void;
+}) {
+  const mapElementRef = useRef<HTMLDivElement | null>(null);
+  const leafletMapRef = useRef<import("leaflet").Map | null>(null);
+  const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
+  const [mapError, setMapError] = useState("");
+
+  const points = useMemo<LiveMapPoint[]>(() => {
+    const result: LiveMapPoint[] = [];
+    const workersOnMap = new Set<string>();
+    const sorted = [...workSessions].sort(
+      (a, b) =>
+        new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
+    );
+
+    const addSession = (session: WorkSession, isActive: boolean) => {
+      if (workersOnMap.has(session.worker_id)) return;
+      const lat = isActive ? session.started_lat : session.ended_lat ?? session.started_lat;
+      const lng = isActive ? session.started_lng : session.ended_lng ?? session.started_lng;
+      const accuracy = isActive
+        ? session.started_accuracy
+        : session.ended_accuracy ?? session.started_accuracy;
+      if (typeof lat !== "number" || typeof lng !== "number") return;
+
+      workersOnMap.add(session.worker_id);
+      result.push({
+        id: session.id,
+        workerId: session.worker_id,
+        workerName: session.profiles?.full_name || "עובד שטח",
+        projectId: session.project_id,
+        projectName: session.projects?.name || "פרויקט",
+        projectLocation: session.projects?.location || "",
+        lat,
+        lng,
+        accuracy,
+        reportedAt: session.ended_at || session.started_at,
+        isActive,
+      });
+    };
+
+    sorted.filter((session) => !session.ended_at).forEach((session) => addSession(session, true));
+    sorted.filter((session) => session.ended_at).forEach((session) => addSession(session, false));
+    return result.slice(0, 60);
+  }, [workSessions]);
+
+  const selectedPoint =
+    points.find((point) => point.id === selectedPointId) || points[0] || null;
+  const activeCount = points.filter((point) => point.isActive).length;
+
+  function focusMapPoint(point: LiveMapPoint) {
+    setSelectedPointId(point.id);
+    leafletMapRef.current?.flyTo([point.lat, point.lng], 17, {
+      animate: true,
+      duration: 0.65,
+    });
+  }
+
+  useEffect(() => {
+    if (!mapElementRef.current) return;
+    let disposed = false;
+    let mapInstance: { remove: () => void } | null = null;
+    setMapError("");
+
+    import("leaflet")
+      .then((leafletModule) => {
+        if (disposed || !mapElementRef.current) return;
+        const L = leafletModule.default;
+        mapElementRef.current.innerHTML = "";
+        const map = L.map(mapElementRef.current, {
+          zoomControl: true,
+          attributionControl: true,
+        });
+        mapInstance = map;
+        leafletMapRef.current = map;
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map);
+
+        if (points.length === 0) {
+          map.setView([31.77, 35.21], 8);
+          return;
+        }
+
+        points.forEach((point) => {
+          const markerIcon = L.divIcon({
+            className: "liveMapMarkerWrap",
+            html: `<span class="liveMapMarker ${point.isActive ? "active" : "recent"}"><span></span></span>`,
+            iconSize: [38, 38],
+            iconAnchor: [19, 19],
+          });
+          const marker = L.marker([point.lat, point.lng], { icon: markerIcon }).addTo(map);
+          const tooltip = document.createElement("span");
+          tooltip.textContent = `${point.workerName} · ${point.projectName}`;
+          marker.bindTooltip(tooltip, { direction: "top", offset: [0, -14] });
+          marker.on("click", () => focusMapPoint(point));
+        });
+        const initialPoint = selectedPoint || points[0];
+        map.setView([initialPoint.lat, initialPoint.lng], 17);
+      })
+      .catch(() => {
+        if (!disposed) setMapError("לא ניתן לטעון את שכבת המפה כרגע.");
+      });
+
+    return () => {
+      disposed = true;
+      mapInstance?.remove();
+      leafletMapRef.current = null;
+    };
+  }, [points]);
+
+  return (
+    <section className="liveMapPanel">
+      <div className="liveMapHeader">
+        <div>
+          <span className="eyebrow">FIELD CONTROL</span>
+          <h2>מפת פעילות בשטח</h2>
+          <p>עובדים פעילים מוצגים בירוק; עובדים שאינם פעילים מוצגים לפי נקודת הדיווח האחרונה.</p>
+        </div>
+        <div className="liveMapStats">
+          <span><b>{activeCount}</b> פעילים עכשיו</span>
+          <span><b>{points.length}</b> נקודות עובדים</span>
+        </div>
+      </div>
+
+      <div className="liveMapLayout">
+        <div className="liveMapCanvasWrap">
+          <div ref={mapElementRef} className="liveMapCanvas" aria-label="מפת מיקומי עובדים" />
+          {mapError && <div className="liveMapError">{mapError}</div>}
+          <div className="liveMapLegend" aria-hidden="true">
+            <span><i className="active" /> עבודה פעילה</span>
+            <span><i className="recent" /> דיווח אחרון</span>
+          </div>
+        </div>
+
+        <aside className="liveMapSidebar">
+          <div className="liveMapSidebarTitle">
+            <b>עובדים על המפה</b>
+            <span>{points.length} מיקומים</span>
+          </div>
+          <div className="liveMapPeople">
+            {points.length === 0 && (
+              <div className="liveMapEmpty">
+                <MapPin size={28} />
+                <b>עדיין אין מיקומים להצגה</b>
+                <span>המפה תתעדכן כאשר עובד יתחיל או יסיים עבודה עם הרשאת מיקום.</span>
+              </div>
+            )}
+            {points.map((point) => (
+              <button
+                key={point.id}
+                className={`liveMapPerson ${selectedPoint?.id === point.id ? "selected" : ""}`}
+                onClick={() => focusMapPoint(point)}
+              >
+                <span className={`liveMapAvatar ${point.isActive ? "active" : ""}`}>
+                  {point.workerName[0] || "ע"}
+                </span>
+                <span>
+                  <b>{point.workerName}</b>
+                  <small>{point.projectName}</small>
+                  <em>{point.isActive ? "פעיל עכשיו" : `דיווח אחרון: ${new Date(point.reportedAt).toLocaleString("he-IL")}`}</em>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {selectedPoint && (
+            <div className="liveMapSelection">
+              <span className={`liveMapStatus ${selectedPoint.isActive ? "active" : ""}`}>
+                {selectedPoint.isActive ? "עבודה פעילה" : "מיקום אחרון"}
+              </span>
+              <h3>{selectedPoint.projectName}</h3>
+              <p><MapPin size={15} /> {selectedPoint.projectLocation || "לא הוגדרה כתובת"}</p>
+              <small>
+                דווח {new Date(selectedPoint.reportedAt).toLocaleString("he-IL")}
+                {typeof selectedPoint.accuracy === "number" ? ` · דיוק כ־${Math.round(selectedPoint.accuracy)} מ׳` : ""}
+              </small>
+              <div className="liveMapActions">
+                <button
+                  onClick={() => {
+                    const project = projects.find((item) => item.id === selectedPoint.projectId);
+                    if (project) openProject(project);
+                  }}
+                >
+                  <FolderKanban size={16} /> פתיחת הפרויקט
+                </button>
+                <a href={mapsLink(selectedPoint.lat, selectedPoint.lng)} target="_blank" rel="noreferrer">
+                  ניווט לנקודה
+                </a>
+              </div>
+            </div>
+          )}
+        </aside>
       </div>
     </section>
   );

@@ -4605,14 +4605,34 @@ function LiveMapPanel({
   const leafletMapRef = useRef<import("leaflet").Map | null>(null);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const [mapError, setMapError] = useState("");
+  const [mapDay, setMapDay] = useState(() => toDateInputValue(new Date()));
+
+  useEffect(() => {
+    const now = new Date();
+    const nextDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+    );
+    const timeout = window.setTimeout(
+      () => setMapDay(toDateInputValue(new Date())),
+      nextDay.getTime() - now.getTime() + 250,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [mapDay]);
 
   const points = useMemo<LiveMapPoint[]>(() => {
     const result: LiveMapPoint[] = [];
     const workersOnMap = new Set<string>();
-    const sorted = [...workSessions].sort(
+    const sorted = workSessions
+      .filter(
+        (session) =>
+          toDateInputValue(new Date(session.started_at)) === mapDay,
+      )
+      .sort(
       (a, b) =>
         new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
-    );
+      );
 
     const addSession = (session: WorkSession, isActive: boolean) => {
       if (workersOnMap.has(session.worker_id)) return;
@@ -4642,7 +4662,7 @@ function LiveMapPanel({
     sorted.filter((session) => !session.ended_at).forEach((session) => addSession(session, true));
     sorted.filter((session) => session.ended_at).forEach((session) => addSession(session, false));
     return result.slice(0, 60);
-  }, [workSessions]);
+  }, [workSessions, mapDay]);
 
   const selectedPoint =
     points.find((point) => point.id === selectedPointId) || points[0] || null;
@@ -4716,7 +4736,7 @@ function LiveMapPanel({
         <div>
           <span className="eyebrow">FIELD CONTROL</span>
           <h2>מפת פעילות בשטח</h2>
-          <p>עובדים פעילים מוצגים בירוק; עובדים שאינם פעילים מוצגים לפי נקודת הדיווח האחרונה.</p>
+          <p>מוצגים רק דיווחי היום. עובדים פעילים בירוק ודיווחים שהסתיימו בכחול.</p>
         </div>
         <div className="liveMapStats">
           <span><b>{activeCount}</b> פעילים עכשיו</span>

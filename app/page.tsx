@@ -228,6 +228,8 @@ export default function Page() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [session, setSession] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(envReady);
+  const [dataLoading, setDataLoading] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [workers, setWorkers] = useState<Profile[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -279,16 +281,66 @@ export default function Page() {
 
   useEffect(() => {
     if (!envReady) return;
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) =>
-      setSession(s),
-    );
-    return () => sub.subscription.unsubscribe();
+    let active = true;
+    const authTimeout = window.setTimeout(() => {
+      if (!active) return;
+      setAuthLoading(false);
+      setDataLoading(false);
+      setMessage("החיבור מתעכב. בדוק את החיבור לאינטרנט ונסה לרענן את העמוד.");
+    }, 15000);
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      window.clearTimeout(authTimeout);
+      setDataLoading(Boolean(data.session?.user));
+      setSession(data.session);
+      setAuthLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (!active) return;
+      window.clearTimeout(authTimeout);
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        setDataLoading(Boolean(s?.user));
+      } else if (event === "SIGNED_OUT") {
+        setDataLoading(false);
+      }
+      setSession(s);
+      setAuthLoading(false);
+    });
+    return () => {
+      active = false;
+      window.clearTimeout(authTimeout);
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
-    if (!session?.user) return;
-    loadProfileAndData();
+    if (!session?.user) {
+      setDataLoading(false);
+      return;
+    }
+    let active = true;
+    const dataTimeout = window.setTimeout(() => {
+      if (!active) return;
+      setDataLoading(false);
+      setMessage("טעינת הנתונים מתעכבת. בדוק את החיבור ונסה לרענן את העמוד.");
+    }, 15000);
+    setDataLoading(true);
+    loadProfileAndData()
+      .catch((error) => {
+        if (active) {
+          setMessage(error instanceof Error ? error.message : "טעינת הנתונים נכשלה.");
+        }
+      })
+      .finally(() => {
+        if (active) {
+          window.clearTimeout(dataTimeout);
+          setDataLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+      window.clearTimeout(dataTimeout);
+    };
   }, [session?.user?.id]);
 
   useEffect(() => {
@@ -1784,6 +1836,24 @@ export default function Page() {
       : "תצוגת עובד שטח לפרויקטים, שעות עבודה ומשימות";
 
   if (!envReady) return <SetupScreen />;
+
+  if (authLoading || dataLoading) {
+    return (
+      <main className="appLoading" role="status" aria-live="polite">
+        <section className="appLoadingCard">
+          <div className="appLoadingLogo">
+            <img src="/logo.png" alt="" />
+            <span className="appLoadingSpinner" aria-hidden="true" />
+          </div>
+          <h1>טוענים את המערכת</h1>
+          <p>מסנכרנים פרויקטים, עובדים והתראות מ־Supabase…</p>
+          <div className="appLoadingProgress" aria-hidden="true">
+            <span />
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   if (!session) {
     return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Archive,
@@ -230,6 +230,7 @@ export default function Page() {
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(envReady);
   const [dataLoading, setDataLoading] = useState(false);
+  const sessionUserIdRef = useRef<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [workers, setWorkers] = useState<Profile[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -291,6 +292,7 @@ export default function Page() {
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
       window.clearTimeout(authTimeout);
+      sessionUserIdRef.current = data.session?.user?.id ?? null;
       setDataLoading(Boolean(data.session?.user));
       setSession(data.session);
       setAuthLoading(false);
@@ -298,7 +300,13 @@ export default function Page() {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (!active) return;
       window.clearTimeout(authTimeout);
-      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+      const nextUserId = s?.user?.id ?? null;
+      const userChanged = nextUserId !== sessionUserIdRef.current;
+      sessionUserIdRef.current = nextUserId;
+      if (
+        (event === "SIGNED_IN" || event === "INITIAL_SESSION") &&
+        userChanged
+      ) {
         setDataLoading(Boolean(s?.user));
       } else if (event === "SIGNED_OUT") {
         setDataLoading(false);

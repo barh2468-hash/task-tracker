@@ -16,6 +16,8 @@ create table if not exists public.projects (
   name text not null,
   client_name text,
   location text not null,
+  contact_phone text,
+  contact_email text,
   description text,
   assigned_to uuid references public.profiles(id),
   created_by uuid references public.profiles(id),

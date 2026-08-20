@@ -445,6 +445,8 @@
   font-weight: 700;
   text-decoration: none;
   width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   direction: ltr;
 }
 

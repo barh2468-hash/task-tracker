@@ -607,6 +607,27 @@ export default function Page() {
     await loadNotifications();
   }
 
+  function openNotificationProject(notification: AppNotification) {
+    if (!notification.is_read) void markNotificationRead(notification.id);
+
+    if (!notification.project_id) {
+      setNotificationsOpen(false);
+      return;
+    }
+
+    const linkedProject = projects.find(
+      (project) => project.id === notification.project_id,
+    );
+    if (!linkedProject) {
+      setNotificationsOpen(false);
+      setMessage("הפרויקט המקושר להתראה אינו זמין עבורך כרגע.");
+      return;
+    }
+
+    setNotificationsOpen(false);
+    openAssignedProject(linkedProject);
+  }
+
   async function startWork(project: Project) {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) return;
@@ -1833,8 +1854,8 @@ export default function Page() {
               <NotificationsPopover
                 notifications={notifications}
                 unreadCount={unreadCount}
-                markRead={markNotificationRead}
                 markAllRead={markAllNotificationsRead}
+                openNotification={openNotificationProject}
                 close={() => setNotificationsOpen(false)}
                 openFullPage={() => {
                   openTab("notifications");
@@ -2109,6 +2130,7 @@ export default function Page() {
               notifications={notifications}
               markRead={markNotificationRead}
               markAllRead={markAllNotificationsRead}
+              openNotification={openNotificationProject}
             />
           )}
           {tab === "exceptions" && isManager && (
@@ -3648,15 +3670,15 @@ function buildWorkReportRows(workSessions: WorkSession[]) {
 function NotificationsPopover({
   notifications,
   unreadCount,
-  markRead,
   markAllRead,
+  openNotification,
   close,
   openFullPage,
 }: {
   notifications: AppNotification[];
   unreadCount: number;
-  markRead: (id: string) => void;
   markAllRead: () => void;
+  openNotification: (notification: AppNotification) => void;
   close: () => void;
   openFullPage: () => void;
 }) {
@@ -3682,7 +3704,8 @@ function NotificationsPopover({
           <button
             key={item.id}
             className={`popoverItem ${item.is_read ? "" : "unread"}`}
-            onClick={() => !item.is_read && markRead(item.id)}
+            onClick={() => openNotification(item)}
+            title={item.project_id ? "פתח פרויקט" : undefined}
           >
             <span className="dot" />
             <span className="popoverText">
@@ -3713,10 +3736,12 @@ function NotificationsPanel({
   notifications,
   markRead,
   markAllRead,
+  openNotification,
 }: {
   notifications: AppNotification[];
   markRead: (id: string) => void;
   markAllRead: () => void;
+  openNotification: (notification: AppNotification) => void;
 }) {
   const unread = notifications.filter((n) => !n.is_read).length;
   return (
@@ -3739,7 +3764,21 @@ function NotificationsPanel({
         {notifications.map((item) => (
           <div
             key={item.id}
-            className={`notificationItem ${item.is_read ? "" : "unread"}`}
+            className={`notificationItem ${item.is_read ? "" : "unread"} ${item.project_id ? "clickable" : ""}`}
+            onClick={item.project_id ? () => openNotification(item) : undefined}
+            onKeyDown={
+              item.project_id
+                ? (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openNotification(item);
+                    }
+                  }
+                : undefined
+            }
+            role={item.project_id ? "button" : undefined}
+            tabIndex={item.project_id ? 0 : undefined}
+            title={item.project_id ? "פתח פרויקט" : undefined}
           >
             <div>
               <b>{item.title}</b>
@@ -3755,7 +3794,10 @@ function NotificationsPanel({
             {!item.is_read && (
               <button
                 className="ghost tinyBtn"
-                onClick={() => markRead(item.id)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  markRead(item.id);
+                }}
               >
                 סמן כנקרא
               </button>

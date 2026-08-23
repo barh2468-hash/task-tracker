@@ -2135,7 +2135,7 @@ export default function Page() {
               <Archive size={18} />
             </button>
           )}
-          {isManager && (
+          {!isDrafter && (
             <button
               className={`navBtn ${tab === "exceptions" ? "active" : ""}`}
               onClick={() => openTab("exceptions")}
@@ -2302,8 +2302,8 @@ export default function Page() {
               openNotification={openNotificationProject}
             />
           )}
-          {tab === "exceptions" && isManager && (
-            <ExceptionsPanel projects={projects} />
+          {tab === "exceptions" && !isDrafter && (
+            <ExceptionsPanel projects={activeProjects} isManager={isManager} />
           )}
           {tab === "report" && isManager && (
             <WorkReportPanel
@@ -4221,7 +4221,13 @@ function NotificationsPanel({
   );
 }
 
-function ExceptionsPanel({ projects }: { projects: Project[] }) {
+function ExceptionsPanel({
+  projects,
+  isManager,
+}: {
+  projects: Project[];
+  isManager: boolean;
+}) {
   const exceptions = buildProjectExceptions(projects);
   return (
     <section className="card exceptionsPanel">
@@ -4229,8 +4235,9 @@ function ExceptionsPanel({ projects }: { projects: Project[] }) {
         <div>
           <h2>דוח חריגות יומי</h2>
           <p className="muted">
-            רשימת דברים שכדאי שמנהל יעבור עליהם: פרויקטים ללא שיוך, עבודה פתוחה,
-            סטטוס תקוע ומשימות ישנות.
+            {isManager
+              ? "כל החריגות בפרויקטים הפעילים: פרויקטים ללא שיוך, עבודה פתוחה, סטטוס תקוע ומשימות ישנות."
+              : "חריגות בפרויקטים שאליהם אתה משויך: עבודה פתוחה, סטטוס שלא עודכן ומשימות ישנות."}
           </p>
         </div>
         <button

@@ -1850,6 +1850,8 @@ export default function Page() {
       total: activeProjects.length,
       field: activeProjects.filter((p) => p.status === "בעבודה בשטח").length,
       gpr: activeProjects.filter((p) => p.status === "נדרש GPR").length,
+      drafting: activeProjects.filter((p) => p.status === "עבר לשרטוט").length,
+      review: activeProjects.filter((p) => p.status === reviewStatus).length,
       done: activeProjects.filter((p) => p.status === "הושלם").length,
       unassigned: activeProjects.filter((p) => !p.assigned_to).length,
       archived: archivedProjects.length,
@@ -2230,6 +2232,18 @@ export default function Page() {
               label="נדרש GPR"
               icon={<Shield />}
               onClick={() => openProjectsByStatus("נדרש GPR")}
+            />
+            <Stat
+              number={stats.drafting}
+              label="עבר לשרטוט"
+              icon={<Pencil />}
+              onClick={() => openProjectsByStatus("עבר לשרטוט")}
+            />
+            <Stat
+              number={stats.review}
+              label="בהגהה"
+              icon={<FileText />}
+              onClick={() => openProjectsByStatus(reviewStatus)}
             />
             <Stat
               number={stats.done}

@@ -2220,36 +2220,42 @@ export default function Page() {
               label="סה״כ פרויקטים"
               icon={<FolderKanban />}
               onClick={() => openProjectsByStatus()}
+              active={(tab === "all" || tab === "mine") && !statusFilter}
             />
             <Stat
               number={stats.field}
               label="בעבודה בשטח"
               icon={<Clock />}
               onClick={() => openProjectsByStatus("בעבודה בשטח")}
+              active={(tab === "all" || tab === "mine") && statusFilter === "בעבודה בשטח"}
             />
             <Stat
               number={stats.gpr}
               label="נדרש GPR"
               icon={<Shield />}
               onClick={() => openProjectsByStatus("נדרש GPR")}
+              active={(tab === "all" || tab === "mine") && statusFilter === "נדרש GPR"}
             />
             <Stat
               number={stats.drafting}
               label="עבר לשרטוט"
               icon={<Pencil />}
               onClick={() => openProjectsByStatus("עבר לשרטוט")}
+              active={(tab === "all" || tab === "mine") && statusFilter === "עבר לשרטוט"}
             />
             <Stat
               number={stats.review}
               label="בהגהה"
               icon={<FileText />}
               onClick={() => openProjectsByStatus(reviewStatus)}
+              active={(tab === "all" || tab === "mine") && statusFilter === reviewStatus}
             />
             <Stat
               number={stats.done}
               label="הושלמו"
               icon={<CheckCircle />}
               onClick={() => openProjectsByStatus("הושלם")}
+              active={(tab === "all" || tab === "mine") && statusFilter === "הושלם"}
             />
             {isManager && (
               <Stat
@@ -2257,6 +2263,7 @@ export default function Page() {
                 label="ללא שיוך"
                 icon={<Users />}
                 onClick={() => openTab("unassigned")}
+                active={tab === "unassigned"}
               />
             )}
             {isManager && (
@@ -2265,6 +2272,7 @@ export default function Page() {
                 label="בארכיון"
                 icon={<Archive />}
                 onClick={() => openTab("archive")}
+                active={tab === "archive"}
               />
             )}
             {!isDrafter && (
@@ -2273,6 +2281,7 @@ export default function Page() {
                 label="חריגות לטיפול"
                 icon={<AlertTriangle />}
                 onClick={() => openTab("exceptions")}
+                active={tab === "exceptions"}
               />
             )}
             {!isDrafter && (
@@ -2281,6 +2290,7 @@ export default function Page() {
                 label="משימות פתוחות"
                 icon={<PlusCircle />}
                 onClick={() => openTab("tasks")}
+                active={tab === "tasks"}
               />
             )}
           </div>}
@@ -2466,15 +2476,17 @@ function Stat({
   label,
   icon,
   onClick,
+  active = false,
 }: {
   number: number;
   label: string;
   icon: React.ReactNode;
   onClick?: () => void;
+  active?: boolean;
 }) {
   return (
     <div
-      className={`stat ${onClick ? "statClickable" : ""}`}
+      className={`stat ${onClick ? "statClickable" : ""} ${active ? "statActive" : ""}`}
       onClick={onClick}
       onKeyDown={(event) => {
         if (!onClick || (event.key !== "Enter" && event.key !== " ")) return;
@@ -2484,6 +2496,7 @@ function Stat({
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       title={onClick ? `פתח ${label}` : undefined}
+      aria-pressed={onClick ? active : undefined}
     >
       <div
         style={{

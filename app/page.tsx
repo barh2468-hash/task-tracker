@@ -979,7 +979,8 @@ export default function Page() {
       return;
     }
 
-    // Internal + email notifications are sent when a field worker changes status.
+    // Internal notifications are created for field-worker updates. Email notifications
+    // are sent for both field-worker and manager status changes.
     // If the Edge Function is not configured yet, the status update still succeeds.
     if (profile?.role === "field_worker") {
       await createManagerNotification(
@@ -988,7 +989,9 @@ export default function Page() {
         `${profile.full_name} עדכן סטטוס בפרויקט ${project.name}: ${project.status} → ${newStatus}${note ? `. הערה: ${note}` : ""}`,
         project.id,
       );
+    }
 
+    if (profile?.role === "field_worker" || profile?.role === "manager") {
       const { error: notifyError } = await supabase.functions.invoke(
         "notify-status-change",
         {

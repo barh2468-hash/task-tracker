@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   Archive,
@@ -2773,6 +2774,16 @@ function ProjectCard({
       project.project_workers?.find((assignment) => assignment.profiles?.role === "drafter")?.worker_id || "",
     );
   }, [project]);
+  useEffect(() => {
+    if (!editing) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [editing]);
 
   const myOpenSession = project.work_sessions?.find(
     (w) => w.worker_id === currentUserId && !w.ended_at,
@@ -3453,7 +3464,7 @@ function ProjectCard({
           </div>
         )}
       </article>
-      {editModal}
+      {editModal && createPortal(editModal, document.body)}
     </>
   );
 }

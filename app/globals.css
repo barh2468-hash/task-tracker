@@ -771,3 +771,10 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
   .card{border-radius:21px}.project{border-radius:19px}.toolbar{padding:8px;border-radius:15px}
 }
 @media(prefers-reduced-motion:reduce){.navBtn,.project,.stat,button,input,select,textarea{transition:none!important}}
+
+/* Installable PWA and per-device Push controls */
+.pwaControls{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 14px;padding:9px;border:1px solid rgba(255,255,255,.11);border-radius:17px;background:rgba(255,255,255,.065)}
+.pwaControlButton,.pwaTestButton{min-width:0;min-height:39px;padding:8px 9px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.09);box-shadow:none;color:#fff;font-size:11px;line-height:1.25}
+.pwaControlButton{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;text-align:right}.pwaControlButton span{overflow-wrap:anywhere}.pwaControlButton:hover,.pwaTestButton:hover{transform:none;background:rgba(255,255,255,.15);box-shadow:none}.pwaControlButton.enabled{border-color:rgba(88,230,191,.38);background:rgba(15,155,142,.22)}
+.pwaTestButton{grid-column:1/-1;color:#a9edf0}.pwaControls button:disabled{opacity:.55}
+@media(max-width:1180px){.pwaControls{grid-column:1/-1;margin-bottom:5px}}

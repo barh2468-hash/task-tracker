@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { envReady, statusProgress, statuses, supabase } from "@/lib/supabase";
 import WorkDiaryPanel from "@/app/components/WorkDiaryPanel";
+import PwaControls from "@/app/components/PwaControls";
 
 type Role = "manager" | "field_worker" | "drafter";
 type Profile = {
@@ -269,6 +270,7 @@ export default function Page() {
   const [message, setMessage] = useState("");
   const [newProject, setNewProject] = useState<NewProject>(emptyProject);
   const [focusedProjectId, setFocusedProjectId] = useState<string | null>(null);
+  const handledPushProjectRef = useRef<string | null>(null);
 
   function openTab(nextTab: typeof tab) {
     setFocusedProjectId(null);
@@ -290,9 +292,29 @@ export default function Page() {
     setQuery("");
     setStatusFilter("");
     setFocusedProjectId(project.id);
-    setTab(project.is_archived ? "archive" : "all");
+    setTab(project.is_archived ? "archive" : isManager ? "all" : "mine");
     setMobileMenuOpen(false);
   }
+
+  useEffect(() => {
+    if (!projects.length) return;
+    const projectId = new URLSearchParams(window.location.search).get("project");
+    if (!projectId || handledPushProjectRef.current === projectId) return;
+
+    handledPushProjectRef.current = projectId;
+    const linkedProject = projects.find((project) => project.id === projectId);
+    if (linkedProject) {
+      setQuery("");
+      setStatusFilter("");
+      setFocusedProjectId(linkedProject.id);
+      setTab(linkedProject.is_archived ? "archive" : isManager ? "all" : "mine");
+      setMobileMenuOpen(false);
+    }
+
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete("project");
+    window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+  }, [projects, isManager]);
 
   useEffect(() => {
     if (!envReady) return;
@@ -909,6 +931,32 @@ export default function Page() {
     URL.revokeObjectURL(url);
   }
 
+  async function sendPushNotification({
+    recipientUserId,
+    recipientRole,
+    title,
+    body,
+    projectId,
+  }: {
+    recipientUserId?: string;
+    recipientRole?: "manager";
+    title: string;
+    body: string;
+    projectId?: string;
+  }) {
+    const { error } = await supabase.functions.invoke("send-push-notification", {
+      body: {
+        recipientUserId,
+        recipientRole,
+        title,
+        body,
+        projectId,
+        url: projectId ? `/?project=${encodeURIComponent(projectId)}` : "/",
+      },
+    });
+    if (error) console.warn("Push notification failed:", error.message);
+  }
+
   async function createManagerNotification(
     type: string,
     title: string,
@@ -923,7 +971,16 @@ export default function Page() {
       p_project_id: projectId || null,
       p_task_id: taskId || null,
     });
-    if (error) console.warn("Internal notification failed:", error.message);
+    if (error) {
+      console.warn("Internal notification failed:", error.message);
+      return;
+    }
+    await sendPushNotification({
+      recipientRole: "manager",
+      title,
+      body,
+      projectId,
+    });
   }
 
   async function createUserNotification(
@@ -943,7 +1000,16 @@ export default function Page() {
       p_project_id: projectId || null,
       p_task_id: taskId || null,
     });
-    if (error) console.warn("User notification failed:", error.message);
+    if (error) {
+      console.warn("User notification failed:", error.message);
+      return;
+    }
+    await sendPushNotification({
+      recipientUserId: userId,
+      title,
+      body,
+      projectId,
+    });
   }
 
   async function updateStatus(
@@ -980,10 +1046,10 @@ export default function Page() {
       return;
     }
 
-    // Internal notifications are created for field-worker updates. Email notifications
-    // are sent for both field-worker and manager status changes.
+    // Internal and Push notifications are created for field-worker and manager updates.
+    // Email notifications are also sent for both roles.
     // If the Edge Function is not configured yet, the status update still succeeds.
-    if (profile?.role === "field_worker") {
+    if (profile?.role === "field_worker" || profile?.role === "manager") {
       await createManagerNotification(
         "status_change",
         `עדכון סטטוס: ${project.name}`,
@@ -2072,6 +2138,7 @@ export default function Page() {
               מתקדמות
             </b>
           </div>
+          <PwaControls onMessage={setMessage} />
           <button
             className={`navBtn ${tab === "mine" ? "active" : ""}`}
             onClick={() => openTab("mine")}

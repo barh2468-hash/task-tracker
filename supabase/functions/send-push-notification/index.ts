@@ -13,7 +13,6 @@ type Payload = {
   body: string;
   projectId?: string;
   url?: string;
-  test?: boolean;
 };
 
 Deno.serve(async (req) => {
@@ -41,38 +40,32 @@ Deno.serve(async (req) => {
     const body = String(payload.body || '').trim().slice(0, 1000);
     if (!title || !body) throw new Error('Missing notification content');
 
-    let recipientIds: string[] = [];
-    if (payload.test) {
-      if (payload.recipientUserId !== userData.user.id) throw new Error('Invalid test recipient');
-      recipientIds = [userData.user.id];
+    let notificationQuery = adminClient
+      .from('notifications')
+      .select('recipient_id')
+      .eq('created_by', userData.user.id)
+      .eq('title', title)
+      .gte('created_at', new Date(Date.now() - 2 * 60 * 1000).toISOString());
+
+    if (payload.recipientUserId) {
+      notificationQuery = notificationQuery.eq('recipient_id', payload.recipientUserId);
+    } else if (payload.recipientRole === 'manager') {
+      const { data: managers, error: managerError } = await adminClient
+        .from('profiles')
+        .select('id')
+        .eq('role', 'manager');
+      if (managerError) throw managerError;
+      const managerIds = (managers || []).map((manager) => manager.id);
+      if (!managerIds.length) return Response.json({ ok: true, sent: 0 }, { headers: corsHeaders });
+      notificationQuery = notificationQuery.in('recipient_id', managerIds);
     } else {
-      let notificationQuery = adminClient
-        .from('notifications')
-        .select('recipient_id')
-        .eq('created_by', userData.user.id)
-        .eq('title', title)
-        .gte('created_at', new Date(Date.now() - 2 * 60 * 1000).toISOString());
-
-      if (payload.recipientUserId) {
-        notificationQuery = notificationQuery.eq('recipient_id', payload.recipientUserId);
-      } else if (payload.recipientRole === 'manager') {
-        const { data: managers, error: managerError } = await adminClient
-          .from('profiles')
-          .select('id')
-          .eq('role', 'manager');
-        if (managerError) throw managerError;
-        const managerIds = (managers || []).map((manager) => manager.id);
-        if (!managerIds.length) return Response.json({ ok: true, sent: 0 }, { headers: corsHeaders });
-        notificationQuery = notificationQuery.in('recipient_id', managerIds);
-      } else {
-        throw new Error('Missing recipient');
-      }
-
-      const { data: matchingNotifications, error: notificationError } = await notificationQuery;
-      if (notificationError) throw notificationError;
-      recipientIds = Array.from(new Set((matchingNotifications || []).map((item) => item.recipient_id)));
-      if (!recipientIds.length) throw new Error('No matching internal notification');
+      throw new Error('Missing recipient');
     }
+
+    const { data: matchingNotifications, error: notificationError } = await notificationQuery;
+    if (notificationError) throw notificationError;
+    const recipientIds = Array.from(new Set((matchingNotifications || []).map((item) => item.recipient_id)));
+    if (!recipientIds.length) throw new Error('No matching internal notification');
 
     const { data: subscriptions, error: subscriptionError } = await adminClient
       .from('push_subscriptions')
@@ -93,7 +86,6 @@ Deno.serve(async (req) => {
 
     let sent = 0;
     const expiredIds: string[] = [];
-    const deliveryStatusCodes: number[] = [];
     let failed = 0;
     await Promise.all(subscriptions.map(async (subscription) => {
       try {
@@ -105,7 +97,6 @@ Deno.serve(async (req) => {
       } catch (error) {
         failed += 1;
         const statusCode = Number((error as { statusCode?: number }).statusCode || 0);
-        deliveryStatusCodes.push(statusCode);
         if (statusCode === 404 || statusCode === 410) expiredIds.push(subscription.id);
         else console.error('Push delivery failed', statusCode || error);
       }
@@ -120,7 +111,6 @@ Deno.serve(async (req) => {
       sent,
       failed,
       expired: expiredIds.length,
-      statusCodes: Array.from(new Set(deliveryStatusCodes)),
     }, {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

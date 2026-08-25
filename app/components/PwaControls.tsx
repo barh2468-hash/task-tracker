@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BellOff, BellRing, Download, Send } from "lucide-react";
+import { BellOff, BellRing, Download } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const VAPID_PUBLIC_KEY = "BIIiOUgtTG4I6C-krp8Rkauc_4OCWH_o6Jt3Gng3IwPkcqQF4YPuxGxjcooG4TX1jWzgeoOAI_60G5PwbPyAqf4";
@@ -148,47 +148,6 @@ export default function PwaControls({ onMessage }: { onMessage: (message: string
     }
   }
 
-  async function sendTestPush() {
-    setBusy(true);
-    try {
-      const user = (await supabase.auth.getUser()).data.user;
-      if (!user) throw new Error("יש להתחבר מחדש למערכת.");
-      const { data, error } = await supabase.functions.invoke("send-push-notification", {
-        body: {
-          recipientUserId: user.id,
-          title: "התראת בדיקה ממערכת MAYA",
-          body: "ההתראות פועלות בהצלחה במכשיר הזה.",
-          url: "/",
-          test: true,
-        },
-      });
-      if (error) throw error;
-      const result = data as {
-        sent?: number;
-        failed?: number;
-        reason?: string;
-        statusCodes?: number[];
-      } | null;
-      if ((result?.sent || 0) > 0) {
-        onMessage("התראת הבדיקה נמסרה לשירות ההתראות של המכשיר.");
-      } else if (result?.reason === "no_subscriptions") {
-        setSubscribed(false);
-        onMessage("לא נמצא מכשיר רשום. לחץ שוב על ׳הפעלת התראות׳ ואז נסה מחדש.");
-      } else {
-        const status = result?.statusCodes?.filter(Boolean).join(", ");
-        onMessage(
-          status
-            ? `שירות ההתראות דחה את השליחה (קוד ${status}).`
-            : "ההתראה לא נמסרה. כבה והפעל מחדש את ההתראות ונסה שוב.",
-        );
-      }
-    } catch (error) {
-      onMessage(error instanceof Error ? error.message : "שליחת התראת הבדיקה נכשלה.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <section className="pwaControls" aria-label="התקנה והתראות">
       <button className="pwaControlButton" onClick={installApp} disabled={installed}>
@@ -203,11 +162,6 @@ export default function PwaControls({ onMessage }: { onMessage: (message: string
         {subscribed ? <BellOff size={16} /> : <BellRing size={16} />}
         <span>{subscribed ? "כיבוי התראות" : "הפעלת התראות"}</span>
       </button>
-      {subscribed && (
-        <button className="pwaTestButton" onClick={sendTestPush} disabled={busy}>
-          <Send size={14} /> בדיקת התראה
-        </button>
-      )}
     </section>
   );
 }

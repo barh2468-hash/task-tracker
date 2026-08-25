@@ -6,10 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 const VAPID_PUBLIC_KEY = "BIIiOUgtTG4I6C-krp8Rkauc_4OCWH_o6Jt3Gng3IwPkcqQF4YPuxGxjcooG4TX1jWzgeoOAI_60G5PwbPyAqf4";
 
-interface InstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+type InstallPromptEvent = NonNullable<Window["__mayaInstallPrompt"]>;
 
 function applicationServerKey(value: string) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
@@ -32,22 +29,23 @@ export default function PwaControls({ onMessage }: { onMessage: (message: string
 
   useEffect(() => {
     setInstalled(isStandalone());
+    setInstallPrompt(window.__mayaInstallPrompt || null);
     setPushSupported(
       "serviceWorker" in navigator
       && "PushManager" in window
       && "Notification" in window,
     );
 
-    const onInstallPrompt = (event: Event) => {
-      event.preventDefault();
-      setInstallPrompt(event as InstallPromptEvent);
+    const onInstallPromptReady = () => {
+      setInstallPrompt(window.__mayaInstallPrompt || null);
     };
     const onInstalled = () => {
       setInstalled(true);
       setInstallPrompt(null);
+      window.__mayaInstallPrompt = undefined;
     };
 
-    window.addEventListener("beforeinstallprompt", onInstallPrompt);
+    window.addEventListener("maya-install-prompt-ready", onInstallPromptReady);
     window.addEventListener("appinstalled", onInstalled);
 
     if ("serviceWorker" in navigator) {
@@ -58,7 +56,7 @@ export default function PwaControls({ onMessage }: { onMessage: (message: string
     }
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", onInstallPrompt);
+      window.removeEventListener("maya-install-prompt-ready", onInstallPromptReady);
       window.removeEventListener("appinstalled", onInstalled);
     };
   }, []);
@@ -84,6 +82,7 @@ export default function PwaControls({ onMessage }: { onMessage: (message: string
       setInstalled(true);
       onMessage("האפליקציה הותקנה בהצלחה.");
     }
+    window.__mayaInstallPrompt = undefined;
     setInstallPrompt(null);
   }
 

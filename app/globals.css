@@ -785,3 +785,10 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
 .pwaControlButton{min-width:0;min-height:39px;padding:8px 9px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.09);box-shadow:none;color:#fff;font-size:11px;line-height:1.25;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px;text-align:right}.pwaControlButton span{overflow-wrap:anywhere}.pwaControlButton:hover{transform:none;background:rgba(255,255,255,.15);box-shadow:none}.pwaControlButton.enabled{border-color:rgba(88,230,191,.38);background:rgba(15,155,142,.22)}
 .pwaControls button:disabled{opacity:.55}
 @media(max-width:1180px){.pwaControls{grid-column:1/-1;margin-bottom:5px}}
+
+/* Password visibility control on the regular login screen only. */
+.loginPasswordField{position:relative;display:block}
+.loginPasswordField input{padding-left:52px}
+.loginPasswordToggle{position:absolute;left:7px;top:50%;transform:translateY(-50%);width:40px;height:40px;padding:0;border:0;border-radius:12px;background:transparent;color:var(--muted);box-shadow:none}
+.loginPasswordToggle:hover{transform:translateY(-50%);background:#eef6ff;color:var(--navy);box-shadow:none;filter:none}
+.loginPasswordToggle:focus-visible{outline:3px solid rgba(37,143,196,.22);outline-offset:1px}

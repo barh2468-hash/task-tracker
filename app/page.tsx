@@ -12,6 +12,8 @@ import {
   ClipboardList,
   Clock,
   Download,
+  Eye,
+  EyeOff,
   FilePlus2,
   FileText,
   FolderKanban,
@@ -229,6 +231,7 @@ const roleLabel: Record<Role, string> = {
 export default function Page() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [session, setSession] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(envReady);
@@ -2016,12 +2019,24 @@ export default function Page() {
             </label>
             <label>
               סיסמה
-              <input
-                type="password"
-                placeholder="לפחות 6 תווים"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <span className="loginPasswordField">
+                <input
+                  type={showLoginPassword ? "text" : "password"}
+                  placeholder="לפחות 6 תווים"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="loginPasswordToggle"
+                  onClick={() => setShowLoginPassword((visible) => !visible)}
+                  aria-label={showLoginPassword ? "הסתרת הסיסמה" : "הצגת הסיסמה"}
+                  title={showLoginPassword ? "הסתרת הסיסמה" : "הצגת הסיסמה"}
+                >
+                  {showLoginPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </span>
             </label>
             <label>
               שם מלא להרשמה ראשונית

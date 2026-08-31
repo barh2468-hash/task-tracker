@@ -279,6 +279,8 @@ export default function Page() {
   const [attendanceSessions, setAttendanceSessions] = useState<AttendanceSession[]>([]);
   const [attendanceAvailable, setAttendanceAvailable] = useState(true);
   const [attendanceBusy, setAttendanceBusy] = useState(false);
+  const [attendanceEndDialogOpen, setAttendanceEndDialogOpen] = useState(false);
+  const [attendanceEndNote, setAttendanceEndNote] = useState("");
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1063,7 +1065,19 @@ export default function Page() {
     }
   }
 
-  async function endAttendance() {
+  function openAttendanceEndDialog() {
+    const openSession = myAttendanceSessions.find(
+      (item) => !item.ended_at && !item.is_all_day,
+    );
+    if (!openSession) {
+      setMessage("לא נמצאה משמרת כללית פתוחה.");
+      return;
+    }
+    setAttendanceEndNote("");
+    setAttendanceEndDialogOpen(true);
+  }
+
+  async function finishAttendance(endNote: string) {
     const user = (await supabase.auth.getUser()).data.user;
     if (!user || attendanceBusy) return;
 
@@ -1084,7 +1098,6 @@ export default function Page() {
         return;
       }
 
-      const endNote = window.prompt("הערת סיום יום עבודה, אופציונלי:", "") || "";
       const endedAt = new Date();
       const minutes = durationMinutes(openSession.started_at, endedAt.toISOString());
       const { error } = await supabase
@@ -1114,6 +1127,8 @@ export default function Page() {
 
       setMessage(`${attendanceTypeLabel[openSession.attendance_type]} הסתיים. משך המשמרת: ${formatDuration(minutes)}.`);
       await loadAttendanceSessions();
+      setAttendanceEndDialogOpen(false);
+      setAttendanceEndNote("");
     } finally {
       setAttendanceBusy(false);
     }
@@ -2449,6 +2464,7 @@ export default function Page() {
             </b>
           </div>
           <PwaControls onMessage={setMessage} />
+          <div className="navSectionLabel"><span>עבודה</span></div>
           <button
             className={`navBtn ${tab === "mine" ? "active" : ""}`}
             onClick={() => openTab("mine")}
@@ -2483,6 +2499,7 @@ export default function Page() {
               <FolderKanban size={18} />
             </button>
           )}
+          {!isDrafter && <div className="navSectionLabel"><span>שטח</span></div>}
           {isManager && (
             <button
               className={`navBtn ${tab === "today" ? "active" : ""}`}
@@ -2501,6 +2518,16 @@ export default function Page() {
               <MapPin size={18} />
             </button>
           )}
+          {!isDrafter && (
+            <button
+              className={`navBtn ${tab === "exceptions" ? "active" : ""}`}
+              onClick={() => openTab("exceptions")}
+            >
+              <span>דוח חריגות ({stats.exceptions})</span>
+              <AlertTriangle size={18} />
+            </button>
+          )}
+          <div className="navSectionLabel"><span>ניהול ומידע</span></div>
           {isManager && (
             <button
               className={`navBtn ${tab === "projectStatus" ? "active" : ""}`}
@@ -2526,15 +2553,6 @@ export default function Page() {
             >
               <span>ארכיון ({stats.archived})</span>
               <Archive size={18} />
-            </button>
-          )}
-          {!isDrafter && (
-            <button
-              className={`navBtn ${tab === "exceptions" ? "active" : ""}`}
-              onClick={() => openTab("exceptions")}
-            >
-              <span>דוח חריגות ({stats.exceptions})</span>
-              <AlertTriangle size={18} />
             </button>
           )}
           {isManager && (
@@ -2601,7 +2619,7 @@ export default function Page() {
               available={attendanceAvailable}
               busy={attendanceBusy}
               startAttendance={startAttendance}
-              endAttendance={endAttendance}
+              endAttendance={openAttendanceEndDialog}
             />
           )}
 
@@ -2857,6 +2875,25 @@ export default function Page() {
             )}
         </section>
       </section>
+      {(profile?.role === "field_worker" || profile?.role === "manager") && (
+        <MobileAttendanceDock
+          sessions={myAttendanceSessions}
+          available={attendanceAvailable}
+          busy={attendanceBusy}
+          endAttendance={openAttendanceEndDialog}
+        />
+      )}
+      {attendanceEndDialogOpen && typeof document !== "undefined" && createPortal(
+        <AttendanceEndDialog
+          sessions={myAttendanceSessions}
+          note={attendanceEndNote}
+          setNote={setAttendanceEndNote}
+          busy={attendanceBusy}
+          close={() => setAttendanceEndDialogOpen(false)}
+          confirm={() => void finishAttendance(attendanceEndNote)}
+        />,
+        document.body,
+      )}
     </main>
   );
 }
@@ -2924,7 +2961,7 @@ function GeneralAttendanceCard({
   }, [openSession?.attendance_type, dayStatus?.attendance_type]);
 
   return (
-    <section className={`generalAttendance ${openSession ? "active" : ""}`}>
+    <section id="general-attendance" className={`generalAttendance ${openSession ? "active" : ""}`}>
       <div className="generalAttendanceIcon" aria-hidden="true">
         <Clock size={25} />
       </div>
@@ -2997,6 +3034,121 @@ function GeneralAttendanceCard({
         </button>
       </div>
     </section>
+  );
+}
+
+function MobileAttendanceDock({
+  sessions,
+  available,
+  busy,
+  endAttendance,
+}: {
+  sessions: AttendanceSession[];
+  available: boolean;
+  busy: boolean;
+  endAttendance: () => void;
+}) {
+  const openSession = sessions.find(
+    (item) => !item.ended_at && !item.is_all_day,
+  ) || null;
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!openSession) return;
+    const interval = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(interval);
+  }, [openSession?.id]);
+
+  const minutes = openSession
+    ? Math.max(0, Math.round((now - new Date(openSession.started_at).getTime()) / 60000))
+    : 0;
+
+  function openClock() {
+    document.getElementById("general-attendance")?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }
+
+  return (
+    <aside className={`mobileAttendanceDock ${openSession ? "active" : ""}`} aria-label="קיצור דרך לשעון נוכחות">
+      <div className="mobileAttendanceDockIcon"><Clock size={19} /></div>
+      <div className="mobileAttendanceDockCopy">
+        <b>{openSession ? attendanceTypeLabel[openSession.attendance_type] : "שעון נוכחות"}</b>
+        <span>{openSession ? formatDuration(minutes) : available ? "לא התחלת משמרת" : "השעון לא זמין"}</span>
+      </div>
+      <button
+        className={openSession ? "danger" : ""}
+        disabled={busy || !available}
+        onClick={openSession ? endAttendance : openClock}
+      >
+        {openSession ? <Square size={16} /> : <PlayCircle size={16} />}
+        {busy ? "מעדכן..." : openSession ? "סיום" : "פתיחה"}
+      </button>
+    </aside>
+  );
+}
+
+function AttendanceEndDialog({
+  sessions,
+  note,
+  setNote,
+  busy,
+  close,
+  confirm,
+}: {
+  sessions: AttendanceSession[];
+  note: string;
+  setNote: (value: string) => void;
+  busy: boolean;
+  close: () => void;
+  confirm: () => void;
+}) {
+  const openSession = sessions.find(
+    (item) => !item.ended_at && !item.is_all_day,
+  ) || null;
+
+  if (!openSession) return null;
+
+  return (
+    <div className="modalBackdrop attendanceEndBackdrop" role="dialog" aria-modal="true" aria-labelledby="attendance-end-title" onClick={() => !busy && close()}>
+      <form
+        className="attendanceEndModal"
+        onClick={(event) => event.stopPropagation()}
+        onSubmit={(event) => {
+          event.preventDefault();
+          confirm();
+        }}
+      >
+        <div className="attendanceEndHeader">
+          <div className="attendanceEndHeaderIcon"><Clock size={23} /></div>
+          <div>
+            <span>סיום משמרת</span>
+            <h2 id="attendance-end-title">סיום {attendanceTypeLabel[openSession.attendance_type]}</h2>
+            <p>התחלת ב־{new Date(openSession.started_at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}</p>
+          </div>
+          <button type="button" className="iconOnly" aria-label="סגירה" disabled={busy} onClick={close}><X size={18} /></button>
+        </div>
+        <div className="attendanceEndBody">
+          <label>
+            הערת סיום <small>אופציונלי</small>
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="למשל: נסיעה למשרד, ציוד שהוחזר או מידע חשוב למנהל"
+              autoFocus
+            />
+          </label>
+          <p><MapPin size={16} /> בעת האישור נבקש את מיקום הסיום ונשמור אותו בדיווח.</p>
+        </div>
+        <div className="attendanceEndActions">
+          <button type="button" className="ghost" disabled={busy} onClick={close}>חזרה</button>
+          <button type="submit" className="danger" disabled={busy}>
+            <Square size={17} /> {busy ? "שומר מיקום ומסיים..." : "אישור וסיום משמרת"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 

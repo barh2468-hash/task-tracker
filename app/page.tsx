@@ -109,6 +109,25 @@ type WorkSession = {
     contact_phone?: string | null;
   } | null;
 };
+type AttendanceType = "field" | "office" | "vacation" | "sick" | "reserve_duty";
+type AttendanceSession = {
+  id: string;
+  worker_id: string;
+  started_at: string;
+  ended_at: string | null;
+  started_lat: number | null;
+  started_lng: number | null;
+  started_accuracy: number | null;
+  ended_lat: number | null;
+  ended_lng: number | null;
+  ended_accuracy: number | null;
+  end_note: string | null;
+  attendance_type: AttendanceType;
+  attendance_date: string;
+  is_all_day: boolean;
+  created_at: string;
+  profiles?: { full_name: string; email: string | null } | null;
+};
 type ProjectWorkSession = Pick<
   WorkSession,
   | "id"
@@ -191,11 +210,26 @@ const photoCategories = [
   "אישור סיום",
   "אחר",
 ];
+const attendanceTypeOptions: { value: AttendanceType; label: string; timed: boolean }[] = [
+  { value: "field", label: "עבודה בשטח", timed: true },
+  { value: "office", label: "משרד", timed: true },
+  { value: "vacation", label: "חופש", timed: false },
+  { value: "sick", label: "מחלה", timed: false },
+  { value: "reserve_duty", label: "מילואים", timed: false },
+];
+const attendanceTypeLabel: Record<AttendanceType, string> = Object.fromEntries(
+  attendanceTypeOptions.map((item) => [item.value, item.label]),
+) as Record<AttendanceType, string>;
 
 type GeoLocationPoint = { lat: number; lng: number; accuracy: number | null };
 
 function toDateInputValue(date = new Date()) {
   return date.toISOString().slice(0, 10);
+}
+
+function toLocalDateKey(date = new Date()) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
 }
 
 function getMonthRange(date = new Date()) {
@@ -211,7 +245,7 @@ function getMonthRange(date = new Date()) {
 }
 
 function sessionStartedInRange(
-  item: WorkSession,
+  item: { started_at: string },
   fromDate: string,
   toDate: string,
 ) {
@@ -242,6 +276,9 @@ export default function Page() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [historyItems, setHistoryItems] = useState<StatusHistory[]>([]);
   const [workSessions, setWorkSessions] = useState<WorkSession[]>([]);
+  const [attendanceSessions, setAttendanceSessions] = useState<AttendanceSession[]>([]);
+  const [attendanceAvailable, setAttendanceAvailable] = useState(true);
+  const [attendanceBusy, setAttendanceBusy] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -471,6 +508,21 @@ export default function Page() {
     };
   }, [profile]);
 
+  useEffect(() => {
+    if (!profile || !attendanceAvailable) return;
+    const channel = supabase
+      .channel("general-attendance-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "attendance_sessions" },
+        () => loadAttendanceSessions(profile),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile, attendanceAvailable]);
+
   async function login() {
     setMessage("");
     if (!email || !password) {
@@ -516,6 +568,8 @@ export default function Page() {
     setProfile(null);
     setProjects([]);
     setHistoryItems([]);
+    setWorkSessions([]);
+    setAttendanceSessions([]);
     setNotifications([]);
   }
 
@@ -581,6 +635,7 @@ export default function Page() {
       loadWorkers(typedProfile),
       loadHistory(typedProfile),
       loadWorkSessions(typedProfile),
+      loadAttendanceSessions(typedProfile),
       loadNotifications(typedProfile),
     ]);
   }
@@ -675,6 +730,31 @@ export default function Page() {
     }
 
     setWorkSessions((data || []) as WorkSession[]);
+  }
+
+  async function loadAttendanceSessions(activeProfile = profile) {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user || !activeProfile) return;
+
+    let request = supabase
+      .from("attendance_sessions")
+      .select("*, profiles:worker_id(full_name,email)")
+      .order("started_at", { ascending: false });
+
+    if (activeProfile.role !== "manager") {
+      request = request.eq("worker_id", user.id);
+    }
+
+    const { data, error } = await request;
+    if (error) {
+      console.warn("Attendance sessions load failed:", error.message);
+      setAttendanceAvailable(false);
+      setAttendanceSessions([]);
+      return;
+    }
+
+    setAttendanceAvailable(true);
+    setAttendanceSessions((data || []) as AttendanceSession[]);
   }
 
   async function loadNotifications(_activeProfile = profile) {
@@ -862,6 +942,183 @@ export default function Page() {
     await Promise.all([loadProjects(), loadHistory(), loadWorkSessions()]);
   }
 
+  async function startAttendance(attendanceType: AttendanceType) {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user || attendanceBusy) return;
+    if (!attendanceAvailable) {
+      setMessage("שעון הנוכחות הכללי עדיין לא הופעל ב-Supabase. יש להריץ את קובץ ההתקנה המצורף.");
+      return;
+    }
+
+    const openSession = attendanceSessions.find(
+      (item) => item.worker_id === user.id && !item.ended_at,
+    );
+    if (openSession) {
+      setMessage("כבר קיימת משמרת כללית פתוחה.");
+      return;
+    }
+
+    setAttendanceBusy(true);
+    try {
+      const option = attendanceTypeOptions.find((item) => item.value === attendanceType);
+      const attendanceDate = toLocalDateKey();
+      const existingDayStatus = attendanceSessions.find(
+        (item) =>
+          item.worker_id === user.id &&
+          item.is_all_day &&
+          item.attendance_date === attendanceDate,
+      );
+
+      if (!option?.timed) {
+        const reportedAt = new Date().toISOString();
+        const payload = {
+          worker_id: user.id,
+          started_at: reportedAt,
+          ended_at: reportedAt,
+          attendance_type: attendanceType,
+          attendance_date: attendanceDate,
+          is_all_day: true,
+        };
+        const result = existingDayStatus
+          ? await supabase
+              .from("attendance_sessions")
+              .update(payload)
+              .eq("id", existingDayStatus.id)
+          : await supabase.from("attendance_sessions").insert(payload);
+
+        if (result.error) {
+          setMessage(result.error.message);
+          return;
+        }
+
+        if (profile?.role === "field_worker") {
+          await createManagerNotification(
+            "attendance_day_status",
+            `דיווח נוכחות: ${attendanceTypeLabel[attendanceType]}`,
+            `${profile.full_name} דיווח ${attendanceTypeLabel[attendanceType]} לתאריך ${new Date().toLocaleDateString("he-IL")}.`,
+          );
+        }
+        setMessage(`נרשם דיווח ${attendanceTypeLabel[attendanceType]} להיום.`);
+        await loadAttendanceSessions();
+        return;
+      }
+
+      if (existingDayStatus) {
+        const replaceStatus = window.confirm(
+          `כבר קיים להיום דיווח "${attendanceTypeLabel[existingDayStatus.attendance_type]}". להחליף אותו בתחילת ${attendanceTypeLabel[attendanceType]}?`,
+        );
+        if (!replaceStatus) return;
+        const { error: deleteError } = await supabase
+          .from("attendance_sessions")
+          .delete()
+          .eq("id", existingDayStatus.id);
+        if (deleteError) {
+          setMessage(deleteError.message);
+          return;
+        }
+      }
+
+      setMessage("מבקש הרשאת מיקום לתחילת יום העבודה...");
+      const location = await getCurrentLocationWithFallback();
+      if (location === false) {
+        setMessage("תחילת יום העבודה בוטלה כי לא התקבל אישור מיקום.");
+        return;
+      }
+
+      const startedAt = new Date();
+      const { error } = await supabase.from("attendance_sessions").insert({
+        worker_id: user.id,
+        started_at: startedAt.toISOString(),
+        attendance_type: attendanceType,
+        attendance_date: attendanceDate,
+        is_all_day: false,
+        started_lat: location?.lat ?? null,
+        started_lng: location?.lng ?? null,
+        started_accuracy: location?.accuracy ?? null,
+      });
+
+      if (error) {
+        setMessage(
+          error.code === "23505"
+            ? "כבר קיימת משמרת כללית פתוחה."
+            : error.message,
+        );
+        return;
+      }
+
+      if (profile?.role === "field_worker") {
+        await createManagerNotification(
+          "attendance_started",
+          `תחילת ${attendanceTypeLabel[attendanceType]}`,
+          `${profile.full_name} התחיל ${attendanceTypeLabel[attendanceType]}.${location ? ` מיקום: ${formatLocation(location)}` : ""}`,
+        );
+      }
+
+      setMessage(
+        `${attendanceTypeLabel[attendanceType]} התחיל ב-${startedAt.toLocaleTimeString("he-IL")}${location ? " כולל מיקום" : ""}.`,
+      );
+      await loadAttendanceSessions();
+    } finally {
+      setAttendanceBusy(false);
+    }
+  }
+
+  async function endAttendance() {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user || attendanceBusy) return;
+
+    const openSession = attendanceSessions.find(
+      (item) => item.worker_id === user.id && !item.ended_at,
+    );
+    if (!openSession) {
+      setMessage("לא נמצאה משמרת כללית פתוחה.");
+      return;
+    }
+
+    setAttendanceBusy(true);
+    try {
+      setMessage("מבקש מיקום לסיום יום העבודה...");
+      const location = await getCurrentLocationWithFallback();
+      if (location === false) {
+        setMessage("סיום יום העבודה בוטל כי לא התקבל אישור מיקום.");
+        return;
+      }
+
+      const endNote = window.prompt("הערת סיום יום עבודה, אופציונלי:", "") || "";
+      const endedAt = new Date();
+      const minutes = durationMinutes(openSession.started_at, endedAt.toISOString());
+      const { error } = await supabase
+        .from("attendance_sessions")
+        .update({
+          ended_at: endedAt.toISOString(),
+          ended_lat: location?.lat ?? null,
+          ended_lng: location?.lng ?? null,
+          ended_accuracy: location?.accuracy ?? null,
+          end_note: endNote.trim() || null,
+        })
+        .eq("id", openSession.id)
+        .is("ended_at", null);
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      if (profile?.role === "field_worker") {
+        await createManagerNotification(
+          "attendance_ended",
+          `סיום ${attendanceTypeLabel[openSession.attendance_type]}`,
+          `${profile.full_name} סיים ${attendanceTypeLabel[openSession.attendance_type]}. משך המשמרת: ${formatDuration(minutes)}.${location ? ` מיקום: ${formatLocation(location)}` : ""}${endNote.trim() ? ` הערה: ${endNote.trim()}` : ""}`,
+        );
+      }
+
+      setMessage(`${attendanceTypeLabel[openSession.attendance_type]} הסתיים. משך המשמרת: ${formatDuration(minutes)}.`);
+      await loadAttendanceSessions();
+    } finally {
+      setAttendanceBusy(false);
+    }
+  }
+
   function exportWorkReport(
     workerId = reportWorkerId,
     fromDate = reportFromDate,
@@ -870,8 +1127,14 @@ export default function Page() {
     const filteredSessions = workSessions
       .filter((item) => workerId === "all" || item.worker_id === workerId)
       .filter((item) => sessionStartedInRange(item, fromDate, toDate));
+    const filteredAttendance = attendanceSessions
+      .filter((item) => workerId === "all" || item.worker_id === workerId)
+      .filter((item) => {
+        const date = item.attendance_date || item.started_at.slice(0, 10);
+        return (!fromDate || date >= fromDate) && (!toDate || date <= toDate);
+      });
 
-    if (!filteredSessions.length) {
+    if (!filteredSessions.length && !filteredAttendance.length) {
       setMessage(
         workerId === "all"
           ? "אין נתוני שעות לייצוא בטווח התאריכים שנבחר."
@@ -884,6 +1147,7 @@ export default function Page() {
     const headers = [
       "מתאריך",
       "עד תאריך",
+      "סוג דיווח",
       "עובד",
       "מייל",
       "פרויקט",
@@ -899,9 +1163,33 @@ export default function Page() {
     ];
     const csvRows = [
       headers,
+      ...filteredAttendance.map((item) => {
+        const minutes = item.is_all_day
+          ? 0
+          : durationMinutes(item.started_at, item.ended_at);
+        const label = attendanceTypeLabel[item.attendance_type] || "נוכחות כללית";
+        return [
+          fromDate || "",
+          toDate || "",
+          label,
+          item.profiles?.full_name || "עובד",
+          item.profiles?.email || "",
+          label,
+          "",
+          "",
+          item.attendance_date || item.started_at.slice(0, 10),
+          "1",
+          String(minutes),
+          formatHoursDecimal(minutes),
+          item.is_all_day || item.ended_at ? "0" : "1",
+          item.is_all_day ? "" : mapsLink(item.started_lat, item.started_lng),
+          item.is_all_day ? "" : mapsLink(item.ended_lat, item.ended_lng),
+        ];
+      }),
       ...rows.map((r) => [
         fromDate || "",
         toDate || "",
+        "פרויקט",
         r.workerName,
         r.email,
         r.projectName,
@@ -1944,6 +2232,13 @@ export default function Page() {
   );
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const myAttendanceSessions = useMemo(
+    () =>
+      attendanceSessions.filter(
+        (item) => item.worker_id === session?.user?.id,
+      ),
+    [attendanceSessions, session?.user?.id],
+  );
   const tabTitle =
     tab === "mine"
       ? "הפרויקטים שלי"
@@ -2000,7 +2295,7 @@ export default function Page() {
 
   if (!session) {
     return (
-      <main className="login">
+      <main className="login loginScreen">
         <section className="card">
           <img src="/logo.png" alt="לוגו" />
           <h1>מערכת איתור תשתיות</h1>
@@ -2300,6 +2595,16 @@ export default function Page() {
             </div>
           </div>}
 
+          {(profile?.role === "field_worker" || profile?.role === "manager") && (
+            <GeneralAttendanceCard
+              sessions={myAttendanceSessions}
+              available={attendanceAvailable}
+              busy={attendanceBusy}
+              startAttendance={startAttendance}
+              endAttendance={endAttendance}
+            />
+          )}
+
           {tab !== "projectStatus" && tab !== "liveMap" && <div className="grid">
             <Stat
               number={stats.total}
@@ -2396,7 +2701,13 @@ export default function Page() {
           )}
 
           {tab === "today" && isManager && (
-            <TodayFieldPanel projects={activeProjects} workSessions={workSessions} workers={workers} />
+            <TodayFieldPanel
+              projects={activeProjects}
+              workSessions={workSessions}
+              attendanceSessions={attendanceSessions}
+              attendanceAvailable={attendanceAvailable}
+              workers={workers}
+            />
           )}
           {tab === "liveMap" && isManager && (
             <LiveMapPanel
@@ -2450,6 +2761,8 @@ export default function Page() {
           {tab === "report" && isManager && (
             <WorkReportPanel
               workSessions={workSessions}
+              attendanceSessions={attendanceSessions}
+              attendanceAvailable={attendanceAvailable}
               workers={workers}
               reportWorkerId={reportWorkerId}
               setReportWorkerId={setReportWorkerId}
@@ -2555,6 +2868,136 @@ function translateAuthError(message: string) {
     return "המייל עדיין לא מאושר. אשר את המשתמש ב-Supabase תחת Authentication > Users.";
   if (message.toLowerCase().includes("password")) return message;
   return message;
+}
+
+function GeneralAttendanceCard({
+  sessions,
+  available,
+  busy,
+  startAttendance,
+  endAttendance,
+}: {
+  sessions: AttendanceSession[];
+  available: boolean;
+  busy: boolean;
+  startAttendance: (attendanceType: AttendanceType) => void;
+  endAttendance: () => void;
+}) {
+  const openSession = sessions.find((item) => !item.ended_at && !item.is_all_day) || null;
+  const lastEndedSession = sessions.find((item) => item.ended_at && !item.is_all_day) || null;
+  const [now, setNow] = useState(() => Date.now());
+  const [selectedType, setSelectedType] = useState<AttendanceType>("field");
+
+  useEffect(() => {
+    if (!openSession) return;
+    const interval = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(interval);
+  }, [openSession?.id]);
+
+  const today = toLocalDateKey();
+  const dayStatus = sessions.find(
+    (item) => item.is_all_day && item.attendance_date === today,
+  ) || null;
+  const todaySessions = sessions.filter(
+    (item) =>
+      !item.is_all_day &&
+      (item.attendance_date || toLocalDateKey(new Date(item.started_at))) === today,
+  );
+  const todayMinutes = todaySessions.reduce(
+    (sum, item) =>
+      sum +
+      (item.ended_at
+        ? durationMinutes(item.started_at, item.ended_at)
+        : Math.max(0, Math.round((now - new Date(item.started_at).getTime()) / 60000))),
+    0,
+  );
+  const openMinutes = openSession
+    ? Math.max(0, Math.round((now - new Date(openSession.started_at).getTime()) / 60000))
+    : 0;
+  const selectedOption = attendanceTypeOptions.find(
+    (item) => item.value === selectedType,
+  ) || attendanceTypeOptions[0];
+
+  useEffect(() => {
+    if (openSession?.attendance_type) setSelectedType(openSession.attendance_type);
+    else if (dayStatus?.attendance_type) setSelectedType(dayStatus.attendance_type);
+  }, [openSession?.attendance_type, dayStatus?.attendance_type]);
+
+  return (
+    <section className={`generalAttendance ${openSession ? "active" : ""}`}>
+      <div className="generalAttendanceIcon" aria-hidden="true">
+        <Clock size={25} />
+      </div>
+      <div className="generalAttendanceCopy">
+        <div className="generalAttendanceTitle">
+          <span className="generalAttendanceStatus">
+            {openSession
+              ? `${attendanceTypeLabel[openSession.attendance_type]} פעיל`
+              : dayStatus
+                ? `דווח: ${attendanceTypeLabel[dayStatus.attendance_type]}`
+                : "לא במשמרת"}
+          </span>
+          <h3>שעון נוכחות כללי</h3>
+        </div>
+        {openSession ? (
+          <>
+            <strong className="generalAttendanceTime">{formatDuration(openMinutes)}</strong>
+            <span>
+              התחלה: {new Date(openSession.started_at).toLocaleString("he-IL")}
+            </span>
+            <LocationLine
+              label="מיקום כניסה"
+              lat={openSession.started_lat}
+              lng={openSession.started_lng}
+              accuracy={openSession.started_accuracy}
+            />
+          </>
+        ) : (
+          <span>
+            {dayStatus
+              ? `הדיווח ${attendanceTypeLabel[dayStatus.attendance_type]} נשמר להיום וניתן לעדכן אותו.`
+              : lastEndedSession
+              ? `המשמרת האחרונה הסתיימה ב-${new Date(lastEndedSession.ended_at || "").toLocaleString("he-IL")}`
+              : "התחל את יום העבודה לפני המעבר בין הפרויקטים."}
+          </span>
+        )}
+        <small>סה״כ נוכחות היום: {formatDuration(todayMinutes)}</small>
+        {!available && (
+          <small className="generalAttendanceWarning">
+            נדרש להפעיל את טבלת הנוכחות ב-Supabase לפני השימוש.
+          </small>
+        )}
+      </div>
+      <div className="generalAttendanceActions">
+        <label>
+          סוג דיווח
+          <select
+            value={selectedType}
+            disabled={busy || Boolean(openSession)}
+            onChange={(event) => setSelectedType(event.target.value as AttendanceType)}
+          >
+            {attendanceTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        <button
+          className={openSession ? "danger" : ""}
+          disabled={busy || !available}
+          onClick={openSession ? endAttendance : () => startAttendance(selectedType)}
+        >
+          {openSession ? <Square size={18} /> : <PlayCircle size={18} />}
+          {busy
+            ? "מעדכן..."
+            : openSession
+              ? `סיום ${attendanceTypeLabel[openSession.attendance_type]}`
+              : selectedOption.timed
+                ? `תחילת ${selectedOption.label}`
+                : `${dayStatus ? "עדכון" : "דיווח"} ${selectedOption.label}`}
+        </button>
+      </div>
+    </section>
+  );
 }
 
 function Stat({
@@ -4168,6 +4611,15 @@ function LocationLine({
   );
 }
 
+function durationMinutes(startedAt: string, endedAt?: string | null) {
+  const started = new Date(startedAt);
+  const ended = endedAt ? new Date(endedAt) : new Date();
+  return Math.max(
+    0,
+    Math.round((ended.getTime() - started.getTime()) / 60000),
+  );
+}
+
 function formatDuration(minutes: number) {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
@@ -4947,19 +5399,28 @@ function ProjectStatusReport({ projects }: { projects: Project[] }) {
 function TodayFieldPanel({
   projects,
   workSessions,
+  attendanceSessions,
+  attendanceAvailable,
   workers,
 }: {
   projects: Project[];
   workSessions: WorkSession[];
+  attendanceSessions: AttendanceSession[];
+  attendanceAvailable: boolean;
   workers: Profile[];
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalDateKey();
   const todaySessions = workSessions.filter((session) =>
     session.started_at.startsWith(today),
   );
-  const activeSessions = workSessions.filter((session) => !session.ended_at);
-  const activeWorkerIds = new Set(activeSessions.map((s) => s.worker_id));
-  const todayWorkerIds = new Set(todaySessions.map((s) => s.worker_id));
+  const todayAttendance = attendanceSessions.filter((session) =>
+    (session.attendance_date || session.started_at.slice(0, 10)) === today,
+  );
+  const activeAttendance = attendanceSessions.filter(
+    (session) => !session.ended_at && !session.is_all_day,
+  );
+  const activeWorkerIds = new Set(activeAttendance.map((s) => s.worker_id));
+  const todayWorkerIds = new Set(todayAttendance.map((s) => s.worker_id));
   const fieldWorkers = workers.filter((w) => w.role === "field_worker");
   const notStarted = fieldWorkers.filter((worker) => !todayWorkerIds.has(worker.id));
 
@@ -4975,25 +5436,30 @@ function TodayFieldPanel({
       <div className="panelHeader">
         <div>
           <h2>היום בשטח</h2>
-          <p className="muted">מעקב יומי אחר עובדים פעילים, עובדים שלא התחילו ופרויקטים בשטח.</p>
+          <p className="muted">מעקב נוכחות כללי לצד שעות העבודה שנרשמו לכל פרויקט.</p>
         </div>
         <button className="ghost smallBtn" onClick={sendDailySummaryNow}>שלח סיכום יומי עכשיו</button>
       </div>
       <div className="grid miniStats">
-        <Stat number={todaySessions.length} label="כניסות עבודה היום" icon={<Clock />} />
-        <Stat number={activeSessions.length} label="עבודות פתוחות" icon={<PlayCircle />} />
-        <Stat number={activeWorkerIds.size} label="עובדים פעילים עכשיו" icon={<Users />} />
+        <Stat number={todayAttendance.length} label="דיווחי נוכחות היום" icon={<Clock />} />
+        <Stat number={activeAttendance.length} label="משמרות פתוחות" icon={<PlayCircle />} />
+        <Stat number={activeWorkerIds.size} label="נוכחים עכשיו" icon={<Users />} />
         <Stat number={notStarted.length} label="עובדים שלא התחילו" icon={<AlertTriangle />} />
       </div>
+      {!attendanceAvailable && (
+        <p className="attendanceSetupNotice">
+          שעון הנוכחות הכללי עדיין לא הופעל ב-Supabase. יש להריץ את migration הנוכחות.
+        </p>
+      )}
       <div className="twoColumns">
         <div className="innerPanel">
-          <h3>עובדים פעילים עכשיו</h3>
-          {activeSessions.length === 0 && <p className="muted">אין עבודות פתוחות כרגע.</p>}
-          {activeSessions.map((session) => (
+          <h3>נוכחים עכשיו</h3>
+          {activeAttendance.length === 0 && <p className="muted">אין משמרות כלליות פתוחות כרגע.</p>}
+          {activeAttendance.map((session) => (
             <div className="listRow" key={session.id}>
               <b>{session.profiles?.full_name || "עובד"}</b>
-              <span>{session.projects?.name || "פרויקט"}</span>
-              <small>{new Date(session.started_at).toLocaleString("he-IL")}</small>
+              <span>{attendanceTypeLabel[session.attendance_type]} · {formatDuration(durationMinutes(session.started_at))}</span>
+              <small>כניסה: {new Date(session.started_at).toLocaleString("he-IL")}</small>
             </div>
           ))}
         </div>
@@ -5009,7 +5475,25 @@ function TodayFieldPanel({
         </div>
       </div>
       <div className="innerPanel" style={{ marginTop: 16 }}>
-        <h3>כל פעולות העבודה היום</h3>
+        <h3>משמרות כלליות היום</h3>
+        {todayAttendance.length === 0 && <p className="muted">אין רישומי נוכחות כללית להיום.</p>}
+        {todayAttendance.map((session) => (
+          <div className="listRow" key={session.id}>
+            <b>{session.profiles?.full_name || "עובד"}</b>
+            <span>{attendanceTypeLabel[session.attendance_type]}</span>
+            {session.is_all_day ? (
+              <small>דיווח יומי ללא שעות</small>
+            ) : (
+              <small>
+                {formatDuration(durationMinutes(session.started_at, session.ended_at))} · כניסה: {new Date(session.started_at).toLocaleTimeString("he-IL")} · {session.ended_at ? `יציאה: ${new Date(session.ended_at).toLocaleTimeString("he-IL")}` : "פתוח"}
+                {session.end_note ? ` · הערה: ${session.end_note}` : ""}
+              </small>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="innerPanel" style={{ marginTop: 16 }}>
+        <h3>פעולות לפי פרויקט היום</h3>
         {todaySessions.length === 0 && <p className="muted">אין רישומי עבודה להיום.</p>}
         {todaySessions.map((session) => (
           <div className="listRow" key={session.id}>
@@ -5267,6 +5751,8 @@ function LiveMapPanel({
 
 function WorkReportPanel({
   workSessions,
+  attendanceSessions,
+  attendanceAvailable,
   workers,
   reportWorkerId,
   setReportWorkerId,
@@ -5279,6 +5765,8 @@ function WorkReportPanel({
   exportWorkReport,
 }: {
   workSessions: WorkSession[];
+  attendanceSessions: AttendanceSession[];
+  attendanceAvailable: boolean;
   workers: Profile[];
   reportWorkerId: string;
   setReportWorkerId: (id: string) => void;
@@ -5316,12 +5804,32 @@ function WorkReportPanel({
         ),
     [workSessions, reportWorkerId, reportFromDate, reportToDate],
   );
+  const filteredAttendance = useMemo(
+    () =>
+      attendanceSessions
+        .filter(
+          (item) =>
+            reportWorkerId === "all" || item.worker_id === reportWorkerId,
+        )
+        .filter((item) => {
+          const date = item.attendance_date || item.started_at.slice(0, 10);
+          return (!reportFromDate || date >= reportFromDate) &&
+            (!reportToDate || date <= reportToDate);
+        }),
+    [attendanceSessions, reportWorkerId, reportFromDate, reportToDate],
+  );
   const rows = useMemo(
     () => buildWorkReportRows(filteredSessions),
     [filteredSessions],
   );
   const totalMinutes = rows.reduce((sum, row) => sum + row.totalMinutes, 0);
   const totalDays = rows.reduce((sum, row) => sum + row.days, 0);
+  const totalAttendanceMinutes = filteredAttendance.reduce(
+    (sum, item) =>
+      sum + (item.is_all_day ? 0 : durationMinutes(item.started_at, item.ended_at)),
+    0,
+  );
+  const timedAttendanceCount = filteredAttendance.filter((item) => !item.is_all_day).length;
 
   function applyMonth(value: string) {
     setReportMonth(value);
@@ -5338,8 +5846,8 @@ function WorkReportPanel({
         <div>
           <h2>דוח שעות עובדים</h2>
           <p className="muted">
-            סיכום שעות לפי עובד, פרויקט וטווח תאריכים. אפשר לבחור חודש מלא או
-            טווח מותאם ולייצא לאקסל.
+            נוכחות כללית לצד שעות לפי פרויקט. אפשר לבחור חודש מלא או טווח
+            מותאם ולייצא את שני סוגי הדיווח לאקסל.
           </p>
         </div>
         <div className="reportActions reportActionsWide">
@@ -5391,13 +5899,83 @@ function WorkReportPanel({
         </div>
       </div>
       <div className="reportStats">
-        <Stat number={rows.length} label="שורות בדוח" icon={<Users />} />
+        <Stat number={timedAttendanceCount} label="משמרות כלליות" icon={<Users />} />
+        <Stat
+          number={Math.round((totalAttendanceMinutes / 60) * 10) / 10}
+          label="שעות נוכחות כלליות"
+          icon={<Clock />}
+        />
         <Stat
           number={Math.round((totalMinutes / 60) * 10) / 10}
-          label="סה״כ שעות"
+          label="שעות משויכות לפרויקטים"
           icon={<Clock />}
         />
         <Stat number={totalDays} label="ימי עבודה בדוח" icon={<History />} />
+      </div>
+      {!attendanceAvailable && (
+        <p className="attendanceSetupNotice">
+          נתוני הנוכחות הכללית אינם זמינים עד להפעלת migration הנוכחות ב-Supabase.
+        </p>
+      )}
+      <div className="attendanceReportBlock">
+        <div className="attendanceReportHeading">
+          <div>
+            <h3>נוכחות כללית</h3>
+            <p className="muted">כולל נסיעות, מעברים וזמן שאינו משויך לפרויקט מסוים.</p>
+          </div>
+          <strong>{formatDuration(totalAttendanceMinutes)}</strong>
+        </div>
+        <div className="tableWrap">
+          <table className="reportTable attendanceReportTable">
+            <thead>
+              <tr>
+                <th>עובד</th>
+                <th>תאריך</th>
+                <th>סוג דיווח</th>
+                <th>כניסה</th>
+                <th>יציאה</th>
+                <th>משך</th>
+                <th>מיקומים</th>
+                <th>הערה</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAttendance.length === 0 && (
+                <tr><td colSpan={8}>אין נתוני נוכחות כללית בטווח שנבחר</td></tr>
+              )}
+              {filteredAttendance.map((item) => (
+                <tr key={item.id}>
+                  <td>
+                    <b>{item.profiles?.full_name || "עובד"}</b>
+                    <br />
+                    <span className="muted">{item.profiles?.email || ""}</span>
+                  </td>
+                  <td>{new Date(`${item.attendance_date || item.started_at.slice(0, 10)}T12:00:00`).toLocaleDateString("he-IL")}</td>
+                  <td>{attendanceTypeLabel[item.attendance_type]}</td>
+                  <td>{item.is_all_day ? "-" : new Date(item.started_at).toLocaleTimeString("he-IL")}</td>
+                  <td>{item.is_all_day ? "-" : item.ended_at ? new Date(item.ended_at).toLocaleTimeString("he-IL") : "פתוח"}</td>
+                  <td>{item.is_all_day ? "ללא שעות" : formatDuration(durationMinutes(item.started_at, item.ended_at))}</td>
+                  <td>
+                    {item.is_all_day ? "-" : (
+                      <MapLinks
+                        startLinks={[mapsLink(item.started_lat, item.started_lng)].filter(Boolean)}
+                        endLinks={[mapsLink(item.ended_lat, item.ended_lng)].filter(Boolean)}
+                      />
+                    )}
+                  </td>
+                  <td>{item.end_note || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="attendanceReportHeading projectHoursHeading">
+        <div>
+          <h3>שעות לפי פרויקט</h3>
+          <p className="muted">משמשות לחישובים ולשיוך פיננסי לכל עבודה.</p>
+        </div>
+        <strong>{formatDuration(totalMinutes)}</strong>
       </div>
       <div className="tableWrap">
         <table className="reportTable">

@@ -792,3 +792,139 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
 .loginPasswordToggle{position:absolute;left:7px;top:50%;transform:translateY(-50%);width:40px;height:40px;padding:0;border:0;border-radius:12px;background:transparent;color:var(--muted);box-shadow:none}
 .loginPasswordToggle:hover{transform:translateY(-50%);background:#eef6ff;color:var(--navy);box-shadow:none;filter:none}
 .loginPasswordToggle:focus-visible{outline:3px solid rgba(37,143,196,.22);outline-offset:1px}
+
+/* Responsive branded background for the authentication screen. */
+.login.loginScreen{
+  width:100%;
+  max-width:none;
+  min-height:100vh;
+  min-height:100svh;
+  margin:0;
+  padding:clamp(24px,5vh,56px) 18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  isolation:isolate;
+  background-color:#f3f7fb;
+}
+.login.loginScreen::before{
+  content:"";
+  position:fixed;
+  inset:-10px;
+  z-index:0;
+  pointer-events:none;
+  background-image:url("/login-background-desktop.png");
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:cover;
+  filter:blur(4px);
+  opacity:.94;
+  transform:scale(1.015);
+}
+.loginScreen .card{
+  width:min(100%,480px);
+  position:relative;
+  z-index:1;
+  background:rgba(255,255,255,.94);
+  box-shadow:0 24px 70px rgba(7,30,65,.14);
+  backdrop-filter:blur(12px);
+}
+@media(max-width:760px){
+  .login.loginScreen{
+    padding:20px 12px;
+    align-items:safe center;
+  }
+  .login.loginScreen::before{
+    background-image:url("/login-background-mobile.png");
+    background-position:center top;
+  }
+  .loginScreen .card{padding:26px 20px;border-radius:24px}
+  .loginScreen img{height:82px;margin-bottom:14px}
+}
+
+/* Match the loading screen to the blurred authentication background. */
+.appLoading{
+  isolation:isolate;
+  background-color:#f3f7fb;
+}
+.appLoading::before{
+  width:auto;
+  height:auto;
+  position:fixed;
+  inset:-10px;
+  z-index:0;
+  border-radius:0;
+  background-image:url("/login-background-desktop.png");
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:cover;
+  filter:blur(4px);
+  opacity:.94;
+  transform:scale(1.015);
+}
+.appLoading::after{display:none}
+@media(max-width:760px){
+  .appLoading::before{
+    background-image:url("/login-background-mobile.png");
+    background-position:center top;
+  }
+}
+
+/* General attendance clock, separate from project billing timers. */
+.generalAttendance{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  gap:18px;
+  align-items:center;
+  margin:0 0 18px;
+  padding:19px 21px;
+  border:1px solid #cfdfea;
+  border-radius:23px;
+  background:linear-gradient(135deg,rgba(255,255,255,.97),rgba(241,248,253,.96));
+  box-shadow:0 14px 38px rgba(7,30,65,.08),inset 0 1px 0 #fff;
+}
+.generalAttendance.active{
+  border-color:#91d8cb;
+  background:linear-gradient(135deg,#f4fffb,#eef9ff);
+  box-shadow:0 16px 42px rgba(7,111,100,.12),inset 0 1px 0 #fff;
+}
+.generalAttendanceIcon{
+  width:54px;
+  height:54px;
+  display:grid;
+  place-items:center;
+  border-radius:17px;
+  color:#0b5e8c;
+  background:#e3f3fb;
+  box-shadow:inset 0 0 0 1px rgba(37,143,196,.12);
+}
+.generalAttendance.active .generalAttendanceIcon{color:#087a5f;background:#dff8ef}
+.generalAttendanceCopy{min-width:0;display:grid;gap:4px;color:var(--muted)}
+.generalAttendanceTitle{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.generalAttendanceTitle h3{margin:0;color:var(--navy);font-size:19px}
+.generalAttendanceStatus{padding:5px 9px;border-radius:999px;background:#e8eef4;color:#526577;font-size:11px;font-weight:950}
+.generalAttendance.active .generalAttendanceStatus{background:#d8f5e9;color:#087a5f}
+.generalAttendanceTime{color:var(--navy);font-size:25px;letter-spacing:-.35px}
+.generalAttendanceCopy small{font-weight:850}
+.generalAttendanceCopy .locationLine{margin-top:0}
+.generalAttendanceWarning,.attendanceSetupNotice{color:#9a5c00!important}
+.generalAttendanceActions{display:grid;gap:8px;min-width:190px}
+.generalAttendanceActions label{display:grid;gap:5px;color:var(--muted);font-size:12px;font-weight:900}
+.generalAttendanceActions select{min-height:42px;padding:8px 11px;border:1px solid #c9d9e6;border-radius:11px;background:#fff;color:var(--navy);font:inherit;font-weight:850}
+.generalAttendanceActions button{width:100%;white-space:nowrap}
+.attendanceSetupNotice{margin:0 0 16px;padding:12px 14px;border:1px solid #f3cf8b;border-radius:14px;background:#fff9e8;font-weight:850}
+.attendanceReportBlock{margin-bottom:22px}
+.attendanceReportHeading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 12px}
+.attendanceReportHeading h3{margin:0 0 4px;color:var(--navy);font-size:19px}
+.attendanceReportHeading p{margin:0}
+.attendanceReportHeading>strong{padding:8px 12px;border-radius:12px;background:#e8f6ff;color:#075985;white-space:nowrap}
+.projectHoursHeading{margin-top:24px}
+.attendanceReportTable{min-width:900px}
+@media(max-width:760px){
+  .generalAttendance{grid-template-columns:auto minmax(0,1fr);gap:13px;margin-bottom:12px;padding:15px;border-radius:19px}
+  .generalAttendanceIcon{width:46px;height:46px;border-radius:14px}
+  .generalAttendanceTime{font-size:22px}
+  .generalAttendanceActions{grid-column:1/-1;width:100%;min-width:0}
+  .attendanceReportHeading{align-items:flex-start;flex-direction:column;gap:8px}
+}

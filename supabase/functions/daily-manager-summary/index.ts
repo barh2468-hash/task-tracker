@@ -39,6 +39,13 @@ Deno.serve(async (req) => {
       .order('started_at', { ascending: true });
     if (sessionsError) throw sessionsError;
 
+    const { data: attendance, error: attendanceError } = await supabase
+      .from('attendance_sessions')
+      .select('started_at,ended_at,end_note,attendance_type,attendance_date,is_all_day,profiles:worker_id(full_name,email)')
+      .eq('attendance_date', today)
+      .order('started_at', { ascending: true });
+    if (attendanceError) throw attendanceError;
+
     const { data: history, error: historyError } = await supabase
       .from('status_history')
       .select('new_status,note,created_at,profiles:changed_by(full_name),projects:project_id(name,client_name,location)')
@@ -56,6 +63,25 @@ Deno.serve(async (req) => {
       return `<li><b>${s.profiles?.full_name || 'עובד'}</b> - ${s.projects?.name || 'פרויקט'} (${s.projects?.location || ''})<br/>התחלה: ${start} · סיום: ${end}${s.end_note ? `<br/>הערת סיום: ${s.end_note}` : ''}</li>`;
     }).join('');
 
+    const attendanceRows = (attendance || []).map((s: any) => {
+      const typeLabels: Record<string, string> = {
+        field: 'עבודה בשטח',
+        office: 'משרד',
+        vacation: 'חופש',
+        sick: 'מחלה',
+        reserve_duty: 'מילואים',
+      };
+      const typeLabel = typeLabels[s.attendance_type] || 'נוכחות כללית';
+      if (s.is_all_day) {
+        return `<li><b>${s.profiles?.full_name || 'עובד'}</b> - ${typeLabel}<br/>דיווח יומי ללא שעות</li>`;
+      }
+      const start = new Date(s.started_at);
+      const end = s.ended_at ? new Date(s.ended_at) : null;
+      const minutes = Math.max(0, Math.round(((end || new Date()).getTime() - start.getTime()) / 60000));
+      const duration = `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
+      return `<li><b>${s.profiles?.full_name || 'עובד'}</b> - ${typeLabel}<br/>כניסה: ${start.toLocaleString('he-IL')} · יציאה: ${end ? end.toLocaleString('he-IL') : 'פתוח'} · משך: ${duration}${s.end_note ? `<br/>הערה: ${s.end_note}` : ''}</li>`;
+    }).join('');
+
     const historyRows = (history || []).map((h: any) => {
       const time = new Date(h.created_at).toLocaleString('he-IL');
       return `<li><b>${h.projects?.name || 'פרויקט'}</b> - ${h.new_status}<br/>${h.profiles?.full_name || 'משתמש'} · ${time}${h.note ? `<br/>${h.note}` : ''}</li>`;
@@ -66,7 +92,9 @@ Deno.serve(async (req) => {
       <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.7;color:#0b2545">
         <h2>סיכום יומי - מערכת משימות מאיה</h2>
         <p>תאריך: ${new Date().toLocaleDateString('he-IL')}</p>
-        <h3>שעות עבודה היום</h3>
+        <h3>נוכחות כללית היום</h3>
+        <ul>${attendanceRows || '<li>לא נרשמה נוכחות כללית היום.</li>'}</ul>
+        <h3>שעות לפי פרויקט היום</h3>
         <ul>${sessionRows || '<li>לא נרשמו שעות עבודה היום.</li>'}</ul>
         <h3>עדכונים ושינויי סטטוס היום</h3>
         <ul>${historyRows || '<li>לא נרשמו עדכונים היום.</li>'}</ul>

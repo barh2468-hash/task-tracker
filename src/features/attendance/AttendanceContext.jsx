@@ -116,8 +116,10 @@ export function AttendanceProvider({ children }) {
     try {
       const result = await runMutation(attendanceFeatureApi.finishAttendance(endNote, { profile, attendanceSessions }));
       await loadAttendanceSessions();
-      setAttendanceEndDialogOpen(false);
-      setAttendanceEndNote('');
+      if (result?.success) {
+        setAttendanceEndDialogOpen(false);
+        setAttendanceEndNote('');
+      }
       return result;
     } finally {
       setAttendanceBusy(false);

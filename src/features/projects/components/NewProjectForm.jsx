@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../ProjectsContext.jsx';
 
 const emptyProject = {
@@ -16,6 +18,8 @@ const emptyProject = {
 
 export default function NewProjectForm() {
   const { workers, createProject } = useProjects();
+  const { isManager } = useAuth();
+  const navigate = useNavigate();
   const [project, setProject] = useState(emptyProject);
 
   const projectLeads = workers.filter((worker) => worker.role !== 'drafter');
@@ -25,6 +29,7 @@ export default function NewProjectForm() {
     const result = await createProject(project);
     if (result?.message?.startsWith('הפרויקט נוצר')) {
       setProject(emptyProject);
+      navigate(`/app/projects?filter=${isManager ? 'all' : 'mine'}`);
     }
   }
 

@@ -1,6 +1,7 @@
 export function durationMinutes(startedAt, endedAt) {
-  if (!endedAt) return 0;
-  return Math.max(0, Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 60000));
+  const started = new Date(startedAt);
+  const ended = endedAt ? new Date(endedAt) : new Date();
+  return Math.max(0, Math.round((ended.getTime() - started.getTime()) / 60000));
 }
 
 export function formatDuration(minutes) {

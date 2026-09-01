@@ -203,13 +203,13 @@ export async function startAttendance(attendanceType, { profile, attendanceSessi
 
 export async function finishAttendance(endNote, { profile, attendanceSessions }) {
   const user = await authApi.getCurrentUser();
-  if (!user) return { message: '' };
+  if (!user) return { message: '', success: false };
 
   const openSession = attendanceSessions.find((item) => item.worker_id === user.id && !item.ended_at);
-  if (!openSession) return { message: 'לא נמצאה משמרת כללית פתוחה.' };
+  if (!openSession) return { message: 'לא נמצאה משמרת כללית פתוחה.', success: false };
 
   const location = await getCurrentLocationWithFallback();
-  if (location === false) return { message: 'סיום יום העבודה בוטל כי לא התקבל אישור מיקום.' };
+  if (location === false) return { message: 'סיום יום העבודה בוטל כי לא התקבל אישור מיקום.', success: false };
 
   const endedAt = new Date();
   const minutes = durationMinutes(openSession.started_at, endedAt.toISOString());
@@ -220,7 +220,7 @@ export async function finishAttendance(endNote, { profile, attendanceSessions })
     ended_accuracy: location?.accuracy ?? null,
     end_note: endNote.trim() || null,
   });
-  if (error) return { message: error.message };
+  if (error) return { message: error.message, success: false };
 
   if (profile?.role === 'field_worker') {
     await createManagerNotification(
@@ -230,5 +230,8 @@ export async function finishAttendance(endNote, { profile, attendanceSessions })
     );
   }
 
-  return { message: `${attendanceTypeLabel[openSession.attendance_type]} הסתיים. משך המשמרת: ${formatDuration(minutes)}.` };
+  return {
+    message: `${attendanceTypeLabel[openSession.attendance_type]} הסתיים. משך המשמרת: ${formatDuration(minutes)}.`,
+    success: true,
+  };
 }

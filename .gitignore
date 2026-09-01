@@ -1,5 +1,8 @@
 node_modules
 .next
+dist
+dev-dist
+.vite
 .env.local
 .env*.local
 .DS_Store

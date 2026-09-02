@@ -2,11 +2,15 @@
 // No offline caching/precaching is added here; that would be a behavior
 // change from the original app, not a faithful port.
 
-// Let the browser activate and take control on the next normal navigation.
-// skipWaiting() + clients.claim() made a first-time registration reload the
-// currently open login screen and looked like a failed connection attempt.
-self.addEventListener('install', () => {});
-self.addEventListener('activate', () => {});
+// Activate updated push/badge handling immediately. The page no longer reloads
+// on controllerchange, so this does not bring back the former login-screen jump.
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
 
 self.addEventListener('push', (event) => {
   let payload = {};

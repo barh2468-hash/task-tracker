@@ -4,6 +4,10 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
+  // Keep compatibility with the public Supabase variables already configured
+  // in Vercel by the previous Next.js version. Only explicitly public prefixes
+  // are exposed to browser code.
+  envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
   plugins: [
     react(),
     VitePWA({

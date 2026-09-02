@@ -31,6 +31,12 @@ export async function getAttendanceSessions(isManager, userId) {
   return data || [];
 }
 
+export async function closeStaleSessions() {
+  const { data, error } = await attendanceSessionsApi.closeStaleSessions();
+  if (error) throw error;
+  return data;
+}
+
 export async function startWork(project, profile) {
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '' };

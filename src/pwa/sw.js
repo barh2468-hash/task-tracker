@@ -2,13 +2,11 @@
 // No offline caching/precaching is added here; that would be a behavior
 // change from the original app, not a faithful port.
 
-self.addEventListener('install', () => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
-});
+// Let the browser activate and take control on the next normal navigation.
+// skipWaiting() + clients.claim() made a first-time registration reload the
+// currently open login screen and looked like a failed connection attempt.
+self.addEventListener('install', () => {});
+self.addEventListener('activate', () => {});
 
 self.addEventListener('push', (event) => {
   let payload = {};

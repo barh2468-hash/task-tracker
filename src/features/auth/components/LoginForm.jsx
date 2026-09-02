@@ -3,7 +3,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../useAuth.js';
 
 export default function LoginForm() {
-  const { login, signup, authMessage } = useAuth();
+  const { login, signup, authMessage, authBusy } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -54,8 +54,10 @@ export default function LoginForm() {
               onChange={(e) => setFullName(e.target.value)}
             />
           </label>
-          <button onClick={() => login(email, password)}>כניסה למערכת</button>
-          <button className="secondary" onClick={() => signup(email, password, fullName)}>
+          <button disabled={authBusy} onClick={() => login(email, password)}>
+            {authBusy ? 'מתחבר…' : 'כניסה למערכת'}
+          </button>
+          <button disabled={authBusy} className="secondary" onClick={() => signup(email, password, fullName)}>
             הרשמה ראשונית עם סיסמה
           </button>
           <p className="muted">

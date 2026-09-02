@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(envReady);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
   const [authMessage, setAuthMessage] = useState('');
   const sessionUserIdRef = useRef(null);
 
@@ -25,14 +26,23 @@ export function AuthProvider({ children }) {
       setAuthMessage('החיבור מתעכב. בדוק את החיבור לאינטרנט ונסה לרענן את העמוד.');
     }, 15000);
 
-    authFeatureApi.getSession().then(({ data }) => {
-      if (!active) return;
-      window.clearTimeout(authTimeout);
-      sessionUserIdRef.current = data.session?.user?.id ?? null;
-      setProfileLoading(Boolean(data.session?.user));
-      setSession(data.session);
-      setAuthLoading(false);
-    });
+    authFeatureApi.getSession()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) throw error;
+        sessionUserIdRef.current = data.session?.user?.id ?? null;
+        setProfileLoading(Boolean(data.session?.user));
+        setSession(data.session);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setAuthMessage(error instanceof Error ? error.message : 'החיבור למערכת נכשל. נסה שוב.');
+      })
+      .finally(() => {
+        if (!active) return;
+        window.clearTimeout(authTimeout);
+        setAuthLoading(false);
+      });
 
     const { data: sub } = authFeatureApi.onAuthStateChange((event, s) => {
       if (!active) return;
@@ -81,6 +91,7 @@ export function AuthProvider({ children }) {
           return;
         }
         setProfile(prof);
+        setAuthMessage('');
       } catch (error) {
         if (active) setAuthMessage(error instanceof Error ? error.message : 'טעינת הנתונים נכשלה.');
       } finally {
@@ -106,8 +117,16 @@ export function AuthProvider({ children }) {
       setAuthMessage('יש למלא מייל וסיסמה.');
       return;
     }
-    const { error } = await authFeatureApi.signIn(email, password);
-    setAuthMessage(error ? translateAuthError(error.message) : 'התחברת בהצלחה.');
+    if (authBusy) return;
+    setAuthBusy(true);
+    try {
+      const { error } = await authFeatureApi.signIn(email, password);
+      setAuthMessage(error ? translateAuthError(error.message) : 'התחברת בהצלחה.');
+    } catch (error) {
+      setAuthMessage(error?.name === 'AbortError' ? 'החיבור ארך זמן רב מדי. בדוק אינטרנט ונסה שוב.' : 'לא ניתן להתחבר כרגע. בדוק אינטרנט ונסה שוב.');
+    } finally {
+      setAuthBusy(false);
+    }
   }
 
   async function signup(email, password, fullName) {
@@ -120,12 +139,20 @@ export function AuthProvider({ children }) {
       setAuthMessage('הסיסמה חייבת להכיל לפחות 6 תווים.');
       return;
     }
-    const { error } = await authFeatureApi.signUp(email, password, fullName || email.split('@')[0]);
-    setAuthMessage(
-      error
-        ? translateAuthError(error.message)
-        : 'המשתמש נוצר. אם נדרש אישור מייל ב-Supabase, אשר את המשתמש דרך Authentication > Users.',
-    );
+    if (authBusy) return;
+    setAuthBusy(true);
+    try {
+      const { error } = await authFeatureApi.signUp(email, password, fullName || email.split('@')[0]);
+      setAuthMessage(
+        error
+          ? translateAuthError(error.message)
+          : 'המשתמש נוצר. אם נדרש אישור מייל ב-Supabase, אשר את המשתמש דרך Authentication > Users.',
+      );
+    } catch {
+      setAuthMessage('לא ניתן להתחבר כרגע. בדוק אינטרנט ונסה שוב.');
+    } finally {
+      setAuthBusy(false);
+    }
   }
 
   async function logout() {
@@ -142,6 +169,7 @@ export function AuthProvider({ children }) {
     profile,
     authLoading,
     profileLoading,
+    authBusy,
     authMessage,
     setAuthMessage,
     isManager,

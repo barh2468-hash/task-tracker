@@ -799,7 +799,7 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
   width:100%;
   max-width:none;
   min-height:100vh;
-  min-height:100svh;
+  min-height:100dvh;
   margin:0;
   padding:clamp(24px,5vh,56px) 18px;
   display:flex;
@@ -848,6 +848,8 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
 .appLoading{
   isolation:isolate;
   background-color:#f3f7fb;
+  min-height:100vh;
+  min-height:100dvh;
 }
 .appLoading::before{
   width:auto;

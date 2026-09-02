@@ -31,8 +31,10 @@ export default function PwaBootstrap() {
     };
 
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+    // register() already performs an update check. Calling update() again here
+    // caused duplicate checks (especially under React StrictMode) and occasional
+    // controller changes/reloads while the authentication screen was opening.
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then((registration) => registration.update())
       .catch((error) => console.warn('PWA registration failed:', error));
 
     return () => {

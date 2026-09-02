@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
 import { supabase } from '../../services/supabase.js';
@@ -15,6 +15,7 @@ export function AttendanceProvider({ children }) {
   const [attendanceBusy, setAttendanceBusy] = useState(false);
   const [attendanceEndDialogOpen, setAttendanceEndDialogOpen] = useState(false);
   const [attendanceEndNote, setAttendanceEndNote] = useState('');
+  const lastReconciledDateRef = useRef(null);
 
   async function loadWorkSessions() {
     try {
@@ -43,8 +44,58 @@ export function AttendanceProvider({ children }) {
       setAttendanceSessions([]);
       return;
     }
-    loadWorkSessions();
-    loadAttendanceSessions();
+    let active = true;
+    (async () => {
+      try {
+        await attendanceFeatureApi.closeStaleSessions();
+      } catch (error) {
+        // The database schedule remains the source of truth. This call is a
+        // recovery path for devices returning after midnight or a missed job.
+        console.warn('Stale attendance reconciliation failed:', error instanceof Error ? error.message : error);
+      } finally {
+        lastReconciledDateRef.current = new Date().toDateString();
+      }
+      if (active) await Promise.all([loadWorkSessions(), loadAttendanceSessions()]);
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
+
+  useEffect(() => {
+    if (!profile) return;
+
+    let midnightTimer;
+    const reconcile = async () => {
+      try {
+        await attendanceFeatureApi.closeStaleSessions();
+        await Promise.all([loadWorkSessions(), loadAttendanceSessions()]);
+      } catch (error) {
+        console.warn('Midnight attendance reconciliation failed:', error instanceof Error ? error.message : error);
+      } finally {
+        lastReconciledDateRef.current = new Date().toDateString();
+      }
+    };
+    const scheduleNextMidnight = () => {
+      const next = new Date();
+      next.setHours(24, 0, 5, 0);
+      midnightTimer = window.setTimeout(async () => {
+        await reconcile();
+        scheduleNextMidnight();
+      }, Math.max(1000, next.getTime() - Date.now()));
+    };
+    const onVisibilityChange = () => {
+      const localDate = new Date().toDateString();
+      if (document.visibilityState === 'visible' && lastReconciledDateRef.current !== localDate) reconcile();
+    };
+
+    scheduleNextMidnight();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.clearTimeout(midnightTimer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 

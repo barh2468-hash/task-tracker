@@ -24,3 +24,7 @@ export function updateOpenAttendanceSession(sessionId, payload) {
 export function deleteAttendanceSession(sessionId) {
   return supabase.from('attendance_sessions').delete().eq('id', sessionId);
 }
+
+export function closeStaleSessions() {
+  return supabase.rpc('close_stale_work_sessions');
+}

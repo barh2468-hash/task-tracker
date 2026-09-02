@@ -25,11 +25,9 @@ export function ProjectsProvider({ children }) {
   }
 
   async function loadWorkers() {
-    if (!isManager) {
-      setWorkers([]);
-      return;
-    }
-    const { data, error } = await profilesApi.getAllProfiles();
+    const { data, error } = isManager
+      ? await profilesApi.getAllProfiles()
+      : await profilesApi.getWorkerDirectory();
     if (error) {
       setMessage(error.message);
       setWorkers([]);

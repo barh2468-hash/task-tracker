@@ -103,6 +103,7 @@ export default function TodayFieldPanel() {
             <small>
               התחלה: {new Date(session.started_at).toLocaleTimeString('he-IL')} · {session.ended_at ? `סיום: ${new Date(session.ended_at).toLocaleTimeString('he-IL')}` : 'פתוח'}
               {session.end_note ? ` · הערה: ${session.end_note}` : ''}
+              {session.crew_members?.length ? ` · צוות: ${session.crew_members.map((member) => member.name).join(', ')}` : ''}
             </small>
           </div>
         ))}

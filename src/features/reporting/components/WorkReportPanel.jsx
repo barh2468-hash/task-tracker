@@ -240,6 +240,7 @@ export default function WorkReportPanel() {
               <th>פרויקט</th>
               <th>לקוח</th>
               <th>מיקום</th>
+              <th>צוות נוסף</th>
               <th>תאריכי עבודה</th>
               <th>ימים</th>
               <th>זמן עבודה</th>
@@ -250,7 +251,7 @@ export default function WorkReportPanel() {
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={9}>אין נתוני שעות בטווח שנבחר</td>
+                <td colSpan={10}>אין נתוני שעות בטווח שנבחר</td>
               </tr>
             )}
             {rows.map((row) => (
@@ -263,6 +264,7 @@ export default function WorkReportPanel() {
                 <td>{row.projectName}</td>
                 <td>{row.clientName || '-'}</td>
                 <td>{row.location || '-'}</td>
+                <td>{row.crewNames.join(', ') || '-'}</td>
                 <td>{row.workDates.join(', ') || '-'}</td>
                 <td>{row.days}</td>
                 <td>

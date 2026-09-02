@@ -19,3 +19,7 @@ export function createProfile({ id, email, fullName, role }) {
 export function getAllProfiles() {
   return supabase.from('profiles').select('*').order('full_name');
 }
+
+export function getWorkerDirectory() {
+  return supabase.rpc('get_worker_directory');
+}

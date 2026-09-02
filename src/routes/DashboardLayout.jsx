@@ -32,6 +32,7 @@ import PwaControls from '../features/pwa/components/PwaControls.jsx';
 import GeneralAttendanceCard from '../features/attendance/components/GeneralAttendanceCard.jsx';
 import MobileAttendanceDock from '../features/attendance/components/MobileAttendanceDock.jsx';
 import AttendanceEndDialog from '../features/attendance/components/AttendanceEndDialog.jsx';
+import ProjectWorkEndDialog from '../features/attendance/components/ProjectWorkEndDialog.jsx';
 
 export default function DashboardLayout() {
   const { profile, session, isManager, isDrafter, logout } = useAuth();
@@ -315,6 +316,7 @@ export default function DashboardLayout() {
 
       {(profile?.role === 'field_worker' || profile?.role === 'manager') && <MobileAttendanceDock />}
       <AttendanceEndDialog />
+      <ProjectWorkEndDialog />
     </main>
   );
 }

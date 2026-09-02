@@ -15,6 +15,8 @@ export function AttendanceProvider({ children }) {
   const [attendanceBusy, setAttendanceBusy] = useState(false);
   const [attendanceEndDialogOpen, setAttendanceEndDialogOpen] = useState(false);
   const [attendanceEndNote, setAttendanceEndNote] = useState('');
+  const [projectWorkEndTarget, setProjectWorkEndTarget] = useState(null);
+  const [projectWorkEndBusy, setProjectWorkEndBusy] = useState(false);
   const lastReconciledDateRef = useRef(null);
 
   async function loadWorkSessions() {
@@ -131,10 +133,27 @@ export function AttendanceProvider({ children }) {
     return result;
   }
 
-  async function endWork(project) {
-    const result = await runMutation(attendanceFeatureApi.endWork(project, profile));
-    await loadWorkSessions();
-    return result;
+  function openProjectWorkEndDialog(project) {
+    setProjectWorkEndTarget(project);
+  }
+
+  function closeProjectWorkEndDialog() {
+    if (!projectWorkEndBusy) setProjectWorkEndTarget(null);
+  }
+
+  async function endWork({ endNote, crewMembers }) {
+    if (!projectWorkEndTarget || projectWorkEndBusy) return null;
+    setProjectWorkEndBusy(true);
+    try {
+      const result = await runMutation(
+        attendanceFeatureApi.endWork(projectWorkEndTarget, profile, { endNote, crewMembers }),
+      );
+      await loadWorkSessions();
+      if (result?.success) setProjectWorkEndTarget(null);
+      return result;
+    } finally {
+      setProjectWorkEndBusy(false);
+    }
   }
 
   async function startAttendance(attendanceType) {
@@ -194,6 +213,10 @@ export function AttendanceProvider({ children }) {
     myAttendanceSessions,
     startWork,
     endWork,
+    projectWorkEndTarget,
+    projectWorkEndBusy,
+    openProjectWorkEndDialog,
+    closeProjectWorkEndDialog,
     startAttendance,
     finishAttendance,
     openAttendanceEndDialog,

@@ -54,7 +54,7 @@ export default function ProjectCard({ project }) {
     deleteProjectReviewFile,
     assignProjectDrafter,
   } = useProjects();
-  const { startWork, endWork } = useAttendance();
+  const { startWork, openProjectWorkEndDialog } = useAttendance();
 
   const currentUserId = session?.user?.id;
   const currentUserName = profile?.full_name || "";
@@ -593,7 +593,7 @@ export default function ProjectCard({ project }) {
                 </div>
                 <button
                   className="smallBtn danger"
-                  onClick={() => endWork(project)}
+                  onClick={() => openProjectWorkEndDialog(project)}
                 >
                   <Square size={15} /> סיים עבודה
                 </button>

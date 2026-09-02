@@ -79,20 +79,27 @@ export async function startWork(project, profile) {
   return { message: `נרשמה שעת התחלה עבור ${project.name}${location ? ' כולל מיקום' : ''}` };
 }
 
-export async function endWork(project, profile) {
+export async function endWork(project, profile, { endNote = '', crewMembers = [] } = {}) {
   const user = await authApi.getCurrentUser();
-  if (!user) return { message: '' };
+  if (!user) return { message: '', success: false };
 
   const openSession = project.work_sessions?.find((w) => w.worker_id === user.id && !w.ended_at);
-  if (!openSession) return { message: 'לא נמצאה שעת התחלה פתוחה לפרויקט הזה.' };
+  if (!openSession) return { message: 'לא נמצאה שעת התחלה פתוחה לפרויקט הזה.', success: false };
 
   const location = await getCurrentLocationWithFallback();
-  if (location === false) return { message: 'סיום העבודה בוטל כי לא התקבל אישור מיקום.' };
+  if (location === false) return { message: 'סיום העבודה בוטל כי לא התקבל אישור מיקום.', success: false };
 
-  const endNote = window.prompt('הערת סיום עבודה, אופציונלי:', '') || '';
   const endedAt = new Date();
   const startedAt = new Date(openSession.started_at);
   const minutes = Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 60000));
+  const normalizedCrew = crewMembers
+    .filter((member) => member?.name)
+    .map((member) => ({
+      id: member.id || null,
+      name: String(member.name).trim().slice(0, 120),
+      source: member.source === 'system' ? 'system' : 'helper',
+    }));
+  const crewText = normalizedCrew.map((member) => member.name).join(', ');
 
   const { error } = await workSessionsApi.updateWorkSession(openSession.id, {
     ended_at: endedAt.toISOString(),
@@ -100,8 +107,9 @@ export async function endWork(project, profile) {
     ended_lng: location?.lng ?? null,
     ended_accuracy: location?.accuracy ?? null,
     end_note: endNote.trim() || null,
+    crew_members: normalizedCrew,
   });
-  if (error) return { message: error.message };
+  if (error) return { message: error.message, success: false };
 
   const locationText = location ? ` · מיקום סיום: ${formatLocation(location)}` : ' · מיקום סיום לא נשמר';
   await statusHistoryApi.insertStatusHistory({
@@ -109,19 +117,22 @@ export async function endWork(project, profile) {
     old_status: null,
     new_status: 'סיום עבודה',
     changed_by: user.id,
-    note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}${locationText}${endNote.trim() ? ` · הערת סיום: ${endNote.trim()}` : ''}`,
+    note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}${locationText}${crewText ? ` · צוות: ${crewText}` : ''}${endNote.trim() ? ` · הערת סיום: ${endNote.trim()}` : ''}`,
   });
 
   if (profile?.role === 'field_worker') {
     await createManagerNotification(
       'work_ended',
       `סיום עבודה: ${project.name}`,
-      `${profile.full_name} סיים עבודה בפרויקט ${project.name}. זמן עבודה: ${formatDuration(minutes)}.${location ? ` מיקום: ${formatLocation(location)}` : ''}${endNote.trim() ? ` הערת סיום: ${endNote.trim()}` : ''}`,
+      `${profile.full_name} סיים עבודה בפרויקט ${project.name}. זמן עבודה: ${formatDuration(minutes)}.${location ? ` מיקום: ${formatLocation(location)}` : ''}${crewText ? ` צוות: ${crewText}.` : ''}${endNote.trim() ? ` הערת סיום: ${endNote.trim()}` : ''}`,
       project.id,
     );
   }
 
-  return { message: `נרשמה שעת סיום עבור ${project.name}. זמן עבודה: ${formatDuration(minutes)}${location ? ' כולל מיקום' : ''}` };
+  return {
+    message: `נרשמה שעת סיום עבור ${project.name}. זמן עבודה: ${formatDuration(minutes)}${crewText ? ` · צוות: ${crewText}` : ''}${location ? ' כולל מיקום' : ''}`,
+    success: true,
+  };
 }
 
 export async function startAttendance(attendanceType, { profile, attendanceSessions, attendanceAvailable }) {

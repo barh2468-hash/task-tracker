@@ -23,6 +23,7 @@ export function buildWorkReportRows(workSessions) {
       startMapLinks: [],
       endMapLinks: [],
       workDatesSet: new Set(),
+      crewNamesSet: new Set(),
     };
 
     existing.totalMinutes += minutes;
@@ -36,6 +37,9 @@ export function buildWorkReportRows(workSessions) {
     if (endLink && !existing.endMapLinks.includes(endLink))
       existing.endMapLinks.push(endLink);
     if (!item.ended_at) existing.openSessions += 1;
+    for (const member of item.crew_members || []) {
+      if (member?.name) existing.crewNamesSet.add(member.name);
+    }
     map.set(key, existing);
   }
 
@@ -44,6 +48,7 @@ export function buildWorkReportRows(workSessions) {
       ...r,
       days: r.daysSet.size,
       workDates: Array.from(r.workDatesSet).sort(),
+      crewNames: Array.from(r.crewNamesSet).sort((a, b) => a.localeCompare(b, 'he')),
     }))
     .sort((a, b) => a.workerName.localeCompare(b.workerName, 'he'));
 }

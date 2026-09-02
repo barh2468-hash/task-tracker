@@ -31,7 +31,15 @@ self.addEventListener('push', (event) => {
     },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  const badgeCount = Number(payload.badgeCount);
+  const updateBadge = Number.isFinite(badgeCount) && badgeCount > 0 && 'setAppBadge' in self.navigator
+    ? self.navigator.setAppBadge(Math.min(badgeCount, 99))
+    : Promise.resolve();
+
+  event.waitUntil(Promise.all([
+    self.registration.showNotification(title, options),
+    updateBadge,
+  ]));
 });
 
 self.addEventListener('notificationclick', (event) => {

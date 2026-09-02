@@ -67,9 +67,24 @@ Deno.serve(async (req) => {
     const recipientIds = Array.from(new Set((matchingNotifications || []).map((item) => item.recipient_id)));
     if (!recipientIds.length) throw new Error('No matching internal notification');
 
+    const { data: unreadNotifications, error: unreadError } = await adminClient
+      .from('notifications')
+      .select('recipient_id')
+      .in('recipient_id', recipientIds)
+      .eq('is_read', false);
+    if (unreadError) throw unreadError;
+
+    const unreadCountByRecipient = new Map<string, number>();
+    for (const notification of unreadNotifications || []) {
+      unreadCountByRecipient.set(
+        notification.recipient_id,
+        (unreadCountByRecipient.get(notification.recipient_id) || 0) + 1,
+      );
+    }
+
     const { data: subscriptions, error: subscriptionError } = await adminClient
       .from('push_subscriptions')
-      .select('id,endpoint,p256dh,auth')
+      .select('id,user_id,endpoint,p256dh,auth')
       .in('user_id', recipientIds);
     if (subscriptionError) throw subscriptionError;
     if (!subscriptions?.length) {
@@ -77,18 +92,18 @@ Deno.serve(async (req) => {
     }
 
     webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
-    const notificationData = JSON.stringify({
-      title,
-      body,
-      url: typeof payload.url === 'string' && payload.url.startsWith('/') ? payload.url : '/',
-      tag: payload.projectId ? `project-${payload.projectId}` : undefined,
-    });
-
     let sent = 0;
     const expiredIds: string[] = [];
     let failed = 0;
     await Promise.all(subscriptions.map(async (subscription) => {
       try {
+        const notificationData = JSON.stringify({
+          title,
+          body,
+          url: typeof payload.url === 'string' && payload.url.startsWith('/') ? payload.url : '/',
+          tag: payload.projectId ? `project-${payload.projectId}` : undefined,
+          badgeCount: unreadCountByRecipient.get(subscription.user_id) || 1,
+        });
         await webpush.sendNotification({
           endpoint: subscription.endpoint,
           keys: { p256dh: subscription.p256dh, auth: subscription.auth },

@@ -42,6 +42,22 @@ export function NotificationsProvider({ children }) {
 
   const unreadCount = useMemo(() => notifications.filter((n) => !n.is_read).length, [notifications]);
 
+  useEffect(() => {
+    if (!('setAppBadge' in navigator) || !('clearAppBadge' in navigator)) return;
+
+    const updateBadge = async () => {
+      try {
+        if (profile && unreadCount > 0) await navigator.setAppBadge(Math.min(unreadCount, 99));
+        else await navigator.clearAppBadge();
+      } catch (error) {
+        // Badging is optional and may be blocked when the app is not installed.
+        console.warn('App badge update failed:', error instanceof Error ? error.message : error);
+      }
+    };
+
+    updateBadge();
+  }, [profile, unreadCount]);
+
   const value = {
     notifications,
     unreadCount,

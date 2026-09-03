@@ -38,7 +38,6 @@ const translations = {
   'כל הסטטוסים': 'All statuses',
   'סינון': 'Filter',
   'אין פרויקטים להצגה כרגע': 'No projects to display',
-  'פרויקטים ללא שיוך': 'Unassigned projects',
   'ארכיון פרויקטים': 'Project archive',
   'הפרויקטים שלי': 'My projects',
   'בעבודה בשטח': 'Field work',
@@ -219,6 +218,64 @@ const translations = {
   'בעת האישור נבקש את מיקום הסיום ונשמור אותו בדיווח.': 'On confirmation, the end location will be saved in the report.',
   'לא נשמר מיקום': 'Location not saved',
   'ועוד...': 'More...',
+  'התראות חדשות': 'New notifications',
+  'פרויקטים ללא שיוך': 'Unassigned projects',
+  'עבודות פעילות': 'Active work sessions',
+  'סה״כ פרויקטים': 'Total projects',
+  'בהגהה': 'Under review',
+  'הושלמו': 'Completed',
+  'חריגות לטיפול': 'Exceptions requiring attention',
+  'חדשות': 'new',
+  'אין התראות חדשות': 'No new notifications',
+  'סגור': 'Close',
+  'סגירה': 'Close',
+  'פתח פרויקט': 'Open project',
+  'לכל ההתראות': 'View all notifications',
+  'סמן הכל כנקרא': 'Mark all as read',
+  'שומר ומסיים...': 'Saving and finishing...',
+  'אישור וסיום עבודה': 'Confirm and finish work',
+  'מחיקת תמונה': 'Delete photo',
+  'מחיקת': 'Delete',
+  'משימה לעובד': 'Task for employee',
+  'משימה למנהלים': 'Task for managers',
+  'כותרת משימה': 'Task title',
+  'פירוט המשימה, אופציונלי': 'Optional task details',
+  'שלח משימה למנהלים': 'Send task to managers',
+  'נוצר על ידי': 'Created by',
+  'מנהל': 'Manager',
+  'בוצע': 'Done',
+  'קיצור דרך לשעון נוכחות': 'Attendance clock shortcut',
+  'שעון נוכחות': 'Attendance clock',
+  'לא התחלת משמרת': 'Shift not started',
+  'השעון לא זמין': 'Clock unavailable',
+  'מעדכן...': 'Updating...',
+  'פתיחה': 'Start',
+  'סיום': 'Finish',
+  'פעיל': 'active',
+  'דווח': 'Reported',
+  'לא במשמרת': 'Not on shift',
+  'מיקום כניסה': 'Clock-in location',
+  'התחל את יום העבודה לפני המעבר בין הפרויקטים.': 'Start the workday before moving between projects.',
+  'סה״כ נוכחות היום': 'Total attendance today',
+  'נדרש להפעיל את טבלת הנוכחות ב-Supabase לפני השימוש.': 'The Supabase attendance table must be enabled before use.',
+  'תחילת': 'Start',
+  'עדכון': 'Update',
+  'דיווח': 'Report',
+  'מה בוצע, מידע חשוב למנהל או ציוד שהוחזר': 'Work completed, important manager information, or returned equipment',
+  'שיוך לאחראי ראשי (מנהל או עובד שטח)': 'Assign a lead employee (manager or field worker)',
+  'עובדים נוספים בפרויקט': 'Additional project employees',
+  'הפרויקט דורש יומן עבודה וחתימות': 'This project requires a work diary and signatures',
+  'שחזור מהארכיון': 'Restore from archive',
+  'התקשר לאיש קשר בשטח': 'Call field contact',
+  'שליחת מייל לאיש קשר בשטח': 'Email field contact',
+  'מיקום התחלה': 'Start location',
+  'סיום אחרון': 'Last finish',
+  'מיקום סיום אחרון': 'Last finish location',
+  'הפרויקט משויך כעת לשרטט. אפשר לשנות את השיוך.': 'The project is assigned to a drafter. The assignment can be changed.',
+  'הפרויקט ממתין לבחירת שרטט על ידי מנהל.': 'The project is waiting for a manager to select a drafter.',
+  'עדכון שיוך': 'Update assignment',
+  'שיוך לשרטט': 'Assign drafter',
+  'עדכונים': 'updates',
 };
 
 const patterns = [
@@ -238,6 +295,8 @@ const originalText = new WeakMap();
 const originalAttributes = new WeakMap();
 const translatableAttributes = ['placeholder', 'title', 'aria-label'];
 const reverseTranslations = Object.fromEntries(Object.entries(translations).map(([hebrew, english]) => [english, hebrew]));
+const translationEntries = Object.entries(translations).sort(([a], [b]) => b.length - a.length);
+const reverseEntries = Object.entries(reverseTranslations).sort(([a], [b]) => b.length - a.length);
 
 function translateValue(value) {
   const trimmed = value.trim();
@@ -250,14 +309,23 @@ function translateValue(value) {
       }
     }
   }
-  if (!translated) return value;
-  return value.replace(trimmed, translated);
+  if (translated) return value.replace(trimmed, translated);
+  let next = value;
+  for (const [hebrew, english] of translationEntries) {
+    if (next.includes(hebrew)) next = next.replaceAll(hebrew, english);
+  }
+  return next;
 }
 
 function restoreValue(value) {
   const trimmed = value.trim();
   const restored = reverseTranslations[trimmed];
-  return restored ? value.replace(trimmed, restored) : value;
+  if (restored) return value.replace(trimmed, restored);
+  let next = value;
+  for (const [english, hebrew] of reverseEntries) {
+    if (next.includes(english)) next = next.replaceAll(english, hebrew);
+  }
+  return next;
 }
 
 function translateTree(root, language) {

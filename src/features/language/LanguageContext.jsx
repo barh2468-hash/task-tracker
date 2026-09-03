@@ -276,9 +276,23 @@ const translations = {
   'עדכון שיוך': 'Update assignment',
   'שיוך לשרטט': 'Assign drafter',
   'עדכונים': 'updates',
+  'תצוגת ניהול מלאה לפרויקטים, משימות, עובדים והתראות': 'Full management view of projects, tasks, employees and notifications',
+  'תצוגת שרטט לפרויקטים שעברו לשרטוט ושליחה להגהה': 'Drafter view of projects sent to drafting and review',
+  'תצוגת עובד שטח לפרויקטים, שעות עבודה ומשימות': 'Field employee view of projects, work hours and tasks',
+  'המשמרת האחרונה': 'The last shift',
+  'הסתיימה ב': 'ended at',
+  'הדיווח': 'The report',
+  'נשמר להיום וניתן לעדכן אותו.': 'was saved for today and can be updated.',
+  'דק׳': 'min',
+  'ש׳': 'hr',
 };
 
 const patterns = [
+  [/^המשמרת האחרונה הסתיימה ב-(.+)$/, 'The last shift ended at $1'],
+  [/^הדיווח (.+) נשמר להיום וניתן לעדכן אותו\.$/, 'The $1 report was saved for today and can be updated.'],
+  [/^(.+) פעיל$/, '$1 is active'],
+  [/^דווח: (.+)$/, 'Reported: $1'],
+  [/^סה״כ נוכחות היום: (.+)$/, 'Total attendance today: $1'],
   [/^משימות פתוחות \((\d+)\)$/, 'Open tasks ($1)'],
   [/^דוח חריגות \((\d+)\)$/, 'Exceptions report ($1)'],
   [/^ללא שיוך \((\d+)\)$/, 'Unassigned ($1)'],

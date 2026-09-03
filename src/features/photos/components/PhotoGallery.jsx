@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { createSignedUrl } from '../../../services/api/storage.js';
 
-export default function PhotoGallery({ photos }) {
+export default function PhotoGallery({ photos, canDelete = false, onDelete }) {
   const [urls, setUrls] = useState({});
 
   useEffect(() => {
@@ -27,16 +28,28 @@ export default function PhotoGallery({ photos }) {
     <div className="photos">
       {photos.slice(0, 6).map((photo) =>
         urls[photo.id] ? (
-          <a
-            key={photo.id}
-            className="photoThumb"
-            href={urls[photo.id]}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <img src={urls[photo.id]} alt={photo.category || "תמונת שטח"} />
-            <span>{photo.category || "תמונת שטח"}</span>
-          </a>
+          <div key={photo.id} className="photoItem">
+            <a
+              className="photoThumb"
+              href={urls[photo.id]}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <img src={urls[photo.id]} alt={photo.category || "תמונת שטח"} />
+              <span>{photo.category || "תמונת שטח"}</span>
+            </a>
+            {canDelete && (
+              <button
+                type="button"
+                className="photoDeleteButton"
+                aria-label={`מחיקת ${photo.category || 'תמונת שטח'}`}
+                title="מחיקת תמונה"
+                onClick={() => onDelete?.(photo)}
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
+          </div>
         ) : (
           <div key={photo.id} className="photoSkeleton" />
         ),

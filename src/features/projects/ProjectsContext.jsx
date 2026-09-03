@@ -94,6 +94,7 @@ export function ProjectsProvider({ children }) {
     restoreProject: (project) => runMutation(projectsFeatureApi.restoreProject(project, profile)),
     updateStatus: (project, newStatus, note) => runMutation(projectsFeatureApi.updateStatus(project, newStatus, note, profile)),
     uploadPhoto: (projectId, file, category) => runMutation(projectsFeatureApi.uploadPhoto(projectId, file, category)),
+    deletePhoto: (photo, project) => runMutation(projectsFeatureApi.deletePhoto(photo, project, profile)),
     assignProjectDrafter: (project, drafterId) =>
       runMutation(projectsFeatureApi.assignProjectDrafter(project, drafterId, profile, workers)),
     sendProjectToReview: (project, file, note) => runMutation(projectsFeatureApi.sendProjectToReview(project, file, note, profile)),

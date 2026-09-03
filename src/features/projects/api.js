@@ -160,6 +160,47 @@ export async function uploadPhoto(projectId, file, category = 'תמונת שטח
   return { message: 'התמונה הועלתה ונשמרה בפרויקט' };
 }
 
+export async function deletePhoto(photo, project, profile) {
+  const user = await authApi.getCurrentUser();
+  if (!user || !profile || !photo?.id || !photo?.file_path || !project?.id) return { message: '' };
+
+  const isAssignedFieldWorker =
+    profile.role === 'field_worker' &&
+    (project.assigned_to === user.id ||
+      (project.project_workers || []).some((assignment) => assignment.worker_id === user.id));
+  if (profile.role !== 'manager' && !isAssignedFieldWorker) {
+    return { message: 'אין הרשאה למחוק תמונות מהפרויקט הזה.' };
+  }
+
+  const ok = window.confirm(`למחוק את התמונה מסוג "${photo.category || 'תמונת שטח'}"?`);
+  if (!ok) return null;
+
+  const { error: storageError } = await storageApi.removeFiles('project-photos', [photo.file_path]);
+  if (storageError) return { message: `מחיקת התמונה מהאחסון נכשלה: ${storageError.message}` };
+
+  const { error: deleteError } = await projectPhotosApi.deleteProjectPhoto(photo.id);
+  if (deleteError) return { message: `התמונה נמחקה מהאחסון, אבל מחיקת הרשומה נכשלה: ${deleteError.message}` };
+
+  await statusHistoryApi.insertStatusHistory({
+    project_id: project.id,
+    old_status: null,
+    new_status: 'נמחקה תמונה',
+    changed_by: user.id,
+    note: photo.category || 'תמונת שטח',
+  });
+
+  if (isAssignedFieldWorker) {
+    await createManagerNotification(
+      'photo_deleted',
+      `תמונה נמחקה: ${project.name}`,
+      `${profile.full_name} מחק תמונה מסוג ${photo.category || 'תמונת שטח'} מהפרויקט ${project.name}.`,
+      project.id,
+    );
+  }
+
+  return { message: 'התמונה נמחקה בהצלחה' };
+}
+
 // ---- Drafter / review workflow --------------------------------------------
 
 export async function assignProjectDrafter(project, drafterId, profile, workers) {
@@ -559,11 +600,18 @@ export async function restoreProject(project, profile) {
 
 export async function addProjectTask(projectId, title, description, profile, project) {
   const user = await authApi.getCurrentUser();
-  if (!user || profile?.role !== 'manager') return { message: '' };
+  if (!user || !profile) return { message: '' };
+  const isAssignedFieldWorker =
+    profile.role === 'field_worker' &&
+    (project?.assigned_to === user.id ||
+      (project?.project_workers || []).some((assignment) => assignment.worker_id === user.id));
+  if (profile.role !== 'manager' && !isAssignedFieldWorker) {
+    return { message: 'אפשר להוסיף משימה רק בפרויקט שמשויך אליך.' };
+  }
   const cleanTitle = title.trim();
   if (!cleanTitle) return { message: 'יש למלא כותרת למשימה.' };
 
-  const { error } = await projectTasksApi.insertProjectTask({
+  const { data: insertedTask, error } = await projectTasksApi.insertProjectTask({
     project_id: projectId,
     title: cleanTitle,
     description: description.trim() || null,
@@ -577,8 +625,19 @@ export async function addProjectTask(projectId, title, description, profile, pro
     old_status: null,
     new_status: 'נוספה משימה',
     changed_by: user.id,
-    note: cleanTitle,
+    note: `${cleanTitle}${isAssignedFieldWorker ? ' · נשלחה למנהלים' : ''}`,
   });
+
+  if (isAssignedFieldWorker) {
+    await createManagerNotification(
+      'task_from_worker',
+      `משימה מעובד שטח: ${project.name}`,
+      `${profile.full_name} השאיר משימה למנהלים בפרויקט ${project.name}: ${cleanTitle}${description.trim() ? `. פירוט: ${description.trim()}` : ''}`,
+      projectId,
+      insertedTask?.id,
+    );
+    return { message: 'המשימה נוספה ונשלחה למנהלים' };
+  }
 
   if (project?.assigned_to) {
     await createUserNotification(

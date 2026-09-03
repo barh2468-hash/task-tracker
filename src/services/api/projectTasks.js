@@ -1,7 +1,7 @@
 import { supabase } from '../supabase.js';
 
 export function insertProjectTask(payload) {
-  return supabase.from('project_tasks').insert(payload);
+  return supabase.from('project_tasks').insert(payload).select('id').single();
 }
 
 export function updateProjectTask(taskId, payload) {

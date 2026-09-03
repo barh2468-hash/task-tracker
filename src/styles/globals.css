@@ -315,6 +315,10 @@
 .photoUploadBox select{min-height:48px;padding:9px 12px}
 .photoThumb{position:relative;display:block;text-decoration:none;color:inherit}
 .photoThumb span{position:absolute;right:4px;left:4px;bottom:4px;background:rgba(7,30,65,.82);color:#fff;font-size:9px;font-weight:900;border-radius:8px;padding:2px 4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.photoItem{position:relative;width:50px}
+.photoItem .photoThumb{display:block}
+.photoDeleteButton{position:absolute;top:-7px;left:-7px;width:24px;height:24px;min-width:24px;padding:0;border-radius:50%;background:#fff1f1;color:var(--red);border:1px solid #fecaca;box-shadow:0 4px 12px rgba(185,28,28,.18);z-index:2}
+.photoDeleteButton:hover{background:#fee2e2;transform:none}
 .exceptionsPanel .reportHeader{align-items:flex-start}.exceptionsList{display:grid;gap:12px}.exceptionItem{display:grid;grid-template-columns:42px minmax(0,1fr);gap:12px;align-items:flex-start;border:1px solid var(--line);background:#fff;border-radius:18px;padding:14px;box-shadow:var(--soft);border-right:6px solid #f59e0b}.exceptionItem.severity-high{border-right-color:#dc2626;background:#fffafa}.exceptionItem.severity-medium{border-right-color:#f59e0b;background:#fffdf7}.exceptionItem.severity-low{border-right-color:#258fc4;background:#f8fcff}.exceptionIcon{width:38px;height:38px;border-radius:14px;background:#fff4e6;color:#c2410c;display:grid;place-items:center;border:1px solid #fed7aa}.exceptionItem b{color:var(--navy)}.exceptionItem p{margin:5px 0;color:var(--text);line-height:1.45}.project.status-field{border-right-color:#f59e0b}.project.status-drafting{border-right-color:#8b5cf6}.project.status-gpr{border-right-color:#258fc4}.project.status-permits{border-right-color:#f97316}.project.status-done{border-right-color:#16a34a}
 @media(max-width:760px){.photoUploadBox{grid-template-columns:1fr}.photoUploadBox label{width:100%}.exceptionItem{grid-template-columns:1fr}.exceptionIcon{display:none}}
 

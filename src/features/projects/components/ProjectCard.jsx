@@ -43,6 +43,7 @@ export default function ProjectCard({ project }) {
     workers,
     updateStatus,
     uploadPhoto,
+    deletePhoto,
     saveProject,
     deleteProject,
     archiveProject,
@@ -134,6 +135,10 @@ export default function ProjectCard({ project }) {
   const otherOpenSessions = (project.work_sessions || []).filter(
     (w) => w.worker_id !== currentUserId && !w.ended_at,
   );
+  const isAssignedFieldWorker =
+    profile?.role === "field_worker" &&
+    (project.assigned_to === currentUserId ||
+      (project.project_workers || []).some((assignment) => assignment.worker_id === currentUserId));
   const lastEndedSession = project.work_sessions
     ?.filter((w) => w.worker_id === currentUserId && w.ended_at)
     .sort(
@@ -574,7 +579,11 @@ export default function ProjectCard({ project }) {
               ? new Date(project.due_date).toLocaleDateString("he-IL")
               : "לא הוגדר"}
           </div>
-          <PhotoGallery photos={project.project_photos || []} />
+          <PhotoGallery
+            photos={project.project_photos || []}
+            canDelete={isManager || isAssignedFieldWorker}
+            onDelete={(photo) => deletePhoto(photo, project)}
+          />
         </div>
         <div className="form">
           <div className="timeBox">
@@ -758,6 +767,7 @@ export default function ProjectCard({ project }) {
         <TaskPanel
           tasks={project.project_tasks || []}
           isManager={isManager}
+          canAddTasks={isManager || isAssignedFieldWorker}
           canCompleteTasks={
             isManager ||
             project.assigned_to === currentUserId ||

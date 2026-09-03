@@ -3,6 +3,7 @@ import { PlusCircle } from 'lucide-react';
 export default function TaskPanel({
   tasks,
   isManager,
+  canAddTasks,
   canCompleteTasks,
   showTaskForm,
   setShowTaskForm,
@@ -24,16 +25,16 @@ export default function TaskPanel({
     <div className="tasksBox">
       <div className="tasksHeader">
         <b>משימות</b>
-        {isManager && (
+        {canAddTasks && (
           <button
             className="ghost tinyBtn"
             onClick={() => setShowTaskForm(!showTaskForm)}
           >
-            <PlusCircle size={15} /> משימה
+            <PlusCircle size={15} /> {isManager ? 'משימה לעובד' : 'משימה למנהלים'}
           </button>
         )}
       </div>
-      {showTaskForm && isManager && (
+      {showTaskForm && canAddTasks && (
         <div className="taskForm">
           <input
             value={taskTitle}
@@ -47,7 +48,7 @@ export default function TaskPanel({
           />
           <div className="actionsRow">
             <button className="smallBtn" onClick={onAdd}>
-              הוסף משימה
+              {isManager ? 'הוסף משימה' : 'שלח משימה למנהלים'}
             </button>
             <button
               className="ghost smallBtn"

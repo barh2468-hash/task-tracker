@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../features/language/LanguageContext.jsx';
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -37,10 +39,11 @@ import ProjectWorkEndDialog from '../features/attendance/components/ProjectWorkE
 import { useLanguage } from '../features/language/LanguageContext.jsx';
 
 export default function DashboardLayout() {
+  useTranslation();
   const { profile, session, isManager, isDrafter, logout } = useAuth();
   const { message, setMessage } = useMessage();
   const { unreadCount } = useNotifications();
-  const { language, toggleLanguage } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const { stats } = useProjectStats();
   const location = useLocation();
   const navigate = useNavigate();
@@ -94,31 +97,33 @@ export default function DashboardLayout() {
   const showHeroAndStats = !isHeroSuppressed(location.pathname);
 
   return (
-    <main className="page" key={language}>
+    <main className="page">
       <header className="topbar">
         <div className="brand">
-          <img src="/logo.png" alt="לוגו" />
+          <img src="/logo.png" alt={t('לוגו')} />
           <div>
-            <h1>מערכת איתור תשתיות</h1>
-            <p>מעקב פרויקטים לעובדי שטח, שרטוט, GPR והיתרים</p>
+            <h1>{t('מערכת איתור תשתיות')}</h1>
+            <p>{t('מעקב פרויקטים לעובדי שטח, שרטוט, GPR והיתרים')}</p>
           </div>
         </div>
         <div className="userRow">
-          <button
-            type="button"
-            className="languageToggle"
-            onClick={toggleLanguage}
-            title={language === 'he' ? 'Switch to English' : 'מעבר לעברית'}
-            aria-label={language === 'he' ? 'Switch to English' : 'מעבר לעברית'}
-          >
+          <label className="languageToggle" title={t('Language / שפה / Γλώσσα')}>
             <Languages size={18} />
-            <span>{language === 'he' ? 'EN' : 'עב'}</span>
-          </button>
+            <select
+              value={language}
+              onChange={(event) => setLanguage(event.target.value)}
+              aria-label={t('Language / שפה / Γλώσσα')}
+            >
+              <option value="he">{t('עברית')}</option>
+              <option value="en">English</option>
+              <option value="el">Ελληνικά</option>
+            </select>
+          </label>
           <div className="notificationWrap">
             <button
               className={`notificationBell ${notificationsOpen ? 'active' : ''}`}
               onClick={() => setNotificationsOpen((open) => !open)}
-              title="התראות"
+              title={t('התראות')}
             >
               <Bell size={18} />
               {unreadCount > 0 && <span>{unreadCount}</span>}
@@ -143,54 +148,67 @@ export default function DashboardLayout() {
               setMobileMenuOpen((open) => !open);
               setNotificationsOpen(false);
             }}
-            aria-label={mobileMenuOpen ? 'סגירת תפריט' : 'פתיחת תפריט'}
+            aria-label={mobileMenuOpen ? t('סגירת תפריט') : t('פתיחת תפריט')}
             aria-expanded={mobileMenuOpen}
-            title="תפריט"
+            title={t('תפריט')}
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
-          <div className="avatar">{profile?.full_name?.[0] || 'ע'}</div>
+          <div className="avatar">{profile?.full_name?.[0] || t('ע')}</div>
           <div>
             <b>{profile?.full_name || session?.user?.email}</b>
-            <p className="muted">{profile ? roleLabel[profile.role] : 'משתמש'}</p>
+            <p className="muted">{profile ? t(roleLabel[profile.role]) : t('משתמש')}</p>
           </div>
           <button className="secondary" onClick={logout}>
-            <LogOut size={16} /> {language === 'he' ? 'יציאה' : 'Log out'}
+            <LogOut size={16} />{' '}
+            {language === 'he' ? t('יציאה') : language === 'el' ? 'Αποσύνδεση' : 'Log out'}
           </button>
         </div>
       </header>
 
       <section className="container layout">
         {mobileMenuOpen && (
-          <button className="mobileMenuBackdrop" aria-label="סגירת תפריט" onClick={() => setMobileMenuOpen(false)} />
+          <button
+            className="mobileMenuBackdrop"
+            aria-label={t('סגירת תפריט')}
+            onClick={() => setMobileMenuOpen(false)}
+          />
         )}
-        <aside className={`sidebar ${mobileMenuOpen ? 'mobileOpen' : ''}`} aria-label="תפריט ראשי">
+        <aside
+          className={`sidebar ${mobileMenuOpen ? 'mobileOpen' : ''}`}
+          aria-label={t('תפריט ראשי')}
+        >
           <div className="mobileMenuHeader">
             <div>
-              <b>תפריט ראשי</b>
-              <small>{profile ? roleLabel[profile.role] : 'משתמש'}</small>
+              <b>{t('תפריט ראשי')}</b>
+              <small>{profile ? t(roleLabel[profile.role]) : t('משתמש')}</small>
             </div>
-            <button className="mobileMenuClose" aria-label="סגירת תפריט" onClick={() => setMobileMenuOpen(false)}>
+            <button
+              className="mobileMenuClose"
+              aria-label={t('סגירת תפריט')}
+              onClick={() => setMobileMenuOpen(false)}
+            >
               <X size={19} />
             </button>
           </div>
           <div className="logoBox">
-            <img src="/logo.png" alt="לוגו" />
+            <img src="/logo.png" alt={t('לוגו')} />
             <b>
-              תשתיות
+              {t('תשתיות')}
+
               <br />
-              מתקדמות
+              {t('מתקדמות')}
             </b>
           </div>
           <PwaControls />
           <div className="navSectionLabel">
-            <span>עבודה</span>
+            <span>{t('עבודה')}</span>
           </div>
           <button
             className={`navBtn ${isProjectsRoute && projectsFilter === 'mine' ? 'active' : ''}`}
             onClick={() => openTab('/app/projects?filter=mine')}
           >
-            <span>הפרויקטים שלי</span>
+            <span>{t('הפרויקטים שלי')}</span>
             <FolderKanban size={18} />
           </button>
           {isManager && (
@@ -198,13 +216,19 @@ export default function DashboardLayout() {
               className={`navBtn ${isProjectsRoute && projectsFilter === 'all' ? 'active' : ''}`}
               onClick={() => openTab('/app/projects?filter=all')}
             >
-              <span>כל הפרויקטים</span>
+              <span>{t('כל הפרויקטים')}</span>
               <Users size={18} />
             </button>
           )}
           {!isDrafter && (
-            <button className={`navBtn ${navActive('/app/tasks') ? 'active' : ''}`} onClick={() => openTab('/app/tasks')}>
-              <span>משימות פתוחות ({stats.openTasks})</span>
+            <button
+              className={`navBtn ${navActive('/app/tasks') ? 'active' : ''}`}
+              onClick={() => openTab('/app/tasks')}
+            >
+              <span>
+                {t('משימות פתוחות (')}
+                {stats.openTasks})
+              </span>
               <ClipboardList size={18} />
             </button>
           )}
@@ -213,24 +237,30 @@ export default function DashboardLayout() {
               className={`navBtn ${navActive('/app/assignments') ? 'active' : ''}`}
               onClick={() => openTab('/app/assignments')}
             >
-              <span>פרויקטים משויכים</span>
+              <span>{t('פרויקטים משויכים')}</span>
               <FolderKanban size={18} />
             </button>
           )}
           {!isDrafter && (
             <div className="navSectionLabel">
-              <span>שטח</span>
+              <span>{t('שטח')}</span>
             </div>
           )}
           {isManager && (
-            <button className={`navBtn ${navActive('/app/today') ? 'active' : ''}`} onClick={() => openTab('/app/today')}>
-              <span>היום בשטח</span>
+            <button
+              className={`navBtn ${navActive('/app/today') ? 'active' : ''}`}
+              onClick={() => openTab('/app/today')}
+            >
+              <span>{t('היום בשטח')}</span>
               <Clock size={18} />
             </button>
           )}
           {isManager && (
-            <button className={`navBtn ${navActive('/app/map') ? 'active' : ''}`} onClick={() => openTab('/app/map')}>
-              <span>מפה חיה</span>
+            <button
+              className={`navBtn ${navActive('/app/map') ? 'active' : ''}`}
+              onClick={() => openTab('/app/map')}
+            >
+              <span>{t('מפה חיה')}</span>
               <MapPin size={18} />
             </button>
           )}
@@ -239,19 +269,22 @@ export default function DashboardLayout() {
               className={`navBtn ${navActive('/app/exceptions') ? 'active' : ''}`}
               onClick={() => openTab('/app/exceptions')}
             >
-              <span>דוח חריגות ({stats.exceptions})</span>
+              <span>
+                {t('דוח חריגות (')}
+                {stats.exceptions})
+              </span>
               <AlertTriangle size={18} />
             </button>
           )}
           <div className="navSectionLabel">
-            <span>ניהול ומידע</span>
+            <span>{t('ניהול ומידע')}</span>
           </div>
           {isManager && (
             <button
               className={`navBtn ${navActive('/app/status-report') ? 'active' : ''}`}
               onClick={() => openTab('/app/status-report')}
             >
-              <span>דו״ח מצב פרויקטים</span>
+              <span>{t('דו״ח מצב פרויקטים')}</span>
               <FileText size={18} />
             </button>
           )}
@@ -260,7 +293,10 @@ export default function DashboardLayout() {
               className={`navBtn ${isProjectsRoute && projectsFilter === 'unassigned' ? 'active' : ''}`}
               onClick={() => openTab('/app/projects?filter=unassigned')}
             >
-              <span>ללא שיוך ({stats.unassigned})</span>
+              <span>
+                {t('ללא שיוך (')}
+                {stats.unassigned})
+              </span>
               <FolderKanban size={18} />
             </button>
           )}
@@ -269,7 +305,10 @@ export default function DashboardLayout() {
               className={`navBtn ${isProjectsRoute && projectsFilter === 'archive' ? 'active' : ''}`}
               onClick={() => openTab('/app/projects?filter=archive')}
             >
-              <span>ארכיון ({stats.archived})</span>
+              <span>
+                {t('ארכיון (')}
+                {stats.archived})
+              </span>
               <Archive size={18} />
             </button>
           )}
@@ -278,36 +317,47 @@ export default function DashboardLayout() {
               className={`navBtn ${navActive('/app/projects/new') ? 'active' : ''}`}
               onClick={() => openTab('/app/projects/new')}
             >
-              <span>הוספת פרויקט</span>
+              <span>{t('הוספת פרויקט')}</span>
               <FilePlus2 size={18} />
             </button>
           )}
-          <button className={`navBtn ${navActive('/app/history') ? 'active' : ''}`} onClick={() => openTab('/app/history')}>
-            <span>היסטוריית שינויים</span>
+          <button
+            className={`navBtn ${navActive('/app/history') ? 'active' : ''}`}
+            onClick={() => openTab('/app/history')}
+          >
+            <span>{t('היסטוריית שינויים')}</span>
             <History size={18} />
           </button>
           <button
             className={`navBtn ${navActive('/app/notifications') ? 'active' : ''}`}
             onClick={() => openTab('/app/notifications')}
           >
-            <span>התראות {unreadCount > 0 ? `(${unreadCount})` : ''}</span>
+            <span>
+              {t('התראות')}
+              {unreadCount > 0 ? `(${unreadCount})` : ''}
+            </span>
             <Bell size={18} />
           </button>
           {isManager && (
-            <button className={`navBtn ${navActive('/app/report') ? 'active' : ''}`} onClick={() => openTab('/app/report')}>
-              <span>דוח שעות עובדים</span>
+            <button
+              className={`navBtn ${navActive('/app/report') ? 'active' : ''}`}
+              onClick={() => openTab('/app/report')}
+            >
+              <span>{t('דוח שעות עובדים')}</span>
               <Download size={18} />
             </button>
           )}
           <p style={{ marginTop: 30, color: 'rgba(255,255,255,.72)', lineHeight: 1.7 }}>
-            מותאם לאייפון, אנדרואיד ומחשב. עדכונים בזמן אמת דרך Supabase.
+            {t('מותאם לאייפון, אנדרואיד ומחשב. עדכונים בזמן אמת דרך Supabase.')}
           </p>
         </aside>
 
         <section className="mainContent">
           {showHeroAndStats && <DashboardHero title={tabTitle} subtitle={tabSubtitle} />}
 
-          {(profile?.role === 'field_worker' || profile?.role === 'manager') && <GeneralAttendanceCard />}
+          {(profile?.role === 'field_worker' || profile?.role === 'manager') && (
+            <GeneralAttendanceCard />
+          )}
 
           {showHeroAndStats && <StatsGrid />}
 
@@ -317,7 +367,11 @@ export default function DashboardLayout() {
                 <CheckCircle size={18} />
               </span>
               <p>{message}</p>
-              <button className="appToastClose" onClick={() => setMessage('')} aria-label="סגירת הודעה">
+              <button
+                className="appToastClose"
+                onClick={() => setMessage('')}
+                aria-label={t('סגירת הודעה')}
+              >
                 <X size={16} />
               </button>
             </div>
@@ -327,7 +381,9 @@ export default function DashboardLayout() {
         </section>
       </section>
 
-      {(profile?.role === 'field_worker' || profile?.role === 'manager') && <MobileAttendanceDock />}
+      {(profile?.role === 'field_worker' || profile?.role === 'manager') && (
+        <MobileAttendanceDock />
+      )}
       <AttendanceEndDialog />
       <ProjectWorkEndDialog />
     </main>

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../../language/LanguageContext.jsx';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Clock, MapPin, Square, Users, X } from 'lucide-react';
@@ -20,6 +22,7 @@ const helperNames = [
 ];
 
 export default function ProjectWorkEndDialog() {
+  useTranslation();
   const { session } = useAuth();
   const { workers } = useProjects();
   const {
@@ -33,9 +36,10 @@ export default function ProjectWorkEndDialog() {
   const [selectedHelpers, setSelectedHelpers] = useState([]);
 
   const availableWorkers = useMemo(
-    () => workers
-      .filter((worker) => worker.id !== session?.user?.id)
-      .sort((a, b) => a.full_name.localeCompare(b.full_name, 'he')),
+    () =>
+      workers
+        .filter((worker) => worker.id !== session?.user?.id)
+        .sort((a, b) => a.full_name.localeCompare(b.full_name, 'he')),
     [workers, session?.user?.id],
   );
 
@@ -52,9 +56,9 @@ export default function ProjectWorkEndDialog() {
   if (!project || !openSession || typeof document === 'undefined') return null;
 
   function toggleValue(value, setter) {
-    setter((current) => current.includes(value)
-      ? current.filter((item) => item !== value)
-      : [...current, value]);
+    setter((current) =>
+      current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
+    );
   }
 
   async function confirm() {
@@ -67,7 +71,13 @@ export default function ProjectWorkEndDialog() {
 
   return createPortal(
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- close button provides keyboard access
-    <div className="modalBackdrop attendanceEndBackdrop" role="dialog" aria-modal="true" aria-labelledby="project-work-end-title" onClick={() => !busy && closeProjectWorkEndDialog()}>
+    <div
+      className="modalBackdrop attendanceEndBackdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="project-work-end-title"
+      onClick={() => !busy && closeProjectWorkEndDialog()}
+    >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- prevent backdrop close inside modal */}
       <form
         className="attendanceEndModal projectWorkEndModal"
@@ -78,31 +88,51 @@ export default function ProjectWorkEndDialog() {
         }}
       >
         <div className="attendanceEndHeader">
-          <div className="attendanceEndHeaderIcon"><Clock size={23} /></div>
-          <div>
-            <span>סיום עבודה בפרויקט</span>
-            <h2 id="project-work-end-title">{project.name}</h2>
-            <p>התחלה: {new Date(openSession.started_at).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</p>
+          <div className="attendanceEndHeaderIcon">
+            <Clock size={23} />
           </div>
-          <button type="button" className="iconOnly" aria-label="סגירה" disabled={busy} onClick={closeProjectWorkEndDialog}><X size={18} /></button>
+          <div>
+            <span>{t('סיום עבודה בפרויקט')}</span>
+            <h2 id="project-work-end-title">{project.name}</h2>
+            <p>
+              {t('התחלה:')}
+              {new Date(openSession.started_at).toLocaleTimeString('he-IL', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="iconOnly"
+            aria-label={t('סגירה')}
+            disabled={busy}
+            onClick={closeProjectWorkEndDialog}
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <div className="attendanceEndBody projectWorkEndBody">
           <label>
-            הערת סיום <small>אופציונלי</small>
+            {t('הערת סיום')}
+            <small>{t('אופציונלי')}</small>
             <textarea
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="מה בוצע, מידע חשוב למנהל או ציוד שהוחזר"
+              placeholder={t('מה בוצע, מידע חשוב למנהל או ציוד שהוחזר')}
               // eslint-disable-next-line jsx-a11y/no-autofocus -- dialog opens directly on its primary field
               autoFocus
             />
           </label>
 
           <fieldset className="crewPicker">
-            <legend><Users size={17} /> עובדים מהמערכת שהיו איתי</legend>
+            <legend>
+              <Users size={17} />
+              {t('עובדים מהמערכת שהיו איתי')}
+            </legend>
             {availableWorkers.length === 0 ? (
-              <p className="muted">לא נמצאו עובדים נוספים לבחירה.</p>
+              <p className="muted">{t('לא נמצאו עובדים נוספים לבחירה.')}</p>
             ) : (
               <div className="crewOptions">
                 {availableWorkers.map((worker) => (
@@ -112,6 +142,7 @@ export default function ProjectWorkEndDialog() {
                       checked={selectedWorkerIds.includes(worker.id)}
                       onChange={() => toggleValue(worker.id, setSelectedWorkerIds)}
                     />
+
                     <span>{worker.full_name}</span>
                   </label>
                 ))}
@@ -120,7 +151,10 @@ export default function ProjectWorkEndDialog() {
           </fieldset>
 
           <fieldset className="crewPicker">
-            <legend><Users size={17} /> עוזרים שהיו איתי</legend>
+            <legend>
+              <Users size={17} />
+              {t('עוזרים שהיו איתי')}
+            </legend>
             <div className="crewOptions">
               {helperNames.map((name) => (
                 <label className="crewOption" key={name}>
@@ -129,19 +163,30 @@ export default function ProjectWorkEndDialog() {
                     checked={selectedHelpers.includes(name)}
                     onChange={() => toggleValue(name, setSelectedHelpers)}
                   />
+
                   <span>{name}</span>
                 </label>
               ))}
             </div>
           </fieldset>
 
-          <p><MapPin size={16} /> בעת האישור נבקש את מיקום הסיום ונשמור אותו יחד עם הצוות שנבחר.</p>
+          <p>
+            <MapPin size={16} />
+            {t('בעת האישור נבקש את מיקום הסיום ונשמור אותו יחד עם הצוות שנבחר.')}
+          </p>
         </div>
 
         <div className="attendanceEndActions">
-          <button type="button" className="ghost" disabled={busy} onClick={closeProjectWorkEndDialog}>חזרה</button>
+          <button
+            type="button"
+            className="ghost"
+            disabled={busy}
+            onClick={closeProjectWorkEndDialog}
+          >
+            {t('חזרה')}
+          </button>
           <button type="submit" className="danger" disabled={busy}>
-            <Square size={17} /> {busy ? 'שומר ומסיים...' : 'אישור וסיום עבודה'}
+            <Square size={17} /> {busy ? t('שומר ומסיים...') : t('אישור וסיום עבודה')}
           </button>
         </div>
       </form>

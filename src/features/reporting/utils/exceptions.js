@@ -16,6 +16,7 @@ export function buildProjectExceptions(projects) {
         type: 'unassigned',
         title: 'פרויקט ללא שיוך לעובד',
         description: 'הפרויקט קיים במערכת אך עדיין לא שויך לעובד שטח.',
+        descriptionKey: 'הפרויקט קיים במערכת אך עדיין לא שויך לעובד שטח.',
         severity: 'high',
       });
     }
@@ -33,6 +34,8 @@ export function buildProjectExceptions(projects) {
         type: 'open_work',
         title: 'עבודה פתוחה ללא סיום',
         description: `קיימת שעת התחלה פתוחה כבר ${hours} שעות. מומלץ לוודא שהעובד סיים עבודה.`,
+        descriptionKey: 'קיימת שעת התחלה פתוחה כבר {{hours}} שעות. מומלץ לוודא שהעובד סיים עבודה.',
+        descriptionValues: { hours },
         severity: hours >= 10 ? 'high' : 'medium',
       });
     }
@@ -43,6 +46,8 @@ export function buildProjectExceptions(projects) {
         type: 'stale_project',
         title: 'פרויקט ללא עדכון מספר ימים',
         description: `הפרויקט לא עודכן כבר ${staleDays} ימים.`,
+        descriptionKey: 'הפרויקט לא עודכן כבר {{days}} ימים.',
+        descriptionValues: { days: staleDays },
         severity: staleDays >= 7 ? 'high' : 'medium',
       });
     }
@@ -52,6 +57,8 @@ export function buildProjectExceptions(projects) {
         type: 'permits_wait',
         title: 'מחכה להיתרים זמן ממושך',
         description: `הפרויקט בסטטוס מחכה להיתרים כבר ${staleDays} ימים מאז העדכון האחרון.`,
+        descriptionKey: 'הפרויקט בסטטוס מחכה להיתרים כבר {{days}} ימים מאז העדכון האחרון.',
+        descriptionValues: { days: staleDays },
         severity: 'medium',
       });
     }
@@ -63,6 +70,8 @@ export function buildProjectExceptions(projects) {
           type: 'old_task',
           title: 'משימה פתוחה יותר מדי זמן',
           description: `המשימה "${task.title}" פתוחה כבר ${taskDays} ימים.`,
+          descriptionKey: 'המשימה "{{title}}" פתוחה כבר {{days}} ימים.',
+          descriptionValues: { title: task.title, days: taskDays },
           severity: taskDays >= 14 ? 'high' : 'low',
         });
       }

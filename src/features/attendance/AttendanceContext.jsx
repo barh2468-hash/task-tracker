@@ -1,3 +1,4 @@
+import { t } from '../language/LanguageContext.jsx';
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
@@ -42,7 +43,10 @@ export function AttendanceProvider({ children }) {
       setAttendanceSessions(data);
       await cacheOfflineData(`attendance-sessions:${session?.user?.id}`, data);
     } catch (error) {
-      console.warn('Attendance sessions load failed:', error instanceof Error ? error.message : error);
+      console.warn(
+        'Attendance sessions load failed:',
+        error instanceof Error ? error.message : error,
+      );
       const cached = await getOfflineData(`attendance-sessions:${session?.user?.id}`);
       setAttendanceAvailable(Boolean(cached));
       setAttendanceSessions(cached || []);
@@ -62,7 +66,10 @@ export function AttendanceProvider({ children }) {
       } catch (error) {
         // The database schedule remains the source of truth. This call is a
         // recovery path for devices returning after midnight or a missed job.
-        console.warn('Stale attendance reconciliation failed:', error instanceof Error ? error.message : error);
+        console.warn(
+          'Stale attendance reconciliation failed:',
+          error instanceof Error ? error.message : error,
+        );
       } finally {
         lastReconciledDateRef.current = new Date().toDateString();
       }
@@ -83,7 +90,10 @@ export function AttendanceProvider({ children }) {
         await attendanceFeatureApi.closeStaleSessions();
         await Promise.all([loadWorkSessions(), loadAttendanceSessions()]);
       } catch (error) {
-        console.warn('Midnight attendance reconciliation failed:', error instanceof Error ? error.message : error);
+        console.warn(
+          'Midnight attendance reconciliation failed:',
+          error instanceof Error ? error.message : error,
+        );
       } finally {
         lastReconciledDateRef.current = new Date().toDateString();
       }
@@ -91,14 +101,18 @@ export function AttendanceProvider({ children }) {
     const scheduleNextMidnight = () => {
       const next = new Date();
       next.setHours(24, 0, 5, 0);
-      midnightTimer = window.setTimeout(async () => {
-        await reconcile();
-        scheduleNextMidnight();
-      }, Math.max(1000, next.getTime() - Date.now()));
+      midnightTimer = window.setTimeout(
+        async () => {
+          await reconcile();
+          scheduleNextMidnight();
+        },
+        Math.max(1000, next.getTime() - Date.now()),
+      );
     };
     const onVisibilityChange = () => {
       const localDate = new Date().toDateString();
-      if (document.visibilityState === 'visible' && lastReconciledDateRef.current !== localDate) reconcile();
+      if (document.visibilityState === 'visible' && lastReconciledDateRef.current !== localDate)
+        reconcile();
     };
 
     scheduleNextMidnight();
@@ -153,7 +167,11 @@ export function AttendanceProvider({ children }) {
         attendanceFeatureApi.endWork(projectWorkEndTarget, profile, { endNote, crewMembers }),
       );
       if (result?.offlineChanges) {
-        setWorkSessions((items) => items.map((item) => item.id === result.sessionId ? { ...item, ...result.offlineChanges } : item));
+        setWorkSessions((items) =>
+          items.map((item) =>
+            item.id === result.sessionId ? { ...item, ...result.offlineChanges } : item,
+          ),
+        );
       } else await loadWorkSessions();
       if (result?.success) setProjectWorkEndTarget(null);
       return result;
@@ -167,9 +185,14 @@ export function AttendanceProvider({ children }) {
     setAttendanceBusy(true);
     try {
       const result = await runMutation(
-        attendanceFeatureApi.startAttendance(attendanceType, { profile, attendanceSessions, attendanceAvailable }),
+        attendanceFeatureApi.startAttendance(attendanceType, {
+          profile,
+          attendanceSessions,
+          attendanceAvailable,
+        }),
       );
-      if (result?.offlineSession) setAttendanceSessions((items) => [result.offlineSession, ...items]);
+      if (result?.offlineSession)
+        setAttendanceSessions((items) => [result.offlineSession, ...items]);
       else await loadAttendanceSessions();
       return result;
     } finally {
@@ -180,7 +203,7 @@ export function AttendanceProvider({ children }) {
   function openAttendanceEndDialog() {
     const openSession = myAttendanceSessions.find((item) => !item.ended_at && !item.is_all_day);
     if (!openSession) {
-      setMessage('לא נמצאה משמרת כללית פתוחה.');
+      setMessage(t('לא נמצאה משמרת כללית פתוחה.'));
       return;
     }
     setAttendanceEndNote('');
@@ -191,9 +214,15 @@ export function AttendanceProvider({ children }) {
     if (attendanceBusy) return null;
     setAttendanceBusy(true);
     try {
-      const result = await runMutation(attendanceFeatureApi.finishAttendance(endNote, { profile, attendanceSessions }));
+      const result = await runMutation(
+        attendanceFeatureApi.finishAttendance(endNote, { profile, attendanceSessions }),
+      );
       if (result?.offlineChanges) {
-        setAttendanceSessions((items) => items.map((item) => item.id === result.sessionId ? { ...item, ...result.offlineChanges } : item));
+        setAttendanceSessions((items) =>
+          items.map((item) =>
+            item.id === result.sessionId ? { ...item, ...result.offlineChanges } : item,
+          ),
+        );
       } else await loadAttendanceSessions();
       if (result?.success) {
         setAttendanceEndDialogOpen(false);

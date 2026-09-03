@@ -1,3 +1,4 @@
+import { t } from '../language/LanguageContext.jsx';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
@@ -26,7 +27,8 @@ export function ProjectsProvider({ children }) {
       const cached = await getOfflineData(`projects:${profile?.id}`);
       if (cached) {
         setProjects(cached);
-        if (!navigator.onLine) setMessage('אין חיבור. מוצגים נתוני הפרויקטים האחרונים שנשמרו במכשיר.');
+        if (!navigator.onLine)
+          setMessage(t('אין חיבור. מוצגים נתוני הפרויקטים האחרונים שנשמרו במכשיר.'));
       } else {
         setMessage(error instanceof Error ? error.message : String(error));
       }
@@ -87,6 +89,7 @@ export function ProjectsProvider({ children }) {
       'work_sessions',
       'profiles',
     ],
+
     onRefresh: () => Promise.all([loadProjects(), loadWorkers(), loadHistory()]),
     pollIntervalMs: 20000,
   });
@@ -116,36 +119,64 @@ export function ProjectsProvider({ children }) {
     loadWorkers,
     loadHistory,
     loadProjectAssets: projectsFeatureApi.getProjectAssets,
-    createProject: (newProject) => runMutation(projectsFeatureApi.createProject(newProject, profile)),
+    createProject: (newProject) =>
+      runMutation(projectsFeatureApi.createProject(newProject, profile)),
     saveProject: (projectId, changes) => {
       const originalProject = projects.find((item) => item.id === projectId);
-      return runMutation(projectsFeatureApi.saveProject(projectId, changes, profile, originalProject));
+      return runMutation(
+        projectsFeatureApi.saveProject(projectId, changes, profile, originalProject),
+      );
     },
     deleteProject: (project) => runMutation(projectsFeatureApi.deleteProject(project, profile)),
     archiveProject: (project) => runMutation(projectsFeatureApi.archiveProject(project, profile)),
     restoreProject: (project) => runMutation(projectsFeatureApi.restoreProject(project, profile)),
-    updateStatus: (project, newStatus, note) => runMutation(
-      projectsFeatureApi.updateStatus(project, newStatus, note, profile),
-      (result) => setProjects((items) => items.map((item) => item.id === project.id ? { ...item, ...result.optimistic } : item)),
-    ),
-    uploadPhoto: (projectId, file, category) => runMutation(projectsFeatureApi.uploadPhoto(projectId, file, category)),
-    deletePhoto: (photo, project) => runMutation(projectsFeatureApi.deletePhoto(photo, project, profile)),
+    updateStatus: (project, newStatus, note) =>
+      runMutation(projectsFeatureApi.updateStatus(project, newStatus, note, profile), (result) =>
+        setProjects((items) =>
+          items.map((item) => (item.id === project.id ? { ...item, ...result.optimistic } : item)),
+        ),
+      ),
+    uploadPhoto: (projectId, file, category) =>
+      runMutation(projectsFeatureApi.uploadPhoto(projectId, file, category)),
+    deletePhoto: (photo, project) =>
+      runMutation(projectsFeatureApi.deletePhoto(photo, project, profile)),
     assignProjectDrafter: (project, drafterId) =>
       runMutation(projectsFeatureApi.assignProjectDrafter(project, drafterId, profile, workers)),
-    sendProjectToReview: (project, file, note) => runMutation(projectsFeatureApi.sendProjectToReview(project, file, note, profile)),
+    sendProjectToReview: (project, file, note) =>
+      runMutation(projectsFeatureApi.sendProjectToReview(project, file, note, profile)),
     deleteProjectReviewFile: (file, projectId) =>
       runMutation(projectsFeatureApi.deleteProjectReviewFile(file, projectId, profile)),
     addProjectTask: (projectId, title, description) => {
       const project = projects.find((p) => p.id === projectId);
       return runMutation(
         projectsFeatureApi.addProjectTask(projectId, title, description, profile, project),
-        (result) => setProjects((items) => items.map((item) => item.id === projectId ? { ...item, project_tasks: [result.offlineTask, ...(item.project_tasks || [])] } : item)),
+        (result) =>
+          setProjects((items) =>
+            items.map((item) =>
+              item.id === projectId
+                ? { ...item, project_tasks: [result.offlineTask, ...(item.project_tasks || [])] }
+                : item,
+            ),
+          ),
       );
     },
-    toggleProjectTask: (task, project) => runMutation(
-      projectsFeatureApi.toggleProjectTask(task, project, profile, isManager),
-      (result) => setProjects((items) => items.map((item) => item.id === project.id ? { ...item, project_tasks: (item.project_tasks || []).map((entry) => entry.id === task.id ? { ...entry, ...result.optimistic } : entry) } : item)),
-    ),
+    toggleProjectTask: (task, project) =>
+      runMutation(
+        projectsFeatureApi.toggleProjectTask(task, project, profile, isManager),
+        (result) =>
+          setProjects((items) =>
+            items.map((item) =>
+              item.id === project.id
+                ? {
+                    ...item,
+                    project_tasks: (item.project_tasks || []).map((entry) =>
+                      entry.id === task.id ? { ...entry, ...result.optimistic } : entry,
+                    ),
+                  }
+                : item,
+            ),
+          ),
+      ),
     updateProjectTask: (task, project, title, description) =>
       runMutation(projectsFeatureApi.updateProjectTask(task, project, title, description, profile)),
     deleteProjectTask: (task) => runMutation(projectsFeatureApi.deleteProjectTask(task, profile)),

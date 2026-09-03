@@ -1,4 +1,6 @@
+import { useTranslation } from 'react-i18next';
 import { REVIEW_STATUS } from '../services/supabase.js';
+import { t } from '../features/language/LanguageContext.jsx';
 
 export function getStatusClass(status) {
   if (status === REVIEW_STATUS) return 'review';
@@ -10,5 +12,6 @@ export function getStatusClass(status) {
 }
 
 export default function StatusPill({ status }) {
-  return <span className={`pill ${getStatusClass(status)}`}>{status}</span>;
+  useTranslation();
+  return <span className={`pill ${getStatusClass(status)}`}>{t(status)}</span>;
 }

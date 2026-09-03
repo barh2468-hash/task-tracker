@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../../language/LanguageContext.jsx';
 import { useState } from 'react';
 import {
   CheckCircle,
@@ -14,6 +16,7 @@ import { useProjects } from '../ProjectsContext.jsx';
 import { getStatusClass } from '../../../components/StatusPill.jsx';
 
 export default function OpenTasksPanel({ onOpenProject }) {
+  useTranslation();
   const { isManager } = useAuth();
   const { projects, updateProjectTask, toggleProjectTask, deleteProjectTask } = useProjects();
   const activeProjects = projects.filter((p) => !p.is_archived);
@@ -36,13 +39,12 @@ export default function OpenTasksPanel({ onOpenProject }) {
     .filter(({ task, project }) => {
       const assignedNames = [
         project.profiles?.full_name,
-        ...(project.project_workers || []).map(
-          (assignment) => assignment.profiles?.full_name,
-        ),
+        ...(project.project_workers || []).map((assignment) => assignment.profiles?.full_name),
       ]
         .filter(Boolean)
         .join(' ');
-      const searchable = `${task.title} ${task.description || ''} ${project.name} ${project.location} ${assignedNames}`.toLowerCase();
+      const searchable =
+        `${task.title} ${task.description || ''} ${project.name} ${project.location} ${assignedNames}`.toLowerCase();
       return !query.trim() || searchable.includes(query.trim().toLowerCase());
     })
     .sort(
@@ -67,14 +69,17 @@ export default function OpenTasksPanel({ onOpenProject }) {
     <section className="card openTasksPanel">
       <div className="reportHeader openTasksHeader">
         <div>
-          <h2>משימות פתוחות</h2>
+          <h2>{t('משימות פתוחות')}</h2>
           <p className="muted">
             {isManager
-              ? 'כל המשימות הפתוחות במערכת. ניתן לערוך, להשלים או למחוק משימה.'
-              : 'המשימות הפתוחות בפרויקטים שאליהם אתה משויך.'}
+              ? t('כל המשימות הפתוחות במערכת. ניתן לערוך, להשלים או למחוק משימה.')
+              : t('המשימות הפתוחות בפרויקטים שאליהם אתה משויך.')}
           </p>
         </div>
-        <span className="openTasksCount">{openTasks.length} פתוחות</span>
+        <span className="openTasksCount">
+          {openTasks.length}
+          {t('פתוחות')}
+        </span>
       </div>
 
       <div className="toolbar openTasksToolbar">
@@ -82,14 +87,14 @@ export default function OpenTasksPanel({ onOpenProject }) {
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="חיפוש משימה, פרויקט, מיקום או עובד..."
+          placeholder={t('חיפוש משימה, פרויקט, מיקום או עובד...')}
         />
       </div>
 
       <div className="openTasksList">
         {openTasks.length === 0 && (
           <div className="empty">
-            {query ? 'לא נמצאו משימות התואמות לחיפוש' : 'אין משימות פתוחות כרגע'}
+            {query ? t('לא נמצאו משימות התואמות לחיפוש') : t('אין משימות פתוחות כרגע')}
           </div>
         )}
 
@@ -101,8 +106,7 @@ export default function OpenTasksPanel({ onOpenProject }) {
                 ...(project.project_workers || [])
                   .filter(
                     (assignment) =>
-                      !assignment.profiles?.role ||
-                      assignment.profiles.role === 'field_worker',
+                      !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
                   )
                   .map((assignment) => assignment.profiles?.full_name),
               ].filter(Boolean),
@@ -114,32 +118,31 @@ export default function OpenTasksPanel({ onOpenProject }) {
             <article className="openTaskCard" key={task.id}>
               <div className="openTaskMain">
                 <div className="openTaskProjectLine">
-                  <button
-                    className="openTaskProjectButton"
-                    onClick={() => openProject(project)}
-                  >
+                  <button className="openTaskProjectButton" onClick={() => openProject(project)}>
                     <FolderKanban size={16} /> {project.name}
                   </button>
                   <span className={`pill ${getStatusClass(project.status)}`}>
-                    {project.status}
+                    {t(project.status)}
                   </span>
                 </div>
 
                 {isEditing ? (
                   <div className="openTaskEditForm">
                     <label>
-                      כותרת המשימה
+                      {t('כותרת המשימה')}
+
                       <input
                         value={editTitle}
                         onChange={(event) => setEditTitle(event.target.value)}
                       />
                     </label>
                     <label>
-                      פירוט
+                      {t('פירוט')}
+
                       <textarea
                         value={editDescription}
                         onChange={(event) => setEditDescription(event.target.value)}
-                        placeholder="פירוט המשימה, אופציונלי"
+                        placeholder={t('פירוט המשימה, אופציונלי')}
                       />
                     </label>
                   </div>
@@ -151,9 +154,15 @@ export default function OpenTasksPanel({ onOpenProject }) {
                 )}
 
                 <div className="openTaskMeta">
-                  <span><MapPin size={14} /> {project.location}</span>
-                  <span><Users size={14} /> {assignedNames.join(', ') || 'ללא עובד משויך'}</span>
-                  <span><Clock size={14} /> {new Date(task.created_at).toLocaleDateString('he-IL')}</span>
+                  <span>
+                    <MapPin size={14} /> {project.location}
+                  </span>
+                  <span>
+                    <Users size={14} /> {assignedNames.join(', ') || t('ללא עובד משויך')}
+                  </span>
+                  <span>
+                    <Clock size={14} /> {new Date(task.created_at).toLocaleDateString('he-IL')}
+                  </span>
                 </div>
               </div>
 
@@ -168,32 +177,43 @@ export default function OpenTasksPanel({ onOpenProject }) {
                         cancelEdit();
                       }}
                     >
-                      <CheckCircle size={16} /> שמירה
+                      <CheckCircle size={16} />
+                      {t('שמירה')}
                     </button>
                     <button className="ghost smallBtn" onClick={cancelEdit}>
-                      ביטול
+                      {t('ביטול')}
                     </button>
                   </>
                 ) : (
                   <>
                     <button className="ghost smallBtn" onClick={() => openProject(project)}>
-                      פתיחת פרויקט
+                      {t('פתיחת פרויקט')}
                     </button>
                     {!isManager && (
                       <button className="smallBtn" onClick={() => toggleProjectTask(task, project)}>
-                        <CheckCircle size={15} /> סמן כבוצע
+                        <CheckCircle size={15} />
+                        {t('סמן כבוצע')}
                       </button>
                     )}
                     {isManager && (
                       <>
                         <button className="ghost smallBtn" onClick={() => beginEdit(task)}>
-                          <Pencil size={15} /> עריכה
+                          <Pencil size={15} />
+                          {t('עריכה')}
                         </button>
-                        <button className="smallBtn" onClick={() => toggleProjectTask(task, project)}>
-                          <CheckCircle size={15} /> סמן כבוצע
+                        <button
+                          className="smallBtn"
+                          onClick={() => toggleProjectTask(task, project)}
+                        >
+                          <CheckCircle size={15} />
+                          {t('סמן כבוצע')}
                         </button>
-                        <button className="danger ghost smallBtn" onClick={() => deleteProjectTask(task)}>
-                          <Trash2 size={15} /> מחיקה
+                        <button
+                          className="danger ghost smallBtn"
+                          onClick={() => deleteProjectTask(task)}
+                        >
+                          <Trash2 size={15} />
+                          {t('מחיקה')}
                         </button>
                       </>
                     )}

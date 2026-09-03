@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../../language/LanguageContext.jsx';
 import { createPortal } from 'react-dom';
 import { Clock, MapPin, Square, X } from 'lucide-react';
 import { useAttendance } from '../AttendanceContext.jsx';
 import { attendanceTypeLabel } from '../api.js';
 
 export default function AttendanceEndDialog() {
+  useTranslation();
   const {
     myAttendanceSessions: sessions,
     attendanceEndDialogOpen,
@@ -14,9 +17,7 @@ export default function AttendanceEndDialog() {
     finishAttendance,
   } = useAttendance();
 
-  const openSession = sessions.find(
-    (item) => !item.ended_at && !item.is_all_day,
-  ) || null;
+  const openSession = sessions.find((item) => !item.ended_at && !item.is_all_day) || null;
 
   if (!attendanceEndDialogOpen || typeof document === 'undefined' || !openSession) return null;
 
@@ -30,7 +31,13 @@ export default function AttendanceEndDialog() {
 
   return createPortal(
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click-to-close is a mouse convenience; the close button covers keyboard access
-    <div className="modalBackdrop attendanceEndBackdrop" role="dialog" aria-modal="true" aria-labelledby="attendance-end-title" onClick={() => !busy && close()}>
+    <div
+      className="modalBackdrop attendanceEndBackdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="attendance-end-title"
+      onClick={() => !busy && close()}
+    >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- stops the backdrop's close handler from firing for clicks inside the modal */}
       <form
         className="attendanceEndModal"
@@ -41,31 +48,56 @@ export default function AttendanceEndDialog() {
         }}
       >
         <div className="attendanceEndHeader">
-          <div className="attendanceEndHeaderIcon"><Clock size={23} /></div>
-          <div>
-            <span>סיום משמרת</span>
-            <h2 id="attendance-end-title">סיום {attendanceTypeLabel[openSession.attendance_type]}</h2>
-            <p>התחלת ב־{new Date(openSession.started_at).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</p>
+          <div className="attendanceEndHeaderIcon">
+            <Clock size={23} />
           </div>
-          <button type="button" className="iconOnly" aria-label="סגירה" disabled={busy} onClick={close}><X size={18} /></button>
+          <div>
+            <span>{t('סיום משמרת')}</span>
+            <h2 id="attendance-end-title">
+              {t('סיום')}
+              {t(attendanceTypeLabel[openSession.attendance_type])}
+            </h2>
+            <p>
+              {t('התחלת ב־')}
+              {new Date(openSession.started_at).toLocaleTimeString('he-IL', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="iconOnly"
+            aria-label={t('סגירה')}
+            disabled={busy}
+            onClick={close}
+          >
+            <X size={18} />
+          </button>
         </div>
         <div className="attendanceEndBody">
           <label>
-            הערת סיום <small>אופציונלי</small>
+            {t('הערת סיום')}
+            <small>{t('אופציונלי')}</small>
             <textarea
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="למשל: נסיעה למשרד, ציוד שהוחזר או מידע חשוב למנהל"
+              placeholder={t('למשל: נסיעה למשרד, ציוד שהוחזר או מידע חשוב למנהל')}
               // eslint-disable-next-line jsx-a11y/no-autofocus -- opening the dialog should focus the note field immediately, matching the original behavior
               autoFocus
             />
           </label>
-          <p><MapPin size={16} /> בעת האישור נבקש את מיקום הסיום ונשמור אותו בדיווח.</p>
+          <p>
+            <MapPin size={16} />
+            {t('בעת האישור נבקש את מיקום הסיום ונשמור אותו בדיווח.')}
+          </p>
         </div>
         <div className="attendanceEndActions">
-          <button type="button" className="ghost" disabled={busy} onClick={close}>חזרה</button>
+          <button type="button" className="ghost" disabled={busy} onClick={close}>
+            {t('חזרה')}
+          </button>
           <button type="submit" className="danger" disabled={busy}>
-            <Square size={17} /> {busy ? 'שומר מיקום ומסיים...' : 'אישור וסיום משמרת'}
+            <Square size={17} /> {busy ? t('שומר מיקום ומסיים...') : t('אישור וסיום משמרת')}
           </button>
         </div>
       </form>

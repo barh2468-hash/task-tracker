@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../features/language/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
@@ -7,10 +9,11 @@ import { appStatuses } from '../services/supabase.js';
 import ProjectCard from '../features/projects/components/ProjectCard.jsx';
 
 export default function ProjectsPage() {
+  useTranslation();
   const { isManager, session } = useAuth();
   const { projects } = useProjects();
   const [searchParams, setSearchParams] = useSearchParams();
-const [query, setQuery] = useState('');
+  const [query, setQuery] = useState('');
   const [visibleLimit, setVisibleLimit] = useState(20);
   const handledPushProjectRef = useRef(null);
 
@@ -36,7 +39,9 @@ const [query, setQuery] = useState('');
     if (linkedIndex >= 0) setVisibleLimit((limit) => Math.max(limit, linkedIndex + 1));
 
     window.requestAnimationFrame(() => {
-      document.getElementById(`project-${projectId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document
+        .getElementById(`project-${projectId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projects]);
@@ -49,11 +54,15 @@ const [query, setQuery] = useState('');
   }
 
   const visibleProjects = projects.filter((p) => {
-    const text = `${p.name} ${p.location} ${p.contact_phone || ''} ${p.contact_email || ''} ${p.client_name || ''} ${p.description || ''}`.toLowerCase();
+    const text =
+      `${p.name} ${p.location} ${p.contact_phone || ''} ${p.contact_email || ''} ${p.client_name || ''} ${p.description || ''}`.toLowerCase();
     const okQuery = !query || text.includes(query.toLowerCase());
     const okStatus = !statusFilter || p.status === statusFilter;
     const okArchive = filter === 'archive' ? !!p.is_archived : !p.is_archived;
-    const okTab = filter === 'unassigned' ? !p.assigned_to : filter !== 'mine' || !isManager || p.assigned_to === session?.user?.id;
+    const okTab =
+      filter === 'unassigned'
+        ? !p.assigned_to
+        : filter !== 'mine' || !isManager || p.assigned_to === session?.user?.id;
     return okQuery && okStatus && okArchive && okTab;
   });
   const pagedProjects = visibleProjects.slice(0, visibleLimit);
@@ -64,29 +73,29 @@ const [query, setQuery] = useState('');
 
   const heading =
     filter === 'unassigned'
-      ? 'פרויקטים ללא שיוך'
+      ? t('פרויקטים ללא שיוך')
       : filter === 'archive'
-        ? 'ארכיון פרויקטים'
+        ? t('ארכיון פרויקטים')
         : filter === 'mine' && !isManager
-          ? 'הפרויקטים שלי'
-          : 'כל הפרויקטים';
+          ? t('הפרויקטים שלי')
+          : t('כל הפרויקטים');
 
   return (
     <section className="card">
       <div className="toolbar">
         <div style={{ minWidth: 260, flex: 1 }}>
           <label htmlFor="project-search" className="visuallyHidden">
-            חיפוש פרויקטים
+            {t('חיפוש פרויקטים')}
           </label>
           <input
             id="project-search"
-            placeholder="חיפוש לפי שם, לקוח או מיקום..."
+            placeholder={t('חיפוש לפי שם, לקוח או מיקום...')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
         <label htmlFor="project-status-filter" className="visuallyHidden">
-          סינון לפי סטטוס
+          {t('סינון לפי סטטוס')}
         </label>
         <select
           id="project-status-filter"
@@ -94,28 +103,37 @@ const [query, setQuery] = useState('');
           onChange={(e) => setStatusFilter(e.target.value)}
           style={{ maxWidth: 220 }}
         >
-          <option value="">כל הסטטוסים</option>
+          <option value="">{t('כל הסטטוסים')}</option>
           {appStatuses.map((s) => (
             <option key={s} value={s}>
-              {s}
+              {t(s)}
             </option>
           ))}
         </select>
         <button className="ghost">
-          <Search size={16} /> סינון
+          <Search size={16} />
+          {t('סינון')}
         </button>
       </div>
       <h2>{heading}</h2>
       <div className="projects">
-        {visibleProjects.length === 0 && <div className="empty">אין פרויקטים להצגה כרגע</div>}
+        {visibleProjects.length === 0 && (
+          <div className="empty">{t('אין פרויקטים להצגה כרגע')}</div>
+        )}
         {pagedProjects.map((project) => (
           <div key={project.id} id={`project-${project.id}`}>
             <ProjectCard project={project} />
           </div>
         ))}
         {visibleLimit < visibleProjects.length && (
-          <button type="button" className="ghost loadMoreProjects" onClick={() => setVisibleLimit((limit) => limit + 20)}>
-            הצג עוד 20 פרויקטים ({visibleProjects.length - visibleLimit} נותרו)
+          <button
+            type="button"
+            className="ghost loadMoreProjects"
+            onClick={() => setVisibleLimit((limit) => limit + 20)}
+          >
+            {t('הצג עוד 20 פרויקטים (')}
+            {visibleProjects.length - visibleLimit}
+            {t('נותרו)')}
           </button>
         )}
       </div>

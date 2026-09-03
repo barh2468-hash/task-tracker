@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../../language/LanguageContext.jsx';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth.js';
@@ -17,6 +19,7 @@ const emptyProject = {
 };
 
 export default function NewProjectForm() {
+  useTranslation();
   const { workers, createProject } = useProjects();
   const { isManager } = useAuth();
   const navigate = useNavigate();
@@ -35,69 +38,65 @@ export default function NewProjectForm() {
 
   return (
     <section className="card form">
-      <h2>הוספת פרויקט חדש</h2>
+      <h2>{t('הוספת פרויקט חדש')}</h2>
       <div className="formGrid">
         <label>
-          שם פרויקט
+          {t('שם פרויקט')}
+
           <input
             value={project.name}
             onChange={(e) => setProject({ ...project, name: e.target.value })}
-            placeholder="לדוגמה: כביש 531 - קטע צפוני"
+            placeholder={t('לדוגמה: כביש 531 - קטע צפוני')}
           />
         </label>
         <label>
-          לקוח
+          {t('לקוח')}
+
           <input
             value={project.client_name}
-            onChange={(e) =>
-              setProject({ ...project, client_name: e.target.value })
-            }
-            placeholder="לדוגמה: עיריית הרצליה"
+            onChange={(e) => setProject({ ...project, client_name: e.target.value })}
+            placeholder={t('לדוגמה: עיריית הרצליה')}
           />
         </label>
         <label>
-          מיקום
+          {t('מיקום')}
+
           <input
             value={project.location}
-            onChange={(e) =>
-              setProject({ ...project, location: e.target.value })
-            }
-            placeholder="עיר / רחוב / אזור"
+            onChange={(e) => setProject({ ...project, location: e.target.value })}
+            placeholder={t('עיר / רחוב / אזור')}
           />
         </label>
         <label>
-          טלפון איש קשר בשטח
+          {t('טלפון איש קשר בשטח')}
+
           <input
             type="tel"
             dir="ltr"
             value={project.contact_phone}
-            onChange={(e) =>
-              setProject({ ...project, contact_phone: e.target.value })
-            }
-            placeholder="לדוגמה: 050-1234567"
+            onChange={(e) => setProject({ ...project, contact_phone: e.target.value })}
+            placeholder={t('לדוגמה: 050-1234567')}
           />
         </label>
         <label>
-          מייל איש קשר בשטח
+          {t('מייל איש קשר בשטח')}
+
           <input
             type="email"
             dir="ltr"
             value={project.contact_email}
-            onChange={(e) =>
-              setProject({ ...project, contact_email: e.target.value })
-            }
-            placeholder="לדוגמה: contact@company.com"
+            onChange={(e) => setProject({ ...project, contact_email: e.target.value })}
+            placeholder={t('לדוגמה: contact@company.com')}
           />
         </label>
         <label>
-          שיוך לאחראי ראשי (מנהל או עובד שטח), אופציונלי
+          {t('שיוך לאחראי ראשי (מנהל או עובד שטח), אופציונלי')}
+
           <select
             value={project.assigned_to}
-            onChange={(e) =>
-              setProject({ ...project, assigned_to: e.target.value })
-            }
+            onChange={(e) => setProject({ ...project, assigned_to: e.target.value })}
           >
-            <option value="">ללא שיוך כרגע</option>
+            <option value="">{t('ללא שיוך כרגע')}</option>
             {projectLeads.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.full_name} - {w.email}
@@ -106,7 +105,8 @@ export default function NewProjectForm() {
           </select>
         </label>
         <label className="wideField">
-          עובדים נוספים בפרויקט, אופציונלי
+          {t('עובדים נוספים בפרויקט, אופציונלי')}
+
           <div className="workerChecks">
             {fieldWorkers.map((w) => (
               <label key={w.id} className="checkLine">
@@ -126,37 +126,34 @@ export default function NewProjectForm() {
           </div>
         </label>
         <label>
-          תאריך יעד
+          {t('תאריך יעד')}
+
           <input
             type="date"
             value={project.due_date}
-            onChange={(e) =>
-              setProject({ ...project, due_date: e.target.value })
-            }
+            onChange={(e) => setProject({ ...project, due_date: e.target.value })}
           />
         </label>
         <label className="workDiaryProjectToggle">
           <input
             type="checkbox"
             checked={Boolean(project.requires_work_diary)}
-            onChange={(e) =>
-              setProject({ ...project, requires_work_diary: e.target.checked })
-            }
+            onChange={(e) => setProject({ ...project, requires_work_diary: e.target.checked })}
           />
-          הפרויקט דורש יומן עבודה וחתימות
+
+          {t('הפרויקט דורש יומן עבודה וחתימות')}
         </label>
       </div>
       <label>
-        תיאור העבודה
+        {t('תיאור העבודה')}
+
         <textarea
           value={project.description}
-          onChange={(e) =>
-            setProject({ ...project, description: e.target.value })
-          }
-          placeholder="פירוט איתור תשתיות, דרישות לקוח, חסמים וכו׳"
+          onChange={(e) => setProject({ ...project, description: e.target.value })}
+          placeholder={t('פירוט איתור תשתיות, דרישות לקוח, חסמים וכו׳')}
         />
       </label>
-      <button onClick={handleCreate}>צור פרויקט</button>
+      <button onClick={handleCreate}>{t('צור פרויקט')}</button>
     </section>
   );
 }

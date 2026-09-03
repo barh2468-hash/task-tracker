@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../../language/LanguageContext.jsx';
 import { useEffect, useState } from 'react';
 import { Clock, PlayCircle, Square } from 'lucide-react';
 import { useAttendance } from '../AttendanceContext.jsx';
@@ -6,6 +8,7 @@ import { formatDuration, durationMinutes, toLocalDateKey } from '../../../utils/
 import LocationLine from '../../../components/LocationLine.jsx';
 
 export default function GeneralAttendanceCard() {
+  useTranslation();
   const {
     myAttendanceSessions: sessions,
     attendanceAvailable: available,
@@ -27,9 +30,8 @@ export default function GeneralAttendanceCard() {
   }, [openSession?.id]);
 
   const today = toLocalDateKey();
-  const dayStatus = sessions.find(
-    (item) => item.is_all_day && item.attendance_date === today,
-  ) || null;
+  const dayStatus =
+    sessions.find((item) => item.is_all_day && item.attendance_date === today) || null;
   const todaySessions = sessions.filter(
     (item) =>
       !item.is_all_day &&
@@ -46,9 +48,8 @@ export default function GeneralAttendanceCard() {
   const openMinutes = openSession
     ? Math.max(0, Math.round((now - new Date(openSession.started_at).getTime()) / 60000))
     : 0;
-  const selectedOption = attendanceTypeOptions.find(
-    (item) => item.value === selectedType,
-  ) || attendanceTypeOptions[0];
+  const selectedOption =
+    attendanceTypeOptions.find((item) => item.value === selectedType) || attendanceTypeOptions[0];
 
   useEffect(() => {
     if (openSession?.attendance_type) setSelectedType(openSession.attendance_type);
@@ -64,21 +65,26 @@ export default function GeneralAttendanceCard() {
         <div className="generalAttendanceTitle">
           <span className="generalAttendanceStatus">
             {openSession
-              ? `${attendanceTypeLabel[openSession.attendance_type]} פעיל`
+              ? t('{{value0}} פעיל', {
+                  value0: t(attendanceTypeLabel[openSession.attendance_type]),
+                })
               : dayStatus
-                ? `דווח: ${attendanceTypeLabel[dayStatus.attendance_type]}`
-                : 'לא במשמרת'}
+                ? t('דווח: {{value0}}', {
+                    value0: t(attendanceTypeLabel[dayStatus.attendance_type]),
+                  })
+                : t('לא במשמרת')}
           </span>
-          <h3>שעון נוכחות כללי</h3>
+          <h3>{t('שעון נוכחות כללי')}</h3>
         </div>
         {openSession ? (
           <>
-            <strong className="generalAttendanceTime">{formatDuration(openMinutes)}</strong>
+            <strong className="generalAttendanceTime">{t(formatDuration(openMinutes))}</strong>
             <span>
-              התחלה: {new Date(openSession.started_at).toLocaleString('he-IL')}
+              {t('התחלה:')}
+              {new Date(openSession.started_at).toLocaleString('he-IL')}
             </span>
             <LocationLine
-              label="מיקום כניסה"
+              label={t('מיקום כניסה')}
               lat={openSession.started_lat}
               lng={openSession.started_lng}
               accuracy={openSession.started_accuracy}
@@ -87,29 +93,38 @@ export default function GeneralAttendanceCard() {
         ) : (
           <span>
             {dayStatus
-              ? `הדיווח ${attendanceTypeLabel[dayStatus.attendance_type]} נשמר להיום וניתן לעדכן אותו.`
+              ? t('הדיווח {{value0}} נשמר להיום וניתן לעדכן אותו.', {
+                  value0: t(attendanceTypeLabel[dayStatus.attendance_type]),
+                })
               : lastEndedSession
-              ? `המשמרת האחרונה הסתיימה ב-${new Date(lastEndedSession.ended_at || '').toLocaleString('he-IL')}`
-              : 'התחל את יום העבודה לפני המעבר בין הפרויקטים.'}
+                ? t('המשמרת האחרונה הסתיימה ב-{{value0}}', {
+                    value0: new Date(lastEndedSession.ended_at || '').toLocaleString('he-IL'),
+                  })
+                : t('התחל את יום העבודה לפני המעבר בין הפרויקטים.')}
           </span>
         )}
-        <small>סה״כ נוכחות היום: {formatDuration(todayMinutes)}</small>
+        <small>
+          {t('סה״כ נוכחות היום:')} {t(formatDuration(todayMinutes))}
+        </small>
         {!available && (
           <small className="generalAttendanceWarning">
-            נדרש להפעיל את טבלת הנוכחות ב-Supabase לפני השימוש.
+            {t('נדרש להפעיל את טבלת הנוכחות ב-Supabase לפני השימוש.')}
           </small>
         )}
       </div>
       <div className="generalAttendanceActions">
         <label>
-          סוג דיווח
+          {t('סוג דיווח')}
+
           <select
             value={selectedType}
             disabled={busy || Boolean(openSession)}
             onChange={(event) => setSelectedType(event.target.value)}
           >
             {attendanceTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+              <option key={option.value} value={option.value}>
+                {t(option.label)}
+              </option>
             ))}
           </select>
         </label>
@@ -120,12 +135,14 @@ export default function GeneralAttendanceCard() {
         >
           {openSession ? <Square size={18} /> : <PlayCircle size={18} />}
           {busy
-            ? 'מעדכן...'
+            ? t('מעדכן...')
             : openSession
-              ? `סיום ${attendanceTypeLabel[openSession.attendance_type]}`
+              ? t('סיום {{value0}}', {
+                  value0: t(attendanceTypeLabel[openSession.attendance_type]),
+                })
               : selectedOption.timed
-                ? `תחילת ${selectedOption.label}`
-                : `${dayStatus ? 'עדכון' : 'דיווח'} ${selectedOption.label}`}
+                ? t('תחילת {{value0}}', { value0: t(selectedOption.label) })
+                : `${dayStatus ? t('עדכון') : t('דיווח')} ${t(selectedOption.label)}`}
         </button>
       </div>
     </section>

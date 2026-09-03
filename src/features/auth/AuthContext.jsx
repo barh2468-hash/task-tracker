@@ -1,3 +1,4 @@
+import { t } from '../language/LanguageContext.jsx';
 import { createContext, useEffect, useRef, useState } from 'react';
 import { envReady } from '../../services/supabase.js';
 import { translateAuthError } from '../../utils/authErrors.js';
@@ -26,7 +27,8 @@ export function AuthProvider({ children }) {
       setAuthMessage('החיבור מתעכב. בדוק את החיבור לאינטרנט ונסה לרענן את העמוד.');
     }, 15000);
 
-    authFeatureApi.getSession()
+    authFeatureApi
+      .getSession()
       .then(({ data, error }) => {
         if (!active) return;
         if (error) throw error;
@@ -36,7 +38,7 @@ export function AuthProvider({ children }) {
       })
       .catch((error) => {
         if (!active) return;
-        setAuthMessage(error instanceof Error ? error.message : 'החיבור למערכת נכשל. נסה שוב.');
+        setAuthMessage(error instanceof Error ? error.message : t('החיבור למערכת נכשל. נסה שוב.'));
       })
       .finally(() => {
         if (!active) return;
@@ -87,13 +89,17 @@ export function AuthProvider({ children }) {
         if (!active) return;
         if (!prof) {
           setProfile(null);
-          setAuthMessage(error?.message || 'לא נמצא פרופיל למשתמש המחובר. בדוק את טבלת profiles ואת הרשאות RLS.');
+          setAuthMessage(
+            error?.message ||
+              t('לא נמצא פרופיל למשתמש המחובר. בדוק את טבלת profiles ואת הרשאות RLS.'),
+          );
           return;
         }
         setProfile(prof);
         setAuthMessage('');
       } catch (error) {
-        if (active) setAuthMessage(error instanceof Error ? error.message : 'טעינת הנתונים נכשלה.');
+        if (active)
+          setAuthMessage(error instanceof Error ? error.message : t('טעינת הנתונים נכשלה.'));
       } finally {
         if (active) {
           window.clearTimeout(dataTimeout);
@@ -121,9 +127,13 @@ export function AuthProvider({ children }) {
     setAuthBusy(true);
     try {
       const { error } = await authFeatureApi.signIn(email, password);
-      setAuthMessage(error ? translateAuthError(error.message) : 'התחברת בהצלחה.');
+      setAuthMessage(error ? translateAuthError(error.message) : t('התחברת בהצלחה.'));
     } catch (error) {
-      setAuthMessage(error?.name === 'AbortError' ? 'החיבור ארך זמן רב מדי. בדוק אינטרנט ונסה שוב.' : 'לא ניתן להתחבר כרגע. בדוק אינטרנט ונסה שוב.');
+      setAuthMessage(
+        error?.name === 'AbortError'
+          ? t('החיבור ארך זמן רב מדי. בדוק אינטרנט ונסה שוב.')
+          : t('לא ניתן להתחבר כרגע. בדוק אינטרנט ונסה שוב.'),
+      );
     } finally {
       setAuthBusy(false);
     }
@@ -142,11 +152,17 @@ export function AuthProvider({ children }) {
     if (authBusy) return;
     setAuthBusy(true);
     try {
-      const { error } = await authFeatureApi.signUp(email, password, fullName || email.split('@')[0]);
+      const { error } = await authFeatureApi.signUp(
+        email,
+        password,
+        fullName || email.split('@')[0],
+      );
       setAuthMessage(
         error
           ? translateAuthError(error.message)
-          : 'המשתמש נוצר. אם נדרש אישור מייל ב-Supabase, אשר את המשתמש דרך Authentication > Users.',
+          : t(
+              'המשתמש נוצר. אם נדרש אישור מייל ב-Supabase, אשר את המשתמש דרך Authentication > Users.',
+            ),
       );
     } catch {
       setAuthMessage('לא ניתן להתחבר כרגע. בדוק אינטרנט ונסה שוב.');

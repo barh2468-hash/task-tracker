@@ -1,7 +1,10 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../../language/LanguageContext.jsx';
 import { useEffect, useState } from 'react';
 import { createSignedUrl } from '../../../services/api/storage.js';
 
 export default function ReviewFilesPanel({ files, canDelete, onDelete }) {
+  useTranslation();
   const [urls, setUrls] = useState({});
 
   useEffect(() => {
@@ -24,26 +27,31 @@ export default function ReviewFilesPanel({ files, canDelete, onDelete }) {
   return (
     <div className="tasksBox reviewFilesBox">
       <div className="tasksHeader">
-        <b>קבצי הגהה</b>
-        <span className="muted">{files.length} קבצים</span>
+        <b>{t('קבצי הגהה')}</b>
+        <span className="muted">
+          {files.length}
+          {t('קבצים')}
+        </span>
       </div>
       {files.map((file) => (
         <div className="taskItem" key={file.id}>
           <div>
-            <b>{file.file_name || "קובץ PDF"}</b>
+            <b>{file.file_name || t('קובץ PDF')}</b>
             <p className="muted">
-              הועלה על ידי {file.profiles?.full_name || "שרטט"} · {new Date(file.created_at).toLocaleString("he-IL")}
+              {t('הועלה על ידי')}
+              {file.profiles?.full_name || t('שרטט')} ·{' '}
+              {new Date(file.created_at).toLocaleString('he-IL')}
             </p>
           </div>
           <div className="taskActions">
             {urls[file.id] && (
               <a className="ghost tinyBtn" href={urls[file.id]} target="_blank" rel="noreferrer">
-                פתיחת PDF
+                {t('פתיחת PDF')}
               </a>
             )}
             {canDelete && (
               <button className="danger ghost tinyBtn" onClick={() => onDelete(file)}>
-                מחיקת PDF
+                {t('מחיקת PDF')}
               </button>
             )}
           </div>

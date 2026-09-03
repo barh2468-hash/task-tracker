@@ -1,8 +1,11 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../../language/LanguageContext.jsx';
 import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { createSignedUrl } from '../../../services/api/storage.js';
 
 export default function PhotoGallery({ photos, canDelete = false, onDelete }) {
+  useTranslation();
   const [urls, setUrls] = useState({});
 
   useEffect(() => {
@@ -21,29 +24,23 @@ export default function PhotoGallery({ photos, canDelete = false, onDelete }) {
     };
   }, [photos]);
 
-  if (!photos.length)
-    return <div className="muted photosEmpty">אין תמונות בפרויקט</div>;
+  if (!photos.length) return <div className="muted photosEmpty">{t('אין תמונות בפרויקט')}</div>;
 
   return (
     <div className="photos">
       {photos.slice(0, 6).map((photo) =>
         urls[photo.id] ? (
           <div key={photo.id} className="photoItem">
-            <a
-              className="photoThumb"
-              href={urls[photo.id]}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <img src={urls[photo.id]} alt={photo.category || "תמונת שטח"} />
-              <span>{photo.category || "תמונת שטח"}</span>
+            <a className="photoThumb" href={urls[photo.id]} target="_blank" rel="noreferrer">
+              <img src={urls[photo.id]} alt={photo.category || t('תמונת שטח')} />
+              <span>{photo.category || t('תמונת שטח')}</span>
             </a>
             {canDelete && (
               <button
                 type="button"
                 className="photoDeleteButton"
-                aria-label={`מחיקת ${photo.category || 'תמונת שטח'}`}
-                title="מחיקת תמונה"
+                aria-label={t('מחיקת {{value0}}', { value0: photo.category || t('תמונת שטח') })}
+                title={t('מחיקת תמונה')}
                 onClick={() => onDelete?.(photo)}
               >
                 <Trash2 size={13} />

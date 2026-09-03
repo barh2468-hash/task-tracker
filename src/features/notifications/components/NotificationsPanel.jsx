@@ -1,8 +1,11 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../../language/LanguageContext.jsx';
 import { useNotifications } from '../NotificationsContext.jsx';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useMessage } from '../../../context/MessageContext.jsx';
 
 export default function NotificationsPanel({ onOpenProject }) {
+  useTranslation();
   const { notifications, markNotificationRead, markAllNotificationsRead } = useNotifications();
   const { projects } = useProjects();
   const { setMessage } = useMessage();
@@ -15,7 +18,7 @@ export default function NotificationsPanel({ onOpenProject }) {
 
     const linkedProject = projects.find((project) => project.id === notification.project_id);
     if (!linkedProject) {
-      setMessage('הפרויקט המקושר להתראה אינו זמין עבורך כרגע.');
+      setMessage(t('הפרויקט המקושר להתראה אינו זמין עבורך כרגע.'));
       return;
     }
 
@@ -26,47 +29,41 @@ export default function NotificationsPanel({ onOpenProject }) {
     <section className="card notificationsPanel">
       <div className="reportHeader">
         <div>
-          <h2>התראות</h2>
-          <p className="muted">
-            התראות פנימיות על שינויי סטטוס, התחלת/סיום עבודה ומשימות.
-          </p>
+          <h2>{t('התראות')}</h2>
+          <p className="muted">{t('התראות פנימיות על שינויי סטטוס, התחלת/סיום עבודה ומשימות.')}</p>
         </div>
         <button className="ghost" onClick={markAllNotificationsRead} disabled={unread === 0}>
-          סמן הכל כנקרא
+          {t('סמן הכל כנקרא')}
         </button>
       </div>
       <div className="notificationsList">
-        {notifications.length === 0 && (
-          <div className="empty">אין התראות כרגע</div>
-        )}
+        {notifications.length === 0 && <div className="empty">{t('אין התראות כרגע')}</div>}
         {notifications.map((item) => (
           <div
             key={item.id}
-            className={`notificationItem ${item.is_read ? "" : "unread"} ${item.project_id ? "clickable" : ""}`}
+            className={`notificationItem ${item.is_read ? '' : 'unread'} ${item.project_id ? 'clickable' : ''}`}
             onClick={item.project_id ? () => openNotification(item) : undefined}
             onKeyDown={
               item.project_id
                 ? (event) => {
-                    if (event.key === "Enter" || event.key === " ") {
+                    if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
                       openNotification(item);
                     }
                   }
                 : undefined
             }
-            role={item.project_id ? "button" : undefined}
+            role={item.project_id ? 'button' : undefined}
             tabIndex={item.project_id ? 0 : undefined}
-            title={item.project_id ? "פתח פרויקט" : undefined}
+            title={item.project_id ? t('פתח פרויקט') : undefined}
           >
             <div>
               <b>{item.title}</b>
               {item.body && <p>{item.body}</p>}
               <span className="muted">
-                {item.projects?.name ? `${item.projects.name} · ` : ""}
-                {item.profiles?.full_name
-                  ? `${item.profiles.full_name} · `
-                  : ""}
-                {new Date(item.created_at).toLocaleString("he-IL")}
+                {item.projects?.name ? `${item.projects.name} · ` : ''}
+                {item.profiles?.full_name ? `${item.profiles.full_name} · ` : ''}
+                {new Date(item.created_at).toLocaleString('he-IL')}
               </span>
             </div>
             {!item.is_read && (
@@ -77,7 +74,7 @@ export default function NotificationsPanel({ onOpenProject }) {
                   markNotificationRead(item.id);
                 }}
               >
-                סמן כנקרא
+                {t('סמן כנקרא')}
               </button>
             )}
           </div>

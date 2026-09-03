@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../../language/LanguageContext.jsx';
 import { useMemo, useState } from 'react';
 import { Clock, Download, History, Users } from 'lucide-react';
 import { useAttendance } from '../../attendance/AttendanceContext.jsx';
@@ -19,6 +21,7 @@ import { buildWorkReportRows } from '../utils/buildWorkReportRows.js';
 import { exportWorkReport } from '../utils/exportWorkReport.js';
 
 export default function WorkReportPanel() {
+  useTranslation();
   const { workSessions, attendanceSessions, attendanceAvailable } = useAttendance();
   const { workers } = useProjects();
   const { setMessage } = useMessage();
@@ -42,38 +45,27 @@ export default function WorkReportPanel() {
   const filteredSessions = useMemo(
     () =>
       workSessions
-        .filter(
-          (item) =>
-            reportWorkerId === 'all' || item.worker_id === reportWorkerId,
-        )
-        .filter((item) =>
-          sessionStartedInRange(item, reportFromDate, reportToDate),
-        ),
+        .filter((item) => reportWorkerId === 'all' || item.worker_id === reportWorkerId)
+        .filter((item) => sessionStartedInRange(item, reportFromDate, reportToDate)),
     [workSessions, reportWorkerId, reportFromDate, reportToDate],
   );
   const filteredAttendance = useMemo(
     () =>
       attendanceSessions
-        .filter(
-          (item) =>
-            reportWorkerId === 'all' || item.worker_id === reportWorkerId,
-        )
+        .filter((item) => reportWorkerId === 'all' || item.worker_id === reportWorkerId)
         .filter((item) => {
           const date = item.attendance_date || item.started_at.slice(0, 10);
-          return (!reportFromDate || date >= reportFromDate) &&
-            (!reportToDate || date <= reportToDate);
+          return (
+            (!reportFromDate || date >= reportFromDate) && (!reportToDate || date <= reportToDate)
+          );
         }),
     [attendanceSessions, reportWorkerId, reportFromDate, reportToDate],
   );
-  const rows = useMemo(
-    () => buildWorkReportRows(filteredSessions),
-    [filteredSessions],
-  );
+  const rows = useMemo(() => buildWorkReportRows(filteredSessions), [filteredSessions]);
   const totalMinutes = rows.reduce((sum, row) => sum + row.totalMinutes, 0);
   const totalDays = rows.reduce((sum, row) => sum + row.days, 0);
   const totalAttendanceMinutes = filteredAttendance.reduce(
-    (sum, item) =>
-      sum + (item.is_all_day ? 0 : durationMinutes(item.started_at, item.ended_at)),
+    (sum, item) => sum + (item.is_all_day ? 0 : durationMinutes(item.started_at, item.ended_at)),
     0,
   );
   const timedAttendanceCount = filteredAttendance.filter((item) => !item.is_all_day).length;
@@ -90,20 +82,19 @@ export default function WorkReportPanel() {
     <section className="card">
       <div className="reportHeader">
         <div>
-          <h2>דוח שעות עובדים</h2>
+          <h2>{t('דוח שעות עובדים')}</h2>
           <p className="muted">
-            נוכחות כללית לצד שעות לפי פרויקט. אפשר לבחור חודש מלא או טווח
-            מותאם ולייצא את שני סוגי הדיווח לאקסל.
+            {t(
+              'נוכחות כללית לצד שעות לפי פרויקט. אפשר לבחור חודש מלא או טווח\n            מותאם ולייצא את שני סוגי הדיווח לאקסל.',
+            )}
           </p>
         </div>
         <div className="reportActions reportActionsWide">
           <label>
-            עובד
-            <select
-              value={reportWorkerId}
-              onChange={(e) => setReportWorkerId(e.target.value)}
-            >
-              <option value="all">כל העובדים</option>
+            {t('עובד')}
+
+            <select value={reportWorkerId} onChange={(e) => setReportWorkerId(e.target.value)}>
+              <option value="all">{t('כל העובדים')}</option>
               {reportWorkers.map((worker) => (
                 <option key={worker.id} value={worker.id}>
                   {worker.full_name} - {worker.email}
@@ -112,15 +103,13 @@ export default function WorkReportPanel() {
             </select>
           </label>
           <label>
-            חודש
-            <input
-              type="month"
-              value={reportMonth}
-              onChange={(e) => applyMonth(e.target.value)}
-            />
+            {t('חודש')}
+
+            <input type="month" value={reportMonth} onChange={(e) => applyMonth(e.target.value)} />
           </label>
           <label>
-            מתאריך
+            {t('מתאריך')}
+
             <input
               type="date"
               value={reportFromDate}
@@ -128,7 +117,8 @@ export default function WorkReportPanel() {
             />
           </label>
           <label>
-            עד תאריך
+            {t('עד תאריך')}
+
             <input
               type="date"
               value={reportToDate}
@@ -148,69 +138,92 @@ export default function WorkReportPanel() {
               })
             }
           >
-            <Download size={16} /> ייצוא לאקסל
+            <Download size={16} />
+            {t('ייצוא לאקסל')}
           </button>
         </div>
       </div>
       <div className="reportStats">
-        <Stat number={timedAttendanceCount} label="משמרות כלליות" icon={<Users />} />
+        <Stat number={timedAttendanceCount} label={t('משמרות כלליות')} icon={<Users />} />
         <Stat
           number={Math.round((totalAttendanceMinutes / 60) * 10) / 10}
-          label="שעות נוכחות כלליות"
+          label={t('שעות נוכחות כלליות')}
           icon={<Clock />}
         />
+
         <Stat
           number={Math.round((totalMinutes / 60) * 10) / 10}
-          label="שעות משויכות לפרויקטים"
+          label={t('שעות משויכות לפרויקטים')}
           icon={<Clock />}
         />
-        <Stat number={totalDays} label="ימי עבודה בדוח" icon={<History />} />
+
+        <Stat number={totalDays} label={t('ימי עבודה בדוח')} icon={<History />} />
       </div>
       {!attendanceAvailable && (
         <p className="attendanceSetupNotice">
-          נתוני הנוכחות הכללית אינם זמינים עד להפעלת migration הנוכחות ב-Supabase.
+          {t('נתוני הנוכחות הכללית אינם זמינים עד להפעלת migration הנוכחות ב-Supabase.')}
         </p>
       )}
       <div className="attendanceReportBlock">
         <div className="attendanceReportHeading">
           <div>
-            <h3>נוכחות כללית</h3>
-            <p className="muted">כולל נסיעות, מעברים וזמן שאינו משויך לפרויקט מסוים.</p>
+            <h3>{t('נוכחות כללית')}</h3>
+            <p className="muted">{t('כולל נסיעות, מעברים וזמן שאינו משויך לפרויקט מסוים.')}</p>
           </div>
-          <strong>{formatDuration(totalAttendanceMinutes)}</strong>
+          <strong>{t(formatDuration(totalAttendanceMinutes))}</strong>
         </div>
         <div className="tableWrap">
           <table className="reportTable attendanceReportTable">
             <thead>
               <tr>
-                <th>עובד</th>
-                <th>תאריך</th>
-                <th>סוג דיווח</th>
-                <th>כניסה</th>
-                <th>יציאה</th>
-                <th>משך</th>
-                <th>מיקומים</th>
-                <th>הערה</th>
+                <th>{t('עובד')}</th>
+                <th>{t('תאריך')}</th>
+                <th>{t('סוג דיווח')}</th>
+                <th>{t('כניסה')}</th>
+                <th>{t('יציאה')}</th>
+                <th>{t('משך')}</th>
+                <th>{t('מיקומים')}</th>
+                <th>{t('הערה')}</th>
               </tr>
             </thead>
             <tbody>
               {filteredAttendance.length === 0 && (
-                <tr><td colSpan={8}>אין נתוני נוכחות כללית בטווח שנבחר</td></tr>
+                <tr>
+                  <td colSpan={8}>{t('אין נתוני נוכחות כללית בטווח שנבחר')}</td>
+                </tr>
               )}
               {filteredAttendance.map((item) => (
                 <tr key={item.id}>
                   <td>
-                    <b>{item.profiles?.full_name || 'עובד'}</b>
+                    <b>{item.profiles?.full_name || t('עובד')}</b>
                     <br />
                     <span className="muted">{item.profiles?.email || ''}</span>
                   </td>
-                  <td>{new Date(`${item.attendance_date || item.started_at.slice(0, 10)}T12:00:00`).toLocaleDateString('he-IL')}</td>
-                  <td>{attendanceTypeLabel[item.attendance_type]}</td>
-                  <td>{item.is_all_day ? '-' : new Date(item.started_at).toLocaleTimeString('he-IL')}</td>
-                  <td>{item.is_all_day ? '-' : item.ended_at ? new Date(item.ended_at).toLocaleTimeString('he-IL') : 'פתוח'}</td>
-                  <td>{item.is_all_day ? 'ללא שעות' : formatDuration(durationMinutes(item.started_at, item.ended_at))}</td>
                   <td>
-                    {item.is_all_day ? '-' : (
+                    {new Date(
+                      `${item.attendance_date || item.started_at.slice(0, 10)}T12:00:00`,
+                    ).toLocaleDateString('he-IL')}
+                  </td>
+                  <td>{t(attendanceTypeLabel[item.attendance_type])}</td>
+                  <td>
+                    {item.is_all_day ? '-' : new Date(item.started_at).toLocaleTimeString('he-IL')}
+                  </td>
+                  <td>
+                    {item.is_all_day
+                      ? '-'
+                      : item.ended_at
+                        ? new Date(item.ended_at).toLocaleTimeString('he-IL')
+                        : t('פתוח')}
+                  </td>
+                  <td>
+                    {item.is_all_day
+                      ? t('ללא שעות')
+                      : t(formatDuration(durationMinutes(item.started_at, item.ended_at)))}
+                  </td>
+                  <td>
+                    {item.is_all_day ? (
+                      '-'
+                    ) : (
                       <MapLinks
                         startLinks={[mapsLink(item.started_lat, item.started_lng)].filter(Boolean)}
                         endLinks={[mapsLink(item.ended_lat, item.ended_lng)].filter(Boolean)}
@@ -226,31 +239,31 @@ export default function WorkReportPanel() {
       </div>
       <div className="attendanceReportHeading projectHoursHeading">
         <div>
-          <h3>שעות לפי פרויקט</h3>
-          <p className="muted">משמשות לחישובים ולשיוך פיננסי לכל עבודה.</p>
+          <h3>{t('שעות לפי פרויקט')}</h3>
+          <p className="muted">{t('משמשות לחישובים ולשיוך פיננסי לכל עבודה.')}</p>
         </div>
-        <strong>{formatDuration(totalMinutes)}</strong>
+        <strong>{t(formatDuration(totalMinutes))}</strong>
       </div>
       <div className="tableWrap">
         <table className="reportTable">
           <thead>
             <tr>
-              <th>עובד</th>
-              <th>פרויקט</th>
-              <th>לקוח</th>
-              <th>מיקום</th>
-              <th>צוות נוסף</th>
-              <th>תאריכי עבודה</th>
-              <th>ימים</th>
-              <th>זמן עבודה</th>
-              <th>פתוח</th>
-              <th>מיקומי שטח</th>
+              <th>{t('עובד')}</th>
+              <th>{t('פרויקט')}</th>
+              <th>{t('לקוח')}</th>
+              <th>{t('מיקום')}</th>
+              <th>{t('צוות נוסף')}</th>
+              <th>{t('תאריכי עבודה')}</th>
+              <th>{t('ימים')}</th>
+              <th>{t('זמן עבודה')}</th>
+              <th>{t('פתוח')}</th>
+              <th>{t('מיקומי שטח')}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={10}>אין נתוני שעות בטווח שנבחר</td>
+                <td colSpan={10}>{t('אין נתוני שעות בטווח שנבחר')}</td>
               </tr>
             )}
             {rows.map((row) => (
@@ -267,18 +280,18 @@ export default function WorkReportPanel() {
                 <td>{row.workDates.join(', ') || '-'}</td>
                 <td>{row.days}</td>
                 <td>
-                  {formatDuration(row.totalMinutes)}
+                  {t(formatDuration(row.totalMinutes))}
                   <br />
                   <span className="muted">
-                    {formatHoursDecimal(row.totalMinutes)} שעות
+                    {formatHoursDecimal(row.totalMinutes)}
+                    {t('שעות')}
                   </span>
                 </td>
-                <td>{row.openSessions ? `${row.openSessions} פתוח` : '-'}</td>
                 <td>
-                  <MapLinks
-                    startLinks={row.startMapLinks}
-                    endLinks={row.endMapLinks}
-                  />
+                  {row.openSessions ? t('{{value0}} פתוח', { value0: row.openSessions }) : '-'}
+                </td>
+                <td>
+                  <MapLinks startLinks={row.startMapLinks} endLinks={row.endMapLinks} />
                 </td>
               </tr>
             ))}

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../../language/LanguageContext.jsx';
 import { useEffect, useState } from 'react';
 import { Clock, PlayCircle, Square } from 'lucide-react';
 import { useAttendance } from '../AttendanceContext.jsx';
@@ -5,6 +7,7 @@ import { attendanceTypeLabel } from '../api.js';
 import { formatDuration } from '../../../utils/format.js';
 
 export default function MobileAttendanceDock() {
+  useTranslation();
   const {
     myAttendanceSessions: sessions,
     attendanceAvailable: available,
@@ -12,9 +15,7 @@ export default function MobileAttendanceDock() {
     openAttendanceEndDialog,
   } = useAttendance();
 
-  const openSession = sessions.find(
-    (item) => !item.ended_at && !item.is_all_day,
-  ) || null;
+  const openSession = sessions.find((item) => !item.ended_at && !item.is_all_day) || null;
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -36,11 +37,24 @@ export default function MobileAttendanceDock() {
   }
 
   return (
-    <aside className={`mobileAttendanceDock ${openSession ? 'active' : ''}`} aria-label="קיצור דרך לשעון נוכחות">
-      <div className="mobileAttendanceDockIcon"><Clock size={19} /></div>
+    <aside
+      className={`mobileAttendanceDock ${openSession ? 'active' : ''}`}
+      aria-label={t('קיצור דרך לשעון נוכחות')}
+    >
+      <div className="mobileAttendanceDockIcon">
+        <Clock size={19} />
+      </div>
       <div className="mobileAttendanceDockCopy">
-        <b>{openSession ? attendanceTypeLabel[openSession.attendance_type] : 'שעון נוכחות'}</b>
-        <span>{openSession ? formatDuration(minutes) : available ? 'לא התחלת משמרת' : 'השעון לא זמין'}</span>
+        <b>
+          {openSession ? t(attendanceTypeLabel[openSession.attendance_type]) : t('שעון נוכחות')}
+        </b>
+        <span>
+          {openSession
+            ? t(formatDuration(minutes))
+            : available
+              ? t('לא התחלת משמרת')
+              : t('השעון לא זמין')}
+        </span>
       </div>
       <button
         className={openSession ? 'danger' : ''}
@@ -48,7 +62,7 @@ export default function MobileAttendanceDock() {
         onClick={openSession ? openAttendanceEndDialog : openClock}
       >
         {openSession ? <Square size={16} /> : <PlayCircle size={16} />}
-        {busy ? 'מעדכן...' : openSession ? 'סיום' : 'פתיחה'}
+        {busy ? t('מעדכן...') : openSession ? t('סיום') : t('פתיחה')}
       </button>
     </aside>
   );

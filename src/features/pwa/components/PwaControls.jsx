@@ -1,14 +1,16 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../../language/LanguageContext.jsx';
 import { useEffect, useState } from 'react';
 import { BellOff, BellRing, Download } from 'lucide-react';
 import { useMessage } from '../../../context/MessageContext.jsx';
 import { subscribePush, unsubscribePush } from '../api.js';
 
 function isStandalone() {
-  return window.matchMedia('(display-mode: standalone)').matches
-    || Boolean(navigator.standalone);
+  return window.matchMedia('(display-mode: standalone)').matches || Boolean(navigator.standalone);
 }
 
 export default function PwaControls() {
+  useTranslation();
   const { setMessage } = useMessage();
   const [installPrompt, setInstallPrompt] = useState(null);
   const [installed, setInstalled] = useState(false);
@@ -20,9 +22,7 @@ export default function PwaControls() {
     setInstalled(isStandalone());
     setInstallPrompt(window.__mayaInstallPrompt || null);
     setPushSupported(
-      'serviceWorker' in navigator
-      && 'PushManager' in window
-      && 'Notification' in window,
+      'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window,
     );
 
     const onInstallPromptReady = () => {
@@ -52,15 +52,15 @@ export default function PwaControls() {
 
   async function installApp() {
     if (installed) {
-      setMessage('האפליקציה כבר מותקנת במכשיר הזה.');
+      setMessage(t('האפליקציה כבר מותקנת במכשיר הזה.'));
       return;
     }
     if (!installPrompt) {
       const isAppleMobile = /iphone|ipad|ipod/i.test(navigator.userAgent);
       setMessage(
         isAppleMobile
-          ? 'ב-iPhone: פתח את תפריט השיתוף ובחר ׳הוספה למסך הבית׳.'
-          : 'פתח את תפריט הדפדפן ובחר ׳התקנת האפליקציה׳ או ׳הוספה למסך הבית׳.',
+          ? t('ב-iPhone: פתח את תפריט השיתוף ובחר ׳הוספה למסך הבית׳.')
+          : t('פתח את תפריט הדפדפן ובחר ׳התקנת האפליקציה׳ או ׳הוספה למסך הבית׳.'),
       );
       return;
     }
@@ -69,7 +69,7 @@ export default function PwaControls() {
     const choice = await installPrompt.userChoice;
     if (choice.outcome === 'accepted') {
       setInstalled(true);
-      setMessage('האפליקציה הותקנה בהצלחה.');
+      setMessage(t('האפליקציה הותקנה בהצלחה.'));
     }
     window.__mayaInstallPrompt = undefined;
     setInstallPrompt(null);
@@ -77,7 +77,7 @@ export default function PwaControls() {
 
   async function enablePush() {
     if (!pushSupported) {
-      setMessage('המכשיר או הדפדפן הזה אינם תומכים בהתראות Push.');
+      setMessage(t('המכשיר או הדפדפן הזה אינם תומכים בהתראות Push.'));
       return;
     }
 
@@ -85,7 +85,7 @@ export default function PwaControls() {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        setMessage('לא ניתנה הרשאה להתראות. אפשר לשנות זאת בהגדרות הדפדפן.');
+        setMessage(t('לא ניתנה הרשאה להתראות. אפשר לשנות זאת בהגדרות הדפדפן.'));
         return;
       }
 
@@ -93,9 +93,9 @@ export default function PwaControls() {
       await subscribePush(registration);
 
       setSubscribed(true);
-      setMessage('ההתראות הופעלו בהצלחה במכשיר הזה.');
+      setMessage(t('ההתראות הופעלו בהצלחה במכשיר הזה.'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'הפעלת ההתראות נכשלה.');
+      setMessage(error instanceof Error ? error.message : t('הפעלת ההתראות נכשלה.'));
     } finally {
       setBusy(false);
     }
@@ -107,19 +107,19 @@ export default function PwaControls() {
       const registration = await navigator.serviceWorker.ready;
       await unsubscribePush(registration);
       setSubscribed(false);
-      setMessage('ההתראות כובו במכשיר הזה.');
+      setMessage(t('ההתראות כובו במכשיר הזה.'));
     } catch {
-      setMessage('כיבוי ההתראות נכשל. נסה שוב.');
+      setMessage(t('כיבוי ההתראות נכשל. נסה שוב.'));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <section className="pwaControls" aria-label="התקנה והתראות">
+    <section className="pwaControls" aria-label={t('התקנה והתראות')}>
       <button className="pwaControlButton" onClick={installApp} disabled={installed}>
         <Download size={16} />
-        <span>{installed ? 'האפליקציה מותקנת' : 'התקנת האפליקציה'}</span>
+        <span>{installed ? t('האפליקציה מותקנת') : t('התקנת האפליקציה')}</span>
       </button>
       <button
         className={`pwaControlButton ${subscribed ? 'enabled' : ''}`}
@@ -127,7 +127,7 @@ export default function PwaControls() {
         disabled={busy || !pushSupported}
       >
         {subscribed ? <BellOff size={16} /> : <BellRing size={16} />}
-        <span>{subscribed ? 'כיבוי התראות' : 'הפעלת התראות'}</span>
+        <span>{subscribed ? t('כיבוי התראות') : t('הפעלת התראות')}</span>
       </button>
     </section>
   );

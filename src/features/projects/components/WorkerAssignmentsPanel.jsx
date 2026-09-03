@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../../language/LanguageContext.jsx';
 import { useState } from 'react';
 import { FolderKanban } from 'lucide-react';
 import { useProjects } from '../ProjectsContext.jsx';
@@ -5,6 +7,7 @@ import { appStatuses } from '../../../services/supabase.js';
 import StatusPill from '../../../components/StatusPill.jsx';
 
 export default function WorkerAssignmentsPanel({ onOpenProject }) {
+  useTranslation();
   const { projects, workers } = useProjects();
   const [search, setSearch] = useState('');
   const [assignmentStatus, setAssignmentStatus] = useState('');
@@ -16,21 +19,15 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
     .map((worker) => {
       const workerMatches =
         !normalizedSearch ||
-        `${worker.full_name} ${worker.email || ''}`
-          .toLowerCase()
-          .includes(normalizedSearch);
+        `${worker.full_name} ${worker.email || ''}`.toLowerCase().includes(normalizedSearch);
       const assignedProjects = projects
         .filter(
           (project) =>
             project.assigned_to === worker.id ||
-            project.project_workers?.some(
-              (assignment) => assignment.worker_id === worker.id,
-            ),
+            project.project_workers?.some((assignment) => assignment.worker_id === worker.id),
         )
         .filter((project) => includeArchived || !project.is_archived)
-        .filter(
-          (project) => !assignmentStatus || project.status === assignmentStatus,
-        )
+        .filter((project) => !assignmentStatus || project.status === assignmentStatus)
         .filter((project) => {
           if (workerMatches) return true;
           const projectText = `${project.name} ${project.client_name || ''} ${project.location} ${project.status}`;
@@ -42,17 +39,13 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
     })
     .filter(
       ({ projects: assignedProjects, workerMatches }) =>
-        assignedProjects.length > 0 ||
-        (workerMatches && !assignmentStatus && !normalizedSearch),
+        assignedProjects.length > 0 || (workerMatches && !assignmentStatus && !normalizedSearch),
     );
 
   const assignedActiveProjects = new Set(
     projects
       .filter((project) => !project.is_archived)
-      .filter(
-        (project) =>
-          project.assigned_to || (project.project_workers?.length || 0) > 0,
-      )
+      .filter((project) => project.assigned_to || (project.project_workers?.length || 0) > 0)
       .map((project) => project.id),
   ).size;
   const workersWithoutProjects = fieldWorkers.filter(
@@ -61,9 +54,7 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
         (project) =>
           !project.is_archived &&
           (project.assigned_to === worker.id ||
-            project.project_workers?.some(
-              (assignment) => assignment.worker_id === worker.id,
-            )),
+            project.project_workers?.some((assignment) => assignment.worker_id === worker.id)),
       ),
   ).length;
 
@@ -71,9 +62,9 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
     <section className="card assignmentsPanel">
       <div className="panelHeader">
         <div>
-          <h2>פרויקטים משויכים לפי עובד</h2>
+          <h2>{t('פרויקטים משויכים לפי עובד')}</h2>
           <p className="muted">
-            תמונת מצב של כל עובד שטח, כולל פרויקטים שבהם הוא אחראי ראשי או עובד נוסף.
+            {t('תמונת מצב של כל עובד שטח, כולל פרויקטים שבהם הוא אחראי ראשי או עובד נוסף.')}
           </p>
         </div>
       </div>
@@ -81,15 +72,15 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
       <div className="assignmentSummary">
         <div>
           <strong>{fieldWorkers.length}</strong>
-          <span>עובדי שטח</span>
+          <span>{t('עובדי שטח')}</span>
         </div>
         <div>
           <strong>{assignedActiveProjects}</strong>
-          <span>פרויקטים פעילים משויכים</span>
+          <span>{t('פרויקטים פעילים משויכים')}</span>
         </div>
         <div>
           <strong>{workersWithoutProjects}</strong>
-          <span>עובדים ללא פרויקט פעיל</span>
+          <span>{t('עובדים ללא פרויקט פעיל')}</span>
         </div>
       </div>
 
@@ -97,16 +88,17 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="חיפוש עובד, פרויקט, לקוח או מיקום..."
+          placeholder={t('חיפוש עובד, פרויקט, לקוח או מיקום...')}
         />
+
         <select
           value={assignmentStatus}
           onChange={(event) => setAssignmentStatus(event.target.value)}
         >
-          <option value="">כל הסטטוסים</option>
+          <option value="">{t('כל הסטטוסים')}</option>
           {appStatuses.map((status) => (
             <option key={status} value={status}>
-              {status}
+              {t(status)}
             </option>
           ))}
         </select>
@@ -116,7 +108,8 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
             checked={includeArchived}
             onChange={(event) => setIncludeArchived(event.target.checked)}
           />
-          הצג גם פרויקטים בארכיון
+
+          {t('הצג גם פרויקטים בארכיון')}
         </label>
       </div>
 
@@ -124,13 +117,14 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
         {workerRows.map(({ worker, projects: assignedProjects }) => (
           <article className="workerAssignmentCard" key={worker.id}>
             <header>
-              <div className="avatar">{worker.full_name?.[0] || 'ע'}</div>
+              <div className="avatar">{worker.full_name?.[0] || t('ע')}</div>
               <div>
                 <h3>{worker.full_name}</h3>
-                <p>{worker.email || 'ללא כתובת מייל'}</p>
+                <p>{worker.email || t('ללא כתובת מייל')}</p>
               </div>
               <span className="assignmentCount">
-                {assignedProjects.length} פרויקטים
+                {assignedProjects.length}
+                {t('פרויקטים')}
               </span>
             </header>
 
@@ -143,22 +137,26 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
                       <div>
                         <b>{project.name}</b>
                         <span>
-                          {project.client_name || 'ללא לקוח'} · {project.location}
+                          {project.client_name || t('ללא לקוח')} · {project.location}
                         </span>
                       </div>
                       <StatusPill status={project.status} />
                     </div>
                     <div className="assignedProjectMeta">
                       <span className={isPrimary ? 'primaryAssignment' : 'extraAssignment'}>
-                        {isPrimary ? 'אחראי ראשי' : 'עובד נוסף'}
+                        {isPrimary ? t('אחראי ראשי') : t('עובד נוסף')}
                       </span>
-                      <span>{project.progress}% התקדמות</span>
                       <span>
-                        יעד: {project.due_date
-                          ? new Date(project.due_date).toLocaleDateString('he-IL')
-                          : 'לא הוגדר'}
+                        {project.progress}
+                        {t('% התקדמות')}
                       </span>
-                      {project.is_archived && <span className="archiveBadge">בארכיון</span>}
+                      <span>
+                        {t('יעד:')}
+                        {project.due_date
+                          ? new Date(project.due_date).toLocaleDateString('he-IL')
+                          : t('לא הוגדר')}
+                      </span>
+                      {project.is_archived && <span className="archiveBadge">{t('בארכיון')}</span>}
                     </div>
                     <div className="progress assignmentProgress">
                       <i style={{ width: `${project.progress}%` }} />
@@ -168,19 +166,20 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
                       className="ghost smallBtn assignedProjectOpen"
                       onClick={() => onOpenProject?.(project)}
                     >
-                      <FolderKanban size={16} /> פתיחת פרויקט
+                      <FolderKanban size={16} />
+                      {t('פתיחת פרויקט')}
                     </button>
                   </div>
                 );
               })}
               {assignedProjects.length === 0 && (
-                <div className="assignmentEmpty">אין לעובד פרויקטים פעילים משויכים</div>
+                <div className="assignmentEmpty">{t('אין לעובד פרויקטים פעילים משויכים')}</div>
               )}
             </div>
           </article>
         ))}
         {workerRows.length === 0 && (
-          <div className="empty">לא נמצאו עובדים או פרויקטים התואמים לסינון.</div>
+          <div className="empty">{t('לא נמצאו עובדים או פרויקטים התואמים לסינון.')}</div>
         )}
       </div>
     </section>

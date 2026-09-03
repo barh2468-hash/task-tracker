@@ -1010,7 +1010,7 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
 .loadMoreProjects { margin: 8px auto 0; }
 
 .languageToggle {
-  min-width: 54px;
+  min-width: 112px;
   height: 42px;
   padding: 0 10px;
   display: inline-flex;
@@ -1023,6 +1023,7 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
   color: #0b376d;
   font-weight: 800;
 }
+.languageToggle select { width:auto;min-width:70px;padding:0;border:0;background:transparent;box-shadow:none;color:inherit;font-weight:800;cursor:pointer; }
 
 .language-en .projectCompactHeader,
 .language-en input,

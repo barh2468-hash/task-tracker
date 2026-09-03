@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next';
+import { t } from '../language/LanguageContext.jsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CloudOff, RefreshCw } from 'lucide-react';
 import { flushOfflineQueue, getOfflineQueue } from '../../services/offlineStore.js';
 import { useMessage } from '../../context/MessageContext.jsx';
 
 export default function OfflineSync() {
+  useTranslation();
   const { setMessage } = useMessage();
   const [online, setOnline] = useState(navigator.onLine);
   const [pending, setPending] = useState(0);
@@ -18,7 +21,8 @@ export default function OfflineSync() {
     try {
       const result = await flushOfflineQueue();
       setPending(result.remaining);
-      if (result.synced) setMessage(`${result.synced} פעולות מהשטח סונכרנו בהצלחה.`);
+      if (result.synced)
+        setMessage(t('{{value0}} פעולות מהשטח סונכרנו בהצלחה.', { value0: result.synced }));
     } finally {
       syncingRef.current = false;
       setSyncing(false);
@@ -26,7 +30,10 @@ export default function OfflineSync() {
   }, [setMessage]);
 
   useEffect(() => {
-    const onOnline = () => { setOnline(true); sync(); };
+    const onOnline = () => {
+      setOnline(true);
+      sync();
+    };
     const onOffline = () => setOnline(false);
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
@@ -44,8 +51,17 @@ export default function OfflineSync() {
   return (
     <div className="offlineBanner" role="status">
       <CloudOff size={18} />
-      <span>{online ? `${pending} פעולות ממתינות לסנכרון` : `מצב אופליין · ${pending} פעולות נשמרו במכשיר`}</span>
-      {online && pending > 0 && <button type="button" className="ghost tinyBtn" disabled={syncing} onClick={sync}><RefreshCw size={15} /> סנכרון</button>}
+      <span>
+        {online
+          ? t('{{value0}} פעולות ממתינות לסנכרון', { value0: pending })
+          : t('מצב אופליין · {{value0}} פעולות נשמרו במכשיר', { value0: pending })}
+      </span>
+      {online && pending > 0 && (
+        <button type="button" className="ghost tinyBtn" disabled={syncing} onClick={sync}>
+          <RefreshCw size={15} />
+          {t('סנכרון')}
+        </button>
+      )}
     </div>
   );
 }

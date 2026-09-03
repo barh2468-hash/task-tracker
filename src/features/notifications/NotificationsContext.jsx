@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/useAuth.js';
-import { supabase } from '../../services/supabase.js';
+import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh.js';
 import * as notificationsFeatureApi from './api.js';
 
 const NotificationsContext = createContext(null);
@@ -21,14 +21,13 @@ export function NotificationsProvider({ children }) {
     loadNotifications();
   }, [profile]);
 
-  useEffect(() => {
-    if (!profile) return;
-    const channel = supabase
-      .channel('infrastructure-tracker-notifications')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => loadNotifications())
-      .subscribe();
-    return () => supabase.removeChannel(channel);
-  }, [profile]);
+  useRealtimeRefresh({
+    enabled: Boolean(profile),
+    channelName: 'infrastructure-tracker-notifications',
+    tables: ['notifications'],
+    onRefresh: loadNotifications,
+    pollIntervalMs: 30000,
+  });
 
   async function markNotificationRead(notificationId) {
     await notificationsFeatureApi.markNotificationRead(notificationId);

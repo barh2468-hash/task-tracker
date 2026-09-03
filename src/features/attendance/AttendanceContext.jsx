@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
-import { supabase } from '../../services/supabase.js';
+import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh.js';
 import * as attendanceFeatureApi from './api.js';
 
 const AttendanceContext = createContext(null);
@@ -101,25 +101,13 @@ export function AttendanceProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
-  useEffect(() => {
-    if (!profile) return;
-    const channel = supabase
-      .channel('infrastructure-tracker-work-sessions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_sessions' }, () => loadWorkSessions())
-      .subscribe();
-    return () => supabase.removeChannel(channel);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, isManager]);
-
-  useEffect(() => {
-    if (!profile || !attendanceAvailable) return;
-    const channel = supabase
-      .channel('general-attendance-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_sessions' }, () => loadAttendanceSessions())
-      .subscribe();
-    return () => supabase.removeChannel(channel);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, attendanceAvailable]);
+  useRealtimeRefresh({
+    enabled: Boolean(profile),
+    channelName: 'infrastructure-tracker-attendance',
+    tables: ['work_sessions', 'attendance_sessions'],
+    onRefresh: () => Promise.all([loadWorkSessions(), loadAttendanceSessions()]),
+    pollIntervalMs: 15000,
+  });
 
   async function runMutation(promise) {
     const result = await promise;

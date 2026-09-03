@@ -163,6 +163,8 @@
 .project > .form .timeBox b{
   font-size:14px;
 }
+.managerActiveSessions{grid-column:1/-1;display:grid;gap:4px;padding-top:9px;border-top:1px dashed var(--line)}
+.managerActiveSessions span{display:block}
 .project > .form input,
 .project > .form select{
   min-height:48px;

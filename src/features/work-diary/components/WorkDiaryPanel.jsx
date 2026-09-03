@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Download, FileSignature, PenLine, PlusCircle, Trash2, X } from "lucide-react";
 import { getWorkDiariesForProject, insertWorkDiary, deleteWorkDiary } from "../../../services/api/workDiaries.js";
 import { getCurrentUser } from "../../../services/api/auth.js";
+import { useRealtimeRefresh } from "../../../hooks/useRealtimeRefresh.js";
 import { exportWorkDiaryPdf } from "../utils/exportWorkDiaryPdf.js";
 import { workKinds, leakKinds } from "../utils/helpers.js";
 import SignaturePad from "./SignaturePad.jsx";
@@ -82,6 +83,14 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete }) 
     loadDiaries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]);
+
+  useRealtimeRefresh({
+    enabled: Boolean(project.id),
+    channelName: `work-diaries-${project.id}`,
+    tables: ['work_diaries'],
+    onRefresh: loadDiaries,
+    pollIntervalMs: 30000,
+  });
 
   useEffect(() => {
     if (!formOpen) return;

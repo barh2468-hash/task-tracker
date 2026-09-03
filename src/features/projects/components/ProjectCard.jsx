@@ -131,6 +131,9 @@ export default function ProjectCard({ project }) {
   const myOpenSession = project.work_sessions?.find(
     (w) => w.worker_id === currentUserId && !w.ended_at,
   );
+  const otherOpenSessions = (project.work_sessions || []).filter(
+    (w) => w.worker_id !== currentUserId && !w.ended_at,
+  );
   const lastEndedSession = project.work_sessions
     ?.filter((w) => w.worker_id === currentUserId && w.ended_at)
     .sort(
@@ -621,6 +624,17 @@ export default function ProjectCard({ project }) {
                   <PlayCircle size={15} /> התחל עבודה
                 </button>
               </>
+            )}
+            {isManager && otherOpenSessions.length > 0 && (
+              <div className="managerActiveSessions">
+                <b>עבודות פעילות נוספות</b>
+                {otherOpenSessions.map((workSession) => (
+                  <span key={workSession.id} className="muted">
+                    {workSession.profiles?.full_name || "משתמש"} · התחלה:{" "}
+                    {new Date(workSession.started_at).toLocaleString("he-IL")}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
           <select value={status} onChange={(e) => setStatus(e.target.value)}>

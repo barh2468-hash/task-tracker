@@ -67,7 +67,7 @@ export async function startWork(project, profile) {
     note: `שעת התחלה: ${startedAt.toLocaleString('he-IL')}${locationText}`,
   });
 
-  if (profile?.role === 'field_worker') {
+  if (profile?.role === 'field_worker' || profile?.role === 'manager') {
     await createManagerNotification(
       'work_started',
       `התחלת עבודה: ${project.name}`,
@@ -120,7 +120,7 @@ export async function endWork(project, profile, { endNote = '', crewMembers = []
     note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}${locationText}${crewText ? ` · צוות: ${crewText}` : ''}${endNote.trim() ? ` · הערת סיום: ${endNote.trim()}` : ''}`,
   });
 
-  if (profile?.role === 'field_worker') {
+  if (profile?.role === 'field_worker' || profile?.role === 'manager') {
     await createManagerNotification(
       'work_ended',
       `סיום עבודה: ${project.name}`,
@@ -167,7 +167,7 @@ export async function startAttendance(attendanceType, { profile, attendanceSessi
 
     if (result.error) return { message: result.error.message };
 
-    if (profile?.role === 'field_worker') {
+    if (profile?.role === 'field_worker' || profile?.role === 'manager') {
       await createManagerNotification(
         'attendance_day_status',
         `דיווח נוכחות: ${attendanceTypeLabel[attendanceType]}`,
@@ -205,7 +205,7 @@ export async function startAttendance(attendanceType, { profile, attendanceSessi
     return { message: error.code === '23505' ? 'כבר קיימת משמרת כללית פתוחה.' : error.message };
   }
 
-  if (profile?.role === 'field_worker') {
+  if (profile?.role === 'field_worker' || profile?.role === 'manager') {
     await createManagerNotification(
       'attendance_started',
       `תחילת ${attendanceTypeLabel[attendanceType]}`,
@@ -239,7 +239,7 @@ export async function finishAttendance(endNote, { profile, attendanceSessions })
   });
   if (error) return { message: error.message, success: false };
 
-  if (profile?.role === 'field_worker') {
+  if (profile?.role === 'field_worker' || profile?.role === 'manager') {
     await createManagerNotification(
       'attendance_ended',
       `סיום ${attendanceTypeLabel[openSession.attendance_type]}`,

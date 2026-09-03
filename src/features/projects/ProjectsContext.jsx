@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
-import { supabase } from '../../services/supabase.js';
+import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh.js';
 import * as profilesApi from '../../services/api/profiles.js';
 import * as projectsFeatureApi from './api.js';
 import { useNotifications } from '../notifications/NotificationsContext.jsx';
@@ -53,19 +53,22 @@ export function ProjectsProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
-  useEffect(() => {
-    if (!profile) return;
-    const channel = supabase
-      .channel('infrastructure-tracker-projects')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadProjects())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'status_history' }, () => loadHistory())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_photos' }, () => loadProjects())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_tasks' }, () => loadProjects())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'work_sessions' }, () => loadProjects())
-      .subscribe();
-    return () => supabase.removeChannel(channel);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile]);
+  useRealtimeRefresh({
+    enabled: Boolean(profile),
+    channelName: 'infrastructure-tracker-projects',
+    tables: [
+      'projects',
+      'status_history',
+      'project_photos',
+      'project_tasks',
+      'project_workers',
+      'project_review_files',
+      'work_sessions',
+      'profiles',
+    ],
+    onRefresh: () => Promise.all([loadProjects(), loadWorkers(), loadHistory()]),
+    pollIntervalMs: 20000,
+  });
 
   async function runMutation(promise) {
     const result = await promise;

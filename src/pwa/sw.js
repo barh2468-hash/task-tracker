@@ -1,15 +1,47 @@
-// Ported verbatim from public/sw.js — push-notification-only service worker.
-// No offline caching/precaching is added here; that would be a behavior
-// change from the original app, not a faithful port.
+const CACHE_NAME = 'maya-app-shell-v1';
+const PRECACHE_URLS = self.__WB_MANIFEST.map((entry) => entry.url);
 
 // Activate updated push/badge handling immediately. The page no longer reloads
 // on controllerchange, so this does not bring back the former login-screen jump.
-self.addEventListener('install', () => {
-  self.skipWaiting();
+self.addEventListener('install', (event) => {
+  event.waitUntil(Promise.all([
+    self.skipWaiting(),
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS)),
+  ]));
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(Promise.all([
+    self.clients.claim(),
+    caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith('maya-app-shell-') && key !== CACHE_NAME).map((key) => caches.delete(key)))),
+  ]));
+});
+
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+          return response;
+        })
+        .catch(() => caches.match('/index.html').then((response) => response || caches.match('/'))),
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+      if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+      return response;
+    })),
+  );
 });
 
 self.addEventListener('push', (event) => {

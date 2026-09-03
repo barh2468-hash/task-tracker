@@ -9,6 +9,7 @@ import * as storageApi from '../../services/api/storage.js';
 import * as edgeFunctions from '../../services/api/edgeFunctions.js';
 import { statusProgress, REVIEW_STATUS } from '../../services/supabase.js';
 import { createManagerNotification, createUserNotification } from '../notifications/api.js';
+import { enqueueOfflineAction } from '../../services/offlineStore.js';
 
 // ---- Loading ----------------------------------------------------------
 
@@ -46,8 +47,13 @@ export async function getProjects(profile) {
 }
 
 export async function getHistory() {
-  const { data } = await statusHistoryApi.getHistory();
+  const { data, error } = await statusHistoryApi.getHistory();
+  if (error) throw error;
   return data || [];
+}
+
+export function getProjectAssets(projectId) {
+  return projectsApi.getProjectAssets(projectId);
 }
 
 export function getProjectFieldWorkerIds(project) {
@@ -92,6 +98,15 @@ export async function updateStatus(project, newStatus, note, profile) {
   if (!user) return { message: '' };
 
   const nextProgress = newStatus === REVIEW_STATUS ? 85 : (statusProgress[newStatus] ?? project.progress);
+  if (!navigator.onLine) {
+    await enqueueOfflineAction('project_status', {
+      projectId: project.id,
+      newStatus,
+      progress: nextProgress,
+      history: { project_id: project.id, old_status: project.status, new_status: newStatus, changed_by: user.id, note: note || 'עדכון סטטוס מהשטח' },
+    });
+    return { message: 'אין חיבור. שינוי הסטטוס נשמר ויסונכרן אוטומטית.', offline: true, optimistic: { status: newStatus, progress: nextProgress } };
+  }
   const { error } = await projectsApi.updateProject(project.id, { status: newStatus, progress: nextProgress });
   if (error) return { message: error.message };
 
@@ -138,6 +153,14 @@ export async function updateStatus(project, newStatus, note, profile) {
 export async function uploadPhoto(projectId, file, category = 'תמונת שטח') {
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '' };
+
+  if (!navigator.onLine) {
+    await enqueueOfflineAction('project_photo', {
+      projectId, userId: user.id, file, fileName: file.name, category,
+      history: { project_id: projectId, old_status: null, new_status: 'הועלתה תמונה', changed_by: user.id },
+    });
+    return { message: 'אין חיבור. התמונה נשמרה במכשיר ותועלה אוטומטית.', offline: true };
+  }
 
   const path = `${projectId}/${Date.now()}-${storageApi.safeFileName(file.name)}`;
   const { error } = await storageApi.uploadFile('project-photos', path, file, { upsert: false });
@@ -611,6 +634,15 @@ export async function addProjectTask(projectId, title, description, profile, pro
   const cleanTitle = title.trim();
   if (!cleanTitle) return { message: 'יש למלא כותרת למשימה.' };
 
+  if (!navigator.onLine) {
+    const task = { id: crypto.randomUUID(), project_id: projectId, title: cleanTitle, description: description.trim() || null, created_by: user.id, is_done: false, created_at: new Date().toISOString(), pending_sync: true, profiles: { full_name: profile.full_name } };
+    await enqueueOfflineAction('project_task_add', {
+      task,
+      history: { project_id: projectId, old_status: null, new_status: 'נוספה משימה', changed_by: user.id, note: `${cleanTitle} · נשמר במצב אופליין` },
+    });
+    return { message: 'אין חיבור. המשימה נשמרה ותסונכרן אוטומטית.', offline: true, offlineTask: task };
+  }
+
   const { data: insertedTask, error } = await projectTasksApi.insertProjectTask({
     project_id: projectId,
     title: cleanTitle,
@@ -662,6 +694,13 @@ export async function toggleProjectTask(task, project, profile, isManager) {
   if (!isManager && !isAssignedWorker) return { message: '' };
 
   const nextDone = !task.is_done;
+  if (!navigator.onLine) {
+    await enqueueOfflineAction('project_task_toggle', {
+      taskId: task.id, isDone: nextDone,
+      history: { project_id: project.id, old_status: null, new_status: nextDone ? 'משימה בוצעה' : 'משימה נפתחה מחדש', changed_by: user.id, note: `${task.title} · נשמר במצב אופליין` },
+    });
+    return { message: 'אין חיבור. מצב המשימה נשמר ויסונכרן אוטומטית.', offline: true, optimistic: { is_done: nextDone } };
+  }
   const { error } = await projectTasksApi.updateProjectTask(task.id, { is_done: nextDone });
   if (error) return { message: error.message };
 

@@ -5,6 +5,7 @@ import * as statusHistoryApi from '../../services/api/statusHistory.js';
 import { createManagerNotification } from '../notifications/api.js';
 import { getCurrentLocationWithFallback } from '../../hooks/useGeolocation.js';
 import { formatDuration, formatLocation, durationMinutes, toLocalDateKey } from '../../utils/format.js';
+import { enqueueOfflineAction } from '../../services/offlineStore.js';
 
 export const attendanceTypeOptions = [
   { value: 'field', label: 'עבודה בשטח', timed: true },
@@ -16,8 +17,7 @@ export const attendanceTypeOptions = [
 
 export const attendanceTypeLabel = Object.fromEntries(attendanceTypeOptions.map((item) => [item.value, item.label]));
 
-export async function getWorkSessions(isManager) {
-  if (!isManager) return [];
+export async function getWorkSessions(_isManager) {
   const { data, error } = await workSessionsApi.getWorkSessions();
   if (error) throw error;
   return data || [];
@@ -48,15 +48,32 @@ export async function startWork(project, profile) {
   if (location === false) return { message: 'התחלת העבודה בוטלה כי לא התקבל אישור מיקום.' };
 
   const startedAt = new Date();
-  const { error } = await workSessionsApi.insertWorkSession({
+  const sessionPayload = {
     project_id: project.id,
     worker_id: user.id,
     started_at: startedAt.toISOString(),
     started_lat: location?.lat ?? null,
     started_lng: location?.lng ?? null,
     started_accuracy: location?.accuracy ?? null,
+  };
+  if (!navigator.onLine) {
+    const localId = crypto.randomUUID();
+    await enqueueOfflineAction('work_start', {
+      session: { id: localId, ...sessionPayload },
+      history: { project_id: project.id, old_status: null, new_status: 'התחלת עבודה', changed_by: user.id, note: `שעת התחלה: ${startedAt.toLocaleString('he-IL')} · נשמר במצב אופליין` },
+    });
+    return { message: 'אין חיבור. הכניסה נשמרה במכשיר ותסונכרן אוטומטית.', offlineSession: { id: localId, ...sessionPayload, pending_sync: true } };
+  }
+  const { error } = await workSessionsApi.insertWorkSession({
+    ...sessionPayload,
   });
-  if (error) return { message: error.message };
+  if (error) {
+    return {
+      message: error.code === '23505' || error.message?.includes('open_work_session_exists')
+        ? 'כבר קיימת שעת התחלה פתוחה לפרויקט הזה. לחץ סיים עבודה כדי לסגור אותה.'
+        : error.message,
+    };
+  }
 
   const locationText = location ? ` · מיקום התחלה: ${formatLocation(location)}` : ' · מיקום התחלה לא נשמר';
   await statusHistoryApi.insertStatusHistory({
@@ -101,14 +118,24 @@ export async function endWork(project, profile, { endNote = '', crewMembers = []
     }));
   const crewText = normalizedCrew.map((member) => member.name).join(', ');
 
-  const { error } = await workSessionsApi.updateWorkSession(openSession.id, {
+  const endChanges = {
     ended_at: endedAt.toISOString(),
     ended_lat: location?.lat ?? null,
     ended_lng: location?.lng ?? null,
     ended_accuracy: location?.accuracy ?? null,
     end_note: endNote.trim() || null,
     crew_members: normalizedCrew,
-  });
+  };
+  if (!navigator.onLine) {
+    await enqueueOfflineAction('work_end', {
+      sessionId: openSession.id,
+      changes: endChanges,
+      history: { project_id: project.id, old_status: null, new_status: 'סיום עבודה', changed_by: user.id, note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)} · נשמר במצב אופליין` },
+    });
+    return { message: 'אין חיבור. סיום העבודה נשמר וייסונכרן אוטומטית.', success: true, offlineChanges: endChanges, sessionId: openSession.id };
+  }
+
+  const { error } = await workSessionsApi.updateWorkSession(openSession.id, endChanges);
   if (error) return { message: error.message, success: false };
 
   const locationText = location ? ` · מיקום סיום: ${formatLocation(location)}` : ' · מיקום סיום לא נשמר';
@@ -161,6 +188,12 @@ export async function startAttendance(attendanceType, { profile, attendanceSessi
       attendance_date: attendanceDate,
       is_all_day: true,
     };
+    if (!navigator.onLine) {
+      if (existingDayStatus) return { message: 'כדי להחליף דיווח יומי קיים יש להתחבר לאינטרנט.' };
+      const localSession = { id: crypto.randomUUID(), ...payload, pending_sync: true };
+      await enqueueOfflineAction('attendance_start', { session: localSession });
+      return { message: `אין חיבור. דיווח ${attendanceTypeLabel[attendanceType]} נשמר לסנכרון.`, offlineSession: localSession };
+    }
     const result = existingDayStatus
       ? await attendanceSessionsApi.updateAttendanceSession(existingDayStatus.id, payload)
       : await attendanceSessionsApi.insertAttendanceSession(payload);
@@ -190,7 +223,7 @@ export async function startAttendance(attendanceType, { profile, attendanceSessi
   if (location === false) return { message: 'תחילת יום העבודה בוטלה כי לא התקבל אישור מיקום.' };
 
   const startedAt = new Date();
-  const { error } = await attendanceSessionsApi.insertAttendanceSession({
+  const attendancePayload = {
     worker_id: user.id,
     started_at: startedAt.toISOString(),
     attendance_type: attendanceType,
@@ -199,7 +232,13 @@ export async function startAttendance(attendanceType, { profile, attendanceSessi
     started_lat: location?.lat ?? null,
     started_lng: location?.lng ?? null,
     started_accuracy: location?.accuracy ?? null,
-  });
+  };
+  if (!navigator.onLine) {
+    const localSession = { id: crypto.randomUUID(), ...attendancePayload, pending_sync: true };
+    await enqueueOfflineAction('attendance_start', { session: localSession });
+    return { message: 'אין חיבור. הכניסה נשמרה במכשיר ותסונכרן אוטומטית.', offlineSession: localSession };
+  }
+  const { error } = await attendanceSessionsApi.insertAttendanceSession(attendancePayload);
 
   if (error) {
     return { message: error.code === '23505' ? 'כבר קיימת משמרת כללית פתוחה.' : error.message };
@@ -230,13 +269,18 @@ export async function finishAttendance(endNote, { profile, attendanceSessions })
 
   const endedAt = new Date();
   const minutes = durationMinutes(openSession.started_at, endedAt.toISOString());
-  const { error } = await attendanceSessionsApi.updateOpenAttendanceSession(openSession.id, {
+  const endChanges = {
     ended_at: endedAt.toISOString(),
     ended_lat: location?.lat ?? null,
     ended_lng: location?.lng ?? null,
     ended_accuracy: location?.accuracy ?? null,
     end_note: endNote.trim() || null,
-  });
+  };
+  if (!navigator.onLine) {
+    await enqueueOfflineAction('attendance_end', { sessionId: openSession.id, changes: endChanges });
+    return { message: 'אין חיבור. היציאה נשמרה במכשיר ותסונכרן אוטומטית.', success: true, offlineChanges: endChanges, sessionId: openSession.id };
+  }
+  const { error } = await attendanceSessionsApi.updateOpenAttendanceSession(openSession.id, endChanges);
   if (error) return { message: error.message, success: false };
 
   if (profile?.role === 'field_worker' || profile?.role === 'manager') {

@@ -54,11 +54,14 @@ export default function ProjectCard({ project }) {
     sendProjectToReview,
     deleteProjectReviewFile,
     assignProjectDrafter,
+    loadProjectAssets,
   } = useProjects();
-  const { startWork, openProjectWorkEndDialog } = useAttendance();
+  const { startWork, openProjectWorkEndDialog, workSessions } = useAttendance();
 
   const currentUserId = session?.user?.id;
   const currentUserName = profile?.full_name || "";
+  const projectSessions = workSessions.filter((item) => item.project_id === project.id);
+  const projectWithSessions = { ...project, work_sessions: projectSessions };
 
   const projectHistory = historyItems
     .filter((h) => h.project_id === project.id)
@@ -75,6 +78,8 @@ export default function ProjectCard({ project }) {
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [assets, setAssets] = useState({ project_photos: [], project_review_files: [] });
+  const [assetsLoading, setAssetsLoading] = useState(false);
   const assignedDrafterId = project.project_workers?.find(
     (assignment) => assignment.profiles?.role === "drafter",
   )?.worker_id || "";
@@ -129,18 +134,33 @@ export default function ProjectCard({ project }) {
     };
   }, [editing]);
 
-  const myOpenSession = project.work_sessions?.find(
+  async function refreshAssets() {
+    setAssetsLoading(true);
+    try {
+      setAssets(await loadProjectAssets(project.id));
+    } finally {
+      setAssetsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!detailsOpen || !navigator.onLine) return;
+    refreshAssets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailsOpen, project.id]);
+
+  const myOpenSession = projectSessions.find(
     (w) => w.worker_id === currentUserId && !w.ended_at,
   );
-  const otherOpenSessions = (project.work_sessions || []).filter(
+  const otherOpenSessions = projectSessions.filter(
     (w) => w.worker_id !== currentUserId && !w.ended_at,
   );
   const isAssignedFieldWorker =
     profile?.role === "field_worker" &&
     (project.assigned_to === currentUserId ||
       (project.project_workers || []).some((assignment) => assignment.worker_id === currentUserId));
-  const lastEndedSession = project.work_sessions
-    ?.filter((w) => w.worker_id === currentUserId && w.ended_at)
+  const lastEndedSession = projectSessions
+    .filter((w) => w.worker_id === currentUserId && w.ended_at)
     .sort(
       (a, b) =>
         new Date(b.ended_at || "").getTime() -
@@ -534,7 +554,7 @@ export default function ProjectCard({ project }) {
               </button>
               <button
                 className="ghost smallBtn"
-                onClick={() => exportProjectPdf(project, projectHistory)}
+                onClick={() => exportProjectPdf({ ...project, ...assets }, projectHistory)}
               >
                 <FileText size={16} /> דוח PDF
               </button>
@@ -580,10 +600,11 @@ export default function ProjectCard({ project }) {
               : "לא הוגדר"}
           </div>
           <PhotoGallery
-            photos={project.project_photos || []}
+            photos={assets.project_photos}
             canDelete={isManager || isAssignedFieldWorker}
-            onDelete={(photo) => deletePhoto(photo, project)}
+            onDelete={async (photo) => { await deletePhoto(photo, project); await refreshAssets(); }}
           />
+          {assetsLoading && <span className="muted">טוען תמונות וקבצים...</span>}
         </div>
         <div className="form">
           <div className="timeBox">
@@ -605,7 +626,7 @@ export default function ProjectCard({ project }) {
                 </div>
                 <button
                   className="smallBtn danger"
-                  onClick={() => openProjectWorkEndDialog(project)}
+                  onClick={() => openProjectWorkEndDialog(projectWithSessions)}
                 >
                   <Square size={15} /> סיים עבודה
                 </button>
@@ -629,7 +650,7 @@ export default function ProjectCard({ project }) {
                     />
                   )}
                 </div>
-                <button className="smallBtn" onClick={() => startWork(project)}>
+                <button className="smallBtn" onClick={() => startWork(projectWithSessions)}>
                   <PlayCircle size={15} /> התחל עבודה
                 </button>
               </>
@@ -695,10 +716,11 @@ export default function ProjectCard({ project }) {
                 style={{ display: "none" }}
                 type="file"
                 accept="image/*"
-                onChange={(e) =>
-                  e.target.files?.[0] &&
-                  uploadPhoto(project.id, e.target.files[0], photoCategory)
-                }
+                onChange={async (e) => {
+                  if (!e.target.files?.[0]) return;
+                  const result = await uploadPhoto(project.id, e.target.files[0], photoCategory);
+                  if (!result?.offline) await refreshAssets();
+                }}
               />
             </label>
           </div>
@@ -744,9 +766,9 @@ export default function ProjectCard({ project }) {
         )}
 
         <ReviewFilesPanel
-          files={project.project_review_files || []}
+          files={assets.project_review_files}
           canDelete={isManager || isDrafter}
-          onDelete={(file) => deleteProjectReviewFile(file, project.id)}
+          onDelete={async (file) => { await deleteProjectReviewFile(file, project.id); await refreshAssets(); }}
         />
         {(isDrafter || isManager) && project.status === "עבר לשרטוט" && (
           <DrafterReviewBox
@@ -754,11 +776,12 @@ export default function ProjectCard({ project }) {
             setReviewFile={setReviewFile}
             reviewNote={reviewNote}
             setReviewNote={setReviewNote}
-            onSend={() => {
+            onSend={async () => {
               if (!reviewFile) {
                 return;
               }
-              sendProjectToReview(project, reviewFile, reviewNote);
+              await sendProjectToReview(project, reviewFile, reviewNote);
+              await refreshAssets();
               setReviewFile(null);
               setReviewNote("");
             }}

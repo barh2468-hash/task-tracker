@@ -16,7 +16,6 @@ export default defineConfig({
       filename: 'sw.js',
       injectRegister: null,
       injectManifest: {
-        injectionPoint: undefined,
         rollupFormat: 'iife',
       },
       manifest: {

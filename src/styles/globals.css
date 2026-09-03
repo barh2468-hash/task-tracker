@@ -988,3 +988,43 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
   .attendanceEndActions .danger{grid-row:1}
   .crewOptions{grid-template-columns:1fr 1fr}
 }
+/* Offline field work queue */
+.offlineBanner {
+  position: fixed;
+  z-index: 10000;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 24px);
+  padding: 10px 14px;
+  border: 1px solid #e8b04a;
+  border-radius: 14px;
+  background: #fff8e8;
+  color: #694500;
+  box-shadow: 0 10px 30px rgba(13, 35, 72, 0.18);
+}
+
+.loadMoreProjects { margin: 8px auto 0; }
+
+.languageToggle {
+  min-width: 54px;
+  height: 42px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #d7e1ec);
+  background: #fff;
+  color: #0b376d;
+  font-weight: 800;
+}
+
+.language-en .projectCompactHeader,
+.language-en input,
+.language-en textarea,
+.language-en select { text-align: left !important; }

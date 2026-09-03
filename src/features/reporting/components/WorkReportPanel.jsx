@@ -77,7 +77,6 @@ export default function WorkReportPanel() {
     0,
   );
   const timedAttendanceCount = filteredAttendance.filter((item) => !item.is_all_day).length;
-
   function applyMonth(value) {
     setReportMonth(value);
     if (!value) return;

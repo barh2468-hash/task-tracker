@@ -12,6 +12,8 @@ import RequireAuth from './routes/RequireAuth.jsx';
 import DashboardLayout from './routes/DashboardLayout.jsx';
 import ProjectsPage from './routes/ProjectsPage.jsx';
 import PwaBootstrap from './features/pwa/components/PwaBootstrap.jsx';
+import OfflineSync from './features/offline/OfflineSync.jsx';
+import { LanguageProvider } from './features/language/LanguageContext.jsx';
 
 // Code-split the heavier, less-frequently-visited pages (Leaflet map, Excel/
 // CSV-export-heavy reports) so the initial bundle stays close to the
@@ -30,6 +32,7 @@ const WorkReportPage = lazy(() => import('./routes/WorkReportPage.jsx'));
 function AppProviders({ children }) {
   return (
     <MessageProvider>
+      <OfflineSync />
       <NotificationsProvider>
         <ProjectsProvider>
           <AttendanceProvider>{children}</AttendanceProvider>
@@ -43,9 +46,10 @@ export default function App() {
   if (!envReady) return <SetupPage />;
 
   return (
-    <BrowserRouter>
-      <PwaBootstrap />
-      <AuthProvider>
+    <LanguageProvider>
+      <BrowserRouter>
+        <PwaBootstrap />
+        <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireAuth />}>
@@ -144,7 +148,8 @@ export default function App() {
           <Route path="/" element={<Navigate to="/app" replace />} />
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+        </AuthProvider>
+      </BrowserRouter>
+    </LanguageProvider>
   );
 }

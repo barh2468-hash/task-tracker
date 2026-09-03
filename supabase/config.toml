@@ -1,0 +1,5 @@
+project_id = "qopsdkmzvncamjrxjwni"
+
+[functions.attendance-reminder]
+verify_jwt = false
+

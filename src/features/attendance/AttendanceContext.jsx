@@ -3,6 +3,7 @@ import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
 import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh.js';
 import * as attendanceFeatureApi from './api.js';
+import { cacheOfflineData, getOfflineData } from '../../services/offlineStore.js';
 
 const AttendanceContext = createContext(null);
 
@@ -21,10 +22,16 @@ export function AttendanceProvider({ children }) {
 
   async function loadWorkSessions() {
     try {
-      setWorkSessions(await attendanceFeatureApi.getWorkSessions(isManager));
+      const data = await attendanceFeatureApi.getWorkSessions(isManager);
+      setWorkSessions(data);
+      await cacheOfflineData(`work-sessions:${session?.user?.id}`, data);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : String(error));
-      setWorkSessions([]);
+      const cached = await getOfflineData(`work-sessions:${session?.user?.id}`);
+      if (cached) setWorkSessions(cached);
+      else {
+        setMessage(error instanceof Error ? error.message : String(error));
+        setWorkSessions([]);
+      }
     }
   }
 
@@ -33,10 +40,12 @@ export function AttendanceProvider({ children }) {
       const data = await attendanceFeatureApi.getAttendanceSessions(isManager, session?.user?.id);
       setAttendanceAvailable(true);
       setAttendanceSessions(data);
+      await cacheOfflineData(`attendance-sessions:${session?.user?.id}`, data);
     } catch (error) {
       console.warn('Attendance sessions load failed:', error instanceof Error ? error.message : error);
-      setAttendanceAvailable(false);
-      setAttendanceSessions([]);
+      const cached = await getOfflineData(`attendance-sessions:${session?.user?.id}`);
+      setAttendanceAvailable(Boolean(cached));
+      setAttendanceSessions(cached || []);
     }
   }
 
@@ -109,6 +118,12 @@ export function AttendanceProvider({ children }) {
     pollIntervalMs: 15000,
   });
 
+  useEffect(() => {
+    const reload = () => Promise.all([loadWorkSessions(), loadAttendanceSessions()]);
+    window.addEventListener('maya-data-synced', reload);
+    return () => window.removeEventListener('maya-data-synced', reload);
+  });
+
   async function runMutation(promise) {
     const result = await promise;
     if (result?.message) setMessage(result.message);
@@ -117,7 +132,8 @@ export function AttendanceProvider({ children }) {
 
   async function startWork(project) {
     const result = await runMutation(attendanceFeatureApi.startWork(project, profile));
-    await loadWorkSessions();
+    if (result?.offlineSession) setWorkSessions((items) => [result.offlineSession, ...items]);
+    else await loadWorkSessions();
     return result;
   }
 
@@ -136,7 +152,9 @@ export function AttendanceProvider({ children }) {
       const result = await runMutation(
         attendanceFeatureApi.endWork(projectWorkEndTarget, profile, { endNote, crewMembers }),
       );
-      await loadWorkSessions();
+      if (result?.offlineChanges) {
+        setWorkSessions((items) => items.map((item) => item.id === result.sessionId ? { ...item, ...result.offlineChanges } : item));
+      } else await loadWorkSessions();
       if (result?.success) setProjectWorkEndTarget(null);
       return result;
     } finally {
@@ -151,7 +169,8 @@ export function AttendanceProvider({ children }) {
       const result = await runMutation(
         attendanceFeatureApi.startAttendance(attendanceType, { profile, attendanceSessions, attendanceAvailable }),
       );
-      await loadAttendanceSessions();
+      if (result?.offlineSession) setAttendanceSessions((items) => [result.offlineSession, ...items]);
+      else await loadAttendanceSessions();
       return result;
     } finally {
       setAttendanceBusy(false);
@@ -173,7 +192,9 @@ export function AttendanceProvider({ children }) {
     setAttendanceBusy(true);
     try {
       const result = await runMutation(attendanceFeatureApi.finishAttendance(endNote, { profile, attendanceSessions }));
-      await loadAttendanceSessions();
+      if (result?.offlineChanges) {
+        setAttendanceSessions((items) => items.map((item) => item.id === result.sessionId ? { ...item, ...result.offlineChanges } : item));
+      } else await loadAttendanceSessions();
       if (result?.success) {
         setAttendanceEndDialogOpen(false);
         setAttendanceEndNote('');

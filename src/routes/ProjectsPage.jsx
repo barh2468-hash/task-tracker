@@ -10,7 +10,8 @@ export default function ProjectsPage() {
   const { isManager, session } = useAuth();
   const { projects } = useProjects();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [query, setQuery] = useState('');
+const [query, setQuery] = useState('');
+  const [visibleLimit, setVisibleLimit] = useState(20);
   const handledPushProjectRef = useRef(null);
 
   const filter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
@@ -31,6 +32,8 @@ export default function ProjectsPage() {
     next.set('filter', linkedProject.is_archived ? 'archive' : isManager ? 'all' : 'mine');
     next.delete('status');
     setSearchParams(next, { replace: true });
+    const linkedIndex = projects.findIndex((p) => p.id === projectId);
+    if (linkedIndex >= 0) setVisibleLimit((limit) => Math.max(limit, linkedIndex + 1));
 
     window.requestAnimationFrame(() => {
       document.getElementById(`project-${projectId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -53,6 +56,11 @@ export default function ProjectsPage() {
     const okTab = filter === 'unassigned' ? !p.assigned_to : filter !== 'mine' || !isManager || p.assigned_to === session?.user?.id;
     return okQuery && okStatus && okArchive && okTab;
   });
+  const pagedProjects = visibleProjects.slice(0, visibleLimit);
+
+  useEffect(() => {
+    setVisibleLimit(20);
+  }, [query, filter, statusFilter]);
 
   const heading =
     filter === 'unassigned'
@@ -100,11 +108,16 @@ export default function ProjectsPage() {
       <h2>{heading}</h2>
       <div className="projects">
         {visibleProjects.length === 0 && <div className="empty">אין פרויקטים להצגה כרגע</div>}
-        {visibleProjects.map((project) => (
+        {pagedProjects.map((project) => (
           <div key={project.id} id={`project-${project.id}`}>
             <ProjectCard project={project} />
           </div>
         ))}
+        {visibleLimit < visibleProjects.length && (
+          <button type="button" className="ghost loadMoreProjects" onClick={() => setVisibleLimit((limit) => limit + 20)}>
+            הצג עוד 20 פרויקטים ({visibleProjects.length - visibleLimit} נותרו)
+          </button>
+        )}
       </div>
     </section>
   );

@@ -10,6 +10,7 @@ import {
   FileText,
   FolderKanban,
   History,
+  Languages,
   LogOut,
   MapPin,
   Menu,
@@ -33,11 +34,13 @@ import GeneralAttendanceCard from '../features/attendance/components/GeneralAtte
 import MobileAttendanceDock from '../features/attendance/components/MobileAttendanceDock.jsx';
 import AttendanceEndDialog from '../features/attendance/components/AttendanceEndDialog.jsx';
 import ProjectWorkEndDialog from '../features/attendance/components/ProjectWorkEndDialog.jsx';
+import { useLanguage } from '../features/language/LanguageContext.jsx';
 
 export default function DashboardLayout() {
   const { profile, session, isManager, isDrafter, logout } = useAuth();
   const { message, setMessage } = useMessage();
   const { unreadCount } = useNotifications();
+  const { language, toggleLanguage } = useLanguage();
   const { stats } = useProjectStats();
   const location = useLocation();
   const navigate = useNavigate();
@@ -91,7 +94,7 @@ export default function DashboardLayout() {
   const showHeroAndStats = !isHeroSuppressed(location.pathname);
 
   return (
-    <main className="page">
+    <main className="page" key={language}>
       <header className="topbar">
         <div className="brand">
           <img src="/logo.png" alt="לוגו" />
@@ -101,6 +104,16 @@ export default function DashboardLayout() {
           </div>
         </div>
         <div className="userRow">
+          <button
+            type="button"
+            className="languageToggle"
+            onClick={toggleLanguage}
+            title={language === 'he' ? 'Switch to English' : 'מעבר לעברית'}
+            aria-label={language === 'he' ? 'Switch to English' : 'מעבר לעברית'}
+          >
+            <Languages size={18} />
+            <span>{language === 'he' ? 'EN' : 'עב'}</span>
+          </button>
           <div className="notificationWrap">
             <button
               className={`notificationBell ${notificationsOpen ? 'active' : ''}`}
@@ -142,7 +155,7 @@ export default function DashboardLayout() {
             <p className="muted">{profile ? roleLabel[profile.role] : 'משתמש'}</p>
           </div>
           <button className="secondary" onClick={logout}>
-            <LogOut size={16} /> יציאה
+            <LogOut size={16} /> {language === 'he' ? 'יציאה' : 'Log out'}
           </button>
         </div>
       </header>

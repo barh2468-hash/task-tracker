@@ -4,6 +4,24 @@ import webpush from 'npm:web-push@3.6.7';
 const headers = { 'Content-Type': 'application/json' };
 const APP_URL = 'https://infrastructure-tracker.vercel.app/app';
 
+function secureEquals(left: string, right: string) {
+  const leftBytes = new TextEncoder().encode(left);
+  const rightBytes = new TextEncoder().encode(right);
+  if (leftBytes.length !== rightBytes.length) return false;
+
+  let difference = 0;
+  for (let index = 0; index < leftBytes.length; index += 1) {
+    difference |= leftBytes[index] ^ rightBytes[index];
+  }
+  return difference === 0;
+}
+
+function isAuthorizedCronRequest(req: Request) {
+  const expectedSecret = Deno.env.get('CRON_SECRET') || '';
+  const suppliedSecret = req.headers.get('x-cron-secret') || '';
+  return Boolean(expectedSecret && suppliedSecret && secureEquals(expectedSecret, suppliedSecret));
+}
+
 function israelParts(now = new Date()) {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat('en-CA', {
@@ -26,6 +44,9 @@ function timeMinutes(value: string) {
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+  if (!isAuthorizedCronRequest(req)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers });
+  }
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -108,6 +129,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({ ok: true, phase: phase.type, missing: missingWorkers.length, created: newNotifications.length }), { headers });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 500, headers });
+    console.error('Attendance reminder failed:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers });
   }
 });

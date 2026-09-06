@@ -102,11 +102,47 @@ supabase/field-team-daily-summary-fix.sql
 supabase functions deploy daily-manager-summary
 ```
 
-אם רוצים סיכום יומי אוטומטי, לפתוח את הקובץ הבא, להחליף את PROJECT_REF ואת ANON_OR_SERVICE_KEY, ואז להריץ ב-SQL Editor:
+אם רוצים סיכום יומי אוטומטי, להגדיר תחילה את סוד התזמון לפי ההוראות הבאות,
+לפתוח את הקובץ, להחליף את `PROJECT_REF` ואת `APP_URL`, ואז להריץ ב-SQL Editor:
 
 ```text
 supabase/daily-manager-summary-schedule.sql
 ```
+
+## אבטחת פונקציות מתוזמנות
+
+הפונקציות `attendance-reminder` ו-`daily-manager-summary` אינן סומכות על עצם
+הגישה לכתובת הפונקציה. קריאות מתוזמנות חייבות לשלוח סוד ייעודי, וקריאה ידנית
+לסיכום היומי מותרת רק למשתמש מחובר בעל תפקיד `manager`.
+
+1. ליצור ערך אקראי וחזק של לפחות 32 בתים ולשמור אותו כסוד של Edge Functions:
+
+```cmd
+supabase secrets set CRON_SECRET=YOUR_LONG_RANDOM_SECRET
+```
+
+2. לשמור את אותו ערך ב-Supabase Vault דרך SQL Editor. אין לשמור את הערך עצמו
+   בקוד או בקובץ migration:
+
+```sql
+select vault.create_secret(
+  'YOUR_LONG_RANDOM_SECRET',
+  'maya_cron_secret',
+  'Shared secret for MAYA pg_cron Edge Function calls'
+);
+```
+
+3. לפרוס מחדש את שתי הפונקציות ולהחיל את המיגרציה המאובטחת:
+
+```cmd
+supabase functions deploy attendance-reminder
+supabase functions deploy daily-manager-summary
+supabase db push
+```
+
+המיגרציה `20260906160000_secure_edge_function_cron.sql` מחליפה את משימת
+התזכורות הישנה. אם הסוד חסר מ-Vault או מ-Edge Functions, הקריאה נכשלת במכוון
+עם `401` ואינה מפעילה פעולות באמצעות service role.
 
 
 ## עדכון: טלפון איש קשר בשטח

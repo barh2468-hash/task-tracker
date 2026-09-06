@@ -3,3 +3,7 @@ project_id = "qopsdkmzvncamjrxjwni"
 [functions.attendance-reminder]
 verify_jwt = false
 
+# Scheduled calls authenticate with x-cron-secret; manual calls are then
+# authenticated and manager-authorized inside the function.
+[functions.daily-manager-summary]
+verify_jwt = false

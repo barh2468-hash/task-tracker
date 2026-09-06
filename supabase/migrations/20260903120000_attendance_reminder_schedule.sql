@@ -39,7 +39,13 @@ begin
     '*/5 * * * *',
     $job$select net.http_post(
       url := 'https://qopsdkmzvncamjrxjwni.supabase.co/functions/v1/attendance-reminder',
-      headers := '{"Content-Type":"application/json"}'::jsonb,
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'x-cron-secret', coalesce(
+          (select decrypted_secret from vault.decrypted_secrets where name = 'maya_cron_secret' limit 1),
+          ''
+        )
+      ),
       body := '{}'::jsonb
     );$job$
   );

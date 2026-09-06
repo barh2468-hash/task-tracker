@@ -1,6 +1,7 @@
 -- Optional: schedule the daily manager summary email.
 -- Requires pg_cron and pg_net. Run only if you want Supabase to send the summary automatically every day.
--- Important: replace PROJECT_REF and ANON_OR_SERVICE_KEY before running.
+-- Important: replace PROJECT_REF and APP_URL before running. Before scheduling,
+-- create the maya_cron_secret Vault entry described in README.md.
 
 create extension if not exists pg_cron;
 create extension if not exists pg_net;
@@ -15,9 +16,12 @@ select cron.schedule(
     url := 'https://PROJECT_REF.supabase.co/functions/v1/daily-manager-summary',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer ANON_OR_SERVICE_KEY'
+      'x-cron-secret', coalesce(
+        (select decrypted_secret from vault.decrypted_secrets where name = 'maya_cron_secret' limit 1),
+        ''
+      )
     ),
-    body := jsonb_build_object('appUrl', 'https://task-tracker-orcin-alpha.vercel.app')
+    body := jsonb_build_object('appUrl', 'APP_URL')
   );
   $$
 );

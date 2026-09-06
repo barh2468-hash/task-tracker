@@ -2,20 +2,83 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+class HttpError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+function secureEquals(left: string, right: string) {
+  const leftBytes = new TextEncoder().encode(left);
+  const rightBytes = new TextEncoder().encode(right);
+  if (leftBytes.length !== rightBytes.length) return false;
+
+  let difference = 0;
+  for (let index = 0; index < leftBytes.length; index += 1) {
+    difference |= leftBytes[index] ^ rightBytes[index];
+  }
+  return difference === 0;
+}
+
+function isAuthorizedCronRequest(req: Request) {
+  const expectedSecret = Deno.env.get('CRON_SECRET') || '';
+  const suppliedSecret = req.headers.get('x-cron-secret') || '';
+  return Boolean(expectedSecret && suppliedSecret && secureEquals(expectedSecret, suppliedSecret));
+}
+
+async function requireManagerOrCron(
+  req: Request,
+  supabaseUrl: string,
+  anonKey: string,
+) {
+  if (isAuthorizedCronRequest(req)) return;
+
+  const authHeader = req.headers.get('Authorization') || '';
+  if (!authHeader.toLowerCase().startsWith('bearer ')) {
+    throw new HttpError(401, 'Unauthorized');
+  }
+
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userData, error: userError } = await userClient.auth.getUser();
+  if (userError || !userData.user) throw new HttpError(401, 'Unauthorized');
+
+  const { data: profile, error: profileError } = await userClient
+    .from('profiles')
+    .select('role')
+    .eq('id', userData.user.id)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (profile?.role !== 'manager') throw new HttpError(403, 'Manager access required');
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   try {
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const fromEmail = Deno.env.get('FROM_EMAIL');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!resendApiKey || !fromEmail || !supabaseUrl || !serviceRoleKey) {
-      throw new Error('Missing RESEND_API_KEY, FROM_EMAIL, SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    if (!resendApiKey || !fromEmail || !supabaseUrl || !anonKey || !serviceRoleKey) {
+      throw new Error('Missing RESEND_API_KEY, FROM_EMAIL, SUPABASE_URL, SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY');
     }
+
+    await requireManagerOrCron(req, supabaseUrl, anonKey);
 
     const body = await req.json().catch(() => ({}));
     const appUrl = body?.appUrl || '';
@@ -113,6 +176,9 @@ Deno.serve(async (req) => {
     const result = await resendResponse.json();
     return new Response(JSON.stringify({ ok: true, sentTo: recipients.length, result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const status = error instanceof HttpError ? error.status : 500;
+    if (!(error instanceof HttpError)) console.error('Daily manager summary failed:', error);
+    const message = error instanceof HttpError ? error.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: message }), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

@@ -1007,7 +1007,7 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
   box-shadow: 0 10px 30px rgba(13, 35, 72, 0.18);
 }
 
-.loadMoreProjects { margin: 8px auto 0; }
+.projectLoadSentinel { height: 1px; }
 
 .languageToggle {
   min-width: 112px;

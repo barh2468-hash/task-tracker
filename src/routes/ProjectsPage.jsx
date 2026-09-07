@@ -16,6 +16,7 @@ export default function ProjectsPage() {
   const [query, setQuery] = useState('');
   const [visibleLimit, setVisibleLimit] = useState(20);
   const handledPushProjectRef = useRef(null);
+  const loadMoreRef = useRef(null);
 
   const filter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
   const statusFilter = searchParams.get('status') || '';
@@ -66,10 +67,27 @@ export default function ProjectsPage() {
     return okQuery && okStatus && okArchive && okTab;
   });
   const pagedProjects = visibleProjects.slice(0, visibleLimit);
+  const hasMoreProjects = visibleLimit < visibleProjects.length;
 
   useEffect(() => {
     setVisibleLimit(20);
   }, [query, filter, statusFilter]);
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || !hasMoreProjects) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisibleLimit((limit) => Math.min(limit + 20, visibleProjects.length));
+        }
+      },
+      { rootMargin: '300px 0px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreProjects, visibleProjects.length]);
 
   const heading =
     filter === 'unassigned'
@@ -125,16 +143,8 @@ export default function ProjectsPage() {
             <ProjectCard project={project} />
           </div>
         ))}
-        {visibleLimit < visibleProjects.length && (
-          <button
-            type="button"
-            className="ghost loadMoreProjects"
-            onClick={() => setVisibleLimit((limit) => limit + 20)}
-          >
-            {t('הצג עוד 20 פרויקטים (')}
-            {visibleProjects.length - visibleLimit}
-            {t('נותרו)')}
-          </button>
+        {hasMoreProjects && (
+          <div ref={loadMoreRef} className="projectLoadSentinel" aria-hidden="true" />
         )}
       </div>
     </section>

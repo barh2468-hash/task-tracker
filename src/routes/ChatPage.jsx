@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, MessageCircle, Plus, Search, SendHorizontal, Users, X } from 'lucide-react';
+import { Check, MessageCircle, Plus, Search, SendHorizontal, Trash2, Users, X } from 'lucide-react';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
@@ -24,6 +24,7 @@ export default function ChatPage() {
     chatAvailable,
     chatLoading,
     createConversation,
+    deleteConversation,
     getMessages,
     sendMessage,
     markConversationRead,
@@ -37,6 +38,7 @@ export default function ChatPage() {
   const [memberSearch, setMemberSearch] = useState('');
   const [groupTitle, setGroupTitle] = useState('');
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const messagesEndRef = useRef(null);
 
   const directory = useMemo(
@@ -152,6 +154,28 @@ export default function ChatPage() {
     }
   }
 
+  async function handleDeleteConversation() {
+    if (!activeConversation || deleting) return;
+    const confirmed = window.confirm(
+      `${t('למחוק את השיחה')} "${conversationName(activeConversation)}"?\n${t(
+        'השיחה וכל ההודעות יימחקו אצל כל המשתתפים.',
+      )}`,
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    try {
+      const deleted = await deleteConversation(activeConversation.id);
+      if (deleted) {
+        setActiveConversationId(null);
+        setMessages([]);
+        setMessageText('');
+      }
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const filteredDirectory = directory.filter((worker) =>
     `${worker.full_name || ''} ${t(roleLabel[worker.role] || worker.role || '')}`
       .toLowerCase()
@@ -259,6 +283,17 @@ export default function ChatPage() {
                   {(activeConversation.member_ids || []).length} {t('משתתפים')}
                 </p>
               </div>
+              <button
+                type="button"
+                className="chatDeleteButton"
+                onClick={handleDeleteConversation}
+                disabled={deleting}
+                title={t('מחיקת שיחה')}
+                aria-label={t('מחיקת שיחה')}
+              >
+                <Trash2 size={17} />
+                <span>{deleting ? t('מוחק...') : t('מחק')}</span>
+              </button>
             </header>
 
             <div className="chatMessages" aria-live="polite">

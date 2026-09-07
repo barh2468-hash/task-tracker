@@ -100,7 +100,7 @@ export default function DashboardLayout() {
   const showHeroAndStats = !isHeroSuppressed(location.pathname);
 
   return (
-    <main className="page">
+    <main className={`page${location.pathname === '/app/chat' ? ' chatPage' : ''}`}>
       <header className="topbar">
         <div className="brand">
           <img src="/logo.png" alt={t('לוגו')} />
@@ -395,9 +395,10 @@ export default function DashboardLayout() {
         </section>
       </section>
 
-      {(profile?.role === 'field_worker' || profile?.role === 'manager') && (
-        <MobileAttendanceDock />
-      )}
+      {location.pathname !== '/app/chat' &&
+        (profile?.role === 'field_worker' || profile?.role === 'manager') && (
+          <MobileAttendanceDock />
+        )}
       <AttendanceEndDialog />
       <ProjectWorkEndDialog />
     </main>

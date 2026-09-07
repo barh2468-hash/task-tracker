@@ -11,6 +11,12 @@ export function createChatConversation(memberIds, title) {
   });
 }
 
+export function deleteChatConversation(conversationId) {
+  return supabase.rpc('delete_chat_conversation', {
+    p_conversation_id: conversationId,
+  });
+}
+
 export function getChatMessages(conversationId) {
   return supabase
     .from('chat_messages')

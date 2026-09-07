@@ -61,6 +61,16 @@ export function ChatProvider({ children }) {
     return data;
   }
 
+  async function deleteConversation(conversationId) {
+    const { error } = await chatApi.deleteChatConversation(conversationId);
+    if (error) {
+      setMessage(error.message);
+      return false;
+    }
+    setConversations((items) => items.filter((item) => item.id !== conversationId));
+    return true;
+  }
+
   async function getMessages(conversationId) {
     const { data, error } = await chatApi.getChatMessages(conversationId);
     if (error) throw error;
@@ -100,6 +110,7 @@ export function ChatProvider({ children }) {
     unreadChatCount,
     loadConversations,
     createConversation,
+    deleteConversation,
     getMessages,
     sendMessage,
     markConversationRead,

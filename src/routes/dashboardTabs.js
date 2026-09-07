@@ -12,6 +12,7 @@ export function getTabTitle(pathname, searchParams, isManager) {
   if (pathname === '/app/history') return 'היסטוריית שינויים';
   if (pathname === '/app/report') return 'דוח שעות עובדים';
   if (pathname === '/app/notifications') return 'התראות';
+  if (pathname === '/app/chat') return 'צ׳אט פנימי';
   if (pathname === '/app/projects') {
     const filter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
     if (filter === 'all') return 'כל הפרויקטים';
@@ -29,5 +30,5 @@ export function getTabSubtitle(isManager, isDrafter) {
 }
 
 export function isHeroSuppressed(pathname) {
-  return pathname === '/app/map' || pathname === '/app/status-report';
+  return pathname === '/app/map' || pathname === '/app/status-report' || pathname === '/app/chat';
 }

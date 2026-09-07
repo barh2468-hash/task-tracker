@@ -15,6 +15,7 @@ import {
   Languages,
   LogOut,
   MapPin,
+  MessageCircle,
   Menu,
   X,
   AlertTriangle,
@@ -37,12 +38,14 @@ import MobileAttendanceDock from '../features/attendance/components/MobileAttend
 import AttendanceEndDialog from '../features/attendance/components/AttendanceEndDialog.jsx';
 import ProjectWorkEndDialog from '../features/attendance/components/ProjectWorkEndDialog.jsx';
 import { useLanguage } from '../features/language/LanguageContext.jsx';
+import { useChat } from '../features/chat/ChatContext.jsx';
 
 export default function DashboardLayout() {
   useTranslation();
   const { profile, session, isManager, isDrafter, logout } = useAuth();
   const { message, setMessage } = useMessage();
   const { unreadCount } = useNotifications();
+  const { unreadChatCount } = useChat();
   const { language, setLanguage } = useLanguage();
   const { stats } = useProjectStats();
   const location = useLocation();
@@ -201,6 +204,16 @@ export default function DashboardLayout() {
             </b>
           </div>
           <PwaControls />
+          <button
+            className={`navBtn ${navActive('/app/chat') ? 'active' : ''}`}
+            onClick={() => openTab('/app/chat')}
+          >
+            <span>
+              {t('צ׳אט פנימי')}
+              {unreadChatCount > 0 ? ` (${Math.min(unreadChatCount, 99)})` : ''}
+            </span>
+            <MessageCircle size={18} />
+          </button>
           <div className="navSectionLabel">
             <span>{t('עבודה')}</span>
           </div>
@@ -355,9 +368,10 @@ export default function DashboardLayout() {
         <section className="mainContent">
           {showHeroAndStats && <DashboardHero title={tabTitle} subtitle={tabSubtitle} />}
 
-          {(profile?.role === 'field_worker' || profile?.role === 'manager') && (
-            <GeneralAttendanceCard />
-          )}
+          {location.pathname !== '/app/chat' &&
+            (profile?.role === 'field_worker' || profile?.role === 'manager') && (
+              <GeneralAttendanceCard />
+            )}
 
           {showHeroAndStats && <StatsGrid />}
 

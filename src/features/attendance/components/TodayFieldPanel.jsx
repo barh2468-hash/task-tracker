@@ -5,7 +5,8 @@ import { useAttendance } from '../AttendanceContext.jsx';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { attendanceTypeLabel } from '../api.js';
 import { dailyManagerSummary } from '../../../services/api/edgeFunctions.js';
-import { formatDuration, durationMinutes, toLocalDateKey } from '../../../utils/format.js';
+import { formatDuration, durationMinutes } from '../../../utils/format.js';
+import { getTodayAttendance } from '../utils/todayAttendance.js';
 import Stat from '../../../components/Stat.jsx';
 
 export default function TodayFieldPanel() {
@@ -13,18 +14,8 @@ export default function TodayFieldPanel() {
   const { workSessions, attendanceSessions, attendanceAvailable } = useAttendance();
   const { workers } = useProjects();
 
-  const today = toLocalDateKey();
-  const todaySessions = workSessions.filter((session) => session.started_at.startsWith(today));
-  const todayAttendance = attendanceSessions.filter(
-    (session) => (session.attendance_date || session.started_at.slice(0, 10)) === today,
-  );
-  const activeAttendance = attendanceSessions.filter(
-    (session) => !session.ended_at && !session.is_all_day,
-  );
-  const activeWorkerIds = new Set(activeAttendance.map((s) => s.worker_id));
-  const todayWorkerIds = new Set(todayAttendance.map((s) => s.worker_id));
-  const fieldWorkers = workers.filter((w) => w.role === 'field_worker');
-  const notStarted = fieldWorkers.filter((worker) => !todayWorkerIds.has(worker.id));
+  const { todaySessions, todayAttendance, activeSessions, presentSessions, notStarted } =
+    getTodayAttendance({ workSessions, attendanceSessions, workers });
 
   async function sendDailySummaryNow() {
     const { error } = await dailyManagerSummary({
@@ -49,9 +40,13 @@ export default function TodayFieldPanel() {
         </button>
       </div>
       <div className="grid miniStats">
-        <Stat number={todayAttendance.length} label={t('דיווחי נוכחות היום')} icon={<Clock />} />
-        <Stat number={activeAttendance.length} label={t('משמרות פתוחות')} icon={<PlayCircle />} />
-        <Stat number={activeWorkerIds.size} label={t('נוכחים עכשיו')} icon={<Users />} />
+        <Stat
+          number={todayAttendance.length + todaySessions.length}
+          label={t('דיווחי נוכחות היום')}
+          icon={<Clock />}
+        />
+        <Stat number={activeSessions.length} label={t('משמרות פתוחות')} icon={<PlayCircle />} />
+        <Stat number={presentSessions.length} label={t('נוכחים עכשיו')} icon={<Users />} />
         <Stat number={notStarted.length} label={t('עובדים שלא התחילו')} icon={<AlertTriangle />} />
       </div>
       {!attendanceAvailable && (
@@ -62,15 +57,19 @@ export default function TodayFieldPanel() {
       <div className="twoColumns">
         <div className="innerPanel">
           <h3>{t('נוכחים עכשיו')}</h3>
-          {activeAttendance.length === 0 && (
-            <p className="muted">{t('אין משמרות כלליות פתוחות כרגע.')}</p>
-          )}
-          {activeAttendance.map((session) => (
-            <div className="listRow" key={session.id}>
-              <b>{session.profiles?.full_name || t('עובד')}</b>
+          {presentSessions.length === 0 && <p className="muted">{t('אין עובדים נוכחים כרגע.')}</p>}
+          {presentSessions.map((session) => (
+            <div className="listRow" key={session.worker_id}>
+              <b>
+                {session.profiles?.full_name ||
+                  workers.find((worker) => worker.id === session.worker_id)?.full_name ||
+                  t('עובד')}
+              </b>
               <span>
-                {t(attendanceTypeLabel[session.attendance_type])} ·{' '}
-                {t(formatDuration(durationMinutes(session.started_at)))}
+                {session.project_id
+                  ? session.projects?.name || t('פרויקט')
+                  : t(attendanceTypeLabel[session.attendance_type] || 'נוכחות כללית')}{' '}
+                · {t(formatDuration(durationMinutes(session.started_at)))}
               </span>
               <small>
                 {t('כניסה:')}

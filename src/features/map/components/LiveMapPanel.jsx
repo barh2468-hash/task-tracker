@@ -6,23 +6,23 @@ import 'leaflet/dist/leaflet.css';
 import { MapPin, FolderKanban } from 'lucide-react';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useAttendance } from '../../attendance/AttendanceContext.jsx';
-import { mapsLink, toDateInputValue } from '../../../utils/format.js';
+import { mapsLink, toLocalDateKey } from '../../../utils/format.js';
 
 export default function LiveMapPanel({ onOpenProject }) {
   useTranslation();
   const { projects } = useProjects();
-  const { workSessions } = useAttendance();
+  const { workSessions, attendanceSessions } = useAttendance();
   const mapElementRef = useRef(null);
   const leafletMapRef = useRef(null);
   const [selectedPointId, setSelectedPointId] = useState(null);
   const [mapError, setMapError] = useState('');
-  const [mapDay, setMapDay] = useState(() => toDateInputValue(new Date()));
+  const [mapDay, setMapDay] = useState(() => toLocalDateKey());
 
   useEffect(() => {
     const now = new Date();
     const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
     const timeout = window.setTimeout(
-      () => setMapDay(toDateInputValue(new Date())),
+      () => setMapDay(toLocalDateKey()),
       nextDay.getTime() - now.getTime() + 250,
     );
     return () => window.clearTimeout(timeout);
@@ -31,8 +31,13 @@ export default function LiveMapPanel({ onOpenProject }) {
   const points = useMemo(() => {
     const result = [];
     const workersOnMap = new Set();
-    const sorted = workSessions
-      .filter((session) => toDateInputValue(new Date(session.started_at)) === mapDay)
+    const sorted = [
+      ...workSessions.map((session) => ({ ...session, source: 'project' })),
+      ...attendanceSessions
+        .filter((session) => !session.is_all_day)
+        .map((session) => ({ ...session, source: 'attendance' })),
+    ]
+      .filter((session) => toLocalDateKey(new Date(session.started_at)) === mapDay)
       .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
 
     const addSession = (session, isActive) => {
@@ -46,11 +51,13 @@ export default function LiveMapPanel({ onOpenProject }) {
 
       workersOnMap.add(session.worker_id);
       result.push({
-        id: session.id,
+        id: `${session.source}:${session.id}`,
         workerId: session.worker_id,
         workerName: session.profiles?.full_name || t('עובד שטח'),
-        projectId: session.project_id,
-        projectName: session.projects?.name || t('פרויקט'),
+        projectId: session.source === 'project' ? session.project_id : null,
+        projectName: session.source === 'project'
+          ? session.projects?.name || t('פרויקט')
+          : t('שעון נוכחות כללי'),
         projectLocation: session.projects?.location || '',
         lat,
         lng,
@@ -63,7 +70,7 @@ export default function LiveMapPanel({ onOpenProject }) {
     sorted.filter((session) => !session.ended_at).forEach((session) => addSession(session, true));
     sorted.filter((session) => session.ended_at).forEach((session) => addSession(session, false));
     return result.slice(0, 60);
-  }, [workSessions, mapDay]);
+  }, [workSessions, attendanceSessions, mapDay]);
 
   const selectedPoint = points.find((point) => point.id === selectedPointId) || points[0] || null;
   const activeCount = points.filter((point) => point.isActive).length;
@@ -205,9 +212,11 @@ export default function LiveMapPanel({ onOpenProject }) {
                 {selectedPoint.isActive ? t('עבודה פעילה') : t('מיקום אחרון')}
               </span>
               <h3>{selectedPoint.projectName}</h3>
-              <p>
-                <MapPin size={15} /> {selectedPoint.projectLocation || t('לא הוגדרה כתובת')}
-              </p>
+              {selectedPoint.projectId && (
+                <p>
+                  <MapPin size={15} /> {selectedPoint.projectLocation || t('לא הוגדרה כתובת')}
+                </p>
+              )}
               <small>
                 {t('דווח')}
                 {new Date(selectedPoint.reportedAt).toLocaleString('he-IL')}
@@ -216,15 +225,17 @@ export default function LiveMapPanel({ onOpenProject }) {
                   : ''}
               </small>
               <div className="liveMapActions">
-                <button
-                  onClick={() => {
-                    const project = projects.find((item) => item.id === selectedPoint.projectId);
-                    if (project) onOpenProject?.(project);
-                  }}
-                >
-                  <FolderKanban size={16} />
-                  {t('פתיחת הפרויקט')}
-                </button>
+                {selectedPoint.projectId && (
+                  <button
+                    onClick={() => {
+                      const project = projects.find((item) => item.id === selectedPoint.projectId);
+                      if (project) onOpenProject?.(project);
+                    }}
+                  >
+                    <FolderKanban size={16} />
+                    {t('פתיחת הפרויקט')}
+                  </button>
+                )}
                 <a
                   href={mapsLink(selectedPoint.lat, selectedPoint.lng)}
                   target="_blank"

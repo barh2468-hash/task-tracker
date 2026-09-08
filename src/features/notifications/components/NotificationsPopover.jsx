@@ -5,7 +5,12 @@ import { useNotifications } from '../NotificationsContext.jsx';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useMessage } from '../../../context/MessageContext.jsx';
 
-export default function NotificationsPopover({ onClose, onOpenFullPage, onOpenProject }) {
+export default function NotificationsPopover({
+  mobileTop,
+  onClose,
+  onOpenFullPage,
+  onOpenProject,
+}) {
   useTranslation();
   const { notifications, unreadCount, markNotificationRead, markAllNotificationsRead } =
     useNotifications();
@@ -33,7 +38,11 @@ export default function NotificationsPopover({ onClose, onOpenFullPage, onOpenPr
   }
 
   return (
-    <div className="notificationsPopover" dir="rtl">
+    <div
+      className="notificationsPopover"
+      dir="rtl"
+      style={mobileTop ? { '--notifications-mobile-top': `${mobileTop}px` } : undefined}
+    >
       <div className="popoverHeader">
         <div>
           <b>{t('התראות')}</b>

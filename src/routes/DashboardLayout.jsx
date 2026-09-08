@@ -1,10 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../features/language/LanguageContext.jsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Archive,
   Bell,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Clock,
   Download,
@@ -16,7 +18,6 @@ import {
   LogOut,
   MapPin,
   MessageCircle,
-  Menu,
   X,
   AlertTriangle,
   Users,
@@ -52,7 +53,12 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsPopoverTop, setNotificationsPopoverTop] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const notificationBellRef = useRef(null);
+  const menuHandleSwipeRef = useRef(null);
+  const menuDrawerSwipeRef = useRef(null);
+  const suppressMenuHandleClickRef = useRef(false);
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
@@ -86,9 +92,85 @@ export default function DashboardLayout() {
     };
   }, [mobileMenuOpen]);
 
+  useEffect(() => {
+    if (!notificationsOpen) return;
+
+    const updatePopoverPosition = () => {
+      const bellRect = notificationBellRef.current?.getBoundingClientRect();
+      if (bellRect) setNotificationsPopoverTop(Math.ceil(bellRect.bottom + 8));
+    };
+
+    updatePopoverPosition();
+    window.addEventListener('resize', updatePopoverPosition);
+    window.addEventListener('scroll', updatePopoverPosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePopoverPosition);
+      window.removeEventListener('scroll', updatePopoverPosition, true);
+    };
+  }, [notificationsOpen]);
+
   function openTab(path) {
     navigate(path);
     setMobileMenuOpen(false);
+  }
+
+  function openMobileMenu() {
+    setMobileMenuOpen(true);
+    setNotificationsOpen(false);
+  }
+
+  function startMenuHandleSwipe(event) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    menuHandleSwipeRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+    suppressMenuHandleClickRef.current = false;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+
+  function finishMenuHandleSwipe(event) {
+    const start = menuHandleSwipeRef.current;
+    menuHandleSwipeRef.current = null;
+    if (!start) return;
+
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    const movedHorizontally = Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY);
+    suppressMenuHandleClickRef.current = movedHorizontally;
+    const swipedInward = language === 'en' ? deltaX > 42 : deltaX < -42;
+
+    if (movedHorizontally && swipedInward) openMobileMenu();
+  }
+
+  function handleMenuHandleClick() {
+    if (suppressMenuHandleClickRef.current) {
+      suppressMenuHandleClickRef.current = false;
+      return;
+    }
+    openMobileMenu();
+  }
+
+  function startMenuDrawerSwipe(event) {
+    if (event.pointerType === 'mouse') return;
+    menuDrawerSwipeRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+
+  function finishMenuDrawerSwipe(event) {
+    const start = menuDrawerSwipeRef.current;
+    menuDrawerSwipeRef.current = null;
+    if (!start) return;
+
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    const movedHorizontally = Math.abs(deltaX) > 56 && Math.abs(deltaX) > Math.abs(deltaY);
+    const swipedOutward = language === 'en' ? deltaX < -56 : deltaX > 56;
+
+    if (movedHorizontally && swipedOutward) setMobileMenuOpen(false);
   }
 
   const projectsFilter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
@@ -124,6 +206,7 @@ export default function DashboardLayout() {
           </label>
           <div className="notificationWrap">
             <button
+              ref={notificationBellRef}
               className={`notificationBell ${notificationsOpen ? 'active' : ''}`}
               onClick={() => setNotificationsOpen((open) => !open)}
               title={t('התראות')}
@@ -133,6 +216,7 @@ export default function DashboardLayout() {
             </button>
             {notificationsOpen && (
               <NotificationsPopover
+                mobileTop={notificationsPopoverTop}
                 onClose={() => setNotificationsOpen(false)}
                 onOpenFullPage={() => {
                   openTab('/app/notifications');
@@ -145,18 +229,6 @@ export default function DashboardLayout() {
               />
             )}
           </div>
-          <button
-            className={`mobileMenuButton ${mobileMenuOpen ? 'active' : ''}`}
-            onClick={() => {
-              setMobileMenuOpen((open) => !open);
-              setNotificationsOpen(false);
-            }}
-            aria-label={mobileMenuOpen ? t('סגירת תפריט') : t('פתיחת תפריט')}
-            aria-expanded={mobileMenuOpen}
-            title={t('תפריט')}
-          >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
           <div className="avatar">{profile?.full_name?.[0] || t('ע')}</div>
           <div>
             <b>{profile?.full_name || session?.user?.email}</b>
@@ -169,6 +241,30 @@ export default function DashboardLayout() {
         </div>
       </header>
 
+      {!mobileMenuOpen && (
+        <button
+          className="mobileMenuHandle"
+          onClick={handleMenuHandleClick}
+          onPointerDown={startMenuHandleSwipe}
+          onPointerUp={finishMenuHandleSwipe}
+          onPointerCancel={() => {
+            menuHandleSwipeRef.current = null;
+            suppressMenuHandleClickRef.current = false;
+          }}
+          aria-label={t('פתיחת תפריט')}
+          aria-controls="main-navigation"
+          aria-expanded="false"
+          title={t('פתיחת תפריט')}
+        >
+          <span className="mobileMenuHandleGrip" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          {language === 'en' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </button>
+      )}
+
       <section className="container layout">
         {mobileMenuOpen && (
           <button
@@ -178,8 +274,14 @@ export default function DashboardLayout() {
           />
         )}
         <aside
+          id="main-navigation"
           className={`sidebar ${mobileMenuOpen ? 'mobileOpen' : ''}`}
           aria-label={t('תפריט ראשי')}
+          onPointerDown={startMenuDrawerSwipe}
+          onPointerUp={finishMenuDrawerSwipe}
+          onPointerCancel={() => {
+            menuDrawerSwipeRef.current = null;
+          }}
         >
           <div className="mobileMenuHeader">
             <div>

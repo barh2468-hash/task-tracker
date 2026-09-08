@@ -1132,3 +1132,9 @@ body.language-en { direction: ltr; }
   .language-en .notificationsPopover { right: 0; left: auto; }
   .language-en .notificationsPopover:before { right: 16px; left: auto; }
 }
+
+/* Viewport-bound notifications panel; rendered outside the blurred sticky header. */
+.notificationsPopover.notificationsPopoverViewport{position:fixed;top:var(--notifications-popover-top,96px);right:auto;bottom:auto;left:var(--notifications-popover-left,14px);width:var(--notifications-popover-width,min(380px,calc(100vw - 28px)));max-width:calc(100vw - 28px);max-height:calc(100dvh - var(--notifications-popover-top,96px) - 16px);display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+.notificationsPopover.notificationsPopoverViewport:before{display:none}
+.notificationsPopoverViewport .popoverList{min-height:0}
+@media(max-width:760px){.notificationsPopover.notificationsPopoverViewport{right:auto!important;bottom:calc(82px + env(safe-area-inset-bottom));left:var(--notifications-popover-left,12px)!important;width:var(--notifications-popover-width,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:none}.notificationsPopoverViewport .popoverList{max-height:none}}

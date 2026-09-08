@@ -6,7 +6,7 @@ import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useMessage } from '../../../context/MessageContext.jsx';
 
 export default function NotificationsPopover({
-  mobileTop,
+  position,
   onClose,
   onOpenFullPage,
   onOpenProject,
@@ -39,9 +39,17 @@ export default function NotificationsPopover({
 
   return (
     <div
-      className="notificationsPopover"
+      className="notificationsPopover notificationsPopoverViewport"
       dir="rtl"
-      style={mobileTop ? { '--notifications-mobile-top': `${mobileTop}px` } : undefined}
+      style={
+        position
+          ? {
+              '--notifications-popover-top': `${position.top}px`,
+              '--notifications-popover-left': `${position.left}px`,
+              '--notifications-popover-width': `${position.width}px`,
+            }
+          : undefined
+      }
     >
       <div className="popoverHeader">
         <div>

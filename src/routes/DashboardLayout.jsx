@@ -53,7 +53,7 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notificationsPopoverTop, setNotificationsPopoverTop] = useState(null);
+  const [notificationsPopoverPosition, setNotificationsPopoverPosition] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const notificationBellRef = useRef(null);
   const menuHandleSwipeRef = useRef(null);
@@ -97,7 +97,21 @@ export default function DashboardLayout() {
 
     const updatePopoverPosition = () => {
       const bellRect = notificationBellRef.current?.getBoundingClientRect();
-      if (bellRect) setNotificationsPopoverTop(Math.ceil(bellRect.bottom + 8));
+      if (!bellRect) return;
+
+      const viewportPadding = window.innerWidth <= 760 ? 12 : 14;
+      const width = Math.min(380, window.innerWidth - viewportPadding * 2);
+      const preferredLeft = language === 'en' ? bellRect.right - width : bellRect.left;
+      const left = Math.max(
+        viewportPadding,
+        Math.min(preferredLeft, window.innerWidth - width - viewportPadding),
+      );
+
+      setNotificationsPopoverPosition({
+        top: Math.ceil(bellRect.bottom + 8),
+        left: Math.round(left),
+        width: Math.floor(width),
+      });
     };
 
     updatePopoverPosition();
@@ -107,7 +121,7 @@ export default function DashboardLayout() {
       window.removeEventListener('resize', updatePopoverPosition);
       window.removeEventListener('scroll', updatePopoverPosition, true);
     };
-  }, [notificationsOpen]);
+  }, [language, notificationsOpen]);
 
   function openTab(path) {
     navigate(path);
@@ -152,7 +166,7 @@ export default function DashboardLayout() {
   }
 
   function startMenuDrawerSwipe(event) {
-    if (event.pointerType === 'mouse') return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
     menuDrawerSwipeRef.current = {
       x: event.clientX,
       y: event.clientY,
@@ -168,9 +182,8 @@ export default function DashboardLayout() {
     const deltaX = event.clientX - start.x;
     const deltaY = event.clientY - start.y;
     const movedHorizontally = Math.abs(deltaX) > 56 && Math.abs(deltaX) > Math.abs(deltaY);
-    const swipedOutward = language === 'en' ? deltaX < -56 : deltaX > 56;
 
-    if (movedHorizontally && swipedOutward) setMobileMenuOpen(false);
+    if (movedHorizontally) setMobileMenuOpen(false);
   }
 
   const projectsFilter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
@@ -214,20 +227,6 @@ export default function DashboardLayout() {
               <Bell size={18} />
               {unreadCount > 0 && <span>{unreadCount}</span>}
             </button>
-            {notificationsOpen && (
-              <NotificationsPopover
-                mobileTop={notificationsPopoverTop}
-                onClose={() => setNotificationsOpen(false)}
-                onOpenFullPage={() => {
-                  openTab('/app/notifications');
-                  setNotificationsOpen(false);
-                }}
-                onOpenProject={(project) => {
-                  setNotificationsOpen(false);
-                  navigate(projectDeepLinkPath(project));
-                }}
-              />
-            )}
           </div>
           <div className="avatar">{profile?.full_name?.[0] || t('ע')}</div>
           <div>
@@ -240,6 +239,21 @@ export default function DashboardLayout() {
           </button>
         </div>
       </header>
+
+      {notificationsOpen && (
+        <NotificationsPopover
+          position={notificationsPopoverPosition}
+          onClose={() => setNotificationsOpen(false)}
+          onOpenFullPage={() => {
+            openTab('/app/notifications');
+            setNotificationsOpen(false);
+          }}
+          onOpenProject={(project) => {
+            setNotificationsOpen(false);
+            navigate(projectDeepLinkPath(project));
+          }}
+        />
+      )}
 
       {!mobileMenuOpen && (
         <button

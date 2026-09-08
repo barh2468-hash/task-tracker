@@ -38,7 +38,7 @@ const photoCategories = [
   'אחר',
 ];
 
-export default function ProjectCard({ project }) {
+export default function ProjectCard({ project, onOpen }) {
   useTranslation();
   const { profile, isManager, isDrafter, session } = useAuth();
   const {
@@ -413,7 +413,13 @@ export default function ProjectCard({ project }) {
         <button
           type="button"
           className="projectCompactHeader"
-          onClick={() => setDetailsOpen((open) => !open)}
+          onClick={() =>
+            setDetailsOpen((open) => {
+              const nextOpen = !open;
+              if (nextOpen) onOpen?.();
+              return nextOpen;
+            })
+          }
           aria-expanded={detailsOpen}
           style={{
             gridColumn: '1 / -1',

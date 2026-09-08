@@ -26,10 +26,16 @@ export function getChatMessages(conversationId) {
     .limit(300);
 }
 
-export function insertChatMessage(conversationId, senderId, body) {
+export function insertChatMessage(conversationId, senderId, body, project) {
   return supabase
     .from('chat_messages')
-    .insert({ conversation_id: conversationId, sender_id: senderId, body: body.trim() })
+    .insert({
+      conversation_id: conversationId,
+      sender_id: senderId,
+      body: body.trim(),
+      project_id: project?.id || null,
+      project_label: project?.label || null,
+    })
     .select('*')
     .single();
 }

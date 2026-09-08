@@ -77,10 +77,16 @@ export function ChatProvider({ children }) {
     return data || [];
   }
 
-  async function sendMessage(conversationId, body) {
+  async function sendMessage(conversationId, body, project = null) {
     const text = body.trim();
-    if (!text || !profile) return null;
-    const { data, error } = await chatApi.insertChatMessage(conversationId, profile.id, text);
+    if ((!text && !project?.id) || !profile) return null;
+    const messageBody = text || `הפניה לפרויקט: ${project.label}`;
+    const { data, error } = await chatApi.insertChatMessage(
+      conversationId,
+      profile.id,
+      messageBody,
+      project,
+    );
     if (error) {
       setMessage(error.message);
       return null;

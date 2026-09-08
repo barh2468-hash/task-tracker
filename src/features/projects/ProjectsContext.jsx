@@ -15,10 +15,12 @@ export function ProjectsProvider({ children }) {
   const { setMessage } = useMessage();
   const { loadNotifications } = useNotifications();
   const [projects, setProjects] = useState([]);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [workers, setWorkers] = useState([]);
   const [historyItems, setHistoryItems] = useState([]);
 
   async function loadProjects() {
+    setProjectsLoaded(false);
     try {
       const data = await projectsFeatureApi.getProjects(profile);
       setProjects(data);
@@ -32,6 +34,8 @@ export function ProjectsProvider({ children }) {
       } else {
         setMessage(error instanceof Error ? error.message : String(error));
       }
+    } finally {
+      setProjectsLoaded(true);
     }
   }
 
@@ -66,6 +70,7 @@ export function ProjectsProvider({ children }) {
   useEffect(() => {
     if (!profile) {
       setProjects([]);
+      setProjectsLoaded(false);
       setWorkers([]);
       setHistoryItems([]);
       return;
@@ -113,6 +118,7 @@ export function ProjectsProvider({ children }) {
 
   const value = {
     projects,
+    projectsLoaded,
     workers,
     historyItems,
     loadProjects,

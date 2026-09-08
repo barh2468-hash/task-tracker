@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, MessageCircle, Plus, Search, SendHorizontal, Trash2, Users, X } from 'lucide-react';
+import {
+  Check,
+  ExternalLink,
+  FolderKanban,
+  MessageCircle,
+  Plus,
+  Search,
+  SendHorizontal,
+  Trash2,
+  Users,
+  X,
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
@@ -17,8 +29,9 @@ function initials(name) {
 }
 
 export default function ChatPage() {
+  const navigate = useNavigate();
   const { profile } = useAuth();
-  const { workers } = useProjects();
+  const { projects, workers } = useProjects();
   const {
     conversations,
     chatAvailable,
@@ -39,6 +52,9 @@ export default function ChatPage() {
   const [groupTitle, setGroupTitle] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [projectPickerOpen, setProjectPickerOpen] = useState(false);
+  const [projectSearch, setProjectSearch] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
   const messagesEndRef = useRef(null);
 
   const directory = useMemo(
@@ -49,6 +65,11 @@ export default function ChatPage() {
     () => new Map(workers.map((worker) => [worker.id, worker])),
     [workers],
   );
+  const projectsById = useMemo(
+    () => new Map(projects.map((project) => [project.id, project])),
+    [projects],
+  );
+  const selectedProject = projectsById.get(selectedProjectId) || null;
   const activeConversation = conversations.find((item) => item.id === activeConversationId) || null;
 
   function conversationName(conversation) {
@@ -79,6 +100,12 @@ export default function ChatPage() {
       setActiveConversationId(null);
     }
   }, [activeConversationId, conversations]);
+
+  useEffect(() => {
+    setSelectedProjectId(null);
+    setProjectPickerOpen(false);
+    setProjectSearch('');
+  }, [activeConversationId]);
 
   useEffect(() => {
     if (!newChatOpen) return undefined;
@@ -140,13 +167,22 @@ export default function ChatPage() {
   async function handleSendMessage(event) {
     event?.preventDefault();
     const body = messageText.trim();
-    if (!body || !activeConversationId || sending) return;
+    if ((!body && !selectedProject) || !activeConversationId || sending) return;
     setSending(true);
     try {
-      const sent = await sendMessage(activeConversationId, body);
+      const projectReference = selectedProject
+        ? {
+            id: selectedProject.id,
+            label: selectedProject.name,
+          }
+        : null;
+      const sent = await sendMessage(activeConversationId, body, projectReference);
       if (sent) {
         setMessages((items) => [...items, sent]);
         setMessageText('');
+        setSelectedProjectId(null);
+        setProjectPickerOpen(false);
+        setProjectSearch('');
         await markConversationRead(activeConversationId);
       }
     } finally {
@@ -181,6 +217,13 @@ export default function ChatPage() {
       .toLowerCase()
       .includes(memberSearch.trim().toLowerCase()),
   );
+  const filteredProjects = projects
+    .filter((project) => !project.is_archived)
+    .filter((project) =>
+      `${project.name || ''} ${project.client_name || ''} ${project.location || ''}`
+        .toLowerCase()
+        .includes(projectSearch.trim().toLowerCase()),
+    );
 
   if (!chatAvailable) {
     return (
@@ -307,10 +350,29 @@ export default function ChatPage() {
               {messages.map((message) => {
                 const mine = message.sender_id === profile?.id;
                 const sender = mine ? profile : profilesById.get(message.sender_id);
+                const referencedProject = projectsById.get(message.project_id);
                 return (
                   <article key={message.id} className={`chatBubble ${mine ? 'mine' : ''}`}>
                     {!mine && <b>{sender?.full_name || t('משתמש')}</b>}
                     <p>{message.body}</p>
+                    {message.project_id && (
+                      <button
+                        type="button"
+                        className="chatProjectReference"
+                        onClick={() =>
+                          navigate(`/app/projects?project=${encodeURIComponent(message.project_id)}`)
+                        }
+                      >
+                        <FolderKanban size={20} />
+                        <span>
+                          <small>{t('הפניה לפרויקט')}</small>
+                          <strong>
+                            {referencedProject?.name || message.project_label || t('פרויקט')}
+                          </strong>
+                        </span>
+                        <ExternalLink size={15} />
+                      </button>
+                    )}
                     <time>
                       {new Date(message.created_at).toLocaleTimeString('he-IL', {
                         hour: '2-digit',
@@ -327,6 +389,78 @@ export default function ChatPage() {
               <label htmlFor="chat-message" className="visuallyHidden">
                 {t('כתיבת הודעה')}
               </label>
+              {projectPickerOpen && (
+                <div className="chatProjectPicker">
+                  <header>
+                    <b>{t('הפניה לפרויקט')}</b>
+                    <button
+                      type="button"
+                      className="iconOnly"
+                      onClick={() => setProjectPickerOpen(false)}
+                      aria-label={t('סגירה')}
+                    >
+                      <X size={16} />
+                    </button>
+                  </header>
+                  <label className="chatProjectSearch">
+                    <Search size={16} />
+                    <input
+                      value={projectSearch}
+                      onChange={(event) => setProjectSearch(event.target.value)}
+                      placeholder={t('חיפוש פרויקט...')}
+                    />
+                  </label>
+                  <div className="chatProjectOptions">
+                    {filteredProjects.length === 0 && (
+                      <span className="chatHint">{t('לא נמצאו פרויקטים')}</span>
+                    )}
+                    {filteredProjects.map((project) => (
+                      <button
+                        key={project.id}
+                        type="button"
+                        className={project.id === selectedProjectId ? 'selected' : ''}
+                        onClick={() => {
+                          setSelectedProjectId(project.id);
+                          setProjectPickerOpen(false);
+                          setProjectSearch('');
+                        }}
+                      >
+                        <FolderKanban size={18} />
+                        <span>
+                          <b>{project.name}</b>
+                          <small>{project.location || project.client_name || t('ללא מיקום')}</small>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {selectedProject && (
+                <div className="chatSelectedProject">
+                  <FolderKanban size={17} />
+                  <span>
+                    <small>{t('מצורף לפרויקט')}</small>
+                    <b>{selectedProject.name}</b>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProjectId(null)}
+                    aria-label={t('הסרת הפניה לפרויקט')}
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              )}
+              <button
+                type="button"
+                className={`chatProjectButton ${selectedProject ? 'active' : ''}`}
+                onClick={() => setProjectPickerOpen((open) => !open)}
+                title={t('הפניה לפרויקט')}
+                aria-label={t('הפניה לפרויקט')}
+                aria-expanded={projectPickerOpen}
+              >
+                <FolderKanban size={19} />
+              </button>
               <textarea
                 id="chat-message"
                 rows="1"
@@ -343,7 +477,8 @@ export default function ChatPage() {
               />
               <button
                 type="submit"
-                disabled={!messageText.trim() || sending}
+                className="chatSendButton"
+                disabled={(!messageText.trim() && !selectedProject) || sending}
                 aria-label={t('שליחת הודעה')}
               >
                 <SendHorizontal size={19} />

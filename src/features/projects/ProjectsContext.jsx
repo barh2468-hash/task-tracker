@@ -91,6 +91,7 @@ export function ProjectsProvider({ children }) {
       'project_tasks',
       'project_workers',
       'project_review_files',
+      'project_documents',
       'work_sessions',
       'profiles',
     ],
@@ -146,6 +147,10 @@ export function ProjectsProvider({ children }) {
       runMutation(projectsFeatureApi.uploadPhoto(projectId, file, category)),
     deletePhoto: (photo, project) =>
       runMutation(projectsFeatureApi.deletePhoto(photo, project, profile)),
+    uploadProjectDocument: (project, file) =>
+      runMutation(projectsFeatureApi.uploadProjectDocument(project, file, profile)),
+    deleteProjectDocument: (projectDocument, project) =>
+      runMutation(projectsFeatureApi.deleteProjectDocument(projectDocument, project, profile)),
     assignProjectDrafter: (project, drafterId) =>
       runMutation(projectsFeatureApi.assignProjectDrafter(project, drafterId, profile, workers)),
     sendProjectToReview: (project, file, note) =>

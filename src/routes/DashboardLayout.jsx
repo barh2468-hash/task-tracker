@@ -56,8 +56,10 @@ export default function DashboardLayout() {
   const [notificationsPopoverPosition, setNotificationsPopoverPosition] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const notificationBellRef = useRef(null);
+  const pageSwipeRef = useRef(null);
   const menuHandleSwipeRef = useRef(null);
   const menuDrawerSwipeRef = useRef(null);
+  const suppressPageClickRef = useRef(false);
   const suppressMenuHandleClickRef = useRef(false);
 
   useEffect(() => {
@@ -133,6 +135,53 @@ export default function DashboardLayout() {
     setNotificationsOpen(false);
   }
 
+  function startPageSwipe(event) {
+    if (window.innerWidth > 760 || event.touches.length !== 1) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest('input, textarea, select, [contenteditable="true"], .leaflet-container, canvas')) {
+      pageSwipeRef.current = null;
+      return;
+    }
+
+    const touch = event.touches[0];
+    pageSwipeRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      startedAt: Date.now(),
+    };
+  }
+
+  function finishPageSwipe(event) {
+    const start = pageSwipeRef.current;
+    pageSwipeRef.current = null;
+    const touch = event.changedTouches[0];
+    if (!start || !touch || Date.now() - start.startedAt > 1000) return;
+
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    const movedHorizontally = Math.abs(deltaX) > 64 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25;
+    if (!movedHorizontally) return;
+
+    const isRtl = language === 'he';
+    const shouldOpen = !mobileMenuOpen && (isRtl ? deltaX < 0 : deltaX > 0);
+    const shouldClose = mobileMenuOpen && (isRtl ? deltaX > 0 : deltaX < 0);
+    if (!shouldOpen && !shouldClose) return;
+
+    suppressPageClickRef.current = true;
+    window.setTimeout(() => {
+      suppressPageClickRef.current = false;
+    }, 450);
+    if (shouldOpen) openMobileMenu();
+    if (shouldClose) setMobileMenuOpen(false);
+  }
+
+  function suppressClickAfterPageSwipe(event) {
+    if (!suppressPageClickRef.current) return;
+    suppressPageClickRef.current = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   function startMenuHandleSwipe(event) {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     menuHandleSwipeRef.current = {
@@ -152,7 +201,7 @@ export default function DashboardLayout() {
     const deltaY = event.clientY - start.y;
     const movedHorizontally = Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY);
     suppressMenuHandleClickRef.current = movedHorizontally;
-    const swipedInward = language === 'en' ? deltaX > 42 : deltaX < -42;
+    const swipedInward = language === 'he' ? deltaX < -42 : deltaX > 42;
 
     if (movedHorizontally && swipedInward) openMobileMenu();
   }
@@ -183,7 +232,8 @@ export default function DashboardLayout() {
     const deltaY = event.clientY - start.y;
     const movedHorizontally = Math.abs(deltaX) > 56 && Math.abs(deltaX) > Math.abs(deltaY);
 
-    if (movedHorizontally) setMobileMenuOpen(false);
+    const swipedOutward = language === 'he' ? deltaX > 56 : deltaX < -56;
+    if (movedHorizontally && swipedOutward) setMobileMenuOpen(false);
   }
 
   const projectsFilter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
@@ -195,7 +245,15 @@ export default function DashboardLayout() {
   const showHeroAndStats = !isHeroSuppressed(location.pathname);
 
   return (
-    <main className={`page${location.pathname === '/app/chat' ? ' chatPage' : ''}`}>
+    <main
+      className={`page${location.pathname === '/app/chat' ? ' chatPage' : ''}`}
+      onTouchStartCapture={startPageSwipe}
+      onTouchEndCapture={finishPageSwipe}
+      onTouchCancelCapture={() => {
+        pageSwipeRef.current = null;
+      }}
+      onClickCapture={suppressClickAfterPageSwipe}
+    >
       <header className="topbar">
         <div className="brand">
           <img src="/logo.png" alt={t('לוגו')} />
@@ -275,7 +333,7 @@ export default function DashboardLayout() {
             <i />
             <i />
           </span>
-          {language === 'en' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          {language === 'he' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
         </button>
       )}
 

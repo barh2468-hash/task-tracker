@@ -3,6 +3,7 @@ import * as projectsApi from '../../services/api/projects.js';
 import * as projectWorkersApi from '../../services/api/projectWorkers.js';
 import * as projectTasksApi from '../../services/api/projectTasks.js';
 import * as projectPhotosApi from '../../services/api/projectPhotos.js';
+import * as projectDocumentsApi from '../../services/api/projectDocuments.js';
 import * as projectReviewFilesApi from '../../services/api/projectReviewFiles.js';
 import * as statusHistoryApi from '../../services/api/statusHistory.js';
 import * as storageApi from '../../services/api/storage.js';
@@ -222,6 +223,111 @@ export async function deletePhoto(photo, project, profile) {
   }
 
   return { message: 'התמונה נמחקה בהצלחה' };
+}
+
+// ---- Shared project PDF documents ---------------------------------------
+
+const MAX_PROJECT_DOCUMENT_SIZE = 20 * 1024 * 1024;
+
+function isAssignedFieldWorker(project, profile, userId) {
+  return (
+    profile?.role === 'field_worker' &&
+    (project?.assigned_to === userId ||
+      (project?.project_workers || []).some((assignment) => assignment.worker_id === userId))
+  );
+}
+
+export async function uploadProjectDocument(project, file, profile) {
+  const user = await authApi.getCurrentUser();
+  if (!user || !project?.id || !file || !profile) return { message: '' };
+
+  const canUpload = profile.role === 'manager' || isAssignedFieldWorker(project, profile, user.id);
+  if (!canUpload) return { message: 'אין לך הרשאה להעלות מסמכים לפרויקט הזה.' };
+  if (!navigator.onLine) return { message: 'נדרש חיבור לאינטרנט כדי להעלות מסמך PDF.' };
+
+  const isPdfName = file.name.toLowerCase().endsWith('.pdf');
+  const isPdfType = !file.type || file.type === 'application/pdf';
+  if (!isPdfName || !isPdfType) return { message: 'אפשר להעלות קובצי PDF בלבד.' };
+  if (!file.size) return { message: 'קובץ ה־PDF ריק ולא ניתן להעלות אותו.' };
+  if (file.size > MAX_PROJECT_DOCUMENT_SIZE) {
+    return { message: 'קובץ ה־PDF גדול מדי. הגודל המרבי הוא 20MB.' };
+  }
+
+  const path = `${project.id}/${user.id}/${Date.now()}-${storageApi.safeFileName(file.name)}`;
+  const { error: uploadError } = await storageApi.uploadFile('project-documents', path, file, {
+    upsert: false,
+    contentType: 'application/pdf',
+    cacheControl: '3600',
+  });
+  if (uploadError) return { message: `העלאת ה־PDF נכשלה: ${uploadError.message}` };
+
+  const { error: insertError } = await projectDocumentsApi.insertProjectDocument({
+    project_id: project.id,
+    uploaded_by: user.id,
+    file_path: path,
+    file_name: file.name,
+    file_size: file.size,
+  });
+  if (insertError) {
+    await storageApi.removeFiles('project-documents', [path]);
+    return { message: `שמירת מסמך ה־PDF בפרויקט נכשלה: ${insertError.message}` };
+  }
+
+  await statusHistoryApi.insertStatusHistory({
+    project_id: project.id,
+    old_status: null,
+    new_status: 'הועלה מסמך PDF',
+    changed_by: user.id,
+    note: file.name,
+  });
+
+  if (profile.role === 'field_worker') {
+    await createManagerNotification(
+      'project_document_uploaded',
+      `מסמך חדש: ${project.name}`,
+      `${profile.full_name} העלה את המסמך ${file.name} לפרויקט ${project.name}.`,
+      project.id,
+    );
+  }
+
+  return { message: 'מסמך ה־PDF הועלה ונשמר בפרויקט.' };
+}
+
+export async function deleteProjectDocument(projectDocument, project, profile) {
+  const user = await authApi.getCurrentUser();
+  if (!user || !projectDocument?.id || !projectDocument?.file_path || !project?.id || !profile) {
+    return { message: '' };
+  }
+
+  const canDelete =
+    profile.role === 'manager' ||
+    (projectDocument.uploaded_by === user.id && isAssignedFieldWorker(project, profile, user.id));
+  if (!canDelete) return { message: 'אין לך הרשאה למחוק את מסמך ה־PDF הזה.' };
+
+  const ok = window.confirm(`למחוק את מסמך ה־PDF "${projectDocument.file_name}"?`);
+  if (!ok) return null;
+
+  const { error: storageError } = await storageApi.removeFiles('project-documents', [
+    projectDocument.file_path,
+  ]);
+  if (storageError) return { message: `מחיקת ה־PDF מהאחסון נכשלה: ${storageError.message}` };
+
+  const { error: deleteError } = await projectDocumentsApi.deleteProjectDocument(
+    projectDocument.id,
+  );
+  if (deleteError) {
+    return { message: `הקובץ נמחק מהאחסון, אבל מחיקת הרשומה נכשלה: ${deleteError.message}` };
+  }
+
+  await statusHistoryApi.insertStatusHistory({
+    project_id: project.id,
+    old_status: null,
+    new_status: 'נמחק מסמך PDF',
+    changed_by: user.id,
+    note: projectDocument.file_name,
+  });
+
+  return { message: 'מסמך ה־PDF נמחק מהפרויקט.' };
 }
 
 // ---- Drafter / review workflow --------------------------------------------

@@ -25,6 +25,7 @@ import LocationLine from '../../../components/LocationLine.jsx';
 import { exportProjectPdf } from '../utils/exportProjectPdf.js';
 import DrafterReviewBox from './DrafterReviewBox.jsx';
 import ReviewFilesPanel from './ReviewFilesPanel.jsx';
+import ProjectDocumentsPanel from './ProjectDocumentsPanel.jsx';
 import TaskPanel from './TaskPanel.jsx';
 import PhotoGallery from '../../photos/components/PhotoGallery.jsx';
 import WorkDiaryPanel from '../../work-diary/components/WorkDiaryPanel.jsx';
@@ -47,6 +48,8 @@ export default function ProjectCard({ project, onOpen }) {
     updateStatus,
     uploadPhoto,
     deletePhoto,
+    uploadProjectDocument,
+    deleteProjectDocument,
     saveProject,
     deleteProject,
     archiveProject,
@@ -79,7 +82,11 @@ export default function ProjectCard({ project, onOpen }) {
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [assets, setAssets] = useState({ project_photos: [], project_review_files: [] });
+  const [assets, setAssets] = useState({
+    project_photos: [],
+    project_review_files: [],
+    project_documents: [],
+  });
   const [assetsLoading, setAssetsLoading] = useState(false);
   const assignedDrafterId =
     project.project_workers?.find((assignment) => assignment.profiles?.role === 'drafter')
@@ -503,21 +510,9 @@ export default function ProjectCard({ project, onOpen }) {
         </button>
 
         {detailsOpen && (
-          <div
-            className="projectExpandedBody"
-            style={{
-              gridColumn: '1 / -1',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-              gap: 16,
-              width: '100%',
-              maxWidth: '100%',
-              overflow: 'hidden',
-              marginTop: 14,
-              alignItems: 'start',
-            }}
-          >
-            <div>
+          <div className="projectExpandedBody">
+            <section className="projectOverviewPanel">
+              <div className="projectOverviewIdentity">
               <div className="title">
                 {project.name}{' '}
                 {project.is_archived && <span className="archiveBadge">{t('בארכיון')}</span>}
@@ -582,8 +577,8 @@ export default function ProjectCard({ project, onOpen }) {
                   </button>
                 </div>
               )}
-            </div>
-            <div>
+              </div>
+              <div className="projectOverviewContact">
               <StatusPill status={project.status} />
               <div className="muted" style={{ marginTop: 10 }}>
                 {project.location}
@@ -610,8 +605,8 @@ export default function ProjectCard({ project, onOpen }) {
                 {t('עודכן:')}
                 {new Date(project.updated_at).toLocaleDateString('he-IL')}
               </div>
-            </div>
-            <div>
+              </div>
+              <div className="projectOverviewProgress">
               <b>
                 {project.progress}
                 {t('% התקדמות')}
@@ -635,8 +630,10 @@ export default function ProjectCard({ project, onOpen }) {
               />
 
               {assetsLoading && <span className="muted">{t('טוען תמונות וקבצים...')}</span>}
-            </div>
-            <div className="form">
+              </div>
+            </section>
+
+            <div className="form projectOperationsPanel">
               <div className="timeBox">
                 {myOpenSession ? (
                   <>
@@ -766,6 +763,22 @@ export default function ProjectCard({ project, onOpen }) {
                 </label>
               </div>
             </div>
+
+            <ProjectDocumentsPanel
+              documents={assets.project_documents}
+              canUpload={isManager || isAssignedFieldWorker}
+              canDelete={(document) =>
+                isManager || (isAssignedFieldWorker && document.uploaded_by === currentUserId)
+              }
+              onUpload={async (file) => {
+                const result = await uploadProjectDocument(project, file);
+                if (result) await refreshAssets();
+              }}
+              onDelete={async (document) => {
+                const result = await deleteProjectDocument(document, project);
+                if (result) await refreshAssets();
+              }}
+            />
 
             {project.requires_work_diary && (
               <WorkDiaryPanel

@@ -8,8 +8,8 @@ export function removeFiles(bucket, paths) {
   return supabase.storage.from(bucket).remove(paths);
 }
 
-export function createSignedUrl(bucket, path, expiresInSeconds = 3600) {
-  return supabase.storage.from(bucket).createSignedUrl(path, expiresInSeconds);
+export function createSignedUrl(bucket, path, expiresInSeconds = 3600, options) {
+  return supabase.storage.from(bucket).createSignedUrl(path, expiresInSeconds, options);
 }
 
 export function safeFileName(name) {

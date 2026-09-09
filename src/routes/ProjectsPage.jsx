@@ -23,6 +23,8 @@ export default function ProjectsPage() {
 
   const filter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
   const statusFilter = searchParams.get('status') || '';
+  const listViewKey = `${query}\u0000${filter}\u0000${statusFilter}`;
+  const previousListViewKeyRef = useRef(listViewKey);
 
   // A project reference can arrive from chat, notifications, reports or a push link.
   // Resolve it only after the permitted project list has finished loading.
@@ -89,8 +91,10 @@ export default function ProjectsPage() {
   }, [focusedProjectId]);
 
   useEffect(() => {
+    if (previousListViewKeyRef.current === listViewKey) return;
+    previousListViewKeyRef.current = listViewKey;
     if (!focusedProjectId) setVisibleLimit(20);
-  }, [focusedProjectId, query, filter, statusFilter]);
+  }, [focusedProjectId, listViewKey]);
 
   useEffect(() => {
     const sentinel = loadMoreRef.current;

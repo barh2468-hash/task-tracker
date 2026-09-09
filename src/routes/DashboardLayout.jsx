@@ -58,7 +58,6 @@ export default function DashboardLayout() {
   const notificationBellRef = useRef(null);
   const pageSwipeRef = useRef(null);
   const menuHandleSwipeRef = useRef(null);
-  const menuDrawerSwipeRef = useRef(null);
   const suppressPageClickRef = useRef(false);
   const suppressMenuHandleClickRef = useRef(false);
 
@@ -214,28 +213,6 @@ export default function DashboardLayout() {
     openMobileMenu();
   }
 
-  function startMenuDrawerSwipe(event) {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    menuDrawerSwipeRef.current = {
-      x: event.clientX,
-      y: event.clientY,
-    };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-  }
-
-  function finishMenuDrawerSwipe(event) {
-    const start = menuDrawerSwipeRef.current;
-    menuDrawerSwipeRef.current = null;
-    if (!start) return;
-
-    const deltaX = event.clientX - start.x;
-    const deltaY = event.clientY - start.y;
-    const movedHorizontally = Math.abs(deltaX) > 56 && Math.abs(deltaX) > Math.abs(deltaY);
-
-    const swipedOutward = language === 'he' ? deltaX > 56 : deltaX < -56;
-    if (movedHorizontally && swipedOutward) setMobileMenuOpen(false);
-  }
-
   const projectsFilter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
   const isProjectsRoute = location.pathname === '/app/projects';
   const navActive = (path) => location.pathname === path;
@@ -349,11 +326,6 @@ export default function DashboardLayout() {
           id="main-navigation"
           className={`sidebar ${mobileMenuOpen ? 'mobileOpen' : ''}`}
           aria-label={t('תפריט ראשי')}
-          onPointerDown={startMenuDrawerSwipe}
-          onPointerUp={finishMenuDrawerSwipe}
-          onPointerCancel={() => {
-            menuDrawerSwipeRef.current = null;
-          }}
         >
           <div className="mobileMenuHeader">
             <div>

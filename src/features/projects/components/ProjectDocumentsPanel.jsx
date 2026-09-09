@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, ExternalLink, FileText, LoaderCircle, Trash2, Upload } from 'lucide-react';
+import { Download, Eye, FileText, LoaderCircle, Trash2, Upload } from 'lucide-react';
 import { t } from '../../language/LanguageContext.jsx';
 import { createSignedUrl } from '../../../services/api/storage.js';
+import PdfPreviewModal from './PdfPreviewModal.jsx';
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
@@ -35,6 +36,7 @@ export default function ProjectDocumentsPanel({
   const [links, setLinks] = useState({});
   const [uploading, setUploading] = useState(false);
   const [documentType, setDocumentType] = useState(defaultDocumentType);
+  const [previewDocument, setPreviewDocument] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +85,8 @@ export default function ProjectDocumentsPanel({
   }
 
   return (
-    <section className="projectSectionPanel projectDocumentsPanel">
+    <>
+      <section className="projectSectionPanel projectDocumentsPanel">
       <header className="projectSectionHeader projectDocumentsHeader">
         <div>
           <span className="projectDocumentsEyebrow">{t('מסמכים מהשטח לשרטט')}</span>
@@ -154,15 +157,16 @@ export default function ProjectDocumentsPanel({
               </div>
               <div className="projectDocumentActions">
                 {links[document.id]?.view && (
-                  <a
-                    href={links[document.id].view}
-                    target="_blank"
-                    rel="noreferrer"
-                    title={t('פתיחת PDF')}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPreviewDocument({ url: links[document.id].view, fileName: document.file_name })
+                    }
+                    title={t('תצוגה מקדימה של PDF')}
                   >
-                    <ExternalLink size={15} />
-                    <span>{t('פתח PDF')}</span>
-                  </a>
+                    <Eye size={15} />
+                    <span>{t('צפייה')}</span>
+                  </button>
                 )}
                 {links[document.id]?.download && (
                   <a href={links[document.id].download} title={t('הורדת PDF')}>
@@ -186,6 +190,12 @@ export default function ProjectDocumentsPanel({
           ))}
         </div>
       )}
-    </section>
+      </section>
+      <PdfPreviewModal
+        url={previewDocument?.url}
+        fileName={previewDocument?.fileName || t('קובץ PDF')}
+        onClose={() => setPreviewDocument(null)}
+      />
+    </>
   );
 }

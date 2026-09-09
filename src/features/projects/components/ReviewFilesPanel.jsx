@@ -1,12 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
 import { useEffect, useState } from 'react';
-import { ExternalLink, FileText, Trash2 } from 'lucide-react';
+import { Eye, FileText, Trash2 } from 'lucide-react';
 import { createSignedUrl } from '../../../services/api/storage.js';
+import PdfPreviewModal from './PdfPreviewModal.jsx';
 
 export default function ReviewFilesPanel({ files, canDelete, onDelete }) {
   useTranslation();
   const [urls, setUrls] = useState({});
+  const [previewFile, setPreviewFile] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,7 +28,8 @@ export default function ReviewFilesPanel({ files, canDelete, onDelete }) {
 
   if (!files.length) return null;
   return (
-    <section className="projectSectionPanel reviewFilesBox">
+    <>
+      <section className="projectSectionPanel reviewFilesBox">
       <header className="projectSectionHeader projectDocumentsHeader">
         <div>
           <span className="projectDocumentsEyebrow">{t('מסמכים מהשרטט')}</span>
@@ -53,10 +56,19 @@ export default function ReviewFilesPanel({ files, canDelete, onDelete }) {
             </div>
             <div className="projectDocumentActions">
               {urls[file.id] && (
-                <a href={urls[file.id]} target="_blank" rel="noreferrer" title={t('פתיחת PDF')}>
-                  <ExternalLink size={15} />
-                  <span>{t('פתח PDF')}</span>
-                </a>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPreviewFile({
+                      url: urls[file.id],
+                      fileName: file.file_name || t('קובץ PDF'),
+                    })
+                  }
+                  title={t('תצוגה מקדימה של PDF')}
+                >
+                  <Eye size={15} />
+                  <span>{t('צפייה')}</span>
+                </button>
               )}
               {canDelete && (
                 <button
@@ -73,6 +85,12 @@ export default function ReviewFilesPanel({ files, canDelete, onDelete }) {
           </article>
         ))}
       </div>
-    </section>
+      </section>
+      <PdfPreviewModal
+        url={previewFile?.url}
+        fileName={previewFile?.fileName || t('קובץ PDF')}
+        onClose={() => setPreviewFile(null)}
+      />
+    </>
   );
 }

@@ -283,9 +283,9 @@ export default function DashboardLayout() {
             openTab('/app/notifications');
             setNotificationsOpen(false);
           }}
-          onOpenProject={(project) => {
+          onOpenProject={(projectId) => {
             setNotificationsOpen(false);
-            navigate(projectDeepLinkPath(project));
+            navigate(projectDeepLinkPath(projectId));
           }}
         />
       )}

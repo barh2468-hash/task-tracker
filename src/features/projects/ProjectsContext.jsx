@@ -147,8 +147,8 @@ export function ProjectsProvider({ children }) {
       runMutation(projectsFeatureApi.uploadPhoto(projectId, file, category)),
     deletePhoto: (photo, project) =>
       runMutation(projectsFeatureApi.deletePhoto(photo, project, profile)),
-    uploadProjectDocument: (project, file) =>
-      runMutation(projectsFeatureApi.uploadProjectDocument(project, file, profile)),
+    uploadProjectDocument: (project, file, documentType) =>
+      runMutation(projectsFeatureApi.uploadProjectDocument(project, file, profile, documentType)),
     deleteProjectDocument: (projectDocument, project) =>
       runMutation(projectsFeatureApi.deleteProjectDocument(projectDocument, project, profile)),
     assignProjectDrafter: (project, drafterId) =>

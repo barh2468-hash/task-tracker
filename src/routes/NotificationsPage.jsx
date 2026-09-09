@@ -4,5 +4,5 @@ import NotificationsPanel from '../features/notifications/components/Notificatio
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
-  return <NotificationsPanel onOpenProject={(project) => navigate(projectDeepLinkPath(project))} />;
+  return <NotificationsPanel onOpenProject={(projectId) => navigate(projectDeepLinkPath(projectId))} />;
 }

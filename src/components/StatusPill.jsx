@@ -1,9 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { REVIEW_STATUS } from '../services/supabase.js';
+import { REVIEW_COMPLETED_STATUS, REVIEW_STATUS } from '../services/supabase.js';
 import { t } from '../features/language/LanguageContext.jsx';
 
 export function getStatusClass(status) {
   if (status === REVIEW_STATUS) return 'review';
+  if (status === REVIEW_COMPLETED_STATUS) return 'review-complete';
   if (status === 'הושלם') return 'done';
   if (status === 'עבר לשרטוט') return 'drafting';
   if (status === 'נדרש GPR') return 'gpr';

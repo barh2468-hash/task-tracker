@@ -9,7 +9,7 @@ export async function getProjectAssets(projectId) {
   const [photos, reviewFiles, documents] = await Promise.all([
     supabase.from('project_photos').select('id,file_path,category,created_at').eq('project_id', projectId).order('created_at', { ascending: false }),
     supabase.from('project_review_files').select('id,project_id,uploaded_by,file_path,file_name,created_at,profiles:uploaded_by(full_name)').eq('project_id', projectId).order('created_at', { ascending: false }),
-    supabase.from('project_documents').select('id,project_id,uploaded_by,file_path,file_name,file_size,created_at,profiles:uploaded_by(full_name)').eq('project_id', projectId).order('created_at', { ascending: false }),
+    supabase.from('project_documents').select('id,project_id,uploaded_by,file_path,file_name,file_size,document_type,created_at,profiles:uploaded_by(full_name)').eq('project_id', projectId).order('created_at', { ascending: false }),
   ]);
   if (photos.error) throw photos.error;
   if (reviewFiles.error) throw reviewFiles.error;

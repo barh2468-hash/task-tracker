@@ -18,6 +18,7 @@ import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh.js';
 import { roleLabel } from '../services/supabase.js';
+import { projectDeepLinkPath } from '../utils/navigation.js';
 
 function initials(name) {
   return String(name || '?')
@@ -360,7 +361,7 @@ export default function ChatPage() {
                         type="button"
                         className="chatProjectReference"
                         onClick={() =>
-                          navigate(`/app/projects?project=${encodeURIComponent(message.project_id)}`)
+                          navigate(projectDeepLinkPath(message.project_id))
                         }
                       >
                         <FolderKanban size={20} />

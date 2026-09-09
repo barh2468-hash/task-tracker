@@ -7,7 +7,17 @@ import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
 export default [
-  { ignores: ['dist', 'node_modules', 'dev-dist', '.next', 'supabase/functions/**'] },
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      'dev-dist',
+      '.next',
+      'output',
+      'tmp',
+      'supabase/functions/**',
+    ],
+  },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx}'],

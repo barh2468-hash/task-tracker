@@ -33,6 +33,11 @@ function uniqueEmails(rows: Array<{ email?: string | null }>) {
   return Array.from(new Set(rows.map((row) => row.email).filter(Boolean))) as string[];
 }
 
+function isDrafterCandidate(profile: { role?: string | null; full_name?: string | null }) {
+  if (profile.role === 'drafter') return true;
+  return /(^|\s)(דודי|dudi|dudy)(\s|$)/i.test(String(profile.full_name || '').trim());
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') {
@@ -64,7 +69,9 @@ Deno.serve(async (req) => {
 
     if (requesterError) throw requesterError;
     if (!requester) throw new Error('Missing requester profile');
-    if (!['manager', 'drafter'].includes(requester.role)) {
+    const requesterIsManager = requester.role === 'manager';
+    const requesterIsDrafter = isDrafterCandidate(requester);
+    if (!requesterIsManager && !requesterIsDrafter) {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'requester_is_not_manager_or_drafter' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -85,23 +92,29 @@ Deno.serve(async (req) => {
       ...((project.project_workers || []) as Array<{ worker_id?: string | null }>).map((row) => row.worker_id)
     ].filter(Boolean))) as string[];
 
-    const { data: managersAndDrafters, error: teamError } = await adminClient
+    if (requesterIsDrafter && !requesterIsManager && !assignedWorkerIds.includes(requester.id)) {
+      return new Response(JSON.stringify({ error: 'Drafter is not assigned to this project' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const { data: managers, error: managersError } = await adminClient
       .from('profiles')
       .select('id,email,full_name,role')
-      .in('role', ['manager', 'drafter']);
-    if (teamError) throw teamError;
+      .eq('role', 'manager');
+    if (managersError) throw managersError;
 
-    let fieldWorkers: Array<{ id: string; email: string | null; full_name: string | null; role: string }> = [];
+    let assignedRecipients: Array<{ id: string; email: string | null; full_name: string | null; role: string }> = [];
     if (assignedWorkerIds.length) {
       const { data: workers, error: workersError } = await adminClient
         .from('profiles')
         .select('id,email,full_name,role')
         .in('id', assignedWorkerIds);
       if (workersError) throw workersError;
-      fieldWorkers = workers || [];
+      assignedRecipients = workers || [];
     }
 
-    const recipients = uniqueEmails([...(managersAndDrafters || []), ...fieldWorkers]);
+    // Managers receive system-wide review mail. Every other recipient, including
+    // drafters, must be explicitly assigned to this project.
+    const recipients = uniqueEmails([...(managers || []), ...assignedRecipients]);
     if (!recipients.length) {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'no_recipient_emails' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }

@@ -8,9 +8,14 @@ import * as projectReviewFilesApi from '../../services/api/projectReviewFiles.js
 import * as statusHistoryApi from '../../services/api/statusHistory.js';
 import * as storageApi from '../../services/api/storage.js';
 import * as edgeFunctions from '../../services/api/edgeFunctions.js';
-import { statusProgress, REVIEW_STATUS } from '../../services/supabase.js';
+import {
+  statusProgress,
+  REVIEW_COMPLETED_STATUS,
+  REVIEW_STATUS,
+} from '../../services/supabase.js';
 import { createManagerNotification, createUserNotification } from '../notifications/api.js';
 import { enqueueOfflineAction } from '../../services/offlineStore.js';
+import { findAssignedDrafter, isDrafterCandidate } from './utils/drafters.js';
 
 // ---- Loading ----------------------------------------------------------
 
@@ -27,6 +32,7 @@ export async function getProjects(profile) {
     const { data, error } = await projectsApi.getProjectsByIdsAndStatuses(drafterProjectIds, [
       'עבר לשרטוט',
       REVIEW_STATUS,
+      REVIEW_COMPLETED_STATUS,
     ]);
     if (error) throw error;
     return data || [];
@@ -70,6 +76,17 @@ export function getProjectFieldWorkerIds(project) {
   );
 }
 
+export function getAssignedDrafterIds(project) {
+  return Array.from(
+    new Set(
+      (project.project_workers || [])
+        .filter((assignment) => isDrafterCandidate(assignment.profiles))
+        .map((assignment) => assignment.worker_id)
+        .filter(Boolean),
+    ),
+  );
+}
+
 // ---- Notifications / email side-effects --------------------------------
 
 export async function sendProjectAssignmentEmail(workerId, project, assignedByName) {
@@ -98,33 +115,38 @@ export async function updateStatus(project, newStatus, note, profile) {
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '' };
 
-  const nextProgress = newStatus === REVIEW_STATUS ? 85 : (statusProgress[newStatus] ?? project.progress);
+  if (newStatus === project.status) {
+    return { message: 'יש לבחור סטטוס שונה מהסטטוס הנוכחי.', ok: false };
+  }
+  const cleanNote = String(note || '').trim();
+
+  const nextProgress = statusProgress[newStatus] ?? project.progress;
   if (!navigator.onLine) {
     await enqueueOfflineAction('project_status', {
       projectId: project.id,
       newStatus,
       progress: nextProgress,
-      history: { project_id: project.id, old_status: project.status, new_status: newStatus, changed_by: user.id, note: note || 'עדכון סטטוס מהשטח' },
+      history: { project_id: project.id, old_status: project.status, new_status: newStatus, changed_by: user.id, note: cleanNote || null },
     });
-    return { message: 'אין חיבור. שינוי הסטטוס נשמר ויסונכרן אוטומטית.', offline: true, optimistic: { status: newStatus, progress: nextProgress } };
+    return { message: 'אין חיבור. שינוי הסטטוס נשמר ויסונכרן אוטומטית.', ok: true, offline: true, optimistic: { status: newStatus, progress: nextProgress } };
   }
   const { error } = await projectsApi.updateProject(project.id, { status: newStatus, progress: nextProgress });
-  if (error) return { message: error.message };
+  if (error) return { message: error.message, ok: false };
 
   const { error: historyError } = await statusHistoryApi.insertStatusHistory({
     project_id: project.id,
     old_status: project.status,
     new_status: newStatus,
     changed_by: user.id,
-    note: note || 'עדכון סטטוס מהשטח',
+    note: cleanNote || null,
   });
-  if (historyError) return { message: historyError.message };
+  if (historyError) return { message: historyError.message, ok: false };
 
   if (profile?.role === 'field_worker' || profile?.role === 'manager') {
     await createManagerNotification(
       'status_change',
       `עדכון סטטוס: ${project.name}`,
-      `${profile.full_name} עדכן סטטוס בפרויקט ${project.name}: ${project.status} → ${newStatus}${note ? `. הערה: ${note}` : ''}`,
+      `${profile.full_name} עדכן סטטוס בפרויקט ${project.name}: ${project.status} → ${newStatus}.${cleanNote ? ` הערה: ${cleanNote}` : ''}`,
       project.id,
     );
 
@@ -135,7 +157,7 @@ export async function updateStatus(project, newStatus, note, profile) {
       location: project.location,
       oldStatus: project.status,
       newStatus,
-      note: note || '',
+      note: cleanNote,
       changedByName: profile.full_name,
       changedByEmail: profile.email,
       changedByRole: profile.role,
@@ -144,11 +166,11 @@ export async function updateStatus(project, newStatus, note, profile) {
 
     if (notifyError) {
       console.warn('Email notification failed:', notifyError.message);
-      return { message: `הסטטוס עודכן ל: ${newStatus}. שים לב: התראת המייל לא נשלחה (${notifyError.message}).` };
+      return { message: `הסטטוס עודכן ל: ${newStatus}. שים לב: התראת המייל לא נשלחה (${notifyError.message}).`, ok: true };
     }
   }
 
-  return { message: `הסטטוס של ${project.name} עודכן ל: ${newStatus}` };
+  return { message: `הסטטוס של ${project.name} עודכן ל: ${newStatus}`, ok: true };
 }
 
 export async function uploadPhoto(projectId, file, category = 'תמונת שטח') {
@@ -237,7 +259,7 @@ function isAssignedFieldWorker(project, profile, userId) {
   );
 }
 
-export async function uploadProjectDocument(project, file, profile) {
+export async function uploadProjectDocument(project, file, profile, documentType = 'general') {
   const user = await authApi.getCurrentUser();
   if (!user || !project?.id || !file || !profile) return { message: '' };
 
@@ -267,6 +289,7 @@ export async function uploadProjectDocument(project, file, profile) {
     file_path: path,
     file_name: file.name,
     file_size: file.size,
+    document_type: documentType,
   });
   if (insertError) {
     await storageApi.removeFiles('project-documents', [path]);
@@ -278,19 +301,32 @@ export async function uploadProjectDocument(project, file, profile) {
     old_status: null,
     new_status: 'הועלה מסמך PDF',
     changed_by: user.id,
-    note: file.name,
+    note: `${documentType === 'boundary_sketch' ? 'סקיצת גבול עבודה' : documentType === 'drawing_correction' ? 'תיקוני שרטוט' : documentType === 'drawing_source' ? 'חומר לשרטוט' : 'מסמך כללי'}: ${file.name}`,
   });
 
   if (profile.role === 'field_worker') {
+    const documentPurpose =
+      documentType === 'drawing_correction' ? 'תיקוני שרטוט' : 'חומר לשרטוט';
     await createManagerNotification(
       'project_document_uploaded',
       `מסמך חדש: ${project.name}`,
-      `${profile.full_name} העלה את המסמך ${file.name} לפרויקט ${project.name}.`,
+      `${profile.full_name} העלה ${documentPurpose}: ${file.name}, לפרויקט ${project.name}.`,
       project.id,
     );
+
+    const assignedDrafterIds = getAssignedDrafterIds(project);
+    for (const drafterId of assignedDrafterIds) {
+      await createUserNotification(
+        drafterId,
+        'drawing_document_uploaded',
+        `${documentPurpose}: ${project.name}`,
+        `${profile.full_name} העלה עבורך את הקובץ ${file.name}.`,
+        project.id,
+      );
+    }
   }
 
-  return { message: 'מסמך ה־PDF הועלה ונשמר בפרויקט.' };
+  return { message: 'מסמך ה־PDF הועלה ונשמר בפרויקט.', ok: true };
 }
 
 export async function deleteProjectDocument(projectDocument, project, profile) {
@@ -337,10 +373,9 @@ export async function assignProjectDrafter(project, drafterId, profile, workers)
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '' };
 
-  const drafters = workers.filter((worker) => worker.role === 'drafter');
+  const drafters = workers.filter(isDrafterCandidate);
   const drafterIds = drafters.map((worker) => worker.id);
-  const currentDrafterId = project.project_workers?.find((assignment) => assignment.profiles?.role === 'drafter')
-    ?.worker_id;
+  const currentDrafterId = findAssignedDrafter(project)?.worker_id;
   if ((currentDrafterId || '') === drafterId) {
     return { message: drafterId ? 'הפרויקט כבר משויך לשרטט שנבחר' : 'הפרויקט אינו משויך לשרטט' };
   }
@@ -398,39 +433,52 @@ export async function assignProjectDrafter(project, drafterId, profile, workers)
 
 export async function sendProjectToReview(project, file, note, profile) {
   const user = await authApi.getCurrentUser();
-  if (!user || !profile) return { message: '' };
-  if (profile.role !== 'drafter' && profile.role !== 'manager') {
-    return { message: 'רק שרטט או מנהל יכולים לשלוח פרויקט להגהה.' };
+  if (!user || !profile) return { message: '', ok: false };
+  if (profile.role !== 'manager' && !isDrafterCandidate(profile)) {
+    return { message: 'רק שרטט או מנהל יכולים לשלוח פרויקט להגהה.', ok: false };
   }
   if (project.status !== 'עבר לשרטוט') {
-    return { message: 'אפשר לשלוח להגהה רק פרויקט שנמצא בסטטוס עבר לשרטוט.' };
+    return { message: 'אפשר לשלוח להגהה רק פרויקט שנמצא בסטטוס עבר לשרטוט.', ok: false };
   }
-  if (!file) return { message: 'יש לבחור קובץ PDF לפני שליחה להגהה.' };
-  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-  if (!isPdf) return { message: 'אפשר להעלות להגהה קובץ PDF בלבד.' };
+  if (!file) return { message: 'יש לבחור קובץ PDF לפני שליחה להגהה.', ok: false };
+  if (!navigator.onLine) return { message: 'נדרש חיבור לאינטרנט כדי לשלוח PDF להגהה.', ok: false };
+  const isPdfName = file.name.toLowerCase().endsWith('.pdf');
+  const isPdfType = !file.type || file.type === 'application/pdf';
+  if (!isPdfName || !isPdfType) return { message: 'אפשר להעלות להגהה קובץ PDF בלבד.', ok: false };
+  if (!file.size) return { message: 'קובץ ה־PDF ריק ולא ניתן להעלות אותו.', ok: false };
+  if (file.size > MAX_PROJECT_DOCUMENT_SIZE) {
+    return { message: 'קובץ ה־PDF גדול מדי. הגודל המרבי הוא 20MB.', ok: false };
+  }
 
-  const path = `${project.id}/${Date.now()}-${storageApi.safeFileName(file.name)}`;
+  const path = `${project.id}/${user.id}/${Date.now()}-${storageApi.safeFileName(file.name)}`;
   const { error: uploadError } = await storageApi.uploadFile('project-review-files', path, file, {
     upsert: false,
     contentType: 'application/pdf',
   });
-  if (uploadError) return { message: uploadError.message };
+  if (uploadError) return { message: `העלאת קובץ ההגהה נכשלה: ${uploadError.message}`, ok: false };
 
-  const { error: fileError } = await projectReviewFilesApi.insertProjectReviewFile({
+  const { data: insertedFile, error: fileError } = await projectReviewFilesApi.insertProjectReviewFile({
     project_id: project.id,
     uploaded_by: user.id,
     file_path: path,
     file_name: file.name,
   });
-  if (fileError) return { message: fileError.message };
+  if (fileError) {
+    await storageApi.removeFiles('project-review-files', [path]);
+    return { message: `שמירת קובץ ההגהה נכשלה: ${fileError.message}`, ok: false };
+  }
 
   const { error: projectError } = await projectsApi.updateProject(project.id, {
     status: REVIEW_STATUS,
     progress: 85,
   });
-  if (projectError) return { message: projectError.message };
+  if (projectError) {
+    if (insertedFile?.id) await projectReviewFilesApi.deleteProjectReviewFile(insertedFile.id);
+    await storageApi.removeFiles('project-review-files', [path]);
+    return { message: `עדכון הפרויקט לסטטוס הגהה נכשל: ${projectError.message}`, ok: false };
+  }
 
-  const cleanNote = note.trim();
+  const cleanNote = String(note || '').trim();
   await statusHistoryApi.insertStatusHistory({
     project_id: project.id,
     old_status: project.status,
@@ -446,6 +494,18 @@ export async function sendProjectToReview(project, file, note, profile) {
       'project_review_sent',
       `נשלח להגהה: ${project.name}`,
       `השרטט ${profile.full_name} שלח את הפרויקט להגהה וצירף PDF לבדיקה.${cleanNote ? ` הערה: ${cleanNote}` : ''}`,
+      project.id,
+    );
+  }
+
+  const assignedDrafterIds = getAssignedDrafterIds(project);
+  for (const drafterId of assignedDrafterIds) {
+    if (drafterId === user.id || workerIds.includes(drafterId)) continue;
+    await createUserNotification(
+      drafterId,
+      'project_review_sent',
+      `נשלח להגהה: ${project.name}`,
+      `${profile.full_name} שלח את הפרויקט להגהה וצירף PDF לבדיקה.${cleanNote ? ` הערה: ${cleanNote}` : ''}`,
       project.id,
     );
   }
@@ -468,16 +528,17 @@ export async function sendProjectToReview(project, file, note, profile) {
     console.warn('Review email notification failed:', notifyError.message);
     return {
       message: `הפרויקט נשלח להגהה והעובדים קיבלו התראה פנימית. שים לב: מייל ההגהה לא נשלח (${notifyError.message}).`,
+      ok: true,
     };
   }
 
-  return { message: 'הפרויקט נשלח להגהה, ה-PDF נשמר ונשלחו התראות ומיילים.' };
+  return { message: 'הפרויקט נשלח להגהה, ה-PDF נשמר ונשלחו התראות ומיילים.', ok: true };
 }
 
 export async function deleteProjectReviewFile(file, projectId, profile) {
   const user = await authApi.getCurrentUser();
   if (!user || !profile) return { message: '' };
-  if (profile.role !== 'manager' && profile.role !== 'drafter') {
+  if (profile.role !== 'manager' && !isDrafterCandidate(profile)) {
     return { message: 'רק מנהל או שרטט יכולים למחוק קובץ PDF של הגהה.' };
   }
 
@@ -530,9 +591,10 @@ export async function createProject(newProject, profile) {
   if (error) return { message: error.message };
 
   let assignmentEmailSent = true;
-  if (insertedProject?.id && newProject.assigned_workers.length) {
+  const assignedWorkers = newProject.assigned_workers || [];
+  if (insertedProject?.id && assignedWorkers.length) {
     await projectWorkersApi.insertProjectWorkers(
-      newProject.assigned_workers.map((workerId) => ({
+      assignedWorkers.map((workerId) => ({
         project_id: insertedProject.id,
         worker_id: workerId,
         assigned_by: user.id,
@@ -556,7 +618,7 @@ export async function createProject(newProject, profile) {
   }
 
   if (insertedProject?.id) {
-    const workerIdsToNotify = Array.from(new Set([newProject.assigned_to, ...newProject.assigned_workers].filter(Boolean)));
+    const workerIdsToNotify = Array.from(new Set([newProject.assigned_to, ...assignedWorkers].filter(Boolean)));
     for (const workerId of workerIdsToNotify) {
       if (workerId === newProject.assigned_to) continue;
       await createUserNotification(
@@ -571,7 +633,24 @@ export async function createProject(newProject, profile) {
     }
   }
 
-  const hasAssignedWorkers = !!newProject.assigned_to || newProject.assigned_workers.length > 0;
+  let boundarySketchUploaded = true;
+  if (insertedProject?.id && newProject.boundary_sketch) {
+    const uploadResult = await uploadProjectDocument(
+      { id: insertedProject.id, name: newProject.name, project_workers: [] },
+      newProject.boundary_sketch,
+      profile,
+      'boundary_sketch',
+    );
+    boundarySketchUploaded = Boolean(uploadResult?.ok);
+  }
+
+  const hasAssignedWorkers = !!newProject.assigned_to || assignedWorkers.length > 0;
+  if (!boundarySketchUploaded) {
+    return {
+      message:
+        'הפרויקט נוצר, אך העלאת סקיצת גבול העבודה נכשלה. ניתן להעלות אותה מכרטיסיית מסמכי הפרויקט.',
+    };
+  }
   return {
     message: hasAssignedWorkers
       ? assignmentEmailSent
@@ -601,7 +680,7 @@ export async function saveProject(projectId, changes, profile, originalProject) 
   if (error) return { message: error.message };
 
   const preservedDrafterIds = (originalProject?.project_workers || [])
-    .filter((assignment) => assignment.profiles?.role === 'drafter')
+    .filter((assignment) => isDrafterCandidate(assignment.profiles))
     .map((assignment) => assignment.worker_id);
   const previousExtraWorkers = new Set(
     (originalProject?.project_workers || [])

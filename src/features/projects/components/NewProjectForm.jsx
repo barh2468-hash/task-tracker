@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FileUp, LoaderCircle } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../ProjectsContext.jsx';
 
@@ -16,6 +17,7 @@ const emptyProject = {
   assigned_workers: [],
   due_date: '',
   requires_work_diary: false,
+  boundary_sketch: null,
 };
 
 export default function NewProjectForm() {
@@ -24,15 +26,22 @@ export default function NewProjectForm() {
   const { isManager } = useAuth();
   const navigate = useNavigate();
   const [project, setProject] = useState(emptyProject);
+  const [creating, setCreating] = useState(false);
 
   const projectLeads = workers.filter((worker) => worker.role !== 'drafter');
   const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
 
   async function handleCreate() {
-    const result = await createProject(project);
-    if (result?.message?.startsWith('הפרויקט נוצר')) {
-      setProject(emptyProject);
-      navigate(`/app/projects?filter=${isManager ? 'all' : 'mine'}`);
+    if (creating) return;
+    setCreating(true);
+    try {
+      const result = await createProject(project);
+      if (result?.message?.startsWith('הפרויקט נוצר')) {
+        setProject(emptyProject);
+        navigate(`/app/projects?filter=${isManager ? 'all' : 'mine'}`);
+      }
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -143,6 +152,24 @@ export default function NewProjectForm() {
 
           {t('הפרויקט דורש יומן עבודה וחתימות')}
         </label>
+        <label className="wideField boundarySketchField">
+          {t('סקיצת גבול עבודה, אופציונלי')}
+
+          <span className="filePickerControl">
+            <FileUp size={18} />
+            <span>
+              {project.boundary_sketch?.name || t('בחירת קובץ PDF של סקיצת גבול עבודה')}
+            </span>
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              disabled={creating}
+              onChange={(event) =>
+                setProject({ ...project, boundary_sketch: event.target.files?.[0] || null })
+              }
+            />
+          </span>
+        </label>
       </div>
       <label>
         {t('תיאור העבודה')}
@@ -153,7 +180,10 @@ export default function NewProjectForm() {
           placeholder={t('פירוט איתור תשתיות, דרישות לקוח, חסמים וכו׳')}
         />
       </label>
-      <button onClick={handleCreate}>{t('צור פרויקט')}</button>
+      <button onClick={handleCreate} disabled={creating}>
+        {creating && <LoaderCircle className="spinIcon" size={17} />}
+        {creating ? t('יוצר פרויקט...') : t('צור פרויקט')}
+      </button>
     </section>
   );
 }

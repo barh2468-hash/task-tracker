@@ -8,6 +8,7 @@ import {
   ChevronDown,
   FileText,
   Mail,
+  MessageSquareText,
   Pencil,
   PlayCircle,
   Phone,
@@ -19,7 +20,11 @@ import {
 import { useAuth } from '../../auth/useAuth.js';
 import { useAttendance } from '../../attendance/AttendanceContext.jsx';
 import { useProjects } from '../ProjectsContext.jsx';
-import { appStatuses } from '../../../services/supabase.js';
+import {
+  appStatuses,
+  REVIEW_COMPLETED_STATUS,
+  REVIEW_STATUS,
+} from '../../../services/supabase.js';
 import StatusPill, { getStatusClass } from '../../../components/StatusPill.jsx';
 import LocationLine from '../../../components/LocationLine.jsx';
 import { exportProjectPdf } from '../utils/exportProjectPdf.js';
@@ -29,6 +34,7 @@ import ProjectDocumentsPanel from './ProjectDocumentsPanel.jsx';
 import TaskPanel from './TaskPanel.jsx';
 import PhotoGallery from '../../photos/components/PhotoGallery.jsx';
 import WorkDiaryPanel from '../../work-diary/components/WorkDiaryPanel.jsx';
+import { findAssignedDrafter, isDrafterCandidate } from '../utils/drafters.js';
 
 const photoCategories = [
   'תמונת שטח',
@@ -39,7 +45,7 @@ const photoCategories = [
   'אחר',
 ];
 
-export default function ProjectCard({ project, onOpen }) {
+export default function ProjectCard({ project, focused = false }) {
   useTranslation();
   const { profile, isManager, isDrafter, session } = useAuth();
   const {
@@ -72,7 +78,9 @@ export default function ProjectCard({ project, onOpen }) {
   const projectHistory = historyItems.filter((h) => h.project_id === project.id).slice(0, 4);
 
   const [status, setStatus] = useState(project.status);
-  const [note, setNote] = useState('');
+  const [statusNote, setStatusNote] = useState('');
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const [photoCategory, setPhotoCategory] = useState(photoCategories[0]);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
@@ -88,13 +96,11 @@ export default function ProjectCard({ project, onOpen }) {
     project_documents: [],
   });
   const [assetsLoading, setAssetsLoading] = useState(false);
-  const assignedDrafterId =
-    project.project_workers?.find((assignment) => assignment.profiles?.role === 'drafter')
-      ?.worker_id || '';
+  const assignedDrafterId = findAssignedDrafter(project)?.worker_id || '';
   const [selectedDrafterId, setSelectedDrafterId] = useState(assignedDrafterId);
   const projectLeads = workers.filter((worker) => worker.role !== 'drafter');
   const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
-  const drafters = workers.filter((worker) => worker.role === 'drafter');
+  const drafters = workers.filter(isDrafterCandidate);
   const [editProject, setEditProject] = useState({
     name: project.name,
     client_name: project.client_name || '',
@@ -129,15 +135,26 @@ export default function ProjectCard({ project, onOpen }) {
       due_date: project.due_date || '',
       requires_work_diary: Boolean(project.requires_work_diary),
     });
+    setSelectedDrafterId(findAssignedDrafter(project)?.worker_id || '');
+  }, [project]);
+
+  // Project objects are replaced by the realtime/polling refresh even when the
+  // project itself did not change. Keep a selected review PDF across those
+  // refreshes so the native file input and React state cannot drift apart.
+  useEffect(() => {
     setReviewFile(null);
     setReviewNote('');
-    setSelectedDrafterId(
-      project.project_workers?.find((assignment) => assignment.profiles?.role === 'drafter')
-        ?.worker_id || '',
-    );
-  }, [project]);
+    setStatusDialogOpen(false);
+    setStatusNote('');
+  }, [project.id]);
+
   useEffect(() => {
-    if (!editing) return;
+    if (project.status === 'עבר לשרטוט') return;
+    setReviewFile(null);
+    setReviewNote('');
+  }, [project.status]);
+  useEffect(() => {
+    if (!editing && !statusDialogOpen) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -145,7 +162,11 @@ export default function ProjectCard({ project, onOpen }) {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [editing]);
+  }, [editing, statusDialogOpen]);
+
+  useEffect(() => {
+    if (focused) setDetailsOpen(true);
+  }, [focused]);
 
   async function refreshAssets() {
     setAssetsLoading(true);
@@ -173,7 +194,9 @@ export default function ProjectCard({ project, onOpen }) {
   const lastEndedSession = projectSessions
     .filter((w) => w.worker_id === currentUserId && w.ended_at)
     .sort((a, b) => new Date(b.ended_at || '').getTime() - new Date(a.ended_at || '').getTime())[0];
-  const isReviewSent = project.status === 'נשלח להגהה';
+  const isReviewSent = project.status === REVIEW_STATUS;
+  const isReviewCompleted = project.status === REVIEW_COMPLETED_STATUS;
+  const canManageReview = isManager || isDrafter || isDrafterCandidate(profile);
 
   const editModal = editing ? (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click-to-close is a mouse convenience; the close button covers keyboard access
@@ -358,6 +381,80 @@ export default function ProjectCard({ project, onOpen }) {
     </div>
   ) : null;
 
+  const statusModal = statusDialogOpen ? (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click-to-close is a pointer convenience; the dialog has a keyboard-accessible close button
+    <div
+      className="modalBackdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={`status-note-title-${project.id}`}
+      onClick={() => !statusUpdating && setStatusDialogOpen(false)}
+    >
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- prevent backdrop dismissal for clicks inside the modal */}
+      <div className="statusNoteModal" onClick={(event) => event.stopPropagation()}>
+        <div className="modalHeader statusNoteHeader">
+          <div>
+            <span className="projectDocumentsEyebrow">{t('שינוי סטטוס')}</span>
+            <h3 id={`status-note-title-${project.id}`}>{t('הוספת הערה לעדכון')}</h3>
+            <p className="muted">
+              {t('{{value0}} ← {{value1}}', {
+                value0: t(status),
+                value1: t(project.status),
+              })}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="ghost iconBtn"
+            disabled={statusUpdating}
+            onClick={() => setStatusDialogOpen(false)}
+            aria-label={t('סגור')}
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <label>
+          {t('הערה לעדכון, אופציונלי')}
+          <textarea
+            value={statusNote}
+            disabled={statusUpdating}
+            onChange={(event) => setStatusNote(event.target.value)}
+            placeholder={t('הערה לעדכון, אופציונלי')}
+          />
+        </label>
+        <div className="modalActions">
+          <button
+            type="button"
+            disabled={statusUpdating}
+            onClick={async () => {
+              setStatusUpdating(true);
+              try {
+                const result = await updateStatus(project, status, statusNote);
+                if (result?.ok) {
+                  setStatusDialogOpen(false);
+                  setStatusNote('');
+                }
+              } finally {
+                setStatusUpdating(false);
+              }
+            }}
+          >
+            <MessageSquareText size={17} />
+            {statusUpdating ? t('מעדכן...') : t('עדכן סטטוס')}
+          </button>
+          <button
+            type="button"
+            className="ghost"
+            disabled={statusUpdating}
+            onClick={() => setStatusDialogOpen(false)}
+          >
+            {t('ביטול')}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <>
       <style>{`
@@ -405,17 +502,7 @@ export default function ProjectCard({ project, onOpen }) {
         }
       `}</style>
       <article
-        id={`project-${project.id}`}
-        className={`project status-${getStatusClass(project.status)} ${detailsOpen ? 'project-open' : 'project-closed'}`}
-        style={
-          isReviewSent
-            ? {
-                background: '#fff1f2',
-                borderColor: '#fecdd3',
-                boxShadow: '0 16px 40px rgba(190, 18, 60, .10)',
-              }
-            : undefined
-        }
+        className={`project status-${getStatusClass(project.status)} ${detailsOpen ? 'project-open' : 'project-closed'} ${isReviewSent ? 'projectReviewPending' : ''} ${isReviewCompleted ? 'projectReviewComplete' : ''}`}
       >
         <button
           type="button"
@@ -423,7 +510,6 @@ export default function ProjectCard({ project, onOpen }) {
           onClick={() =>
             setDetailsOpen((open) => {
               const nextOpen = !open;
-              if (nextOpen) onOpen?.();
               return nextOpen;
             })
           }
@@ -699,40 +785,41 @@ export default function ProjectCard({ project, onOpen }) {
                   </div>
                 )}
               </div>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                {appStatuses.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <input
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder={t('הערה לעדכון, אופציונלי')}
-              />
-
-              <button
-                className="smallBtn"
-                onClick={() => {
-                  updateStatus(project, status, note);
-                  setNote('');
-                }}
-              >
-                {t('עדכן סטטוס')}
-              </button>
-              <div className="photoUploadBox">
-                <select
-                  value={photoCategory}
-                  onChange={(e) => setPhotoCategory(e.target.value)}
-                  title={t('סוג תמונה')}
+              <div className="statusUpdateControls">
+                <label className="projectOperationField">
+                  <span>{t('שינוי סטטוס')}</span>
+                  <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                    {appStatuses.map((s) => (
+                      <option key={s} value={s}>
+                        {t(s)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  className="smallBtn"
+                  disabled={status === project.status}
+                  onClick={() => setStatusDialogOpen(true)}
                 >
-                  {photoCategories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
+                  <MessageSquareText size={16} />
+                  {t('המשך להערה ועדכון')}
+                </button>
+              </div>
+              <div className="photoUploadBox">
+                <label className="projectOperationField">
+                  <span>{t('סוג תמונה')}</span>
+                  <select
+                    value={photoCategory}
+                    onChange={(e) => setPhotoCategory(e.target.value)}
+                    title={t('סוג תמונה')}
+                  >
+                    {photoCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <label
                   className="smallBtn secondary"
                   style={{
@@ -770,8 +857,9 @@ export default function ProjectCard({ project, onOpen }) {
               canDelete={(document) =>
                 isManager || (isAssignedFieldWorker && document.uploaded_by === currentUserId)
               }
-              onUpload={async (file) => {
-                const result = await uploadProjectDocument(project, file);
+              defaultDocumentType={isAssignedFieldWorker ? 'drawing_source' : 'general'}
+              onUpload={async (file, documentType) => {
+                const result = await uploadProjectDocument(project, file, documentType);
                 if (result) await refreshAssets();
               }}
               onDelete={async (document) => {
@@ -789,7 +877,7 @@ export default function ProjectCard({ project, onOpen }) {
             )}
 
             {isManager && project.status === 'עבר לשרטוט' && (
-              <section className="drafterAssignmentBox">
+              <section className="projectSectionPanel drafterAssignmentBox">
                 <div>
                   <b>{t('שיוך הפרויקט לשרטט')}</b>
                   <span>
@@ -821,14 +909,14 @@ export default function ProjectCard({ project, onOpen }) {
 
             <ReviewFilesPanel
               files={assets.project_review_files}
-              canDelete={isManager || isDrafter}
+              canDelete={canManageReview}
               onDelete={async (file) => {
                 await deleteProjectReviewFile(file, project.id);
                 await refreshAssets();
               }}
             />
 
-            {(isDrafter || isManager) && project.status === 'עבר לשרטוט' && (
+            {canManageReview && project.status === 'עבר לשרטוט' && (
               <DrafterReviewBox
                 reviewFile={reviewFile}
                 setReviewFile={setReviewFile}
@@ -836,12 +924,15 @@ export default function ProjectCard({ project, onOpen }) {
                 setReviewNote={setReviewNote}
                 onSend={async () => {
                   if (!reviewFile) {
-                    return;
+                    return { ok: false };
                   }
-                  await sendProjectToReview(project, reviewFile, reviewNote);
-                  await refreshAssets();
-                  setReviewFile(null);
-                  setReviewNote('');
+                  const result = await sendProjectToReview(project, reviewFile, reviewNote);
+                  if (result?.ok) {
+                    await refreshAssets();
+                    setReviewFile(null);
+                    setReviewNote('');
+                  }
+                  return result;
                 }}
               />
             )}
@@ -870,7 +961,9 @@ export default function ProjectCard({ project, onOpen }) {
               onDelete={deleteProjectTask}
             />
 
-            <div className={`history collapsibleHistory ${historyOpen ? 'open' : ''}`}>
+            <div
+              className={`projectSectionPanel history collapsibleHistory ${historyOpen ? 'open' : ''}`}
+            >
               <button
                 className="historyToggle"
                 onClick={() => setHistoryOpen(!historyOpen)}
@@ -914,6 +1007,7 @@ export default function ProjectCard({ project, onOpen }) {
         )}
       </article>
       {editModal && createPortal(editModal, document.body)}
+      {statusModal && createPortal(statusModal, document.body)}
     </>
   );
 }

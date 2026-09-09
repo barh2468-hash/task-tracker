@@ -1146,7 +1146,7 @@ body.language-en { direction: ltr; }
 @media(max-width:680px){.projectDocumentsPanel{padding:14px}.projectDocumentsHeader{align-items:flex-start;flex-direction:column}.projectDocumentsHeaderActions{width:100%;justify-content:space-between}.projectDocumentUpload{flex:1}.projectDocumentsList{grid-template-columns:1fr}.projectDocumentItem{grid-template-columns:40px minmax(0,1fr)}.projectDocumentActions{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.projectDocumentActions a,.projectDocumentActions button{width:100%;justify-content:center}.projectDocumentInfo small{white-space:normal;line-height:1.45}}
 
 /* Balanced layout for an expanded project card */
-.projectExpandedBody{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;max-width:100%;min-width:0;margin-top:12px;align-items:start;overflow:visible}
+.projectExpandedBody{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%;max-width:100%;min-width:0;margin-top:12px;align-items:stretch;overflow:visible}
 .projectExpandedBody>*{min-width:0}
 .projectOverviewPanel{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1.7fr) minmax(210px,.8fr) minmax(220px,.8fr);gap:14px;padding:16px;border:1px solid #d6e4ef;border-radius:20px;background:linear-gradient(145deg,#f8fbfe,#fff);box-shadow:0 8px 22px rgba(7,30,65,.045)}
 .projectOverviewPanel>div{min-width:0;padding-inline:3px}
@@ -1159,20 +1159,19 @@ body.language-en { direction: ltr; }
 .projectOverviewProgress .progress{width:100%;margin:0}
 .projectOverviewProgress .muted{margin:0}
 .projectOverviewProgress .photos{margin-top:2px}
-.projectOperationsPanel{grid-column:1/-1;display:grid;grid-template-columns:minmax(270px,1.15fr) minmax(170px,.7fr) minmax(220px,1fr) minmax(130px,.55fr);gap:10px;padding:14px;border:1px solid #d6e4ef;border-radius:20px;background:linear-gradient(145deg,#f4f9fd,#fff);box-shadow:0 8px 22px rgba(7,30,65,.045);align-items:stretch;overflow:visible}
+.projectOperationsPanel{grid-column:1/-1;display:grid;grid-template-columns:minmax(270px,.85fr) minmax(0,1.5fr);gap:12px;padding:14px;border:1px solid #d6e4ef;border-radius:20px;background:linear-gradient(145deg,#f4f9fd,#fff);box-shadow:0 8px 22px rgba(7,30,65,.045);align-items:stretch;overflow:visible}
 .projectOperationsPanel .timeBox{grid-row:span 2;height:100%}
-.projectOperationsPanel>select,.projectOperationsPanel>input,.projectOperationsPanel>button{min-width:0;min-height:46px;margin:0}
-.projectOperationsPanel>button{width:100%}
-.projectOperationsPanel .photoUploadBox{grid-column:2/-1;display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr);gap:10px;padding:0;border:0;background:transparent;overflow:visible}
-.projectOperationsPanel .photoUploadBox select,.projectOperationsPanel .photoUploadBox .smallBtn{width:100%;min-width:0;margin:0}
+.statusUpdateControls,.projectOperationsPanel .photoUploadBox{grid-column:2;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end;min-width:0;padding:0;border:0;background:transparent;overflow:visible}
+.statusUpdateControls>button,.projectOperationsPanel .photoUploadBox .smallBtn{width:100%;min-width:0;min-height:46px;margin:0}
+.projectOperationField{min-width:0;gap:5px}.projectOperationField>span{color:var(--muted);font-size:11px;font-weight:850}.projectOperationField select{width:100%;min-width:0;min-height:46px;margin:0}
 .projectExpandedBody>.projectDocumentsPanel{grid-column:auto}
 
 @media(max-width:1050px){
   .projectOverviewPanel{grid-template-columns:repeat(2,minmax(0,1fr))}
   .projectOverviewIdentity{grid-column:1/-1}
-  .projectOperationsPanel{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .projectOperationsPanel{grid-template-columns:minmax(230px,.8fr) minmax(0,1.2fr)}
   .projectOperationsPanel .timeBox{grid-column:1/-1;grid-row:auto}
-  .projectOperationsPanel .photoUploadBox{grid-column:1/-1}
+  .statusUpdateControls,.projectOperationsPanel .photoUploadBox{grid-column:1/-1}
 }
 @media(max-width:720px){
   .projectExpandedBody{grid-template-columns:minmax(0,1fr);gap:12px;margin-top:10px}
@@ -1180,7 +1179,39 @@ body.language-en { direction: ltr; }
   .projectOverviewIdentity{grid-column:auto}
   .projectOverviewPanel>div+div{padding-top:13px;border-top:1px dashed #d7e4ee}
   .projectOperationsPanel{grid-template-columns:minmax(0,1fr);padding:12px}
-  .projectOperationsPanel .timeBox,.projectOperationsPanel .photoUploadBox{grid-column:auto}
-  .projectOperationsPanel .photoUploadBox{grid-template-columns:minmax(0,1fr)}
+  .projectOperationsPanel .timeBox,.statusUpdateControls,.projectOperationsPanel .photoUploadBox{grid-column:auto}
+  .statusUpdateControls,.projectOperationsPanel .photoUploadBox{grid-template-columns:minmax(0,1fr)}
   .projectExpandedBody>.projectDocumentsPanel{grid-column:auto}
 }
+
+/* Review workflow, document exchange and consistent expanded-card sections */
+.pill.review{background:#ffe4e6;color:#be123c}.pill.review-complete{background:#dcfce7;color:#087a36;border:1px solid #86efac}
+.project.projectReviewPending{border-color:#fda4af;background:linear-gradient(135deg,#fff7f8,#fff);animation:reviewPendingGlow 2.1s ease-in-out infinite}
+.project.projectReviewComplete{border-color:#86efac;background:linear-gradient(135deg,#f3fff7,#fff);animation:reviewCompleteGlow 2.1s ease-in-out infinite}
+@keyframes reviewPendingGlow{0%,100%{box-shadow:0 12px 34px rgba(190,18,60,.12),0 0 0 1px rgba(244,63,94,.24)}50%{box-shadow:0 17px 45px rgba(190,18,60,.2),0 0 0 7px rgba(244,63,94,.1)}}
+@keyframes reviewCompleteGlow{0%,100%{box-shadow:0 12px 34px rgba(22,163,74,.13),0 0 0 1px rgba(34,197,94,.28)}50%{box-shadow:0 17px 48px rgba(22,163,74,.22),0 0 0 8px rgba(34,197,94,.11)}}
+.project.status-review{border-right-color:#e11d48}.project.status-review-complete{border-right-color:#16a34a}
+
+.projectExpandedBody>.projectSectionPanel{min-width:0;height:100%;border:1px solid #d6e4ef;border-radius:20px;padding:16px;background:linear-gradient(145deg,#f7fbfe,#fff);box-shadow:0 8px 22px rgba(7,30,65,.045)}
+.projectExpandedBody>.projectSectionPanel.collapsibleHistory{padding:0;overflow:hidden}
+.projectExpandedBody>.projectSectionPanel:not(.collapsibleHistory){display:flex;flex-direction:column;gap:12px}
+.projectExpandedBody .projectSectionHeader{min-height:48px;margin:0;padding:0 0 12px;border-bottom:1px dashed #d7e4ee;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.projectExpandedBody .projectSectionHeader h3{margin:4px 0 0;color:var(--navy);font-size:17px}.projectExpandedBody .projectSectionHeader>b{color:var(--navy);font-size:17px}.projectExpandedBody .projectSectionHeader .muted{margin:0}
+.projectExpandedBody .projectDocumentsList{align-content:start;flex:1}.reviewFilesBox .reviewFileIcon{background:#fff0f1;color:#c92c3a}
+.drafterReviewBox{position:relative;display:grid;gap:12px;border-color:#f3c7cc!important;background:linear-gradient(145deg,#fff7f8,#fff)!important}
+.drafterReviewBox.uploading{overflow:hidden}
+.reviewUploadAnimation{display:grid;grid-template-columns:52px minmax(0,1fr);align-items:center;gap:12px;padding:12px;border:1px solid #fecdd3;border-radius:15px;background:#fff;color:#9f1239}
+.reviewUploadAnimation>span:last-child{display:grid;gap:4px}.reviewUploadAnimation small{color:#7f1d1d;font-size:11px;font-weight:750}
+.reviewDocumentPulse{position:relative;width:48px;height:48px;display:grid;place-items:center;border-radius:15px;background:#ffe4e6;animation:reviewDocumentPulse 1.15s ease-in-out infinite}
+.reviewUploadSpinner{position:absolute;right:-5px;bottom:-5px;padding:2px;border-radius:50%;background:#fff;animation:appLoadingSpin .8s linear infinite}
+@keyframes reviewDocumentPulse{0%,100%{transform:translateY(0);box-shadow:0 0 0 0 rgba(225,29,72,.12)}50%{transform:translateY(-3px);box-shadow:0 0 0 7px rgba(225,29,72,.08)}}
+.spinIcon{animation:appLoadingSpin .85s linear infinite}
+
+.statusNoteModal{width:min(620px,100%);max-height:calc(100dvh - 40px);overflow:auto;padding:22px;display:grid;gap:17px;border:1px solid var(--line);border-radius:26px;background:#fff;box-shadow:0 30px 90px rgba(3,20,45,.32)}
+.statusNoteHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}.statusNoteHeader h3{margin:4px 0;color:var(--navy);font-size:22px}.statusNoteModal textarea{min-height:150px}
+
+.filePickerControl{position:relative;min-height:52px;padding:12px 14px;display:flex;align-items:center;gap:9px;border:1px dashed #9fc5d9;border-radius:16px;background:#f6fbfe;color:#17698f;overflow:hidden}.filePickerControl>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.filePickerControl input{position:absolute;inset:0;width:100%;height:100%;padding:0;opacity:0;cursor:pointer}.boundarySketchField{align-content:start}
+.projectDocumentUploadControls{display:flex;align-items:end;gap:8px}.projectDocumentType{min-width:190px;gap:4px}.projectDocumentType>span{color:var(--muted);font-size:10px}.projectDocumentType select{min-height:40px;padding:8px 10px;border-radius:12px;font-size:12px}.projectDocumentTypeBadge{justify-self:start;padding:3px 7px;border-radius:999px;background:#e8f6fb;color:#0b6c7f;font-size:10px;font-weight:900}
+
+@media(max-width:680px){.projectDocumentUploadControls{width:100%;display:grid;grid-template-columns:1fr}.projectDocumentType{min-width:0}.projectDocumentUpload{width:100%}.statusNoteModal{padding:17px;border-radius:22px}.reviewUploadAnimation{grid-template-columns:44px minmax(0,1fr)}.reviewDocumentPulse{width:42px;height:42px}}
+@media(prefers-reduced-motion:reduce){.project.projectReviewPending,.project.projectReviewComplete,.reviewDocumentPulse,.reviewUploadSpinner,.spinIcon{animation:none}}

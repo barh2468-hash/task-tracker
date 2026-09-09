@@ -6,6 +6,17 @@ import { createSignedUrl } from '../../../services/api/storage.js';
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
+const documentTypes = [
+  { value: 'drawing_source', label: 'חומר מהשטח לשרטוט' },
+  { value: 'drawing_correction', label: 'מסמך לתיקוני שרטוט' },
+  { value: 'boundary_sketch', label: 'סקיצת גבול עבודה' },
+  { value: 'general', label: 'מסמך כללי' },
+];
+
+function documentTypeLabel(type) {
+  return documentTypes.find((item) => item.value === type)?.label || 'מסמך כללי';
+}
+
 function formatFileSize(size) {
   if (!Number.isFinite(size) || size <= 0) return '';
   if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
@@ -18,10 +29,12 @@ export default function ProjectDocumentsPanel({
   canDelete,
   onUpload,
   onDelete,
+  defaultDocumentType = 'general',
 }) {
   useTranslation();
   const [links, setLinks] = useState({});
   const [uploading, setUploading] = useState(false);
+  const [documentType, setDocumentType] = useState(defaultDocumentType);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +75,7 @@ export default function ProjectDocumentsPanel({
 
     setUploading(true);
     try {
-      await onUpload(file);
+      await onUpload(file, documentType);
     } finally {
       setUploading(false);
       input.value = '';
@@ -70,29 +83,45 @@ export default function ProjectDocumentsPanel({
   }
 
   return (
-    <section className="projectDocumentsPanel">
-      <header className="projectDocumentsHeader">
+    <section className="projectSectionPanel projectDocumentsPanel">
+      <header className="projectSectionHeader projectDocumentsHeader">
         <div>
-          <span className="projectDocumentsEyebrow">{t('מסמכים משותפים לפרויקט')}</span>
+          <span className="projectDocumentsEyebrow">{t('מסמכים מהשטח לשרטט')}</span>
           <h3>
-            <FileText size={19} /> {t('מסמכי PDF')}
+            <FileText size={19} /> {t('מסמכי PDF לשרטוט ולתיקונים')}
           </h3>
         </div>
         <div className="projectDocumentsHeaderActions">
           <span className="projectDocumentsCount">{documents.length}</span>
           {canUpload && (
-            <label className={`projectDocumentUpload ${uploading ? 'uploading' : ''}`}>
-              {uploading ? <LoaderCircle size={16} /> : <Upload size={16} />}
-              {uploading ? t('מעלה PDF...') : t('העלאת PDF')}
-              <input
-                type="file"
-                accept="application/pdf,.pdf"
-                disabled={uploading}
-                onChange={handleUpload}
-                aria-label={t('העלאת PDF')}
-                data-max-size={MAX_FILE_SIZE}
-              />
-            </label>
+            <div className="projectDocumentUploadControls">
+              <label className="projectDocumentType">
+                <span>{t('מטרת המסמך')}</span>
+                <select
+                  value={documentType}
+                  disabled={uploading}
+                  onChange={(event) => setDocumentType(event.target.value)}
+                >
+                  {documentTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {t(type.label)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={`projectDocumentUpload ${uploading ? 'uploading' : ''}`}>
+                {uploading ? <LoaderCircle size={16} /> : <Upload size={16} />}
+                {uploading ? t('מעלה PDF...') : t('העלאת PDF')}
+                <input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  disabled={uploading}
+                  onChange={handleUpload}
+                  aria-label={t('העלאת PDF')}
+                  data-max-size={MAX_FILE_SIZE}
+                />
+              </label>
+            </div>
           )}
         </div>
       </header>
@@ -111,6 +140,9 @@ export default function ProjectDocumentsPanel({
               </span>
               <div className="projectDocumentInfo">
                 <b title={document.file_name}>{document.file_name}</b>
+                <span className="projectDocumentTypeBadge">
+                  {t(documentTypeLabel(document.document_type))}
+                </span>
                 <small>
                   {formatFileSize(Number(document.file_size))}
                   {document.profiles?.full_name

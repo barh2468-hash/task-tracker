@@ -1,14 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
 import { useNotifications } from '../NotificationsContext.jsx';
-import { useProjects } from '../../projects/ProjectsContext.jsx';
-import { useMessage } from '../../../context/MessageContext.jsx';
 
 export default function NotificationsPanel({ onOpenProject }) {
   useTranslation();
   const { notifications, markNotificationRead, markAllNotificationsRead } = useNotifications();
-  const { projects } = useProjects();
-  const { setMessage } = useMessage();
   const unread = notifications.filter((n) => !n.is_read).length;
 
   function openNotification(notification) {
@@ -16,13 +12,7 @@ export default function NotificationsPanel({ onOpenProject }) {
 
     if (!notification.project_id) return;
 
-    const linkedProject = projects.find((project) => project.id === notification.project_id);
-    if (!linkedProject) {
-      setMessage(t('הפרויקט המקושר להתראה אינו זמין עבורך כרגע.'));
-      return;
-    }
-
-    onOpenProject?.(linkedProject);
+    onOpenProject?.(notification.project_id);
   }
 
   return (

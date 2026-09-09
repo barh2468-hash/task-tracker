@@ -183,7 +183,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete }) 
   }
 
   return (
-    <section className="workDiaryPanel">
+    <section className="projectSectionPanel workDiaryPanel">
       <header className="workDiaryPanelHeader">
         <div>
           <span className="workDiaryEyebrow">{t('יומן עבודה דיגיטלי')}</span>

@@ -25,8 +25,8 @@ export default function TaskPanel({
   );
 
   return (
-    <div className="tasksBox">
-      <div className="tasksHeader">
+    <section className="projectSectionPanel tasksBox">
+      <div className="projectSectionHeader tasksHeader">
         <b>{t('משימות')}</b>
         {canAddTasks && (
           <button className="ghost tinyBtn" onClick={() => setShowTaskForm(!showTaskForm)}>
@@ -84,6 +84,6 @@ export default function TaskPanel({
           )}
         </div>
       ))}
-    </div>
+    </section>
   );
 }

@@ -19,19 +19,17 @@ export default function ProjectsPage() {
   const [visibleLimit, setVisibleLimit] = useState(20);
   const [focusedProjectId, setFocusedProjectId] = useState(null);
   const [deepLinkDenied, setDeepLinkDenied] = useState(false);
-  const handledPushProjectRef = useRef(null);
   const loadMoreRef = useRef(null);
 
   const filter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
   const statusFilter = searchParams.get('status') || '';
 
-  // Mirrors the old one-shot ?project=<id> deep-link handling from push
-  // notifications: land on the right filter, then scroll the card into view.
+  // A project reference can arrive from chat, notifications, reports or a push link.
+  // Resolve it only after the permitted project list has finished loading.
   useEffect(() => {
     if (!projectsLoaded) return;
     const projectId = searchParams.get('project');
-    if (!projectId || handledPushProjectRef.current === projectId) return;
-    handledPushProjectRef.current = projectId;
+    if (!projectId) return;
     const linkedProject = projects.find((p) => p.id === projectId);
 
     const next = new URLSearchParams(searchParams);
@@ -85,8 +83,14 @@ export default function ProjectsPage() {
   }, [focusedProjectId, pagedProjects.length]);
 
   useEffect(() => {
-    setVisibleLimit(20);
-  }, [query, filter, statusFilter]);
+    if (!focusedProjectId) return undefined;
+    const timeout = window.setTimeout(() => setFocusedProjectId(null), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [focusedProjectId]);
+
+  useEffect(() => {
+    if (!focusedProjectId) setVisibleLimit(20);
+  }, [focusedProjectId, query, filter, statusFilter]);
 
   useEffect(() => {
     const sentinel = loadMoreRef.current;
@@ -177,9 +181,7 @@ export default function ProjectsPage() {
           >
             <ProjectCard
               project={project}
-              onOpen={
-                project.id === focusedProjectId ? () => setFocusedProjectId(null) : undefined
-              }
+              focused={project.id === focusedProjectId}
             />
           </div>
         ))}

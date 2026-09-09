@@ -44,11 +44,16 @@ export const supabase = createClient(url || 'https://missing.supabase.co', anon 
   },
 });
 
+export const REVIEW_STATUS = 'נשלח להגהה';
+export const REVIEW_COMPLETED_STATUS = 'הגהה הושלמה';
+
 export const statuses = [
   'בעבודה בשטח',
-  'עבר לשרטוט',
   'נדרש GPR',
   'מחכה להיתרים',
+  'עבר לשרטוט',
+  REVIEW_STATUS,
+  REVIEW_COMPLETED_STATUS,
   'הושלם',
 ];
 
@@ -57,14 +62,12 @@ export const statusProgress = {
   'נדרש GPR': 35,
   'מחכה להיתרים': 10,
   'עבר לשרטוט': 75,
+  [REVIEW_STATUS]: 85,
+  [REVIEW_COMPLETED_STATUS]: 95,
   'הושלם': 100,
 };
 
-export const REVIEW_STATUS = 'נשלח להגהה';
-
-export const appStatuses = statuses.includes(REVIEW_STATUS)
-  ? statuses
-  : [...statuses, REVIEW_STATUS];
+export const appStatuses = statuses;
 
 export const roleLabel = {
   manager: 'מנהל מערכת',

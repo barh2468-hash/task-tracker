@@ -2,8 +2,6 @@ import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
 import { X } from 'lucide-react';
 import { useNotifications } from '../NotificationsContext.jsx';
-import { useProjects } from '../../projects/ProjectsContext.jsx';
-import { useMessage } from '../../../context/MessageContext.jsx';
 
 export default function NotificationsPopover({
   position,
@@ -14,8 +12,6 @@ export default function NotificationsPopover({
   useTranslation();
   const { notifications, unreadCount, markNotificationRead, markAllNotificationsRead } =
     useNotifications();
-  const { projects } = useProjects();
-  const { setMessage } = useMessage();
   const recent = notifications.slice(0, 6);
 
   function openNotification(notification) {
@@ -26,15 +22,8 @@ export default function NotificationsPopover({
       return;
     }
 
-    const linkedProject = projects.find((project) => project.id === notification.project_id);
-    if (!linkedProject) {
-      onClose?.();
-      setMessage(t('הפרויקט המקושר להתראה אינו זמין עבורך כרגע.'));
-      return;
-    }
-
     onClose?.();
-    onOpenProject?.(linkedProject);
+    onOpenProject?.(notification.project_id);
   }
 
   return (

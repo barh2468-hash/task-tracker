@@ -6,11 +6,10 @@ import { useAuth } from '../useAuth.js';
 
 export default function LoginForm() {
   useTranslation();
-  const { login, signup, authMessage, authBusy } = useAuth();
+  const { login, authMessage, authBusy } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [fullName, setFullName] = useState('');
 
   return (
     <main className="login loginScreen">
@@ -52,30 +51,13 @@ export default function LoginForm() {
               </button>
             </span>
           </label>
-          <label>
-            {t('שם מלא להרשמה ראשונית')}
-
-            <input
-              placeholder={t('שם העובד, אופציונלי')}
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-          </label>
-          <button disabled={authBusy} onClick={() => login(email, password)}>
+          <button
+            className="loginSubmit"
+            disabled={authBusy}
+            onClick={() => login(email, password)}
+          >
             {authBusy ? t('מתחבר…') : t('כניסה למערכת')}
           </button>
-          <button
-            disabled={authBusy}
-            className="secondary"
-            onClick={() => signup(email, password, fullName)}
-          >
-            {t('הרשמה ראשונית עם סיסמה')}
-          </button>
-          <p className="muted">
-            {t(
-              'למניעת מגבלת מיילים: מומלץ שהמנהל ייצור עובדים דרך Supabase Authentication עם סיסמה קבועה, ואז\n            העובד פשוט נכנס כאן.',
-            )}
-          </p>
           {authMessage && <p className="muted">{authMessage}</p>}
         </div>
       </section>

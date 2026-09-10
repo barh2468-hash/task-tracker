@@ -844,6 +844,13 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
   box-shadow:0 24px 70px rgba(7,30,65,.14);
   backdrop-filter:blur(12px);
 }
+.loginScreen .form > .loginSubmit{
+  width:100%;
+  min-width:0;
+  justify-self:stretch;
+  background:linear-gradient(135deg,var(--navy),var(--navy3));
+  box-shadow:0 12px 24px rgba(7,30,65,.16);
+}
 @media(max-width:760px){
   .login.loginScreen{
     padding:20px 12px;

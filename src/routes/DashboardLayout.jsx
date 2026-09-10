@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../features/language/LanguageContext.jsx';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Archive,
@@ -57,32 +57,8 @@ export default function DashboardLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileMenuDragProgress, setMobileMenuDragProgress] = useState(null);
   const notificationBellRef = useRef(null);
-  const pageRef = useRef(null);
-  const topbarRef = useRef(null);
   const pageSwipeRef = useRef(null);
   const suppressPageClickRef = useRef(false);
-
-  useLayoutEffect(() => {
-    const page = pageRef.current;
-    const topbar = topbarRef.current;
-    if (!page || !topbar) return undefined;
-
-    const updateMobileMenuTop = () => {
-      const menuTop = window.innerWidth <= 760 ? Math.ceil(topbar.getBoundingClientRect().bottom) : 0;
-      page.style.setProperty('--mobile-menu-top', `${menuTop}px`);
-    };
-
-    updateMobileMenuTop();
-    const resizeObserver = new ResizeObserver(updateMobileMenuTop);
-    resizeObserver.observe(topbar);
-    window.addEventListener('resize', updateMobileMenuTop);
-    window.addEventListener('scroll', updateMobileMenuTop, { passive: true });
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', updateMobileMenuTop);
-      window.removeEventListener('scroll', updateMobileMenuTop);
-    };
-  }, []);
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
@@ -266,7 +242,6 @@ export default function DashboardLayout() {
 
   return (
     <main
-      ref={pageRef}
       className={`page${location.pathname === '/app/chat' ? ' chatPage' : ''}`}
       onTouchStartCapture={startPageSwipe}
       onTouchMoveCapture={movePageSwipe}
@@ -278,7 +253,7 @@ export default function DashboardLayout() {
       onPointerCancelCapture={cancelPageSwipe}
       onClickCapture={suppressClickAfterPageSwipe}
     >
-      <header ref={topbarRef} className="topbar">
+      <header className="topbar">
         <div className="brand">
           <img src="/logo.png" alt={t('לוגו')} />
           <div>

@@ -1117,13 +1117,6 @@ body.language-en { direction: ltr; }
 .language-en .leaflet-tooltip { direction: ltr; }
 
 @media(max-width:760px) {
-  .page .sidebar {
-    top: var(--mobile-menu-top, 0px);
-    bottom: 0;
-    height: auto;
-    min-height: 0;
-    max-height: none;
-  }
   .language-en .mobileMenuHandle {
     right: auto;
     left: 0;

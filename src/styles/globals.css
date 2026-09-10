@@ -1117,8 +1117,6 @@ body.language-en { direction: ltr; }
 .language-en .leaflet-tooltip { direction: ltr; }
 
 @media(max-width:760px) {
-  .page > .topbar { z-index: 72; }
-  .page .mobileMenuBackdrop { top: var(--mobile-menu-top, 0px); }
   .page .sidebar {
     top: var(--mobile-menu-top, 0px);
     bottom: 0;

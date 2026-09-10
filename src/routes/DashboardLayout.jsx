@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../features/language/LanguageContext.jsx';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Archive,
@@ -55,25 +55,37 @@ export default function DashboardLayout() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsPopoverPosition, setNotificationsPopoverPosition] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuDragProgress, setMobileMenuDragProgress] = useState(null);
   const notificationBellRef = useRef(null);
+  const pageRef = useRef(null);
+  const topbarRef = useRef(null);
   const pageSwipeRef = useRef(null);
-  const menuHandleSwipeRef = useRef(null);
   const suppressPageClickRef = useRef(false);
-  const suppressMenuHandleClickRef = useRef(false);
+
+  useLayoutEffect(() => {
+    const page = pageRef.current;
+    const topbar = topbarRef.current;
+    if (!page || !topbar) return undefined;
+
+    const updateMobileMenuTop = () => {
+      const menuTop = window.innerWidth <= 760 ? Math.ceil(topbar.getBoundingClientRect().bottom) : 0;
+      page.style.setProperty('--mobile-menu-top', `${menuTop}px`);
+    };
+
+    updateMobileMenuTop();
+    const resizeObserver = new ResizeObserver(updateMobileMenuTop);
+    resizeObserver.observe(topbar);
+    window.addEventListener('resize', updateMobileMenuTop);
+    window.addEventListener('scroll', updateMobileMenuTop, { passive: true });
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateMobileMenuTop);
+      window.removeEventListener('scroll', updateMobileMenuTop);
+    };
+  }, []);
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
-    const lockedScrollY = window.scrollY;
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousBodyPosition = document.body.style.position;
-    const previousBodyTop = document.body.style.top;
-    const previousBodyWidth = document.body.style.width;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${lockedScrollY}px`;
-    document.body.style.width = '100%';
-    document.documentElement.style.overflow = 'hidden';
     const resetMenuScroll = window.requestAnimationFrame(() => {
       document.querySelector('.sidebar')?.scrollTo({ left: 0 });
     });
@@ -82,12 +94,6 @@ export default function DashboardLayout() {
     };
     window.addEventListener('keydown', closeOnEscape);
     return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.body.style.position = previousBodyPosition;
-      document.body.style.top = previousBodyTop;
-      document.body.style.width = previousBodyWidth;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-      window.scrollTo(0, lockedScrollY);
       window.cancelAnimationFrame(resetMenuScroll);
       window.removeEventListener('keydown', closeOnEscape);
     };
@@ -134,44 +140,113 @@ export default function DashboardLayout() {
     setNotificationsOpen(false);
   }
 
-  function startPageSwipe(event) {
-    if (window.innerWidth > 760 || event.touches.length !== 1) return;
-    const target = event.target instanceof Element ? event.target : null;
+  function beginMobileMenuDrag(clientX, clientY, eventTarget) {
+    if (window.innerWidth > 760) return;
+    const target = eventTarget instanceof Element ? eventTarget : null;
     if (target?.closest('input, textarea, select, [contenteditable="true"], .leaflet-container, canvas')) {
       pageSwipeRef.current = null;
       return;
     }
 
-    const touch = event.touches[0];
     pageSwipeRef.current = {
-      x: touch.clientX,
-      y: touch.clientY,
+      x: clientX,
+      y: clientY,
       startedAt: Date.now(),
+      initialProgress: mobileMenuOpen ? 1 : 0,
+      dragging: false,
     };
   }
 
-  function finishPageSwipe(event) {
+  function updateMobileMenuDrag(clientX, clientY, event) {
     const start = pageSwipeRef.current;
-    pageSwipeRef.current = null;
-    const touch = event.changedTouches[0];
-    if (!start || !touch || Date.now() - start.startedAt > 1000) return;
+    if (!start) return;
 
-    const deltaX = touch.clientX - start.x;
-    const deltaY = touch.clientY - start.y;
-    const movedHorizontally = Math.abs(deltaX) > 64 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25;
-    if (!movedHorizontally) return;
+    const deltaX = clientX - start.x;
+    const deltaY = clientY - start.y;
+    if (!start.dragging) {
+      if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) return;
+      if (Math.abs(deltaY) >= Math.abs(deltaX)) {
+        pageSwipeRef.current = null;
+        return;
+      }
+      start.dragging = true;
+    }
 
     const isRtl = language === 'he';
-    const shouldOpen = !mobileMenuOpen && (isRtl ? deltaX < 0 : deltaX > 0);
-    const shouldClose = mobileMenuOpen && (isRtl ? deltaX > 0 : deltaX < 0);
-    if (!shouldOpen && !shouldClose) return;
+    const drawerWidth = Math.min(310, window.innerWidth * 0.86);
+    const openingDistance = deltaX * (isRtl ? -1 : 1);
+    const progress = Math.max(0, Math.min(1, start.initialProgress + openingDistance / drawerWidth));
+    if (event.cancelable) event.preventDefault();
+    setMobileMenuDragProgress(progress);
+  }
+
+  function finishMobileMenuDrag(clientX) {
+    const start = pageSwipeRef.current;
+    pageSwipeRef.current = null;
+    if (!start?.dragging) return;
+
+    const isRtl = language === 'he';
+    const deltaX = clientX - start.x;
+    const openingDistance = deltaX * (isRtl ? -1 : 1);
+    const drawerWidth = Math.min(310, window.innerWidth * 0.86);
+    const progress = Math.max(
+      0,
+      Math.min(1, start.initialProgress + openingDistance / drawerWidth),
+    );
+    const quickSwipe = Date.now() - start.startedAt < 300;
+    const shouldOpen = quickSwipe
+      ? openingDistance > 42 || (openingDistance >= -42 && progress >= 0.5)
+      : progress >= 0.5;
 
     suppressPageClickRef.current = true;
     window.setTimeout(() => {
       suppressPageClickRef.current = false;
     }, 450);
-    if (shouldOpen) openMobileMenu();
-    if (shouldClose) setMobileMenuOpen(false);
+    if (shouldOpen) setNotificationsOpen(false);
+    setMobileMenuOpen(shouldOpen);
+    setMobileMenuDragProgress(null);
+  }
+
+  function startPageSwipe(event) {
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    beginMobileMenuDrag(touch.clientX, touch.clientY, event.target);
+  }
+
+  function movePageSwipe(event) {
+    const touch = event.touches[0];
+    if (!touch) return;
+    updateMobileMenuDrag(touch.clientX, touch.clientY, event);
+  }
+
+  function finishPageSwipe(event) {
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    finishMobileMenuDrag(touch.clientX);
+  }
+
+  function startPagePointerSwipe(event) {
+    if (event.pointerType !== 'mouse' || event.button !== 0) return;
+    beginMobileMenuDrag(event.clientX, event.clientY, event.target);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+
+  function movePagePointerSwipe(event) {
+    if (event.pointerType !== 'mouse') return;
+    updateMobileMenuDrag(event.clientX, event.clientY, event);
+  }
+
+  function finishPagePointerSwipe(event) {
+    if (event.pointerType !== 'mouse') return;
+    finishMobileMenuDrag(event.clientX);
+  }
+
+  function cancelPageSwipe() {
+    const start = pageSwipeRef.current;
+    pageSwipeRef.current = null;
+    if (!start?.dragging) return;
+    setMobileMenuOpen(start.initialProgress === 1);
+    setMobileMenuDragProgress(null);
   }
 
   function suppressClickAfterPageSwipe(event) {
@@ -179,38 +254,6 @@ export default function DashboardLayout() {
     suppressPageClickRef.current = false;
     event.preventDefault();
     event.stopPropagation();
-  }
-
-  function startMenuHandleSwipe(event) {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    menuHandleSwipeRef.current = {
-      x: event.clientX,
-      y: event.clientY,
-    };
-    suppressMenuHandleClickRef.current = false;
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-  }
-
-  function finishMenuHandleSwipe(event) {
-    const start = menuHandleSwipeRef.current;
-    menuHandleSwipeRef.current = null;
-    if (!start) return;
-
-    const deltaX = event.clientX - start.x;
-    const deltaY = event.clientY - start.y;
-    const movedHorizontally = Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY);
-    suppressMenuHandleClickRef.current = movedHorizontally;
-    const swipedInward = language === 'he' ? deltaX < -42 : deltaX > 42;
-
-    if (movedHorizontally && swipedInward) openMobileMenu();
-  }
-
-  function handleMenuHandleClick() {
-    if (suppressMenuHandleClickRef.current) {
-      suppressMenuHandleClickRef.current = false;
-      return;
-    }
-    openMobileMenu();
   }
 
   const projectsFilter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
@@ -223,15 +266,19 @@ export default function DashboardLayout() {
 
   return (
     <main
+      ref={pageRef}
       className={`page${location.pathname === '/app/chat' ? ' chatPage' : ''}`}
       onTouchStartCapture={startPageSwipe}
+      onTouchMoveCapture={movePageSwipe}
       onTouchEndCapture={finishPageSwipe}
-      onTouchCancelCapture={() => {
-        pageSwipeRef.current = null;
-      }}
+      onTouchCancelCapture={cancelPageSwipe}
+      onPointerDownCapture={startPagePointerSwipe}
+      onPointerMoveCapture={movePagePointerSwipe}
+      onPointerUpCapture={finishPagePointerSwipe}
+      onPointerCancelCapture={cancelPageSwipe}
       onClickCapture={suppressClickAfterPageSwipe}
     >
-      <header className="topbar">
+      <header ref={topbarRef} className="topbar">
         <div className="brand">
           <img src="/logo.png" alt={t('לוגו')} />
           <div>
@@ -293,13 +340,7 @@ export default function DashboardLayout() {
       {!mobileMenuOpen && (
         <button
           className="mobileMenuHandle"
-          onClick={handleMenuHandleClick}
-          onPointerDown={startMenuHandleSwipe}
-          onPointerUp={finishMenuHandleSwipe}
-          onPointerCancel={() => {
-            menuHandleSwipeRef.current = null;
-            suppressMenuHandleClickRef.current = false;
-          }}
+          onClick={openMobileMenu}
           aria-label={t('פתיחת תפריט')}
           aria-controls="main-navigation"
           aria-expanded="false"
@@ -315,17 +356,36 @@ export default function DashboardLayout() {
       )}
 
       <section className="container layout">
-        {mobileMenuOpen && (
+        {(mobileMenuOpen || mobileMenuDragProgress !== null) && (
           <button
             className="mobileMenuBackdrop"
             aria-label={t('סגירת תפריט')}
             onClick={() => setMobileMenuOpen(false)}
+            style={
+              mobileMenuDragProgress === null
+                ? undefined
+                : {
+                    opacity: mobileMenuDragProgress,
+                    transition: 'none',
+                  }
+            }
           />
         )}
         <aside
           id="main-navigation"
-          className={`sidebar ${mobileMenuOpen ? 'mobileOpen' : ''}`}
+          className={`sidebar ${mobileMenuOpen ? 'mobileOpen' : ''} ${
+            mobileMenuDragProgress === null ? '' : 'mobileDragging'
+          }`}
           aria-label={t('תפריט ראשי')}
+          style={
+            mobileMenuDragProgress === null
+              ? undefined
+              : {
+                  opacity: mobileMenuDragProgress,
+                  visibility: 'visible',
+                  transform: `translateX(${(language === 'he' ? 1 : -1) * (1 - mobileMenuDragProgress) * 105}%)`,
+                }
+          }
         >
           <div className="mobileMenuHeader">
             <div>

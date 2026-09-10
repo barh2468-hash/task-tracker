@@ -697,7 +697,6 @@ body{background:radial-gradient(circle at 12% 3%,rgba(255,127,50,.10),transparen
 
 /* Floating mobile navigation drawer */
 .mobileMenuHandle,.mobileMenuBackdrop,.mobileMenuHeader{display:none}
-@keyframes mobileMenuFade{from{opacity:0}to{opacity:1}}
 @keyframes mobileMenuHandleHint{0%,100%{box-shadow:-7px 0 24px rgba(7,30,65,.22)}50%{box-shadow:-10px 0 32px rgba(37,143,196,.42)}}
 @keyframes mobileMenuHandleHintLtr{0%,100%{box-shadow:7px 0 24px rgba(7,30,65,.22)}50%{box-shadow:10px 0 32px rgba(37,143,196,.42)}}
 @media(max-width:760px){
@@ -708,10 +707,11 @@ body{background:radial-gradient(circle at 12% 3%,rgba(255,127,50,.10),transparen
   .mobileMenuHandle:focus-visible{outline:3px solid rgba(255,135,61,.4);outline-offset:3px}
   .mobileMenuHandleGrip{display:grid;gap:3px}
   .mobileMenuHandleGrip i{display:block;width:11px;height:2px;border-radius:99px;background:rgba(255,255,255,.72)}
-  .mobileMenuBackdrop{display:block;position:fixed;inset:0;z-index:69;padding:0;border:0;border-radius:0;background:rgba(3,20,45,.48);backdrop-filter:blur(3px);box-shadow:none;animation:mobileMenuFade .2s ease;touch-action:none;overscroll-behavior:contain}
+  .mobileMenuBackdrop{display:block;position:fixed;inset:0;z-index:69;padding:0;border:0;border-radius:0;background:rgba(3,20,45,.48);backdrop-filter:blur(3px);box-shadow:none;transition:opacity .2s ease;touch-action:none;overscroll-behavior:contain}
   .mobileMenuBackdrop:hover{transform:none;filter:none;box-shadow:none}
   .sidebar{display:block;position:fixed;top:0;right:0;bottom:0;z-index:70;width:min(310px,86vw);min-height:100vh;padding:18px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-radius:28px 0 0 28px;transform:translateX(105%);opacity:0;visibility:hidden;transition:transform .24s ease,opacity .2s ease,visibility .24s;box-shadow:-25px 0 70px rgba(3,20,45,.35);touch-action:pan-y}
   .sidebar.mobileOpen{transform:translateX(0);opacity:1;visibility:visible}
+  .sidebar.mobileDragging{transition:none}
   .sidebar:after,.sidebar:before{display:block}
   .sidebar .logoBox{display:flex;margin-bottom:14px}
   .sidebar > p{display:block}
@@ -1117,6 +1117,15 @@ body.language-en { direction: ltr; }
 .language-en .leaflet-tooltip { direction: ltr; }
 
 @media(max-width:760px) {
+  .page > .topbar { z-index: 72; }
+  .page .mobileMenuBackdrop { top: var(--mobile-menu-top, 0px); }
+  .page .sidebar {
+    top: var(--mobile-menu-top, 0px);
+    bottom: 0;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
   .language-en .mobileMenuHandle {
     right: auto;
     left: 0;

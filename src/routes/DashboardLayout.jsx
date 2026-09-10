@@ -389,9 +389,11 @@ export default function DashboardLayout() {
             className={`navBtn ${navActive('/app/chat') ? 'active' : ''}`}
             onClick={() => openTab('/app/chat')}
           >
-            <span>
-              {t('צ׳אט פנימי')}
-              {unreadChatCount > 0 ? ` (${Math.min(unreadChatCount, 99)})` : ''}
+            <span className="navBtnLabel">
+              <span>{t('צ׳אט פנימי')}</span>
+              {unreadChatCount > 0 && (
+                <span className="navCountBadge">{Math.min(unreadChatCount, 99)}</span>
+              )}
             </span>
             <MessageCircle size={18} />
           </button>
@@ -419,9 +421,9 @@ export default function DashboardLayout() {
               className={`navBtn ${navActive('/app/tasks') ? 'active' : ''}`}
               onClick={() => openTab('/app/tasks')}
             >
-              <span>
-                {t('משימות פתוחות (')}
-                {stats.openTasks})
+              <span className="navBtnLabel">
+                <span>{t('משימות פתוחות')}</span>
+                <span className="navCountBadge">{stats.openTasks}</span>
               </span>
               <ClipboardList size={18} />
             </button>
@@ -463,9 +465,9 @@ export default function DashboardLayout() {
               className={`navBtn ${navActive('/app/exceptions') ? 'active' : ''}`}
               onClick={() => openTab('/app/exceptions')}
             >
-              <span>
-                {t('דוח חריגות (')}
-                {stats.exceptions})
+              <span className="navBtnLabel">
+                <span>{t('דוח חריגות')}</span>
+                <span className="navCountBadge">{stats.exceptions}</span>
               </span>
               <AlertTriangle size={18} />
             </button>
@@ -487,9 +489,9 @@ export default function DashboardLayout() {
               className={`navBtn ${isProjectsRoute && projectsFilter === 'unassigned' ? 'active' : ''}`}
               onClick={() => openTab('/app/projects?filter=unassigned')}
             >
-              <span>
-                {t('ללא שיוך (')}
-                {stats.unassigned})
+              <span className="navBtnLabel">
+                <span>{t('ללא שיוך')}</span>
+                <span className="navCountBadge">{stats.unassigned}</span>
               </span>
               <FolderKanban size={18} />
             </button>
@@ -499,9 +501,9 @@ export default function DashboardLayout() {
               className={`navBtn ${isProjectsRoute && projectsFilter === 'archive' ? 'active' : ''}`}
               onClick={() => openTab('/app/projects?filter=archive')}
             >
-              <span>
-                {t('ארכיון (')}
-                {stats.archived})
+              <span className="navBtnLabel">
+                <span>{t('ארכיון')}</span>
+                <span className="navCountBadge">{stats.archived}</span>
               </span>
               <Archive size={18} />
             </button>
@@ -526,9 +528,9 @@ export default function DashboardLayout() {
             className={`navBtn ${navActive('/app/notifications') ? 'active' : ''}`}
             onClick={() => openTab('/app/notifications')}
           >
-            <span>
-              {t('התראות')}
-              {unreadCount > 0 ? `(${unreadCount})` : ''}
+            <span className="navBtnLabel">
+              <span>{t('התראות')}</span>
+              {unreadCount > 0 && <span className="navCountBadge">{unreadCount}</span>}
             </span>
             <Bell size={18} />
           </button>

@@ -706,10 +706,10 @@ body{background:radial-gradient(circle at 12% 3%,rgba(255,127,50,.10),transparen
   .mobileMenuHandle:active{cursor:grabbing;transform:translate(-3px,-50%)}
   .mobileMenuHandle:focus-visible{outline:3px solid rgba(255,135,61,.4);outline-offset:3px}
   .mobileMenuHandle svg{display:block}
-  .mobileMenuBackdrop{display:block;position:fixed;inset:0;z-index:69;padding:0;border:0;border-radius:0;background:rgba(3,20,45,.48);backdrop-filter:blur(3px);box-shadow:none;transition:opacity .2s ease;touch-action:none;overscroll-behavior:contain}
+  .mobileMenuBackdrop{display:block;position:fixed;inset:0;z-index:69;padding:0;border:0;border-radius:0;background:rgba(3,20,45,.48);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);box-shadow:none;transition:opacity .2s ease;touch-action:none;overscroll-behavior:contain;will-change:opacity;transform:translateZ(0);isolation:isolate}
   .mobileMenuBackdrop:hover{transform:none;filter:none;box-shadow:none}
-  .sidebar{display:block;position:fixed;top:0;right:0;bottom:0;z-index:70;width:min(310px,86vw);min-height:100vh;padding:18px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-radius:28px 0 0 28px;transform:translateX(105%);opacity:0;visibility:hidden;transition:transform .24s ease,opacity .2s ease,visibility .24s;box-shadow:-25px 0 70px rgba(3,20,45,.35);touch-action:pan-y}
-  .sidebar.mobileOpen{transform:translateX(0);opacity:1;visibility:visible}
+  .sidebar{display:block;position:fixed;top:0;right:0;bottom:0;z-index:70;width:min(310px,86vw);min-height:100vh;padding:18px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-radius:28px 0 0 28px;transform:translate3d(105%,0,0);opacity:0;visibility:hidden;transition:transform .24s ease,opacity .2s ease,visibility .24s;box-shadow:-25px 0 70px rgba(3,20,45,.35);touch-action:pan-y;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden;contain:layout paint}
+  .sidebar.mobileOpen{transform:translate3d(0,0,0);opacity:1;visibility:visible}
   .sidebar.mobileDragging{transition:none}
   .sidebar:after,.sidebar:before{display:block}
   .sidebar .logoBox{display:flex;margin-bottom:14px}
@@ -776,8 +776,10 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
 @media(max-width:1180px){.layout{grid-template-columns:1fr}.sidebar{top:auto;min-height:auto}}
 @media(max-width:760px){
   body{background:#eef5fa}
+  .page{min-height:100dvh}
+  .page:after{content:"";position:fixed;top:0;right:0;left:0;z-index:90;height:env(safe-area-inset-top);background:#0b2348;pointer-events:none}
   .page:before{opacity:1;background-image:linear-gradient(rgba(32,93,134,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(32,93,134,.018) 1px,transparent 1px),radial-gradient(circle at 85% 0,rgba(37,143,196,.16),transparent 20rem),linear-gradient(180deg,#f8fbfe,#eef5fa);background-size:26px 26px,26px 26px,auto,auto;background-repeat:repeat,repeat,no-repeat,no-repeat}
-  .topbar{width:calc(100% - 16px);height:auto;margin:8px auto 0;padding:11px 12px;top:6px;border-radius:19px}.brand img{height:42px}.brand h1{font-size:18px}.brand p{font-size:10px}.container{margin-top:13px;padding:0 10px}
+  .topbar{width:calc(100% - 16px);height:auto;margin:calc(8px + env(safe-area-inset-top)) auto 0;padding:11px 12px;top:calc(6px + env(safe-area-inset-top));border-radius:19px}.brand img{height:42px}.brand h1{font-size:18px}.brand p{font-size:10px}.container{margin-top:13px;padding:0 10px}
   .dashboardHero{min-height:auto;padding:15px 16px;border-radius:20px}.dashboardHero:before{width:190px;height:190px}.dashboardHero h2{font-size:22px}
   .mainContent>.grid{margin-right:-10px;margin-left:-10px;padding-right:10px;padding-left:10px}.mainContent>.grid .stat{flex-basis:128px;min-height:86px;padding:11px;border-radius:16px}.mainContent>.grid .stat strong{font-size:23px}.mainContent>.grid .stat svg{padding:6px}
   .card{border-radius:21px}.project{border-radius:19px}.toolbar{padding:8px;border-radius:15px}
@@ -1136,10 +1138,10 @@ body.language-en { direction: ltr; }
     right: auto;
     left: 0;
     border-radius: 0 28px 28px 0;
-    transform: translateX(-105%);
+    transform: translate3d(-105%, 0, 0);
     box-shadow: 25px 0 70px rgba(3,20,45,.35);
   }
-  .language-en .sidebar.mobileOpen { transform: translateX(0); }
+  .language-en .sidebar.mobileOpen { transform: translate3d(0, 0, 0); }
   .page .sidebar { border-radius: 0; }
   .language-en .notificationsPopover { right: 0; left: auto; }
   .language-en .notificationsPopover:before { right: 16px; left: auto; }

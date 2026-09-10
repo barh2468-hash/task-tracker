@@ -57,16 +57,17 @@ export default function DashboardLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileMenuDragProgress, setMobileMenuDragProgress] = useState(null);
   const notificationBellRef = useRef(null);
+  const sidebarRef = useRef(null);
   const pageSwipeRef = useRef(null);
   const suppressPageClickRef = useRef(false);
 
   useEffect(() => {
     if (!mobileMenuOpen) return;
     const resetMenuScroll = window.requestAnimationFrame(() => {
-      document.querySelector('.sidebar')?.scrollTo({ left: 0 });
+      sidebarRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     });
     const closeOnEscape = (event) => {
-      if (event.key === 'Escape') setMobileMenuOpen(false);
+      if (event.key === 'Escape') closeMobileMenu();
     };
     window.addEventListener('keydown', closeOnEscape);
     return () => {
@@ -74,6 +75,40 @@ export default function DashboardLayout() {
       window.removeEventListener('keydown', closeOnEscape);
     };
   }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    const menuVisible = mobileMenuOpen || mobileMenuDragProgress !== null;
+    if (!menuVisible) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscrollBehavior = document.body.style.overscrollBehavior;
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscrollBehavior;
+    };
+  }, [mobileMenuDragProgress, mobileMenuOpen]);
+
+  useEffect(() => {
+    const restoreInterruptedDrag = () => {
+      const start = pageSwipeRef.current;
+      if (!start?.dragging) return;
+      pageSwipeRef.current = null;
+      setMobileMenuOpen(start.initialProgress === 1);
+      setMobileMenuDragProgress(null);
+    };
+    const restoreHiddenDrag = () => {
+      if (document.visibilityState === 'hidden') restoreInterruptedDrag();
+    };
+
+    window.addEventListener('blur', restoreInterruptedDrag);
+    document.addEventListener('visibilitychange', restoreHiddenDrag);
+    return () => {
+      window.removeEventListener('blur', restoreInterruptedDrag);
+      document.removeEventListener('visibilitychange', restoreHiddenDrag);
+    };
+  }, []);
 
   useEffect(() => {
     if (!notificationsOpen) return;
@@ -108,12 +143,27 @@ export default function DashboardLayout() {
 
   function openTab(path) {
     navigate(path);
+    closeMobileMenu();
+  }
+
+  function closeMobileMenu() {
+    pageSwipeRef.current = null;
+    setMobileMenuDragProgress(null);
     setMobileMenuOpen(false);
   }
 
   function openMobileMenu() {
+    pageSwipeRef.current = null;
+    setMobileMenuDragProgress(null);
     setMobileMenuOpen(true);
     setNotificationsOpen(false);
+  }
+
+  function getMobileDrawerWidth() {
+    return (
+      sidebarRef.current?.getBoundingClientRect().width ||
+      Math.min(310, document.documentElement.clientWidth * 0.86)
+    );
   }
 
   function beginMobileMenuDrag(clientX, clientY, eventTarget) {
@@ -129,6 +179,7 @@ export default function DashboardLayout() {
       y: clientY,
       startedAt: Date.now(),
       initialProgress: mobileMenuOpen ? 1 : 0,
+      lastX: clientX,
       dragging: false,
     };
   }
@@ -139,6 +190,7 @@ export default function DashboardLayout() {
 
     const deltaX = clientX - start.x;
     const deltaY = clientY - start.y;
+    start.lastX = clientX;
     if (!start.dragging) {
       if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) return;
       if (Math.abs(deltaY) >= Math.abs(deltaX)) {
@@ -152,7 +204,7 @@ export default function DashboardLayout() {
     }
 
     const isRtl = language === 'he';
-    const drawerWidth = Math.min(310, window.innerWidth * 0.86);
+    const drawerWidth = getMobileDrawerWidth();
     const openingDistance = deltaX * (isRtl ? -1 : 1);
     const progress = Math.max(0, Math.min(1, start.initialProgress + openingDistance / drawerWidth));
     if (event.cancelable) event.preventDefault();
@@ -165,9 +217,10 @@ export default function DashboardLayout() {
     if (!start?.dragging) return;
 
     const isRtl = language === 'he';
-    const deltaX = clientX - start.x;
+    const endX = Number.isFinite(clientX) ? clientX : start.lastX;
+    const deltaX = endX - start.x;
     const openingDistance = deltaX * (isRtl ? -1 : 1);
-    const drawerWidth = Math.min(310, window.innerWidth * 0.86);
+    const drawerWidth = getMobileDrawerWidth();
     const progress = Math.max(
       0,
       Math.min(1, start.initialProgress + openingDistance / drawerWidth),
@@ -332,7 +385,7 @@ export default function DashboardLayout() {
           <button
             className="mobileMenuBackdrop"
             aria-label={t('סגירת תפריט')}
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={closeMobileMenu}
             style={
               mobileMenuDragProgress === null
                 ? undefined
@@ -344,6 +397,7 @@ export default function DashboardLayout() {
           />
         )}
         <aside
+          ref={sidebarRef}
           id="main-navigation"
           className={`sidebar ${mobileMenuOpen ? 'mobileOpen' : ''} ${
             mobileMenuDragProgress === null ? '' : 'mobileDragging'
@@ -353,9 +407,9 @@ export default function DashboardLayout() {
             mobileMenuDragProgress === null
               ? undefined
               : {
-                  opacity: mobileMenuDragProgress,
+                  opacity: 1,
                   visibility: 'visible',
-                  transform: `translateX(${(language === 'he' ? 1 : -1) * (1 - mobileMenuDragProgress) * 105}%)`,
+                  transform: `translate3d(${(language === 'he' ? 1 : -1) * (1 - mobileMenuDragProgress) * 105}%, 0, 0)`,
                 }
           }
         >
@@ -367,7 +421,7 @@ export default function DashboardLayout() {
             <button
               className="mobileMenuClose"
               aria-label={t('סגירת תפריט')}
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={closeMobileMenu}
             >
               <X size={19} />
             </button>

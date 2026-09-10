@@ -169,7 +169,10 @@ export default function DashboardLayout() {
   function beginMobileMenuDrag(clientX, clientY, eventTarget) {
     if (window.innerWidth > 760) return;
     const target = eventTarget instanceof Element ? eventTarget : null;
-    if (target?.closest('input, textarea, select, [contenteditable="true"], .leaflet-container, canvas')) {
+    const interactiveAncestor = target?.closest(
+      'input, textarea, select, [contenteditable="true"], .leaflet-container, canvas, button, a',
+    );
+    if (interactiveAncestor && !interactiveAncestor.classList.contains('mobileMenuHandle')) {
       pageSwipeRef.current = null;
       return;
     }

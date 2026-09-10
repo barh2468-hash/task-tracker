@@ -146,6 +146,9 @@ export default function DashboardLayout() {
         return;
       }
       start.dragging = true;
+      if (typeof event.pointerId === 'number') {
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+      }
     }
 
     const isRtl = language === 'he';
@@ -204,7 +207,6 @@ export default function DashboardLayout() {
   function startPagePointerSwipe(event) {
     if (event.pointerType !== 'mouse' || event.button !== 0) return;
     beginMobileMenuDrag(event.clientX, event.clientY, event.target);
-    event.currentTarget.setPointerCapture?.(event.pointerId);
   }
 
   function movePagePointerSwipe(event) {

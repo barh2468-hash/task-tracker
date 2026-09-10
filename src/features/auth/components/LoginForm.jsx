@@ -17,7 +17,14 @@ export default function LoginForm() {
         <img src="/logo.png" alt={t('לוגו')} />
         <h1>{t('מערכת איתור תשתיות')}</h1>
         <p className="muted">{t('כניסה מאובטחת עם מייל וסיסמה לעובדי שטח ומנהלים')}</p>
-        <div className="form" style={{ marginTop: 22, textAlign: 'right' }}>
+        <form
+          className="form"
+          style={{ marginTop: 22, textAlign: 'right' }}
+          onSubmit={(event) => {
+            event.preventDefault();
+            login(email, password);
+          }}
+        >
           <label>
             {t('מייל ארגוני')}
 
@@ -52,14 +59,14 @@ export default function LoginForm() {
             </span>
           </label>
           <button
+            type="submit"
             className="loginSubmit"
             disabled={authBusy}
-            onClick={() => login(email, password)}
           >
             {authBusy ? t('מתחבר…') : t('כניסה למערכת')}
           </button>
           {authMessage && <p className="muted">{authMessage}</p>}
-        </div>
+        </form>
       </section>
     </main>
   );

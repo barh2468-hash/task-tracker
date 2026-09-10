@@ -323,11 +323,6 @@ export default function DashboardLayout() {
           aria-expanded="false"
           title={t('פתיחת תפריט')}
         >
-          <span className="mobileMenuHandleGrip" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-          </span>
           {language === 'he' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
         </button>
       )}

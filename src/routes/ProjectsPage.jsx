@@ -9,6 +9,9 @@ import { useMessage } from '../context/MessageContext.jsx';
 import { appStatuses } from '../services/supabase.js';
 import ProjectCard from '../features/projects/components/ProjectCard.jsx';
 
+const PROJECT_BATCH_SIZE = 20;
+const LOAD_MORE_DELAY_MS = 650;
+
 export default function ProjectsPage() {
   useTranslation();
   const { isManager, session } = useAuth();
@@ -16,10 +19,12 @@ export default function ProjectsPage() {
   const { setMessage } = useMessage();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
-  const [visibleLimit, setVisibleLimit] = useState(20);
+  const [visibleLimit, setVisibleLimit] = useState(PROJECT_BATCH_SIZE);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [focusedProjectId, setFocusedProjectId] = useState(null);
   const [deepLinkDenied, setDeepLinkDenied] = useState(false);
   const loadMoreRef = useRef(null);
+  const loadMoreTimerRef = useRef(null);
 
   const filter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
   const statusFilter = searchParams.get('status') || '';
@@ -93,7 +98,12 @@ export default function ProjectsPage() {
   useEffect(() => {
     if (previousListViewKeyRef.current === listViewKey) return;
     previousListViewKeyRef.current = listViewKey;
-    if (!focusedProjectId) setVisibleLimit(20);
+    if (loadMoreTimerRef.current !== null) {
+      window.clearTimeout(loadMoreTimerRef.current);
+      loadMoreTimerRef.current = null;
+    }
+    setIsLoadingMore(false);
+    if (!focusedProjectId) setVisibleLimit(PROJECT_BATCH_SIZE);
   }, [focusedProjectId, listViewKey]);
 
   useEffect(() => {
@@ -102,15 +112,31 @@ export default function ProjectsPage() {
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisibleLimit((limit) => Math.min(limit + 20, visibleProjects.length));
-        }
+        if (!entry.isIntersecting || loadMoreTimerRef.current !== null) return;
+
+        setIsLoadingMore(true);
+        loadMoreTimerRef.current = window.setTimeout(() => {
+          setVisibleLimit((limit) =>
+            Math.min(limit + PROJECT_BATCH_SIZE, visibleProjects.length),
+          );
+          setIsLoadingMore(false);
+          loadMoreTimerRef.current = null;
+        }, LOAD_MORE_DELAY_MS);
       },
-      { rootMargin: '300px 0px' },
+      { rootMargin: '80px 0px' },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [hasMoreProjects, visibleProjects.length]);
+
+  useEffect(
+    () => () => {
+      if (loadMoreTimerRef.current !== null) {
+        window.clearTimeout(loadMoreTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const heading =
     filter === 'unassigned'
@@ -173,7 +199,7 @@ export default function ProjectsPage() {
         </div>
       )}
       <h2>{heading}</h2>
-      <div className="projects">
+      <div className="projects" aria-busy={isLoadingMore}>
         {visibleProjects.length === 0 && (
           <div className="empty">{t('אין פרויקטים להצגה כרגע')}</div>
         )}
@@ -190,7 +216,20 @@ export default function ProjectsPage() {
           </div>
         ))}
         {hasMoreProjects && (
-          <div ref={loadMoreRef} className="projectLoadSentinel" aria-hidden="true" />
+          <div
+            ref={loadMoreRef}
+            className={`projectLoadSentinel${isLoadingMore ? ' loading' : ''}`}
+            role={isLoadingMore ? 'status' : undefined}
+            aria-live={isLoadingMore ? 'polite' : undefined}
+            aria-hidden={isLoadingMore ? undefined : 'true'}
+          >
+            {isLoadingMore && (
+              <>
+                <span className="projectLoadSpinner" aria-hidden="true" />
+                <span>{t('טוען פרויקטים נוספים...')}</span>
+              </>
+            )}
+          </div>
         )}
       </div>
     </section>

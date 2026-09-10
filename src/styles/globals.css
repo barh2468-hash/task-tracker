@@ -700,13 +700,12 @@ body{background:radial-gradient(circle at 12% 3%,rgba(255,127,50,.10),transparen
 @keyframes mobileMenuHandleHint{0%,100%{box-shadow:-7px 0 24px rgba(7,30,65,.22)}50%{box-shadow:-10px 0 32px rgba(37,143,196,.42)}}
 @keyframes mobileMenuHandleHintLtr{0%,100%{box-shadow:7px 0 24px rgba(7,30,65,.22)}50%{box-shadow:10px 0 32px rgba(37,143,196,.42)}}
 @media(max-width:760px){
-  .mobileMenuHandle{display:flex;position:fixed;top:50%;right:0;z-index:65;width:29px;height:94px;padding:10px 4px;align-items:center;justify-content:center;flex-direction:column;gap:7px;border:1px solid rgba(255,255,255,.24);border-right:0;border-radius:18px 0 0 18px;background:linear-gradient(180deg,#0b3768,#087d91);color:#fff;box-shadow:-7px 0 24px rgba(7,30,65,.22);transform:translateY(-50%);animation:mobileMenuHandleHint 2.8s ease-in-out infinite;touch-action:pan-y;user-select:none;-webkit-user-select:none}
-  .mobileMenuHandle:before{content:"";position:absolute;inset:14px auto 14px 0;width:3px;border-radius:99px;background:#ff873d}
+  .mobileMenuHandle{display:flex;position:fixed;top:50%;right:0;z-index:65;width:40px;height:62px;padding:0;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.26);border-right:0;border-radius:16px 0 0 16px;background:linear-gradient(155deg,#0b3768,#087d91);color:#fff;box-shadow:-7px 0 24px rgba(7,30,65,.22);transform:translateY(-50%);animation:mobileMenuHandleHint 2.8s ease-in-out infinite;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+  .mobileMenuHandle:before{content:"";position:absolute;inset:12px auto 12px 0;width:3px;border-radius:99px;background:#ff873d}
   .mobileMenuHandle:hover{filter:brightness(1.06);transform:translate(-2px,-50%);box-shadow:-10px 0 30px rgba(7,30,65,.3)}
-  .mobileMenuHandle:active{cursor:grabbing;transform:translate(-4px,-50%)}
+  .mobileMenuHandle:active{cursor:grabbing;transform:translate(-3px,-50%)}
   .mobileMenuHandle:focus-visible{outline:3px solid rgba(255,135,61,.4);outline-offset:3px}
-  .mobileMenuHandleGrip{display:grid;gap:3px}
-  .mobileMenuHandleGrip i{display:block;width:11px;height:2px;border-radius:99px;background:rgba(255,255,255,.72)}
+  .mobileMenuHandle svg{display:block}
   .mobileMenuBackdrop{display:block;position:fixed;inset:0;z-index:69;padding:0;border:0;border-radius:0;background:rgba(3,20,45,.48);backdrop-filter:blur(3px);box-shadow:none;transition:opacity .2s ease;touch-action:none;overscroll-behavior:contain}
   .mobileMenuBackdrop:hover{transform:none;filter:none;box-shadow:none}
   .sidebar{display:block;position:fixed;top:0;right:0;bottom:0;z-index:70;width:min(310px,86vw);min-height:100vh;padding:18px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-radius:28px 0 0 28px;transform:translateX(105%);opacity:0;visibility:hidden;transition:transform .24s ease,opacity .2s ease,visibility .24s;box-shadow:-25px 0 70px rgba(3,20,45,.35);touch-action:pan-y}
@@ -1021,7 +1020,9 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
   box-shadow: 0 10px 30px rgba(13, 35, 72, 0.18);
 }
 
-.projectLoadSentinel { height: 1px; }
+.projectLoadSentinel{height:1px;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:13px;font-weight:850;transition:min-height .18s ease,margin .18s ease,background .18s ease}
+.projectLoadSentinel.loading{height:auto;min-height:68px;margin:2px 0;padding:14px;border:1px solid #d7e5ef;border-radius:18px;background:linear-gradient(135deg,rgba(240,248,253,.96),rgba(255,255,255,.98));box-shadow:0 10px 28px rgba(7,30,65,.055)}
+.projectLoadSpinner{width:23px;height:23px;flex:0 0 auto;border:3px solid rgba(37,143,196,.18);border-top-color:var(--orange);border-left-color:var(--blue);border-radius:50%;animation:appLoadingSpin .75s linear infinite}
 .projectDeepLinkNotice{margin:0 0 18px;padding:15px 17px;display:flex;align-items:center;gap:12px;border:1px solid #f4b4ad;border-radius:17px;background:#fff4f2;color:#a62c21}.projectDeepLinkNotice>div{display:grid;gap:4px}.projectDeepLinkNotice b{font-size:14px}.projectDeepLinkNotice span{font-size:12px;font-weight:750;line-height:1.45}.projectDeepLinkNotice>button{width:32px;height:32px;margin-inline-start:auto;padding:0;flex:0 0 auto;border:1px solid #f4b4ad;border-radius:10px;background:#fff;color:#a62c21;box-shadow:none;font-size:21px}.projectDeepLinkNotice>button:hover{background:#ffe7e3;transform:none;box-shadow:none}.projectDeepLinkTarget{position:relative;border-radius:28px;outline:4px solid rgba(245,158,11,.95);outline-offset:4px;scroll-margin-top:128px;animation:projectDeepLinkPulse 1.15s ease-in-out infinite}.projectDeepLinkTarget>.project{box-shadow:0 20px 55px rgba(245,158,11,.24)}@keyframes projectDeepLinkPulse{0%,100%{outline-color:rgba(245,158,11,.95);outline-offset:4px}50%{outline-color:rgba(245,158,11,.08);outline-offset:9px}}@media(prefers-reduced-motion:reduce){.projectDeepLinkTarget{animation:none}}
 
 /* Internal team chat */
@@ -1125,12 +1126,12 @@ body.language-en { direction: ltr; }
     left: 0;
     border-right: 1px solid rgba(255,255,255,.24);
     border-left: 0;
-    border-radius: 0 18px 18px 0;
+    border-radius: 0 16px 16px 0;
     animation-name: mobileMenuHandleHintLtr;
   }
   .language-en .mobileMenuHandle:before { right: 0; left: auto; }
   .language-en .mobileMenuHandle:hover { transform: translate(2px,-50%); box-shadow: 10px 0 30px rgba(7,30,65,.3); }
-  .language-en .mobileMenuHandle:active { transform: translate(4px,-50%); }
+  .language-en .mobileMenuHandle:active { transform: translate(3px,-50%); }
   .language-en .sidebar {
     right: auto;
     left: 0;
@@ -1139,6 +1140,7 @@ body.language-en { direction: ltr; }
     box-shadow: 25px 0 70px rgba(3,20,45,.35);
   }
   .language-en .sidebar.mobileOpen { transform: translateX(0); }
+  .page .sidebar { border-radius: 0; }
   .language-en .notificationsPopover { right: 0; left: auto; }
   .language-en .notificationsPopover:before { right: 16px; left: auto; }
 }

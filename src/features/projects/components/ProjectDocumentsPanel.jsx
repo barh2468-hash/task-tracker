@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Download, Eye, FileText, LoaderCircle, Trash2, Upload } from 'lucide-react';
+import { Download, Eye, FileText, LoaderCircle, Trash2, Upload, X } from 'lucide-react';
 import { t } from '../../language/LanguageContext.jsx';
 import { createSignedUrl } from '../../../services/api/storage.js';
 import PdfPreviewModal from './PdfPreviewModal.jsx';
@@ -35,6 +36,7 @@ export default function ProjectDocumentsPanel({
   useTranslation();
   const [links, setLinks] = useState({});
   const [uploading, setUploading] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [documentType, setDocumentType] = useState(defaultDocumentType);
   const [previewDocument, setPreviewDocument] = useState(null);
 
@@ -68,6 +70,15 @@ export default function ProjectDocumentsPanel({
     };
   }, [documents]);
 
+  useEffect(() => {
+    if (!uploadOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [uploadOpen]);
+
   if (!documents.length && !canUpload) return null;
 
   async function handleUpload(event) {
@@ -78,6 +89,7 @@ export default function ProjectDocumentsPanel({
     setUploading(true);
     try {
       await onUpload(file, documentType);
+      setUploadOpen(false);
     } finally {
       setUploading(false);
       input.value = '';
@@ -97,34 +109,15 @@ export default function ProjectDocumentsPanel({
         <div className="projectDocumentsHeaderActions">
           <span className="projectDocumentsCount">{documents.length}</span>
           {canUpload && (
-            <div className="projectDocumentUploadControls">
-              <label className="projectDocumentType">
-                <span>{t('מטרת המסמך')}</span>
-                <select
-                  value={documentType}
-                  disabled={uploading}
-                  onChange={(event) => setDocumentType(event.target.value)}
-                >
-                  {documentTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {t(type.label)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className={`projectDocumentUpload ${uploading ? 'uploading' : ''}`}>
-                {uploading ? <LoaderCircle size={16} /> : <Upload size={16} />}
-                {uploading ? t('מעלה PDF...') : t('העלאת PDF')}
-                <input
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  disabled={uploading}
-                  onChange={handleUpload}
-                  aria-label={t('העלאת PDF')}
-                  data-max-size={MAX_FILE_SIZE}
-                />
-              </label>
-            </div>
+            <button
+              type="button"
+              className="projectDocumentUpload"
+              disabled={uploading}
+              onClick={() => setUploadOpen(true)}
+            >
+              {uploading ? <LoaderCircle size={16} /> : <Upload size={16} />}
+              {uploading ? t('מעלה PDF...') : t('העלאת PDF')}
+            </button>
           )}
         </div>
       </header>
@@ -196,6 +189,69 @@ export default function ProjectDocumentsPanel({
         fileName={previewDocument?.fileName || t('קובץ PDF')}
         onClose={() => setPreviewDocument(null)}
       />
+      {uploadOpen &&
+        createPortal(
+          // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click-to-close is a pointer convenience; the dialog has a keyboard-accessible close button
+          <div
+            className="modalBackdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`document-upload-title-${defaultDocumentType}`}
+            onClick={() => !uploading && setUploadOpen(false)}
+          >
+            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- prevent backdrop dismissal for clicks inside the dialog */}
+            <div
+              className="statusNoteModal projectDocumentUploadDialog"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="modalHeader statusNoteHeader">
+                <div>
+                  <span className="projectDocumentsEyebrow">{t('מסמכים משותפים לפרויקט')}</span>
+                  <h3 id={`document-upload-title-${defaultDocumentType}`}>
+                    {t('העלאת מסמך PDF')}
+                  </h3>
+                  <p className="muted">{t('בחר את מטרת המסמך ולאחר מכן את קובץ ה־PDF.')}</p>
+                </div>
+                <button
+                  type="button"
+                  className="ghost iconBtn"
+                  disabled={uploading}
+                  onClick={() => setUploadOpen(false)}
+                  aria-label={t('סגור')}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <label className="projectDocumentType">
+                <span>{t('מטרת המסמך')}</span>
+                <select
+                  value={documentType}
+                  disabled={uploading}
+                  onChange={(event) => setDocumentType(event.target.value)}
+                >
+                  {documentTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {t(type.label)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className={`filePickerControl documentFilePicker ${uploading ? 'uploading' : ''}`}>
+                {uploading ? <LoaderCircle size={19} /> : <Upload size={19} />}
+                <span>{uploading ? t('מעלה PDF...') : t('בחירת קובץ PDF')}</span>
+                <input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  disabled={uploading}
+                  onChange={handleUpload}
+                  aria-label={t('בחירת קובץ PDF')}
+                  data-max-size={MAX_FILE_SIZE}
+                />
+              </label>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

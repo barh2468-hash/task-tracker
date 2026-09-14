@@ -6,9 +6,11 @@ import {
   Archive,
   Camera,
   ChevronDown,
+  Clock3,
   FileText,
   Mail,
   MessageSquareText,
+  MoreHorizontal,
   Pencil,
   PlayCircle,
   Phone,
@@ -88,8 +90,9 @@ export default function ProjectCard({ project, focused = false }) {
   const [reviewFile, setReviewFile] = useState(null);
   const [reviewNote, setReviewNote] = useState('');
   const [editing, setEditing] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [activeDetailTab, setActiveDetailTab] = useState('tasks');
+  const [moreActionsOpen, setMoreActionsOpen] = useState(false);
   const [assets, setAssets] = useState({
     project_photos: [],
     project_review_files: [],
@@ -146,6 +149,8 @@ export default function ProjectCard({ project, focused = false }) {
     setReviewNote('');
     setStatusDialogOpen(false);
     setStatusNote('');
+    setActiveDetailTab('tasks');
+    setMoreActionsOpen(false);
   }, [project.id]);
 
   useEffect(() => {
@@ -598,137 +603,165 @@ export default function ProjectCard({ project, focused = false }) {
         {detailsOpen && (
           <div className="projectExpandedBody">
             <section className="projectOverviewPanel">
-              <div className="projectOverviewIdentity">
-              <div className="title">
-                {project.name}{' '}
-                {project.is_archived && <span className="archiveBadge">{t('בארכיון')}</span>}
-              </div>
-              <div className="muted">
-                {project.client_name || t('ללא לקוח')} · {project.description || t('אין תיאור')}
-              </div>
-              <div className="muted">
-                {t('עובד אחראי:')}
-                {project.profiles?.full_name || t('לא משויך')}
-              </div>
-              {!!project.project_workers?.some(
-                (assignment) =>
-                  !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
-              ) && (
-                <div className="muted">
-                  {t('עובדים נוספים:')}
-                  {project.project_workers
-                    .filter(
-                      (assignment) =>
-                        !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
-                    )
-                    .map((assignment) => assignment.profiles?.full_name || t('עובד'))
-                    .join(', ')}
-                </div>
-              )}
-              {assignedDrafterId && (
-                <div className="muted">
-                  {t('שרטט משויך:')}
-                  {project.project_workers?.find(
-                    (assignment) => assignment.worker_id === assignedDrafterId,
-                  )?.profiles?.full_name || t('שרטט')}
-                </div>
-              )}
-              {isManager && (
-                <div className="actionsRow cardActions">
-                  <button className="ghost smallBtn" onClick={() => setEditing(true)}>
-                    <Pencil size={16} />
-                    {t('עריכה')}
-                  </button>
-                  {project.is_archived ? (
-                    <button className="ghost smallBtn" onClick={() => restoreProject(project)}>
-                      <RotateCcw size={16} />
-                      {t('שחזור')}
-                    </button>
-                  ) : (
-                    <button className="ghost smallBtn" onClick={() => archiveProject(project)}>
-                      <Archive size={16} />
-                      {t('העבר לארכיון')}
-                    </button>
+              <div className="projectOverviewSummary">
+                <header className="projectOverviewHeadingRow">
+                  <div>
+                    <span className="projectDocumentsEyebrow">{t('פרטי הפרויקט')}</span>
+                    <h3>{t('מידע נוסף')}</h3>
+                  </div>
+                  {isManager && (
+                    <div
+                      className="projectMoreActions"
+                      onBlur={(event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget)) {
+                          setMoreActionsOpen(false);
+                        }
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="ghost smallBtn projectMoreActionsButton"
+                        aria-haspopup="menu"
+                        aria-expanded={moreActionsOpen}
+                        onClick={() => setMoreActionsOpen((open) => !open)}
+                      >
+                        <MoreHorizontal size={18} />
+                        {t('פעולות נוספות')}
+                      </button>
+                      {moreActionsOpen && (
+                        <div className="projectMoreActionsMenu" role="menu">
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setMoreActionsOpen(false);
+                              setEditing(true);
+                            }}
+                          >
+                            <Pencil size={16} /> {t('עריכה')}
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setMoreActionsOpen(false);
+                              if (project.is_archived) restoreProject(project);
+                              else archiveProject(project);
+                            }}
+                          >
+                            {project.is_archived ? <RotateCcw size={16} /> : <Archive size={16} />}
+                            {project.is_archived ? t('שחזור') : t('העבר לארכיון')}
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setMoreActionsOpen(false);
+                              exportProjectPdf({ ...project, ...assets }, projectHistory);
+                            }}
+                          >
+                            <FileText size={16} /> {t('דוח PDF')}
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="danger"
+                            onClick={() => {
+                              setMoreActionsOpen(false);
+                              deleteProject(project);
+                            }}
+                          >
+                            <Trash2 size={16} /> {t('מחיקה')}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
-                  <button className="danger ghost smallBtn" onClick={() => deleteProject(project)}>
-                    <Trash2 size={16} />
-                    {t('מחיקה')}
-                  </button>
-                  <button
-                    className="ghost smallBtn"
-                    onClick={() => exportProjectPdf({ ...project, ...assets }, projectHistory)}
-                  >
-                    <FileText size={16} />
-                    {t('דוח PDF')}
-                  </button>
-                </div>
-              )}
-              </div>
-              <div className="projectOverviewContact">
-              <StatusPill status={project.status} />
-              <div className="muted" style={{ marginTop: 10 }}>
-                {project.location}
-              </div>
-              {project.contact_phone && (
-                <a
-                  className="phoneLink"
-                  href={`tel:${project.contact_phone.replace(/[^0-9+]/g, '')}`}
-                  title={t('התקשר לאיש קשר בשטח')}
-                >
-                  <Phone size={15} /> {project.contact_phone}
-                </a>
-              )}
-              {project.contact_email && (
-                <a
-                  className="phoneLink"
-                  href={`mailto:${project.contact_email}`}
-                  title={t('שליחת מייל לאיש קשר בשטח')}
-                >
-                  <Mail size={15} /> {project.contact_email}
-                </a>
-              )}
-              <div className="muted">
-                {t('עודכן:')}
-                {new Date(project.updated_at).toLocaleDateString('he-IL')}
-              </div>
-              </div>
-              <div className="projectOverviewProgress">
-              <b>
-                {project.progress}
-                {t('% התקדמות')}
-              </b>
-              <div className="progress">
-                <i style={{ width: `${project.progress}%` }} />
-              </div>
-              <div className="muted">
-                {t('יעד:')}{' '}
-                {project.due_date
-                  ? new Date(project.due_date).toLocaleDateString('he-IL')
-                  : t('לא הוגדר')}
-              </div>
-              <PhotoGallery
-                photos={assets.project_photos}
-                canDelete={isManager || isAssignedFieldWorker}
-                onDelete={async (photo) => {
-                  await deletePhoto(photo, project);
-                  await refreshAssets();
-                }}
-              />
+                </header>
 
-              {assetsLoading && <span className="muted">{t('טוען תמונות וקבצים...')}</span>}
+                <p className="projectOverviewDescription">
+                  {project.description || t('אין תיאור')}
+                </p>
+
+                <div className="projectOverviewAssignments">
+                  <div>
+                    <span>{t('עובד אחראי:')}</span>
+                    <b>{project.profiles?.full_name || t('לא משויך')}</b>
+                  </div>
+                  {!!project.project_workers?.some(
+                    (assignment) =>
+                      !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
+                  ) && (
+                    <div>
+                      <span>{t('עובדים נוספים:')}</span>
+                      <b>
+                        {project.project_workers
+                          .filter(
+                            (assignment) =>
+                              !assignment.profiles?.role ||
+                              assignment.profiles.role === 'field_worker',
+                          )
+                          .map((assignment) => assignment.profiles?.full_name || t('עובד'))
+                          .join(', ')}
+                      </b>
+                    </div>
+                  )}
+                  {assignedDrafterId && (
+                    <div>
+                      <span>{t('שרטט משויך:')}</span>
+                      <b>
+                        {project.project_workers?.find(
+                          (assignment) => assignment.worker_id === assignedDrafterId,
+                        )?.profiles?.full_name || t('שרטט')}
+                      </b>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="projectOverviewContact">
+                <span className="projectDocumentsEyebrow">{t('פרטי קשר')}</span>
+                <h3>{project.client_name || t('ללא לקוח')}</h3>
+                <div className="projectOverviewLocation">{project.location}</div>
+                <div className="projectContactLinks">
+                  {project.contact_phone && (
+                    <a
+                      className="phoneLink"
+                      href={`tel:${project.contact_phone.replace(/[^0-9+]/g, '')}`}
+                      title={t('התקשר לאיש קשר בשטח')}
+                    >
+                      <Phone size={15} /> {project.contact_phone}
+                    </a>
+                  )}
+                  {project.contact_email && (
+                    <a
+                      className="phoneLink"
+                      href={`mailto:${project.contact_email}`}
+                      title={t('שליחת מייל לאיש קשר בשטח')}
+                    >
+                      <Mail size={15} /> {project.contact_email}
+                    </a>
+                  )}
+                </div>
+                <div className="muted projectOverviewUpdated">
+                  {t('עודכן:')}
+                  {new Date(project.updated_at).toLocaleDateString('he-IL')}
+                </div>
               </div>
             </section>
 
-            <div className="form projectOperationsPanel">
-              <div className="timeBox">
+            <div className="projectOperationsPanel">
+              <section className="projectOperationCard projectWorkCard">
                 {myOpenSession ? (
                   <>
-                    <div>
-                      <b>{t('עבודה פעילה')}</b>
-                      <br />
-                      <span className="muted">
-                        {t('התחלה:')} {new Date(myOpenSession.started_at).toLocaleString('he-IL')}
-                      </span>
+                    <header className="projectOperationHeader">
+                      <span className="projectOperationIcon"><Clock3 size={20} /></span>
+                      <div>
+                        <b>{t('עבודה פעילה')}</b>
+                        <span>{t('התחלה:')} {new Date(myOpenSession.started_at).toLocaleString('he-IL')}</span>
+                      </div>
+                    </header>
+                    <div className="projectOperationLocation">
                       <LocationLine
                         label={t('מיקום התחלה')}
                         lat={myOpenSession.started_lat}
@@ -746,10 +779,11 @@ export default function ProjectCard({ project, focused = false }) {
                   </>
                 ) : (
                   <>
-                    <div>
-                      <b>{t('שעות עבודה')}</b>
-                      <br />
-                      <span className="muted">
+                    <header className="projectOperationHeader">
+                      <span className="projectOperationIcon"><Clock3 size={20} /></span>
+                      <div>
+                        <b>{t('שעות עבודה')}</b>
+                        <span>
                         {lastEndedSession
                           ? t('סיום אחרון: {{value0}}', {
                               value0: new Date(lastEndedSession.ended_at || '').toLocaleString(
@@ -757,16 +791,19 @@ export default function ProjectCard({ project, focused = false }) {
                               ),
                             })
                           : t('לא נרשמה עבודה פתוחה')}
-                      </span>
-                      {lastEndedSession && (
+                        </span>
+                      </div>
+                    </header>
+                    {lastEndedSession && (
+                      <div className="projectOperationLocation">
                         <LocationLine
                           label={t('מיקום סיום אחרון')}
                           lat={lastEndedSession.ended_lat}
                           lng={lastEndedSession.ended_lng}
                           accuracy={lastEndedSession.ended_accuracy}
                         />
-                      )}
-                    </div>
+                      </div>
+                    )}
                     <button className="smallBtn" onClick={() => startWork(projectWithSessions)}>
                       <PlayCircle size={15} />
                       {t('התחל עבודה')}
@@ -784,202 +821,252 @@ export default function ProjectCard({ project, focused = false }) {
                     ))}
                   </div>
                 )}
-              </div>
-              <div className="statusUpdateControls">
-                <label className="projectOperationField">
-                  <span>{t('שינוי סטטוס')}</span>
-                  <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                    {appStatuses.map((s) => (
-                      <option key={s} value={s}>
-                        {t(s)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  className="smallBtn"
-                  disabled={status === project.status}
-                  onClick={() => setStatusDialogOpen(true)}
-                >
-                  <MessageSquareText size={16} />
-                  {t('המשך להערה ועדכון')}
-                </button>
-              </div>
-              <div className="photoUploadBox">
-                <label className="projectOperationField">
-                  <span>{t('סוג תמונה')}</span>
-                  <select
-                    value={photoCategory}
-                    onChange={(e) => setPhotoCategory(e.target.value)}
-                    title={t('סוג תמונה')}
+              </section>
+
+              <section className="projectOperationCard projectStatusCard">
+                <header className="projectOperationHeader">
+                  <span className="projectOperationIcon"><MessageSquareText size={20} /></span>
+                  <div>
+                    <b>{t('עדכון סטטוס')}</b>
+                    <span>{t('בחר סטטוס חדש והוסף הערה לפי הצורך')}</span>
+                  </div>
+                </header>
+                <div className="projectStatusActions">
+                  <label className="projectOperationField">
+                    <span>{t('סטטוס חדש')}</span>
+                    <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                      {appStatuses.map((s) => (
+                        <option key={s} value={s}>
+                          {t(s)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    className="smallBtn"
+                    disabled={status === project.status}
+                    onClick={() => setStatusDialogOpen(true)}
                   >
-                    {photoCategories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label
-                  className="smallBtn secondary"
-                  style={{
-                    display: 'flex',
-                    gap: 8,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Camera size={16} />
-                  {t('העלאת תמונה')}
-                  <input
-                    className="photoInput"
-                    style={{ display: 'none' }}
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      if (!e.target.files?.[0]) return;
-                      const result = await uploadPhoto(
-                        project.id,
-                        e.target.files[0],
-                        photoCategory,
-                      );
-                      if (!result?.offline) await refreshAssets();
-                    }}
-                  />
-                </label>
-              </div>
+                    <MessageSquareText size={16} />
+                    {t('המשך להערה ועדכון')}
+                  </button>
+                </div>
+              </section>
             </div>
 
-            <ProjectDocumentsPanel
-              documents={assets.project_documents}
-              canUpload={isManager || isAssignedFieldWorker}
-              canDelete={(document) =>
-                isManager || (isAssignedFieldWorker && document.uploaded_by === currentUserId)
-              }
-              defaultDocumentType={isAssignedFieldWorker ? 'drawing_source' : 'general'}
-              onUpload={async (file, documentType) => {
-                const result = await uploadProjectDocument(project, file, documentType);
-                if (result) await refreshAssets();
-              }}
-              onDelete={async (document) => {
-                const result = await deleteProjectDocument(document, project);
-                if (result) await refreshAssets();
-              }}
-            />
-
-            {project.requires_work_diary && (
-              <WorkDiaryPanel
-                project={project}
-                currentUserName={currentUserName}
-                canDelete={isManager}
-              />
-            )}
-
-            {isManager && project.status === 'עבר לשרטוט' && (
-              <section className="projectSectionPanel drafterAssignmentBox">
-                <div>
-                  <b>{t('שיוך הפרויקט לשרטט')}</b>
-                  <span>
-                    {assignedDrafterId
-                      ? t('הפרויקט משויך כעת לשרטט. אפשר לשנות את השיוך.')
-                      : t('הפרויקט ממתין לבחירת שרטט על ידי מנהל.')}
-                  </span>
-                </div>
-                <select
-                  value={selectedDrafterId}
-                  onChange={(event) => setSelectedDrafterId(event.target.value)}
-                >
-                  <option value="">{t('ללא שרטט משויך')}</option>
-                  {drafters.map((drafter) => (
-                    <option key={drafter.id} value={drafter.id}>
-                      {drafter.full_name} - {drafter.email}
-                    </option>
-                  ))}
-                </select>
+            <div className="projectSectionTabs" role="tablist" aria-label={t('פרטי הפרויקט')}>
+              {[
+                ['tasks', t('משימות'), (project.project_tasks || []).length],
+                [
+                  'documents',
+                  t('מסמכים'),
+                  assets.project_photos.length +
+                    assets.project_documents.length +
+                    assets.project_review_files.length,
+                ],
+                ['updates', t('עדכונים'), projectHistory.length],
+              ].map(([tab, label, count]) => (
                 <button
                   type="button"
-                  onClick={() => assignProjectDrafter(project, selectedDrafterId)}
-                  disabled={!drafters.length && !assignedDrafterId}
+                  role="tab"
+                  aria-selected={activeDetailTab === tab}
+                  className={activeDetailTab === tab ? 'active' : ''}
+                  key={tab}
+                  onClick={() => setActiveDetailTab(tab)}
                 >
-                  <Pencil size={16} /> {assignedDrafterId ? t('עדכון שיוך') : t('שיוך לשרטט')}
+                  <span>{label}</span>
+                  <small>{count}</small>
                 </button>
-              </section>
-            )}
+              ))}
+            </div>
 
-            <ReviewFilesPanel
-              files={assets.project_review_files}
-              canDelete={canManageReview}
-              onDelete={async (file) => {
-                await deleteProjectReviewFile(file, project.id);
-                await refreshAssets();
-              }}
-            />
+            {activeDetailTab === 'documents' && (
+              <div className="projectTabPanel projectDocumentsTab" role="tabpanel">
+                <section className="projectSectionPanel projectPhotoPanel">
+                  <header className="projectSectionHeader">
+                    <div>
+                      <span className="projectDocumentsEyebrow">{t('תמונות מהשטח')}</span>
+                      <h3>
+                        <Camera size={18} /> {t('תמונות הפרויקט')}
+                      </h3>
+                    </div>
+                    <span className="projectDocumentsCount">{assets.project_photos.length}</span>
+                  </header>
 
-            {canManageReview && project.status === 'עבר לשרטוט' && (
-              <DrafterReviewBox
-                reviewFile={reviewFile}
-                setReviewFile={setReviewFile}
-                reviewNote={reviewNote}
-                setReviewNote={setReviewNote}
-                onSend={async () => {
-                  if (!reviewFile) {
-                    return { ok: false };
+                  <PhotoGallery
+                    photos={assets.project_photos}
+                    canDelete={isManager || isAssignedFieldWorker}
+                    onDelete={async (photo) => {
+                      await deletePhoto(photo, project);
+                      await refreshAssets();
+                    }}
+                  />
+
+                  {assetsLoading && <span className="muted">{t('טוען תמונות וקבצים...')}</span>}
+
+                  <div className="photoUploadBox">
+                    <label className="projectOperationField">
+                      <span>{t('סוג תמונה')}</span>
+                      <select
+                        value={photoCategory}
+                        onChange={(e) => setPhotoCategory(e.target.value)}
+                        title={t('סוג תמונה')}
+                      >
+                        {photoCategories.map((category) => (
+                          <option key={category} value={category}>
+                            {t(category)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="projectPhotoUploadButton">
+                      <Camera size={17} />
+                      <span>{t('העלאת תמונה')}</span>
+                      <input
+                        className="photoInput"
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          if (!e.target.files?.[0]) return;
+                          const result = await uploadPhoto(
+                            project.id,
+                            e.target.files[0],
+                            photoCategory,
+                          );
+                          if (!result?.offline) await refreshAssets();
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  </div>
+                </section>
+
+                <ProjectDocumentsPanel
+                  documents={assets.project_documents}
+                  canUpload={isManager || isAssignedFieldWorker}
+                  canDelete={(document) =>
+                    isManager || (isAssignedFieldWorker && document.uploaded_by === currentUserId)
                   }
-                  const result = await sendProjectToReview(project, reviewFile, reviewNote);
-                  if (result?.ok) {
+                  defaultDocumentType={isAssignedFieldWorker ? 'drawing_source' : 'general'}
+                  onUpload={async (file, documentType) => {
+                    const result = await uploadProjectDocument(project, file, documentType);
+                    if (result) await refreshAssets();
+                    return result;
+                  }}
+                  onDelete={async (document) => {
+                    const result = await deleteProjectDocument(document, project);
+                    if (result) await refreshAssets();
+                  }}
+                />
+
+                {project.requires_work_diary && (
+                  <WorkDiaryPanel
+                    project={project}
+                    currentUserName={currentUserName}
+                    canDelete={isManager}
+                  />
+                )}
+
+                {isManager && project.status === 'עבר לשרטוט' && (
+                  <section className="projectSectionPanel drafterAssignmentBox">
+                    <div>
+                      <b>{t('שיוך הפרויקט לשרטט')}</b>
+                      <span>
+                        {assignedDrafterId
+                          ? t('הפרויקט משויך כעת לשרטט. אפשר לשנות את השיוך.')
+                          : t('הפרויקט ממתין לבחירת שרטט על ידי מנהל.')}
+                      </span>
+                    </div>
+                    <select
+                      value={selectedDrafterId}
+                      onChange={(event) => setSelectedDrafterId(event.target.value)}
+                    >
+                      <option value="">{t('ללא שרטט משויך')}</option>
+                      {drafters.map((drafter) => (
+                        <option key={drafter.id} value={drafter.id}>
+                          {drafter.full_name} - {drafter.email}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => assignProjectDrafter(project, selectedDrafterId)}
+                      disabled={!drafters.length && !assignedDrafterId}
+                    >
+                      <Pencil size={16} /> {assignedDrafterId ? t('עדכון שיוך') : t('שיוך לשרטט')}
+                    </button>
+                  </section>
+                )}
+
+                <ReviewFilesPanel
+                  files={assets.project_review_files}
+                  canDelete={canManageReview}
+                  onDelete={async (file) => {
+                    await deleteProjectReviewFile(file, project.id);
                     await refreshAssets();
-                    setReviewFile(null);
-                    setReviewNote('');
-                  }
-                  return result;
-                }}
-              />
-            )}
-            <TaskPanel
-              tasks={project.project_tasks || []}
-              isManager={isManager}
-              canAddTasks={isManager || isAssignedFieldWorker}
-              canCompleteTasks={
-                isManager ||
-                project.assigned_to === currentUserId ||
-                !!project.project_workers?.some((w) => w.worker_id === currentUserId)
-              }
-              showTaskForm={showTaskForm}
-              setShowTaskForm={setShowTaskForm}
-              taskTitle={taskTitle}
-              setTaskTitle={setTaskTitle}
-              taskDescription={taskDescription}
-              setTaskDescription={setTaskDescription}
-              onAdd={() => {
-                addProjectTask(project.id, taskTitle, taskDescription);
-                setTaskTitle('');
-                setTaskDescription('');
-                setShowTaskForm(false);
-              }}
-              onToggle={(task) => toggleProjectTask(task, project)}
-              onDelete={deleteProjectTask}
-            />
+                  }}
+                />
 
-            <div
-              className={`projectSectionPanel history collapsibleHistory ${historyOpen ? 'open' : ''}`}
-            >
-              <button
-                className="historyToggle"
-                onClick={() => setHistoryOpen(!historyOpen)}
-                aria-expanded={historyOpen}
-              >
-                <span>
+                {canManageReview && project.status === 'עבר לשרטוט' && (
+                  <DrafterReviewBox
+                    reviewFile={reviewFile}
+                    setReviewFile={setReviewFile}
+                    reviewNote={reviewNote}
+                    setReviewNote={setReviewNote}
+                    onSend={async () => {
+                      if (!reviewFile) return { ok: false };
+                      const result = await sendProjectToReview(project, reviewFile, reviewNote);
+                      if (result?.ok) {
+                        await refreshAssets();
+                        setReviewFile(null);
+                        setReviewNote('');
+                      }
+                      return result;
+                    }}
+                  />
+                )}
+              </div>
+            )}
+
+            {activeDetailTab === 'tasks' && (
+              <div className="projectTabPanel" role="tabpanel">
+                <TaskPanel
+                  tasks={project.project_tasks || []}
+                  isManager={isManager}
+                  canAddTasks={isManager || isAssignedFieldWorker}
+                  canCompleteTasks={
+                    isManager ||
+                    project.assigned_to === currentUserId ||
+                    !!project.project_workers?.some((w) => w.worker_id === currentUserId)
+                  }
+                  showTaskForm={showTaskForm}
+                  setShowTaskForm={setShowTaskForm}
+                  taskTitle={taskTitle}
+                  setTaskTitle={setTaskTitle}
+                  taskDescription={taskDescription}
+                  setTaskDescription={setTaskDescription}
+                  onAdd={() => {
+                    addProjectTask(project.id, taskTitle, taskDescription);
+                    setTaskTitle('');
+                    setTaskDescription('');
+                    setShowTaskForm(false);
+                  }}
+                  onToggle={(task) => toggleProjectTask(task, project)}
+                  onDelete={deleteProjectTask}
+                />
+              </div>
+            )}
+
+            {activeDetailTab === 'updates' && (
+              <section className="projectTabPanel projectHistoryPanel" role="tabpanel">
+                <header className="projectTabPanelHeader">
                   <b>{t('עדכונים אחרונים')}</b>
                   <small>
                     {projectHistory.length === 0
                       ? t('אין עדכונים')
                       : t('{{value0}} עדכונים', { value0: projectHistory.length })}
                   </small>
-                </span>
-                <ChevronDown className="historyChevron" size={18} />
-              </button>
-              {historyOpen && (
+                </header>
                 <div className="historyList">
                   {projectHistory.length === 0 && (
                     <div className="muted">{t('אין עדכונים עדיין')}</div>
@@ -1001,8 +1088,8 @@ export default function ProjectCard({ project, focused = false }) {
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
+              </section>
+            )}
           </div>
         )}
       </article>

@@ -1213,6 +1213,23 @@ body.language-en { direction: ltr; }
 
 .language-en .attendanceClockPage,.language-en .attendanceProjectModal{direction:ltr}
 
+.attendanceHeroWidget{position:relative;z-index:2;width:clamp(280px,31vw,350px);min-width:280px;padding:13px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px 12px;border:1px solid rgba(255,255,255,.18);border-radius:19px;background:rgba(255,255,255,.105);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 14px 34px rgba(1,15,34,.16);backdrop-filter:blur(12px)}
+.attendanceHeroWidget header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.attendanceHeroWidget header>span,.attendanceHeroWidget header>small{display:flex;align-items:center;gap:6px}
+.attendanceHeroWidget header>span{color:#fff;font-size:12px}
+.attendanceHeroWidget header>small{color:rgba(230,244,250,.7);font-size:9px;font-weight:900}
+.attendanceHeroWidget header i{width:7px;height:7px;border-radius:50%;background:#fd9857;box-shadow:0 0 0 4px rgba(253,152,87,.14)}
+.attendanceHeroWidget.isRunning header i{background:#47e1b6;box-shadow:0 0 0 4px rgba(71,225,182,.14);animation:attendancePulse 1.9s ease-in-out infinite}
+.attendanceHeroWidgetTime{min-width:0;display:grid;gap:2px;align-content:center}
+.attendanceHeroWidgetTime strong{color:#fff;font-size:23px;font-variant-numeric:tabular-nums;letter-spacing:1px}
+.attendanceHeroWidgetTime span{overflow:hidden;color:rgba(222,241,248,.7);font-size:9px;font-weight:850;text-overflow:ellipsis;white-space:nowrap}
+.attendanceHeroWidget button{min-height:42px;padding:9px 12px;border:1px solid rgba(255,255,255,.16);border-radius:13px;background:#fff;color:#09264a;box-shadow:0 8px 20px rgba(1,14,33,.18);font-size:10px;white-space:nowrap}
+.attendanceHeroWidget button:hover{transform:none;background:#edf8fa;box-shadow:0 8px 20px rgba(1,14,33,.18)}
+.attendanceHeroWidget.isRunning button{background:#fff1f1;color:#b42335}
+.language-en .attendanceHeroWidget{direction:ltr}
+
+@media(max-width:1180px){.attendanceHeroWidget{width:100%;min-width:0}}
+
 @media(max-width:760px){
   .attendanceClockShell{padding-bottom:0}
   .attendanceClockShell>.container{margin-bottom:10px}
@@ -1222,6 +1239,9 @@ body.language-en { direction: ltr; }
   .attendanceTypePicker{gap:6px;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;padding:2px 1px 5px;scrollbar-width:none}
   .attendanceTypePicker::-webkit-scrollbar{display:none}
   .attendanceTypePicker button{flex:0 0 auto;min-height:39px;padding:8px 11px;border-radius:12px;font-size:11px}
+  .attendanceHeroWidget{padding:10px;border-radius:15px;grid-template-columns:minmax(0,1fr) auto}
+  .attendanceHeroWidgetTime strong{font-size:19px}
+  .attendanceHeroWidget button{min-height:38px;padding:8px 10px}
   .attendanceProjectTrigger{min-height:61px;padding:8px 10px;border-radius:15px}
   .attendanceProjectTriggerIcon{width:39px;height:39px;border-radius:12px}
   .attendanceProjectModalBackdrop{padding:8px;place-items:center}

@@ -6,16 +6,9 @@ import { createManagerNotification } from '../notifications/api.js';
 import { getCurrentLocationWithFallback } from '../../hooks/useGeolocation.js';
 import { formatDuration, formatLocation, durationMinutes, toLocalDateKey } from '../../utils/format.js';
 import { enqueueOfflineAction } from '../../services/offlineStore.js';
+import { attendanceTypeLabel, attendanceTypeOptions } from './constants.js';
 
-export const attendanceTypeOptions = [
-  { value: 'field', label: 'עבודה בשטח', timed: true },
-  { value: 'office', label: 'משרד', timed: true },
-  { value: 'vacation', label: 'חופש', timed: false },
-  { value: 'sick', label: 'מחלה', timed: false },
-  { value: 'reserve_duty', label: 'מילואים', timed: false },
-];
-
-export const attendanceTypeLabel = Object.fromEntries(attendanceTypeOptions.map((item) => [item.value, item.label]));
+export { attendanceTypeLabel, attendanceTypeOptions } from './constants.js';
 
 export async function getWorkSessions(_isManager) {
   const { data, error } = await workSessionsApi.getWorkSessions();

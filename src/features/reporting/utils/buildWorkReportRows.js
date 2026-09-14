@@ -12,6 +12,8 @@ export function buildWorkReportRows(workSessions) {
       Math.round((ended.getTime() - started.getTime()) / 60000),
     );
     const existing = map.get(key) || {
+      workerId: item.worker_id,
+      projectId: item.project_id,
       workerName: item.profiles?.full_name || 'עובד',
       email: item.profiles?.email || '',
       projectName: item.projects?.name || 'פרויקט',

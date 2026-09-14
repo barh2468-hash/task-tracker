@@ -215,7 +215,7 @@ export function AttendanceProvider({ children }) {
     setAttendanceEndDialogOpen(true);
   }
 
-  async function finishAttendance(endNote) {
+  async function finishAttendance(endNote, crewMembers = []) {
     if (attendanceBusy) return null;
     setAttendanceBusy(true);
     try {
@@ -224,6 +224,7 @@ export function AttendanceProvider({ children }) {
           profile,
           attendanceSessions,
           workSessions,
+          crewMembers,
         }),
       );
       if (result?.offlineChanges) {
@@ -238,7 +239,10 @@ export function AttendanceProvider({ children }) {
           setWorkSessions((items) =>
             items.map((item) =>
               item.id === result.linkedWorkSessionId
-                ? { ...item, ...result.offlineChanges }
+                ? {
+                    ...item,
+                    ...(result.linkedWorkOfflineChanges || result.offlineChanges),
+                  }
                 : item,
             ),
           );

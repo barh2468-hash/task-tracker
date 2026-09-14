@@ -1,14 +1,21 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Clock, MapPin, Square, X } from 'lucide-react';
+import { Clock, MapPin, Square, Users, X } from 'lucide-react';
+import { useAuth } from '../../auth/useAuth.js';
+import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useAttendance } from '../AttendanceContext.jsx';
 import { attendanceTypeLabel } from '../api.js';
+import { helperNames } from '../crewOptions.js';
 
 export default function AttendanceEndDialog() {
   useTranslation();
+  const { session } = useAuth();
+  const { workers } = useProjects();
   const {
     myAttendanceSessions: sessions,
+    workSessions,
     attendanceEndDialogOpen,
     attendanceEndNote: note,
     setAttendanceEndNote: setNote,
@@ -16,17 +23,51 @@ export default function AttendanceEndDialog() {
     setAttendanceEndDialogOpen,
     finishAttendance,
   } = useAttendance();
+  const [selectedWorkerIds, setSelectedWorkerIds] = useState([]);
+  const [selectedHelpers, setSelectedHelpers] = useState([]);
 
   const openSession = sessions.find((item) => !item.ended_at && !item.is_all_day) || null;
+  const linkedWorkSession = openSession
+    ? workSessions.find(
+        (item) =>
+          item.worker_id === session?.user?.id &&
+          !item.ended_at &&
+          Math.abs(
+            new Date(item.started_at).getTime() - new Date(openSession.started_at).getTime(),
+          ) < 5000,
+      )
+    : null;
+  const availableWorkers = useMemo(
+    () =>
+      workers
+        .filter((worker) => worker.id !== session?.user?.id)
+        .sort((left, right) => left.full_name.localeCompare(right.full_name, 'he')),
+    [workers, session?.user?.id],
+  );
+
+  useEffect(() => {
+    setSelectedWorkerIds([]);
+    setSelectedHelpers([]);
+  }, [attendanceEndDialogOpen, openSession?.id]);
 
   if (!attendanceEndDialogOpen || typeof document === 'undefined' || !openSession) return null;
+
+  function toggleValue(value, setter) {
+    setter((current) =>
+      current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
+    );
+  }
 
   function close() {
     setAttendanceEndDialogOpen(false);
   }
 
   function confirm() {
-    void finishAttendance(note);
+    const systemCrew = availableWorkers
+      .filter((worker) => selectedWorkerIds.includes(worker.id))
+      .map((worker) => ({ id: worker.id, name: worker.full_name, source: 'system' }));
+    const helperCrew = selectedHelpers.map((name) => ({ id: null, name, source: 'helper' }));
+    void finishAttendance(note, [...systemCrew, ...helperCrew]);
   }
 
   return createPortal(
@@ -40,7 +81,7 @@ export default function AttendanceEndDialog() {
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- stops the backdrop's close handler from firing for clicks inside the modal */}
       <form
-        className="attendanceEndModal"
+        className={`attendanceEndModal ${linkedWorkSession ? 'projectWorkEndModal' : ''}`}
         onClick={(event) => event.stopPropagation()}
         onSubmit={(event) => {
           event.preventDefault();
@@ -75,7 +116,7 @@ export default function AttendanceEndDialog() {
             <X size={18} />
           </button>
         </div>
-        <div className="attendanceEndBody">
+        <div className={`attendanceEndBody ${linkedWorkSession ? 'projectWorkEndBody' : ''}`}>
           <label>
             {t('הערת סיום')}
             <small>{t('אופציונלי')}</small>
@@ -87,9 +128,56 @@ export default function AttendanceEndDialog() {
               autoFocus
             />
           </label>
+          {linkedWorkSession && (
+            <>
+              <fieldset className="crewPicker">
+                <legend>
+                  <Users size={17} />
+                  {t('עובדים מהמערכת שהיו איתי')}
+                </legend>
+                {availableWorkers.length === 0 ? (
+                  <p className="muted">{t('לא נמצאו עובדים נוספים לבחירה.')}</p>
+                ) : (
+                  <div className="crewOptions">
+                    {availableWorkers.map((worker) => (
+                      <label className="crewOption" key={worker.id}>
+                        <input
+                          type="checkbox"
+                          checked={selectedWorkerIds.includes(worker.id)}
+                          onChange={() => toggleValue(worker.id, setSelectedWorkerIds)}
+                        />
+                        <span>{worker.full_name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </fieldset>
+
+              <fieldset className="crewPicker">
+                <legend>
+                  <Users size={17} />
+                  {t('עוזרים שהיו איתי')}
+                </legend>
+                <div className="crewOptions">
+                  {helperNames.map((name) => (
+                    <label className="crewOption" key={name}>
+                      <input
+                        type="checkbox"
+                        checked={selectedHelpers.includes(name)}
+                        onChange={() => toggleValue(name, setSelectedHelpers)}
+                      />
+                      <span>{name}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </>
+          )}
           <p>
             <MapPin size={16} />
-            {t('בעת האישור נבקש את מיקום הסיום ונשמור אותו בדיווח.')}
+            {linkedWorkSession
+              ? t('בעת האישור נבקש את מיקום הסיום ונשמור אותו יחד עם הצוות שנבחר.')
+              : t('בעת האישור נבקש את מיקום הסיום ונשמור אותו בדיווח.')}
           </p>
         </div>
         <div className="attendanceEndActions">

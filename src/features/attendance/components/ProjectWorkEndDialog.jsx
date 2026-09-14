@@ -6,20 +6,7 @@ import { Clock, MapPin, Square, Users, X } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useAttendance } from '../AttendanceContext.jsx';
-
-const helperNames = [
-  'יובל',
-  'מתן',
-  'חיים',
-  'גבי',
-  'אילן',
-  'שקד',
-  'גבריאל',
-  'שי',
-  'אופק מושנוב',
-  'יצחק',
-  'אלי',
-];
+import { helperNames } from '../crewOptions.js';
 
 export default function ProjectWorkEndDialog() {
   useTranslation();

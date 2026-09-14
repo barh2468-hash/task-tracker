@@ -345,7 +345,7 @@ export async function startAttendance(
 
 export async function finishAttendance(
   endNote,
-  { profile, attendanceSessions, workSessions = [] },
+  { profile, attendanceSessions, workSessions = [], crewMembers = [] },
 ) {
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '', success: false };
@@ -365,6 +365,14 @@ export async function finishAttendance(
       Math.abs(new Date(item.started_at).getTime() - new Date(openSession.started_at).getTime()) <
         5000,
   );
+  const normalizedCrew = crewMembers
+    .filter((member) => member?.name)
+    .map((member) => ({
+      id: member.id || null,
+      name: String(member.name).trim().slice(0, 120),
+      source: member.source === 'system' ? 'system' : 'helper',
+    }));
+  const crewText = normalizedCrew.map((member) => member.name).join(', ');
   const endChanges = {
     ended_at: endedAt.toISOString(),
     ended_lat: location?.lat ?? null,
@@ -372,18 +380,19 @@ export async function finishAttendance(
     ended_accuracy: location?.accuracy ?? null,
     end_note: endNote.trim() || null,
   };
+  const workEndChanges = { ...endChanges, crew_members: normalizedCrew };
   if (!navigator.onLine) {
     await enqueueOfflineAction('attendance_end', { sessionId: openSession.id, changes: endChanges });
     if (linkedWorkSession) {
       await enqueueOfflineAction('work_end', {
         sessionId: linkedWorkSession.id,
-        changes: endChanges,
+        changes: workEndChanges,
         history: {
           project_id: linkedWorkSession.project_id,
           old_status: null,
           new_status: 'סיום עבודה',
           changed_by: user.id,
-          note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)} · נשמר במצב אופליין`,
+          note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}${crewText ? ` · צוות: ${crewText}` : ''} · נשמר במצב אופליין`,
         },
       });
     }
@@ -395,6 +404,7 @@ export async function finishAttendance(
       offlineChanges: endChanges,
       sessionId: openSession.id,
       linkedWorkSessionId: linkedWorkSession?.id || null,
+      linkedWorkOfflineChanges: linkedWorkSession ? workEndChanges : null,
     };
   }
   const { error } = await attendanceSessionsApi.updateOpenAttendanceSession(openSession.id, endChanges);
@@ -404,7 +414,7 @@ export async function finishAttendance(
   if (linkedWorkSession) {
     const { error: workError } = await workSessionsApi.updateWorkSession(
       linkedWorkSession.id,
-      endChanges,
+      workEndChanges,
     );
     if (workError) projectEndError = workError;
     else {
@@ -417,13 +427,13 @@ export async function finishAttendance(
         old_status: null,
         new_status: 'סיום עבודה',
         changed_by: user.id,
-        note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}${locationText}${endNote.trim() ? ` · הערת סיום: ${endNote.trim()}` : ''}`,
+        note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}${locationText}${crewText ? ` · צוות: ${crewText}` : ''}${endNote.trim() ? ` · הערת סיום: ${endNote.trim()}` : ''}`,
       });
       if (profile?.role === 'field_worker' || profile?.role === 'manager') {
         await createManagerNotification(
           'work_ended',
           `סיום עבודה: ${projectName}`,
-          `${profile.full_name} סיים עבודה בפרויקט ${projectName}. זמן עבודה: ${formatDuration(minutes)}.${location ? ` מיקום: ${formatLocation(location)}` : ''}${endNote.trim() ? ` הערה: ${endNote.trim()}` : ''}`,
+          `${profile.full_name} סיים עבודה בפרויקט ${projectName}. זמן עבודה: ${formatDuration(minutes)}.${location ? ` מיקום: ${formatLocation(location)}` : ''}${crewText ? ` צוות: ${crewText}.` : ''}${endNote.trim() ? ` הערה: ${endNote.trim()}` : ''}`,
           linkedWorkSession.project_id,
         );
       }
@@ -442,7 +452,7 @@ export async function finishAttendance(
     message: projectEndError
       ? `${attendanceTypeLabel[openSession.attendance_type]} הסתיים, אך סגירת שעות הפרויקט נכשלה: ${projectEndError.message}`
       : linkedWorkSession
-        ? `${attendanceTypeLabel[openSession.attendance_type]} והעבודה בפרויקט הסתיימו. משך המשמרת: ${formatDuration(minutes)}.`
+        ? `${attendanceTypeLabel[openSession.attendance_type]} והעבודה בפרויקט הסתיימו. משך המשמרת: ${formatDuration(minutes)}.${crewText ? ` צוות: ${crewText}.` : ''}`
         : `${attendanceTypeLabel[openSession.attendance_type]} הסתיים. משך המשמרת: ${formatDuration(minutes)}.`,
     linkedWorkSessionId: linkedWorkSession?.id || null,
     success: true,

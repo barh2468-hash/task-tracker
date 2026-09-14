@@ -166,13 +166,24 @@ export default function DashboardLayout() {
     );
   }
 
-  function beginMobileMenuDrag(clientX, clientY, eventTarget) {
+  function beginMobileMenuDrag(clientX, clientY, eventTarget, pointerId) {
     if (window.innerWidth > 760) return;
     const target = eventTarget instanceof Element ? eventTarget : null;
+    const gestureSurface = mobileMenuOpen
+      ? target?.closest('.sidebar, .mobileMenuBackdrop')
+      : target?.closest('.mobileMenuHandle');
+    if (!gestureSurface) {
+      pageSwipeRef.current = null;
+      return;
+    }
+
     const interactiveAncestor = target?.closest(
       'input, textarea, select, [contenteditable="true"], .leaflet-container, canvas, button, a',
     );
-    if (interactiveAncestor && !interactiveAncestor.classList.contains('mobileMenuHandle')) {
+    const isGestureControl =
+      interactiveAncestor?.classList.contains('mobileMenuHandle') ||
+      interactiveAncestor?.classList.contains('mobileMenuBackdrop');
+    if (interactiveAncestor && !isGestureControl) {
       pageSwipeRef.current = null;
       return;
     }
@@ -183,13 +194,14 @@ export default function DashboardLayout() {
       startedAt: Date.now(),
       initialProgress: mobileMenuOpen ? 1 : 0,
       lastX: clientX,
+      pointerId,
       dragging: false,
     };
   }
 
   function updateMobileMenuDrag(clientX, clientY, event) {
     const start = pageSwipeRef.current;
-    if (!start) return;
+    if (!start || (start.pointerId !== undefined && start.pointerId !== event.pointerId)) return;
 
     const deltaX = clientX - start.x;
     const deltaY = clientY - start.y;
@@ -202,7 +214,12 @@ export default function DashboardLayout() {
       }
       start.dragging = true;
       if (typeof event.pointerId === 'number') {
-        event.currentTarget.setPointerCapture?.(event.pointerId);
+        try {
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+        } catch {
+          cancelPageSwipe(event);
+          return;
+        }
       }
     }
 
@@ -214,8 +231,9 @@ export default function DashboardLayout() {
     setMobileMenuDragProgress(progress);
   }
 
-  function finishMobileMenuDrag(clientX) {
+  function finishMobileMenuDrag(clientX, pointerId) {
     const start = pageSwipeRef.current;
+    if (start?.pointerId !== undefined && start.pointerId !== pointerId) return;
     pageSwipeRef.current = null;
     if (!start?.dragging) return;
 
@@ -242,41 +260,22 @@ export default function DashboardLayout() {
     setMobileMenuDragProgress(null);
   }
 
-  function startPageSwipe(event) {
-    if (event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    beginMobileMenuDrag(touch.clientX, touch.clientY, event.target);
-  }
-
-  function movePageSwipe(event) {
-    const touch = event.touches[0];
-    if (!touch) return;
-    updateMobileMenuDrag(touch.clientX, touch.clientY, event);
-  }
-
-  function finishPageSwipe(event) {
-    const touch = event.changedTouches[0];
-    if (!touch) return;
-    finishMobileMenuDrag(touch.clientX);
-  }
-
   function startPagePointerSwipe(event) {
-    if (event.pointerType !== 'mouse' || event.button !== 0) return;
-    beginMobileMenuDrag(event.clientX, event.clientY, event.target);
+    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    beginMobileMenuDrag(event.clientX, event.clientY, event.target, event.pointerId);
   }
 
   function movePagePointerSwipe(event) {
-    if (event.pointerType !== 'mouse') return;
     updateMobileMenuDrag(event.clientX, event.clientY, event);
   }
 
   function finishPagePointerSwipe(event) {
-    if (event.pointerType !== 'mouse') return;
-    finishMobileMenuDrag(event.clientX);
+    finishMobileMenuDrag(event.clientX, event.pointerId);
   }
 
-  function cancelPageSwipe() {
+  function cancelPageSwipe(event) {
     const start = pageSwipeRef.current;
+    if (start?.pointerId !== undefined && start.pointerId !== event?.pointerId) return;
     pageSwipeRef.current = null;
     if (!start?.dragging) return;
     setMobileMenuOpen(start.initialProgress === 1);
@@ -301,10 +300,6 @@ export default function DashboardLayout() {
   return (
     <main
       className={`page${location.pathname === '/app/chat' ? ' chatPage' : ''}`}
-      onTouchStartCapture={startPageSwipe}
-      onTouchMoveCapture={movePageSwipe}
-      onTouchEndCapture={finishPageSwipe}
-      onTouchCancelCapture={cancelPageSwipe}
       onPointerDownCapture={startPagePointerSwipe}
       onPointerMoveCapture={movePagePointerSwipe}
       onPointerUpCapture={finishPagePointerSwipe}

@@ -700,7 +700,7 @@ body{background:radial-gradient(circle at 12% 3%,rgba(255,127,50,.10),transparen
 @keyframes mobileMenuHandleHint{0%,100%{box-shadow:-7px 0 24px rgba(7,30,65,.22)}50%{box-shadow:-10px 0 32px rgba(37,143,196,.42)}}
 @keyframes mobileMenuHandleHintLtr{0%,100%{box-shadow:7px 0 24px rgba(7,30,65,.22)}50%{box-shadow:10px 0 32px rgba(37,143,196,.42)}}
 @media(max-width:760px){
-  .mobileMenuHandle{display:flex;position:fixed;top:50%;right:0;z-index:65;width:40px;height:62px;padding:0;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.26);border-right:0;border-radius:16px 0 0 16px;background:linear-gradient(155deg,#0b3768,#087d91);color:#fff;box-shadow:-7px 0 24px rgba(7,30,65,.22);transform:translateY(-50%);animation:mobileMenuHandleHint 2.8s ease-in-out infinite;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+  .mobileMenuHandle{display:flex;position:fixed;top:50%;right:0;z-index:65;width:40px;height:62px;padding:0;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.26);border-right:0;border-radius:16px 0 0 16px;background:linear-gradient(155deg,#0b3768,#087d91);color:#fff;box-shadow:-7px 0 24px rgba(7,30,65,.22);transform:translateY(-50%);animation:mobileMenuHandleHint 2.8s ease-in-out infinite;touch-action:none;user-select:none;-webkit-user-select:none}
   .mobileMenuHandle:before{content:"";position:absolute;inset:12px auto 12px 0;width:3px;border-radius:99px;background:#ff873d}
   .mobileMenuHandle:hover{filter:brightness(1.06);transform:translate(-2px,-50%);box-shadow:-10px 0 30px rgba(7,30,65,.3)}
   .mobileMenuHandle:active{cursor:grabbing;transform:translate(-3px,-50%)}

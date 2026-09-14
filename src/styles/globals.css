@@ -1233,7 +1233,7 @@ body.language-en { direction: ltr; }
 @media(max-width:760px){
   .attendanceClockShell{padding-bottom:0}
   .attendanceClockShell>.container{margin-bottom:10px}
-  .attendanceClockPage{min-height:calc(100dvh - 174px);padding:20px 14px;gap:12px;border-radius:25px}
+  .attendanceClockPage{min-height:0;padding:20px 14px;gap:12px;border-radius:25px}
   .attendanceClockIntro h1{margin-top:7px;font-size:26px}
   .attendanceClockIntro p{font-size:12px}
   .attendanceTypePicker{gap:6px;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;padding:2px 1px 5px;scrollbar-width:none}
@@ -1248,10 +1248,13 @@ body.language-en { direction: ltr; }
   .attendanceProjectModal{width:100%;max-height:88dvh;padding:17px;border-radius:24px}
   .attendanceProjectModalHeader h2{font-size:17px}
   .attendanceProjectOptions>button{min-height:62px}
-  .attendanceClockAction{min-height:245px;padding:20px 14px;border-radius:23px;gap:14px}
-  .attendanceClockActionIcon{width:78px;height:78px;border-radius:25px}
-  .attendanceClockActionCopy strong{font-size:29px}
-  .attendanceClockAction.finish .attendanceClockActionCopy span{font-size:34px}
+  .attendanceClockAction{flex:0 0 auto;width:min(100%,560px);min-height:clamp(180px,24dvh,220px);align-self:center;padding:17px 14px;border-radius:23px;gap:11px}
+  .attendanceClockActionIcon{width:64px;height:64px;border-radius:21px}
+  .attendanceClockActionIcon svg{width:29px;height:29px}
+  .attendanceClockActionCopy{gap:5px}
+  .attendanceClockActionCopy strong{font-size:25px}
+  .attendanceClockActionCopy span{font-size:13px}
+  .attendanceClockAction.finish .attendanceClockActionCopy span{font-size:29px}
   .attendanceClockSummary{gap:6px}
   .attendanceClockSummary>div{padding:10px 7px;display:flex;flex-direction:column;gap:4px;text-align:center;border-radius:14px}
   .attendanceClockSummary svg{width:17px;height:17px}

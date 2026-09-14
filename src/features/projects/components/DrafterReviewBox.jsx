@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
 import { useRef, useState } from 'react';
-import { FileText, LoaderCircle, Send } from 'lucide-react';
+import { FileText, LoaderCircle, Send, Upload } from 'lucide-react';
 export default function DrafterReviewBox({
   reviewFile,
   setReviewFile,
@@ -32,23 +32,21 @@ export default function DrafterReviewBox({
           {t('העלה PDF ושלח התראה לעובדי השטח, למנהלים ולשרטטים.')}
         </p>
       </div>
-      <label>
+      <label className="reviewFileField">
         {t('קובץ PDF להגהה')}
-
-        <input
-          ref={inputRef}
-          type="file"
-          accept="application/pdf,.pdf"
-          disabled={uploading}
-          onChange={(e) => setReviewFile(e.target.files?.[0] || null)}
-        />
-      </label>
-      {reviewFile && (
-        <span className="muted">
-          {t('נבחר:')}
-          {reviewFile.name}
+        <span className={`reviewFilePicker ${reviewFile ? 'hasFile' : ''}`}>
+          {reviewFile ? <FileText size={18} /> : <Upload size={18} />}
+          <span>{reviewFile?.name || t('בחירת קובץ PDF')}</span>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            disabled={uploading}
+            onChange={(e) => setReviewFile(e.target.files?.[0] || null)}
+            aria-label={t('בחירת קובץ PDF')}
+          />
         </span>
-      )}
+      </label>
       <textarea
         value={reviewNote}
         disabled={uploading}

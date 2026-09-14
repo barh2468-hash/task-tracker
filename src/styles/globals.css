@@ -1082,6 +1082,10 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
 .language-en textarea,
 .language-en select { text-align: left !important; }
 
+.language-en .loginScreen .form { direction:ltr;text-align:left; }
+.language-en .loginPasswordField input { padding-left:15px;padding-right:52px; }
+.language-en .loginPasswordToggle { right:7px;left:auto; }
+
 /* True left-to-right hierarchy for the English interface. */
 html[dir='ltr'],
 body.language-en { direction: ltr; }
@@ -1228,6 +1232,19 @@ body.language-en { direction: ltr; }
 
 .filePickerControl{position:relative;min-height:52px;padding:12px 14px;display:flex;align-items:center;gap:9px;border:1px dashed #9fc5d9;border-radius:16px;background:#f6fbfe;color:#17698f;overflow:hidden}.filePickerControl>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.filePickerControl input{position:absolute;inset:0;width:100%;height:100%;padding:0;opacity:0;cursor:pointer}.boundarySketchField{align-content:start}
 .projectDocumentUploadControls{display:flex;align-items:end;gap:8px}.projectDocumentType{min-width:190px;gap:4px}.projectDocumentType>span{color:var(--muted);font-size:10px}.projectDocumentType select{min-height:40px;padding:8px 10px;border-radius:12px;font-size:12px}.projectDocumentTypeBadge{justify-self:start;padding:3px 7px;border-radius:999px;background:#e8f6fb;color:#0b6c7f;font-size:10px;font-weight:900}
+.projectExpandedBody .projectDocumentsHeader{display:grid;grid-template-columns:minmax(0,1fr);align-items:start}
+.projectExpandedBody .projectDocumentsHeaderActions{width:100%;min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:end}
+.projectExpandedBody .projectDocumentUploadControls{width:100%;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto}
+.projectExpandedBody .projectDocumentType{min-width:0}
+.projectExpandedBody .projectDocumentUpload{min-width:108px;white-space:nowrap}
+.reviewFileField{min-width:0;gap:6px}
+.reviewFilePicker{position:relative;width:100%;min-width:0;min-height:50px;padding:11px 14px;display:flex;align-items:center;justify-content:center;gap:9px;overflow:hidden;border:1px solid #b8d4e4;border-radius:14px;background:linear-gradient(145deg,#f4faff,#eaf5fb);color:#0b3768;box-shadow:0 7px 18px rgba(7,55,104,.08);cursor:pointer;transition:border-color .16s ease,background .16s ease,box-shadow .16s ease,transform .16s ease}
+.reviewFilePicker:hover{border-color:#7cb9d6;background:linear-gradient(145deg,#eef9ff,#e1f2fa);box-shadow:0 10px 23px rgba(7,55,104,.13);transform:translateY(-1px)}
+.reviewFilePicker:focus-within{border-color:#4ea1ca;box-shadow:0 0 0 4px rgba(37,143,196,.14)}
+.reviewFilePicker.hasFile{border-color:#7cc5a5;background:linear-gradient(145deg,#effcf6,#e5f8ef);color:#087a4b}
+.reviewFilePicker>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reviewFilePicker input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer}
+.drafterReviewBox.uploading .reviewFilePicker{opacity:.65;cursor:wait;transform:none}
 .pdfPreviewBackdrop{position:fixed;inset:0;z-index:180;padding:18px;display:grid;place-items:center;background:rgba(3,20,45,.72);backdrop-filter:blur(9px)}.pdfPreviewDialog{width:min(1180px,100%);height:min(900px,calc(100dvh - 36px));min-height:420px;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;border:1px solid rgba(255,255,255,.28);border-radius:25px;background:#f6f9fc;box-shadow:0 35px 100px rgba(0,0,0,.4)}.pdfPreviewHeader{min-width:0;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid var(--line);background:#fff}.pdfPreviewHeader>div:first-child{min-width:0}.pdfPreviewHeader h3{min-width:0;margin:4px 0 0;display:flex;align-items:center;gap:8px;color:var(--navy);font-size:15px}.pdfPreviewHeader h3 span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pdfPreviewActions{display:flex;align-items:center;gap:8px;flex:0 0 auto}.pdfPreviewActions>a{min-height:36px;padding:8px 11px;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:11px;background:#f7fafc;color:var(--navy);font-size:12px;font-weight:900;text-decoration:none}.pdfPreviewActions>a:hover{background:#eef6fb}.pdfPreviewFrame{position:relative;min-height:0;background:#d7e0e7}.pdfPreviewFrame iframe{position:relative;z-index:1;width:100%;height:100%;display:block;border:0;background:#fff}.pdfPreviewLoading{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:10px;color:var(--navy);font-size:13px;font-weight:900}.pdfPreviewLoading svg{color:var(--blue);animation:appLoadingSpin .9s linear infinite}
 
 @media(max-width:680px){.projectDocumentUploadControls{width:100%;display:grid;grid-template-columns:1fr}.projectDocumentType{min-width:0}.projectDocumentUpload{width:100%}.statusNoteModal{padding:17px;border-radius:22px}.reviewUploadAnimation{grid-template-columns:44px minmax(0,1fr)}.reviewDocumentPulse{width:42px;height:42px}.projectExpandedBody>.projectSectionPanel.drafterAssignmentBox{grid-template-columns:minmax(0,1fr);padding:13px}.projectExpandedBody>.drafterAssignmentBox>div{grid-column:auto}.projectExpandedBody>.drafterAssignmentBox button{width:100%}.pdfPreviewBackdrop{padding:0}.pdfPreviewDialog{width:100%;height:100dvh;min-height:0;border:0;border-radius:0}.pdfPreviewHeader{padding:11px 12px}.pdfPreviewHeader h3{max-width:calc(100vw - 150px)}.pdfPreviewActions>a span{display:none}}

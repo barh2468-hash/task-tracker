@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
       if (!active) return;
       setAuthLoading(false);
       setProfileLoading(false);
-      setAuthMessage('החיבור מתעכב. בדוק את החיבור לאינטרנט ונסה לרענן את העמוד.');
+      setAuthMessage(t('החיבור מתעכב. בדוק את החיבור לאינטרנט ונסה לרענן את העמוד.'));
     }, 15000);
 
     authFeatureApi
@@ -78,7 +78,7 @@ export function AuthProvider({ children }) {
     const dataTimeout = window.setTimeout(() => {
       if (!active) return;
       setProfileLoading(false);
-      setAuthMessage('טעינת הנתונים מתעכבת. בדוק את החיבור ונסה לרענן את העמוד.');
+      setAuthMessage(t('טעינת הנתונים מתעכבת. בדוק את החיבור ונסה לרענן את העמוד.'));
     }, 15000);
     setProfileLoading(true);
 
@@ -120,7 +120,7 @@ export function AuthProvider({ children }) {
   async function login(email, password) {
     setAuthMessage('');
     if (!email || !password) {
-      setAuthMessage('יש למלא מייל וסיסמה.');
+      setAuthMessage(t('יש למלא מייל וסיסמה.'));
       return;
     }
     if (authBusy) return;
@@ -142,11 +142,11 @@ export function AuthProvider({ children }) {
   async function signup(email, password, fullName) {
     setAuthMessage('');
     if (!email || !password) {
-      setAuthMessage('יש למלא מייל וסיסמה.');
+      setAuthMessage(t('יש למלא מייל וסיסמה.'));
       return;
     }
     if (password.length < 6) {
-      setAuthMessage('הסיסמה חייבת להכיל לפחות 6 תווים.');
+      setAuthMessage(t('הסיסמה חייבת להכיל לפחות 6 תווים.'));
       return;
     }
     if (authBusy) return;
@@ -165,7 +165,7 @@ export function AuthProvider({ children }) {
             ),
       );
     } catch {
-      setAuthMessage('לא ניתן להתחבר כרגע. בדוק אינטרנט ונסה שוב.');
+      setAuthMessage(t('לא ניתן להתחבר כרגע. בדוק אינטרנט ונסה שוב.'));
     } finally {
       setAuthBusy(false);
     }

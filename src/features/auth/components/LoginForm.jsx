@@ -19,7 +19,7 @@ export default function LoginForm() {
         <p className="muted">{t('כניסה מאובטחת עם מייל וסיסמה לעובדי שטח ומנהלים')}</p>
         <form
           className="form"
-          style={{ marginTop: 22, textAlign: 'right' }}
+          style={{ marginTop: 22 }}
           onSubmit={(event) => {
             event.preventDefault();
             login(email, password);

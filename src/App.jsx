@@ -15,6 +15,7 @@ import ProjectsPage from './routes/ProjectsPage.jsx';
 import PwaBootstrap from './features/pwa/components/PwaBootstrap.jsx';
 import OfflineSync from './features/offline/OfflineSync.jsx';
 import { LanguageProvider } from './features/language/LanguageContext.jsx';
+import { useAuth } from './features/auth/useAuth.js';
 
 // Code-split the heavier, less-frequently-visited pages (Leaflet map, Excel/
 // CSV-export-heavy reports) so the initial bundle stays close to the
@@ -30,6 +31,12 @@ const NotificationsPage = lazy(() => import('./routes/NotificationsPage.jsx'));
 const ExceptionsPage = lazy(() => import('./routes/ExceptionsPage.jsx'));
 const WorkReportPage = lazy(() => import('./routes/WorkReportPage.jsx'));
 const ChatPage = lazy(() => import('./routes/ChatPage.jsx'));
+const AttendancePage = lazy(() => import('./routes/AttendancePage.jsx'));
+
+function AppLanding() {
+  const { isDrafter } = useAuth();
+  return <Navigate to={isDrafter ? 'projects' : 'attendance'} replace />;
+}
 
 function AppProviders({ children }) {
   return (
@@ -65,7 +72,15 @@ export default function App() {
                   </AppProviders>
                 }
               >
-                <Route index element={<Navigate to="projects" replace />} />
+                <Route index element={<AppLanding />} />
+                <Route
+                  path="attendance"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <AttendancePage />
+                    </Suspense>
+                  }
+                />
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route
                   path="today"

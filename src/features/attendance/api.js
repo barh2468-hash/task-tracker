@@ -162,7 +162,10 @@ export async function endWork(project, profile, { endNote = '', crewMembers = []
   };
 }
 
-export async function startAttendance(attendanceType, { profile, attendanceSessions, attendanceAvailable }) {
+export async function startAttendance(
+  attendanceType,
+  { profile, attendanceSessions, attendanceAvailable, project = null, workSessions = [] },
+) {
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '' };
   if (!attendanceAvailable) {
@@ -192,7 +195,7 @@ export async function startAttendance(attendanceType, { profile, attendanceSessi
       if (existingDayStatus) return { message: 'כדי להחליף דיווח יומי קיים יש להתחבר לאינטרנט.' };
       const localSession = { id: crypto.randomUUID(), ...payload, pending_sync: true };
       await enqueueOfflineAction('attendance_start', { session: localSession });
-      return { message: `אין חיבור. דיווח ${attendanceTypeLabel[attendanceType]} נשמר לסנכרון.`, offlineSession: localSession };
+      return { message: `אין חיבור. דיווח ${attendanceTypeLabel[attendanceType]} נשמר לסנכרון.`, offlineSession: localSession, success: true };
     }
     const result = existingDayStatus
       ? await attendanceSessionsApi.updateAttendanceSession(existingDayStatus.id, payload)
@@ -207,7 +210,19 @@ export async function startAttendance(attendanceType, { profile, attendanceSessi
         `${profile.full_name} דיווח ${attendanceTypeLabel[attendanceType]} לתאריך ${new Date().toLocaleDateString('he-IL')}.`,
       );
     }
-    return { message: `נרשם דיווח ${attendanceTypeLabel[attendanceType]} להיום.` };
+    return { message: `נרשם דיווח ${attendanceTypeLabel[attendanceType]} להיום.`, success: true };
+  }
+
+  if (
+    project &&
+    workSessions.some(
+      (item) => item.project_id === project.id && item.worker_id === user.id && !item.ended_at,
+    )
+  ) {
+    return {
+      message: `כבר קיימת שעת עבודה פתוחה עבור ${project.name}. יש לסיים אותה לפני התחלה חדשה.`,
+      success: false,
+    };
   }
 
   if (existingDayStatus) {
@@ -233,15 +248,80 @@ export async function startAttendance(attendanceType, { profile, attendanceSessi
     started_lng: location?.lng ?? null,
     started_accuracy: location?.accuracy ?? null,
   };
+  const projectSessionPayload = project
+    ? {
+        project_id: project.id,
+        worker_id: user.id,
+        started_at: startedAt.toISOString(),
+        started_lat: location?.lat ?? null,
+        started_lng: location?.lng ?? null,
+        started_accuracy: location?.accuracy ?? null,
+      }
+    : null;
   if (!navigator.onLine) {
     const localSession = { id: crypto.randomUUID(), ...attendancePayload, pending_sync: true };
     await enqueueOfflineAction('attendance_start', { session: localSession });
-    return { message: 'אין חיבור. הכניסה נשמרה במכשיר ותסונכרן אוטומטית.', offlineSession: localSession };
+    let offlineWorkSession = null;
+    if (projectSessionPayload) {
+      offlineWorkSession = {
+        id: crypto.randomUUID(),
+        ...projectSessionPayload,
+        projects: { name: project.name },
+        pending_sync: true,
+      };
+      await enqueueOfflineAction('work_start', {
+        session: { id: offlineWorkSession.id, ...projectSessionPayload },
+        history: {
+          project_id: project.id,
+          old_status: null,
+          new_status: 'התחלת עבודה',
+          changed_by: user.id,
+          note: `שעת התחלה: ${startedAt.toLocaleString('he-IL')} · נשמר במצב אופליין`,
+        },
+      });
+    }
+    return {
+      message: project
+        ? `אין חיבור. יום העבודה והעבודה בפרויקט ${project.name} נשמרו לסנכרון.`
+        : 'אין חיבור. הכניסה נשמרה במכשיר ותסונכרן אוטומטית.',
+      offlineSession: localSession,
+      offlineWorkSession,
+      projectSessionStarted: Boolean(project),
+      success: true,
+    };
   }
   const { error } = await attendanceSessionsApi.insertAttendanceSession(attendancePayload);
 
   if (error) {
-    return { message: error.code === '23505' ? 'כבר קיימת משמרת כללית פתוחה.' : error.message };
+    return { message: error.code === '23505' ? 'כבר קיימת משמרת כללית פתוחה.' : error.message, success: false };
+  }
+
+  let projectSessionStarted = false;
+  let projectStartError = null;
+  if (projectSessionPayload) {
+    const { error: workError } = await workSessionsApi.insertWorkSession(projectSessionPayload);
+    if (workError) projectStartError = workError;
+    else {
+      projectSessionStarted = true;
+      const locationText = location
+        ? ` · מיקום התחלה: ${formatLocation(location)}`
+        : ' · מיקום התחלה לא נשמר';
+      await statusHistoryApi.insertStatusHistory({
+        project_id: project.id,
+        old_status: null,
+        new_status: 'התחלת עבודה',
+        changed_by: user.id,
+        note: `שעת התחלה: ${startedAt.toLocaleString('he-IL')}${locationText}`,
+      });
+      if (profile?.role === 'field_worker' || profile?.role === 'manager') {
+        await createManagerNotification(
+          'work_started',
+          `התחלת עבודה: ${project.name}`,
+          `${profile.full_name} התחיל עבודה בפרויקט ${project.name}.${location ? ` מיקום: ${formatLocation(location)}` : ''}`,
+          project.id,
+        );
+      }
+    }
   }
 
   if (profile?.role === 'field_worker' || profile?.role === 'manager') {
@@ -253,11 +333,20 @@ export async function startAttendance(attendanceType, { profile, attendanceSessi
   }
 
   return {
-    message: `${attendanceTypeLabel[attendanceType]} התחיל ב-${startedAt.toLocaleTimeString('he-IL')}${location ? ' כולל מיקום' : ''}.`,
+    message: projectStartError
+      ? `${attendanceTypeLabel[attendanceType]} התחיל, אך פתיחת שעות הפרויקט נכשלה: ${projectStartError.message}`
+      : project
+        ? `${attendanceTypeLabel[attendanceType]} והעבודה בפרויקט ${project.name} התחילו ב-${startedAt.toLocaleTimeString('he-IL')}.`
+        : `${attendanceTypeLabel[attendanceType]} התחיל ב-${startedAt.toLocaleTimeString('he-IL')}${location ? ' כולל מיקום' : ''}.`,
+    projectSessionStarted,
+    success: true,
   };
 }
 
-export async function finishAttendance(endNote, { profile, attendanceSessions }) {
+export async function finishAttendance(
+  endNote,
+  { profile, attendanceSessions, workSessions = [] },
+) {
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '', success: false };
 
@@ -269,6 +358,13 @@ export async function finishAttendance(endNote, { profile, attendanceSessions })
 
   const endedAt = new Date();
   const minutes = durationMinutes(openSession.started_at, endedAt.toISOString());
+  const linkedWorkSession = workSessions.find(
+    (item) =>
+      item.worker_id === user.id &&
+      !item.ended_at &&
+      Math.abs(new Date(item.started_at).getTime() - new Date(openSession.started_at).getTime()) <
+        5000,
+  );
   const endChanges = {
     ended_at: endedAt.toISOString(),
     ended_lat: location?.lat ?? null,
@@ -278,10 +374,61 @@ export async function finishAttendance(endNote, { profile, attendanceSessions })
   };
   if (!navigator.onLine) {
     await enqueueOfflineAction('attendance_end', { sessionId: openSession.id, changes: endChanges });
-    return { message: 'אין חיבור. היציאה נשמרה במכשיר ותסונכרן אוטומטית.', success: true, offlineChanges: endChanges, sessionId: openSession.id };
+    if (linkedWorkSession) {
+      await enqueueOfflineAction('work_end', {
+        sessionId: linkedWorkSession.id,
+        changes: endChanges,
+        history: {
+          project_id: linkedWorkSession.project_id,
+          old_status: null,
+          new_status: 'סיום עבודה',
+          changed_by: user.id,
+          note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)} · נשמר במצב אופליין`,
+        },
+      });
+    }
+    return {
+      message: linkedWorkSession
+        ? 'אין חיבור. סיום יום העבודה והפרויקט נשמר ויסונכרן אוטומטית.'
+        : 'אין חיבור. היציאה נשמרה במכשיר ותסונכרן אוטומטית.',
+      success: true,
+      offlineChanges: endChanges,
+      sessionId: openSession.id,
+      linkedWorkSessionId: linkedWorkSession?.id || null,
+    };
   }
   const { error } = await attendanceSessionsApi.updateOpenAttendanceSession(openSession.id, endChanges);
   if (error) return { message: error.message, success: false };
+
+  let projectEndError = null;
+  if (linkedWorkSession) {
+    const { error: workError } = await workSessionsApi.updateWorkSession(
+      linkedWorkSession.id,
+      endChanges,
+    );
+    if (workError) projectEndError = workError;
+    else {
+      const projectName = linkedWorkSession.projects?.name || 'הפרויקט שנבחר';
+      const locationText = location
+        ? ` · מיקום סיום: ${formatLocation(location)}`
+        : ' · מיקום סיום לא נשמר';
+      await statusHistoryApi.insertStatusHistory({
+        project_id: linkedWorkSession.project_id,
+        old_status: null,
+        new_status: 'סיום עבודה',
+        changed_by: user.id,
+        note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}${locationText}${endNote.trim() ? ` · הערת סיום: ${endNote.trim()}` : ''}`,
+      });
+      if (profile?.role === 'field_worker' || profile?.role === 'manager') {
+        await createManagerNotification(
+          'work_ended',
+          `סיום עבודה: ${projectName}`,
+          `${profile.full_name} סיים עבודה בפרויקט ${projectName}. זמן עבודה: ${formatDuration(minutes)}.${location ? ` מיקום: ${formatLocation(location)}` : ''}${endNote.trim() ? ` הערה: ${endNote.trim()}` : ''}`,
+          linkedWorkSession.project_id,
+        );
+      }
+    }
+  }
 
   if (profile?.role === 'field_worker' || profile?.role === 'manager') {
     await createManagerNotification(
@@ -292,7 +439,12 @@ export async function finishAttendance(endNote, { profile, attendanceSessions })
   }
 
   return {
-    message: `${attendanceTypeLabel[openSession.attendance_type]} הסתיים. משך המשמרת: ${formatDuration(minutes)}.`,
+    message: projectEndError
+      ? `${attendanceTypeLabel[openSession.attendance_type]} הסתיים, אך סגירת שעות הפרויקט נכשלה: ${projectEndError.message}`
+      : linkedWorkSession
+        ? `${attendanceTypeLabel[openSession.attendance_type]} והעבודה בפרויקט הסתיימו. משך המשמרת: ${formatDuration(minutes)}.`
+        : `${attendanceTypeLabel[openSession.attendance_type]} הסתיים. משך המשמרת: ${formatDuration(minutes)}.`,
+    linkedWorkSessionId: linkedWorkSession?.id || null,
     success: true,
   };
 }

@@ -34,8 +34,6 @@ import DashboardHero from '../components/DashboardHero.jsx';
 import StatsGrid from '../components/StatsGrid.jsx';
 import NotificationsPopover from '../features/notifications/components/NotificationsPopover.jsx';
 import PwaControls from '../features/pwa/components/PwaControls.jsx';
-import GeneralAttendanceCard from '../features/attendance/components/GeneralAttendanceCard.jsx';
-import MobileAttendanceDock from '../features/attendance/components/MobileAttendanceDock.jsx';
 import AttendanceEndDialog from '../features/attendance/components/AttendanceEndDialog.jsx';
 import ProjectWorkEndDialog from '../features/attendance/components/ProjectWorkEndDialog.jsx';
 import { useLanguage } from '../features/language/LanguageContext.jsx';
@@ -299,7 +297,9 @@ export default function DashboardLayout() {
 
   return (
     <main
-      className={`page${location.pathname === '/app/chat' ? ' chatPage' : ''}`}
+      className={`page${location.pathname === '/app/chat' ? ' chatPage' : ''}${
+        location.pathname === '/app/attendance' ? ' attendanceClockShell' : ''
+      }`}
       onPointerDownCapture={startPagePointerSwipe}
       onPointerMoveCapture={movePagePointerSwipe}
       onPointerUpCapture={finishPagePointerSwipe}
@@ -491,6 +491,15 @@ export default function DashboardLayout() {
               <span>{t('שטח')}</span>
             </div>
           )}
+          {!isDrafter && (
+            <button
+              className={`navBtn ${navActive('/app/attendance') ? 'active' : ''}`}
+              onClick={() => openTab('/app/attendance')}
+            >
+              <span>{t('שעון נוכחות')}</span>
+              <Clock size={18} />
+            </button>
+          )}
           {isManager && (
             <button
               className={`navBtn ${navActive('/app/today') ? 'active' : ''}`}
@@ -592,18 +601,10 @@ export default function DashboardLayout() {
               <Download size={18} />
             </button>
           )}
-          <p style={{ marginTop: 30, color: 'rgba(255,255,255,.72)', lineHeight: 1.7 }}>
-            {t('מותאם לאייפון, אנדרואיד ומחשב. עדכונים בזמן אמת דרך Supabase.')}
-          </p>
         </aside>
 
         <section className="mainContent">
           {showHeroAndStats && <DashboardHero title={tabTitle} subtitle={tabSubtitle} />}
-
-          {location.pathname !== '/app/chat' &&
-            (profile?.role === 'field_worker' || profile?.role === 'manager') && (
-              <GeneralAttendanceCard />
-            )}
 
           {showHeroAndStats && <StatsGrid />}
 
@@ -627,10 +628,6 @@ export default function DashboardLayout() {
         </section>
       </section>
 
-      {location.pathname !== '/app/chat' &&
-        (profile?.role === 'field_worker' || profile?.role === 'manager') && (
-          <MobileAttendanceDock />
-        )}
       <AttendanceEndDialog />
       <ProjectWorkEndDialog />
     </main>

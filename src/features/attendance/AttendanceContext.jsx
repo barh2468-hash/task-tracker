@@ -180,7 +180,7 @@ export function AttendanceProvider({ children }) {
     }
   }
 
-  async function startAttendance(attendanceType) {
+  async function startAttendance(attendanceType, project = null) {
     if (attendanceBusy) return null;
     setAttendanceBusy(true);
     try {
@@ -189,11 +189,16 @@ export function AttendanceProvider({ children }) {
           profile,
           attendanceSessions,
           attendanceAvailable,
+          project,
+          workSessions,
         }),
       );
       if (result?.offlineSession)
         setAttendanceSessions((items) => [result.offlineSession, ...items]);
       else await loadAttendanceSessions();
+      if (result?.offlineWorkSession)
+        setWorkSessions((items) => [result.offlineWorkSession, ...items]);
+      else if (result?.projectSessionStarted) await loadWorkSessions();
       return result;
     } finally {
       setAttendanceBusy(false);
@@ -215,7 +220,11 @@ export function AttendanceProvider({ children }) {
     setAttendanceBusy(true);
     try {
       const result = await runMutation(
-        attendanceFeatureApi.finishAttendance(endNote, { profile, attendanceSessions }),
+        attendanceFeatureApi.finishAttendance(endNote, {
+          profile,
+          attendanceSessions,
+          workSessions,
+        }),
       );
       if (result?.offlineChanges) {
         setAttendanceSessions((items) =>
@@ -224,6 +233,17 @@ export function AttendanceProvider({ children }) {
           ),
         );
       } else await loadAttendanceSessions();
+      if (result?.linkedWorkSessionId) {
+        if (result.offlineChanges) {
+          setWorkSessions((items) =>
+            items.map((item) =>
+              item.id === result.linkedWorkSessionId
+                ? { ...item, ...result.offlineChanges }
+                : item,
+            ),
+          );
+        } else await loadWorkSessions();
+      }
       if (result?.success) {
         setAttendanceEndDialogOpen(false);
         setAttendanceEndNote('');

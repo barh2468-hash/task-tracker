@@ -6,21 +6,17 @@ import {
   Archive,
   Camera,
   ChevronDown,
-  Clock3,
   FileText,
   Mail,
   MessageSquareText,
   MoreHorizontal,
   Pencil,
-  PlayCircle,
   Phone,
   RotateCcw,
-  Square,
   Trash2,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.js';
-import { useAttendance } from '../../attendance/AttendanceContext.jsx';
 import { useProjects } from '../ProjectsContext.jsx';
 import {
   appStatuses,
@@ -28,7 +24,6 @@ import {
   REVIEW_STATUS,
 } from '../../../services/supabase.js';
 import StatusPill, { getStatusClass } from '../../../components/StatusPill.jsx';
-import LocationLine from '../../../components/LocationLine.jsx';
 import { exportProjectPdf } from '../utils/exportProjectPdf.js';
 import DrafterReviewBox from './DrafterReviewBox.jsx';
 import ReviewFilesPanel from './ReviewFilesPanel.jsx';
@@ -70,12 +65,8 @@ export default function ProjectCard({ project, focused = false }) {
     assignProjectDrafter,
     loadProjectAssets,
   } = useProjects();
-  const { startWork, openProjectWorkEndDialog, workSessions } = useAttendance();
-
   const currentUserId = session?.user?.id;
   const currentUserName = profile?.full_name || '';
-  const projectSessions = workSessions.filter((item) => item.project_id === project.id);
-  const projectWithSessions = { ...project, work_sessions: projectSessions };
 
   const projectHistory = historyItems.filter((h) => h.project_id === project.id).slice(0, 4);
 
@@ -188,17 +179,10 @@ export default function ProjectCard({ project, focused = false }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailsOpen, project.id]);
 
-  const myOpenSession = projectSessions.find((w) => w.worker_id === currentUserId && !w.ended_at);
-  const otherOpenSessions = projectSessions.filter(
-    (w) => w.worker_id !== currentUserId && !w.ended_at,
-  );
   const isAssignedFieldWorker =
     profile?.role === 'field_worker' &&
     (project.assigned_to === currentUserId ||
       (project.project_workers || []).some((assignment) => assignment.worker_id === currentUserId));
-  const lastEndedSession = projectSessions
-    .filter((w) => w.worker_id === currentUserId && w.ended_at)
-    .sort((a, b) => new Date(b.ended_at || '').getTime() - new Date(a.ended_at || '').getTime())[0];
   const isReviewSent = project.status === REVIEW_STATUS;
   const isReviewCompleted = project.status === REVIEW_COMPLETED_STATUS;
   const canManageReview = isManager || isDrafter || isDrafterCandidate(profile);
@@ -751,78 +735,6 @@ export default function ProjectCard({ project, focused = false }) {
             </section>
 
             <div className="projectOperationsPanel">
-              <section className="projectOperationCard projectWorkCard">
-                {myOpenSession ? (
-                  <>
-                    <header className="projectOperationHeader">
-                      <span className="projectOperationIcon"><Clock3 size={20} /></span>
-                      <div>
-                        <b>{t('עבודה פעילה')}</b>
-                        <span>{t('התחלה:')} {new Date(myOpenSession.started_at).toLocaleString('he-IL')}</span>
-                      </div>
-                    </header>
-                    <div className="projectOperationLocation">
-                      <LocationLine
-                        label={t('מיקום התחלה')}
-                        lat={myOpenSession.started_lat}
-                        lng={myOpenSession.started_lng}
-                        accuracy={myOpenSession.started_accuracy}
-                      />
-                    </div>
-                    <button
-                      className="smallBtn danger"
-                      onClick={() => openProjectWorkEndDialog(projectWithSessions)}
-                    >
-                      <Square size={15} />
-                      {t('סיים עבודה')}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <header className="projectOperationHeader">
-                      <span className="projectOperationIcon"><Clock3 size={20} /></span>
-                      <div>
-                        <b>{t('שעות עבודה')}</b>
-                        <span>
-                        {lastEndedSession
-                          ? t('סיום אחרון: {{value0}}', {
-                              value0: new Date(lastEndedSession.ended_at || '').toLocaleString(
-                                'he-IL',
-                              ),
-                            })
-                          : t('לא נרשמה עבודה פתוחה')}
-                        </span>
-                      </div>
-                    </header>
-                    {lastEndedSession && (
-                      <div className="projectOperationLocation">
-                        <LocationLine
-                          label={t('מיקום סיום אחרון')}
-                          lat={lastEndedSession.ended_lat}
-                          lng={lastEndedSession.ended_lng}
-                          accuracy={lastEndedSession.ended_accuracy}
-                        />
-                      </div>
-                    )}
-                    <button className="smallBtn" onClick={() => startWork(projectWithSessions)}>
-                      <PlayCircle size={15} />
-                      {t('התחל עבודה')}
-                    </button>
-                  </>
-                )}
-                {isManager && otherOpenSessions.length > 0 && (
-                  <div className="managerActiveSessions">
-                    <b>{t('עבודות פעילות נוספות')}</b>
-                    {otherOpenSessions.map((workSession) => (
-                      <span key={workSession.id} className="muted">
-                        {workSession.profiles?.full_name || t('משתמש')}
-                        {t('· התחלה:')} {new Date(workSession.started_at).toLocaleString('he-IL')}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </section>
-
               <section className="projectOperationCard projectStatusCard">
                 <header className="projectOperationHeader">
                   <span className="projectOperationIcon"><MessageSquareText size={20} /></span>

@@ -248,17 +248,17 @@ export default function AttendancePage() {
         </button>
       )}
 
-      <button
-        type="button"
-        className={`attendanceClockAction ${openSession ? 'finish' : ''}`}
-        disabled={busy || !available}
-        onClick={runPrimaryAction}
-        aria-label={actionLabel}
-      >
+      <section className={`attendanceClockAction ${openSession ? 'finish' : ''}`}>
         <span className="attendanceClockActionGlow" aria-hidden="true" />
-        <span className="attendanceClockActionIcon" aria-hidden="true">
+        <button
+          type="button"
+          className="attendanceClockActionIcon"
+          disabled={busy || !available}
+          onClick={runPrimaryAction}
+          aria-label={actionLabel}
+        >
           {openSession ? <Square size={34} /> : <Play size={38} fill="currentColor" />}
-        </span>
+        </button>
         <span className="attendanceClockActionCopy">
           <small>
             {openSession
@@ -282,7 +282,7 @@ export default function AttendancePage() {
                   : t('הדיווח יישמר עבור היום כולו')}
           </span>
         </span>
-      </button>
+      </section>
 
       {!available && (
         <p className="attendanceClockWarning">

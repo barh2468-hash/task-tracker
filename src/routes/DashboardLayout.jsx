@@ -145,6 +145,24 @@ export default function DashboardLayout() {
     closeMobileMenu();
   }
 
+  function toggleChat() {
+    if (location.pathname === '/app/chat') {
+      const returnTo = location.state?.chatReturnTo;
+      navigate(
+        typeof returnTo === 'string' && returnTo.startsWith('/app/') && returnTo !== '/app/chat'
+          ? returnTo
+          : '/app/attendance',
+      );
+    } else {
+      navigate('/app/chat', {
+        state: {
+          chatReturnTo: `${location.pathname}${location.search}${location.hash}`,
+        },
+      });
+    }
+    closeMobileMenu();
+  }
+
   function closeMobileMenu() {
     pageSwipeRef.current = null;
     setMobileMenuDragProgress(null);
@@ -438,18 +456,6 @@ export default function DashboardLayout() {
           <div className="navSectionLabel">
             <span>{t('כלים לעובד')}</span>
           </div>
-          <button
-            className={`navBtn ${navActive('/app/chat') ? 'active' : ''}`}
-            onClick={() => openTab('/app/chat')}
-          >
-            <span className="navBtnLabel">
-              <span>{t('צ׳אט פנימי')}</span>
-              {unreadChatCount > 0 && (
-                <span className="navCountBadge">{Math.min(unreadChatCount, 99)}</span>
-              )}
-            </span>
-            <MessageCircle size={18} />
-          </button>
           {!isDrafter && (
             <button
               className={`navBtn ${navActive('/app/attendance') ? 'active' : ''}`}
@@ -640,6 +646,24 @@ export default function DashboardLayout() {
           <Outlet />
         </section>
       </section>
+
+      <button
+        className={`floatingChatButton ${navActive('/app/chat') ? 'active' : ''}`}
+        onClick={toggleChat}
+        aria-label={
+          unreadChatCount > 0
+            ? t('צ׳אט פנימי, {{value0}} הודעות חדשות', { value0: unreadChatCount })
+            : t('צ׳אט פנימי')
+        }
+        title={t('צ׳אט פנימי')}
+      >
+        <MessageCircle size={28} aria-hidden="true" />
+        {unreadChatCount > 0 && (
+          <span className="floatingChatBadge" aria-hidden="true">
+            {unreadChatCount > 99 ? '99+' : unreadChatCount}
+          </span>
+        )}
+      </button>
 
       <AttendanceEndDialog />
       <ProjectWorkEndDialog />

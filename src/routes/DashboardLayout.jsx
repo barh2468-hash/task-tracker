@@ -14,6 +14,7 @@ import {
   FileText,
   FolderKanban,
   History,
+  Activity,
   HardHat,
   Languages,
   LogOut,
@@ -559,6 +560,15 @@ export default function DashboardLayout() {
             >
               <span>{t('ציוד עובדי שטח')}</span>
               <HardHat size={18} />
+            </button>
+          )}
+          {isManager && (
+            <button
+              className={`navBtn ${navActive('/app/recent-status-changes') ? 'active' : ''}`}
+              onClick={() => openTab('/app/recent-status-changes')}
+            >
+              <span>{t('שינויי סטטוס')}</span>
+              <Activity size={18} />
             </button>
           )}
           {isManager && (

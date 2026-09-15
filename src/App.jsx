@@ -33,6 +33,7 @@ const WorkReportPage = lazy(() => import('./routes/WorkReportPage.jsx'));
 const ChatPage = lazy(() => import('./routes/ChatPage.jsx'));
 const AttendancePage = lazy(() => import('./routes/AttendancePage.jsx'));
 const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
+const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
 
 function AppLanding() {
   const { isDrafter } = useAuth();
@@ -176,6 +177,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<LoadingScreen />}>
                       <EquipmentPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="recent-status-changes"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <RecentStatusChangesPage />
                     </Suspense>
                   }
                 />

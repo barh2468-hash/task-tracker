@@ -32,6 +32,7 @@ const ExceptionsPage = lazy(() => import('./routes/ExceptionsPage.jsx'));
 const WorkReportPage = lazy(() => import('./routes/WorkReportPage.jsx'));
 const ChatPage = lazy(() => import('./routes/ChatPage.jsx'));
 const AttendancePage = lazy(() => import('./routes/AttendancePage.jsx'));
+const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
 
 function AppLanding() {
   const { isDrafter } = useAuth();
@@ -167,6 +168,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<LoadingScreen />}>
                       <WorkReportPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="equipment"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <EquipmentPage />
                     </Suspense>
                   }
                 />

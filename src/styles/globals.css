@@ -1346,6 +1346,8 @@ body.language-en { direction: ltr; }
 @media(max-width:760px) {
   .floatingChatButton { left:14px; bottom:calc(14px + env(safe-area-inset-bottom)); width:56px; height:56px; }
   .floatingChatButton svg { width:25px; height:25px; }
+  .chatPage .floatingChatButton { bottom:calc(88px + env(safe-area-inset-bottom)); width:52px; height:52px; }
+  .chatPage .chatMessages { padding-bottom:76px; }
   .language-en .mobileMenuHandle {
     right: auto;
     left: 0;

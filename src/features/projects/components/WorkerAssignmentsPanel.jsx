@@ -108,8 +108,7 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
             checked={includeArchived}
             onChange={(event) => setIncludeArchived(event.target.checked)}
           />
-
-          {t('הצג גם פרויקטים בארכיון')}
+          <span>{t('הצג גם פרויקטים בארכיון')}</span>
         </label>
       </div>
 

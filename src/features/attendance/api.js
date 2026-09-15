@@ -1,6 +1,8 @@
 import * as authApi from '../../services/api/auth.js';
 import * as workSessionsApi from '../../services/api/workSessions.js';
 import * as attendanceSessionsApi from '../../services/api/attendanceSessions.js';
+import * as sickLeaveCertificatesApi from '../../services/api/sickLeaveCertificates.js';
+import * as storageApi from '../../services/api/storage.js';
 import * as statusHistoryApi from '../../services/api/statusHistory.js';
 import { createManagerNotification } from '../notifications/api.js';
 import { getCurrentLocationWithFallback } from '../../hooks/useGeolocation.js';
@@ -155,9 +157,175 @@ export async function endWork(project, profile, { endNote = '', crewMembers = []
   };
 }
 
+const SICK_CERTIFICATE_BUCKET = 'sick-leave-certificates';
+const SICK_CERTIFICATE_MAX_BYTES = 10 * 1024 * 1024;
+const SICK_CERTIFICATE_MIME_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png']);
+
+function inclusiveDateKeys(fromDate, toDate) {
+  const start = new Date(`${fromDate}T12:00:00Z`);
+  const end = new Date(`${toDate}T12:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return [];
+  const dates = [];
+  for (const cursor = new Date(start); cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    dates.push(cursor.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+function isSickLeaveFeatureUnavailable(error) {
+  return (
+    ['PGRST200', 'PGRST205', '42P01', '42703'].includes(error?.code) ||
+    /sick_leave_certificates|sick_leave_certificate_id|sick-leave-certificates|bucket.*not found/i.test(
+      error?.message || '',
+    )
+  );
+}
+
+async function saveSickLeaveReport({ user, profile, attendanceSessions, sickLeave }) {
+  if (!navigator.onLine) {
+    return {
+      message: 'נדרש חיבור לאינטרנט לשמירת דיווח מחלה ואישור מצורף.',
+      success: false,
+    };
+  }
+
+  const fromDate = sickLeave?.fromDate;
+  const toDate = sickLeave?.toDate;
+  const dates = inclusiveDateKeys(fromDate, toDate);
+  if (!dates.length) return { message: 'טווח התאריכים אינו תקין.', success: false };
+  if (dates.length > 92) {
+    return { message: 'ניתן לדווח על עד 92 ימי מחלה בכל פעולה.', success: false };
+  }
+
+  const file = sickLeave?.file || null;
+  if (file && (!SICK_CERTIFICATE_MIME_TYPES.has(file.type) || file.size > SICK_CERTIFICATE_MAX_BYTES)) {
+    return {
+      message:
+        file.size > SICK_CERTIFICATE_MAX_BYTES
+          ? 'גודל הקובץ המקסימלי הוא 10MB.'
+          : 'אפשר לצרף קובץ PDF, JPG או PNG בלבד.',
+      success: false,
+    };
+  }
+
+  const suppliedCertificate =
+    sickLeave?.existingCertificate ||
+    attendanceSessions.find(
+      (item) =>
+        item.worker_id === user.id &&
+        item.attendance_type === 'sick' &&
+        item.is_all_day &&
+        dates.includes(item.attendance_date) &&
+        item.sick_certificate?.id,
+    )?.sick_certificate;
+  const existingCertificate =
+    suppliedCertificate?.id && suppliedCertificate.worker_id === user.id
+      ? suppliedCertificate
+      : null;
+  const certificateId = existingCertificate?.id || crypto.randomUUID();
+  let uploadedPath = null;
+
+  if (file) {
+    uploadedPath = `${user.id}/${certificateId}/${Date.now()}-${storageApi.safeFileName(file.name)}`;
+    const { error: uploadError } = await storageApi.uploadFile(
+      SICK_CERTIFICATE_BUCKET,
+      uploadedPath,
+      file,
+      { cacheControl: '3600', upsert: false, contentType: file.type },
+    );
+    if (uploadError) {
+      return {
+        message: isSickLeaveFeatureUnavailable(uploadError)
+          ? 'יש להפעיל את עדכון אישורי המחלה ב-Supabase.'
+          : uploadError.message,
+        success: false,
+      };
+    }
+  }
+
+  const certificatePayload = {
+    worker_id: user.id,
+    valid_from: fromDate,
+    valid_to: toDate,
+    file_path: uploadedPath || existingCertificate?.file_path || null,
+    original_name: file?.name || existingCertificate?.original_name || null,
+    mime_type: file?.type || existingCertificate?.mime_type || null,
+    size_bytes: file?.size ?? existingCertificate?.size_bytes ?? null,
+    uploaded_at: file ? new Date().toISOString() : existingCertificate?.uploaded_at || null,
+  };
+  const certificateResult = existingCertificate
+    ? await sickLeaveCertificatesApi.updateSickLeaveCertificate(certificateId, certificatePayload)
+    : await sickLeaveCertificatesApi.insertSickLeaveCertificate({
+        id: certificateId,
+        ...certificatePayload,
+      });
+
+  if (certificateResult.error) {
+    if (uploadedPath) await storageApi.removeFiles(SICK_CERTIFICATE_BUCKET, [uploadedPath]);
+    return {
+      message: isSickLeaveFeatureUnavailable(certificateResult.error)
+        ? 'יש להפעיל את עדכון אישורי המחלה ב-Supabase.'
+        : certificateResult.error.message,
+      success: false,
+    };
+  }
+
+  for (const date of dates) {
+    const reportedAt = new Date(`${date}T12:00:00`).toISOString();
+    const payload = {
+      worker_id: user.id,
+      started_at: reportedAt,
+      ended_at: reportedAt,
+      attendance_type: 'sick',
+      attendance_date: date,
+      is_all_day: true,
+      sick_leave_certificate_id: certificateId,
+    };
+    const existingDayStatus = attendanceSessions.find(
+      (item) => item.worker_id === user.id && item.is_all_day && item.attendance_date === date,
+    );
+    const result = existingDayStatus
+      ? await attendanceSessionsApi.updateAttendanceSession(existingDayStatus.id, payload)
+      : await attendanceSessionsApi.insertAttendanceSession(payload);
+    if (result.error) {
+      return {
+        message: isSickLeaveFeatureUnavailable(result.error)
+          ? 'יש להפעיל את עדכון אישורי המחלה ב-Supabase.'
+          : `האישור נשמר, אך דיווח המחלה לתאריך ${date} נכשל: ${result.error.message}`,
+        success: false,
+      };
+    }
+  }
+
+  if (uploadedPath && existingCertificate?.file_path && existingCertificate.file_path !== uploadedPath) {
+    await storageApi.removeFiles(SICK_CERTIFICATE_BUCKET, [existingCertificate.file_path]);
+  }
+
+  if (profile?.role === 'field_worker' || profile?.role === 'manager') {
+    const rangeLabel = fromDate === toDate ? fromDate : `${fromDate}–${toDate}`;
+    await createManagerNotification(
+      'attendance_day_status',
+      'דיווח נוכחות: מחלה',
+      `${profile.full_name} דיווח מחלה לתאריכים ${rangeLabel}.${certificatePayload.file_path ? ' צורף אישור מחלה.' : ' לא צורף אישור מחלה.'}`,
+    );
+  }
+
+  return {
+    message: `דיווח המחלה נשמר עבור ${dates.length === 1 ? 'יום אחד' : `${dates.length} ימים`}${certificatePayload.file_path ? ' עם אישור מחלה.' : ' ללא אישור מצורף.'}`,
+    success: true,
+  };
+}
+
 export async function startAttendance(
   attendanceType,
-  { profile, attendanceSessions, attendanceAvailable, project = null, workSessions = [] },
+  {
+    profile,
+    attendanceSessions,
+    attendanceAvailable,
+    project = null,
+    workSessions = [],
+    sickLeave = null,
+  },
 ) {
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '' };
@@ -173,6 +341,10 @@ export async function startAttendance(
   const existingDayStatus = attendanceSessions.find(
     (item) => item.worker_id === user.id && item.is_all_day && item.attendance_date === attendanceDate,
   );
+
+  if (attendanceType === 'sick' && sickLeave) {
+    return saveSickLeaveReport({ user, profile, attendanceSessions, sickLeave });
+  }
 
   if (!option?.timed) {
     const reportedAt = new Date().toISOString();

@@ -13,6 +13,7 @@ import {
   FolderKanban,
   HeartPulse,
   MapPin,
+  Paperclip,
   Palmtree,
   Play,
   Search,
@@ -29,6 +30,7 @@ import {
   attendanceTypeOptions,
 } from '../features/attendance/api.js';
 import { durationMinutes, formatDuration, toLocalDateKey } from '../utils/format.js';
+import SickLeaveDialog from '../features/attendance/components/SickLeaveDialog.jsx';
 
 const typeIcons = {
   field: BriefcaseBusiness,
@@ -64,6 +66,7 @@ export default function AttendancePage() {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const [projectQuery, setProjectQuery] = useState('');
+  const [sickLeaveDialogOpen, setSickLeaveDialogOpen] = useState(false);
   const projectSearchRef = useRef(null);
 
   useEffect(() => {
@@ -75,6 +78,8 @@ export default function AttendancePage() {
   const today = toLocalDateKey(now);
   const dayStatus =
     sessions.find((item) => item.is_all_day && item.attendance_date === today) || null;
+  const existingSickCertificate =
+    dayStatus?.attendance_type === 'sick' ? dayStatus.sick_certificate || null : null;
   const todaySessions = useMemo(
     () =>
       sessions
@@ -154,7 +159,9 @@ export default function AttendancePage() {
     ? t('סיום יום העבודה')
     : selectedOption.timed
       ? t('התחלת יום העבודה')
-      : t('שמירת דיווח יומי');
+      : selectedType === 'sick'
+        ? t('דיווח מחלה')
+        : t('שמירת דיווח יומי');
   const statusLabel = openSession
     ? t('יום העבודה פעיל')
     : dayStatus
@@ -163,6 +170,7 @@ export default function AttendancePage() {
 
   function runPrimaryAction() {
     if (openSession) openAttendanceEndDialog();
+    else if (selectedType === 'sick') setSickLeaveDialogOpen(true);
     else void startAttendance(selectedType, selectedType === 'field' ? selectedProject : null);
   }
 
@@ -174,6 +182,14 @@ export default function AttendancePage() {
   function chooseProject(projectId) {
     setSelectedProjectId(projectId);
     setProjectPickerOpen(false);
+  }
+
+  function closeSickLeaveDialog() {
+    if (!busy) setSickLeaveDialogOpen(false);
+  }
+
+  function saveSickLeave(sickLeave) {
+    return startAttendance('sick', null, { sickLeave });
   }
 
   return (
@@ -242,6 +258,31 @@ export default function AttendancePage() {
             <strong>{selectedProject?.name || t('התחלה ללא פרויקט')}</strong>
             <span>
               {selectedProject?.location || t('בחר פרויקט או התחל ללא שיוך')}
+            </span>
+          </span>
+          <ChevronDown size={19} aria-hidden="true" />
+        </button>
+      )}
+
+      {selectedType === 'sick' && !openSession && (
+        <button
+          type="button"
+          className="attendanceSickTrigger"
+          disabled={busy}
+          onClick={() => setSickLeaveDialogOpen(true)}
+        >
+          <span className="attendanceSickTriggerIcon" aria-hidden="true">
+            <Paperclip size={18} />
+          </span>
+          <span className="attendanceSickTriggerCopy">
+            <small>{t('אישור מחלה · אופציונלי')}</small>
+            <strong>
+              {existingSickCertificate?.original_name || t('הוספת אישור מחלה')}
+            </strong>
+            <span>
+              {existingSickCertificate?.file_path
+                ? t('ניתן לצפות באישור או להחליף אותו')
+                : t('PDF או תמונה, עד 10MB')}
             </span>
           </span>
           <ChevronDown size={19} aria-hidden="true" />
@@ -435,6 +476,14 @@ export default function AttendancePage() {
           </div>,
           document.body,
         )}
+      <SickLeaveDialog
+        open={sickLeaveDialogOpen}
+        busy={busy}
+        today={today}
+        existingCertificate={existingSickCertificate}
+        onClose={closeSickLeaveDialog}
+        onSubmit={saveSickLeave}
+      />
     </>
   );
 }

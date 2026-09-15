@@ -12,17 +12,23 @@ import {
   Archive,
 } from 'lucide-react';
 import { useProjects } from '../ProjectsContext.jsx';
-import { csvEscape } from '../../../utils/format.js';
+import { useMessage } from '../../../context/MessageContext.jsx';
+import { exportProjectStatusExcel } from '../../reporting/utils/exportProjectStatusReport.js';
+import {
+  compareProjectsByOrderNumber,
+  getProjectOrderNumber,
+} from '../utils/projectOrderNumber.js';
 import StatusPill from '../../../components/StatusPill.jsx';
 
 export default function ProjectStatusReport() {
   useTranslation();
   const { projects } = useProjects();
+  const { setMessage } = useMessage();
   const [reportSearch, setReportSearch] = useState('');
   const [reportStatus, setReportStatus] = useState('');
   const [reportAssignment, setReportAssignment] = useState('all');
   const sortedProjects = useMemo(
-    () => [...projects].sort((a, b) => a.name.localeCompare(b.name, 'he')),
+    () => [...projects].sort(compareProjectsByOrderNumber),
     [projects],
   );
   const reportStatuses = useMemo(
@@ -34,7 +40,7 @@ export default function ProjectStatusReport() {
     return sortedProjects.filter((project) => {
       const matchesSearch =
         !normalizedSearch ||
-        `${project.name} ${project.status} ${project.profiles?.full_name || ''}`
+        `${getProjectOrderNumber(project)} ${project.name} ${project.status} ${project.profiles?.full_name || ''}`
           .toLowerCase()
           .includes(normalizedSearch);
       const matchesStatus = !reportStatus || project.status === reportStatus;
@@ -49,27 +55,19 @@ export default function ProjectStatusReport() {
   const completedProjects = projects.filter((project) => project.status === 'הושלם').length;
 
   function exportProjectsStatusExcel() {
-    if (!filteredProjects.length) return;
-    const headers = ['מס׳', 'שם הפרויקט', 'סטטוס נוכחי', 'עובד שטח אחראי'];
-
-    const rows = filteredProjects.map((project, index) => [
-      String(index + 1),
-      project.name,
-      project.status,
-      project.profiles?.full_name || t('לא משויך'),
-    ]);
-    const csv =
-      '\uFEFF' +
-      [headers, ...rows].map((row) => row.map((value) => csvEscape(value)).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `דוח-מצב-פרויקטים-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    const filterParts = [
+      reportStatus ? t(reportStatus) : t('כל הסטטוסים'),
+      reportAssignment === 'assigned'
+        ? t('עם עובד אחראי')
+        : reportAssignment === 'unassigned'
+          ? t('ללא עובד אחראי')
+          : t('כל השיוכים'),
+    ];
+    if (reportSearch.trim()) filterParts.push(`${t('חיפוש')}: ${reportSearch.trim()}`);
+    void exportProjectStatusExcel(filteredProjects, {
+      setMessage,
+      filterDescription: filterParts.join(' · '),
+    });
   }
 
   return (
@@ -183,17 +181,19 @@ export default function ProjectStatusReport() {
         <table className="reportTable projectStatusTable">
           <thead>
             <tr>
-              <th>{t('מס׳')}</th>
+              <th>{t('מספר הזמנה')}</th>
               <th>{t('שם הפרויקט')}</th>
               <th>{t('סטטוס נוכחי')}</th>
               <th>{t('עובד שטח אחראי')}</th>
             </tr>
           </thead>
           <tbody>
-            {filteredProjects.map((project, index) => (
+            {filteredProjects.map((project) => (
               <tr key={project.id}>
                 <td>
-                  <span className="projectRowNumber">{index + 1}</span>
+                  <span className="projectOrderNumber">
+                    {getProjectOrderNumber(project) || '-'}
+                  </span>
                 </td>
                 <td>
                   <div className="projectReportName">

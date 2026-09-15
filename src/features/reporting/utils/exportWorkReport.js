@@ -189,11 +189,11 @@ function addAttendanceSheet(workbook, attendance, context) {
   const sheet = workbook.addWorksheet('נוכחות כללית', {
     properties: { tabColor: { argb: COLORS.teal } },
   });
-  configureSheet(sheet, [23, 30, 14, 20, 11, 11, 14, 15, 18, 18, 30], 5, 2);
-  addSheetHeading(sheet, 'נוכחות כללית', context, 'K');
-  sheet.getRow(5).values = ['עובד', 'אימייל', 'תאריך', 'סוג דיווח', 'כניסה', 'יציאה', 'משך (שעות)', 'סטטוס', 'מיקום כניסה', 'מיקום יציאה', 'הערה'];
+  configureSheet(sheet, [23, 30, 14, 20, 11, 11, 14, 15, 18, 18, 25, 30], 5, 2);
+  addSheetHeading(sheet, 'נוכחות כללית', context, 'L');
+  sheet.getRow(5).values = ['עובד', 'אימייל', 'תאריך', 'סוג דיווח', 'כניסה', 'יציאה', 'משך (שעות)', 'סטטוס', 'מיקום כניסה', 'מיקום יציאה', 'אישור מחלה', 'הערה'];
   styleHeader(sheet.getRow(5));
-  sheet.autoFilter = 'A5:K5';
+  sheet.autoFilter = 'A5:L5';
   attendance.forEach((item, index) => {
     const minutes = item.is_all_day ? null : durationMinutes(item.started_at, item.ended_at);
     const status = item.is_all_day ? 'יום מלא' : item.ended_at ? 'הושלם' : 'פתוח';
@@ -209,13 +209,18 @@ function addAttendanceSheet(workbook, attendance, context) {
       minutes === null ? null : minutes / 60, status,
       item.is_all_day || !startLink ? '-' : { text: 'פתיחה במפה', hyperlink: startLink },
       item.is_all_day || !endLink ? '-' : { text: 'פתיחה במפה', hyperlink: endLink },
+      item.attendance_type === 'sick'
+        ? item.sick_certificate?.file_path
+          ? item.sick_certificate.original_name || 'צורף אישור'
+          : 'לא צורף'
+        : '-',
       item.end_note || '-',
     ];
     row.getCell(3).numFmt = 'dd/mm/yyyy';
     row.getCell(7).numFmt = '0.00';
   });
   if (attendance.length) {
-    styleBodyRows(sheet, 6, attendance.length + 5, [11]);
+    styleBodyRows(sheet, 6, attendance.length + 5, [11, 12]);
     attendance.forEach((item, index) => {
       const row = sheet.getRow(index + 6);
       if (typeof row.getCell(9).value === 'object') styleHyperlink(row.getCell(9));
@@ -228,7 +233,7 @@ function addAttendanceSheet(workbook, attendance, context) {
     sheet.getCell(`A${totalRow}`).value = 'סה״כ שעות';
     sheet.getCell(`G${totalRow}`).value = { formula: `SUM(G6:G${attendance.length + 5})`, result: totalHours };
     sheet.getCell(`G${totalRow}`).numFmt = '0.00';
-    styleRowRange(sheet, totalRow, 'K', {
+    styleRowRange(sheet, totalRow, 'L', {
       fill: fill(COLORS.paleTeal),
       font: { name: FONT, size: 10, bold: true, color: { argb: COLORS.navy } },
       border: borderBottom(COLORS.teal, 'medium'),

@@ -434,6 +434,9 @@ export default function DashboardLayout() {
             </b>
           </div>
           <PwaControls />
+          <div className="navSectionLabel">
+            <span>{t('כלים לעובד')}</span>
+          </div>
           <button
             className={`navBtn ${navActive('/app/chat') ? 'active' : ''}`}
             onClick={() => openTab('/app/chat')}
@@ -446,6 +449,15 @@ export default function DashboardLayout() {
             </span>
             <MessageCircle size={18} />
           </button>
+          {!isDrafter && (
+            <button
+              className={`navBtn ${navActive('/app/attendance') ? 'active' : ''}`}
+              onClick={() => openTab('/app/attendance')}
+            >
+              <span>{t('שעון נוכחות')}</span>
+              <Clock size={18} />
+            </button>
+          )}
           <div className="navSectionLabel">
             <span>{t('עבודה')}</span>
           </div>
@@ -490,15 +502,6 @@ export default function DashboardLayout() {
             <div className="navSectionLabel">
               <span>{t('שטח')}</span>
             </div>
-          )}
-          {!isDrafter && (
-            <button
-              className={`navBtn ${navActive('/app/attendance') ? 'active' : ''}`}
-              onClick={() => openTab('/app/attendance')}
-            >
-              <span>{t('שעון נוכחות')}</span>
-              <Clock size={18} />
-            </button>
           )}
           {isManager && (
             <button

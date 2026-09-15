@@ -180,7 +180,7 @@ export function AttendanceProvider({ children }) {
     }
   }
 
-  async function startAttendance(attendanceType, project = null) {
+  async function startAttendance(attendanceType, project = null, options = {}) {
     if (attendanceBusy) return null;
     setAttendanceBusy(true);
     try {
@@ -191,6 +191,7 @@ export function AttendanceProvider({ children }) {
           attendanceAvailable,
           project,
           workSessions,
+          sickLeave: options.sickLeave || null,
         }),
       );
       if (result?.offlineSession)

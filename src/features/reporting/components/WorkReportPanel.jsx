@@ -19,6 +19,7 @@ import MapLinks from '../../../components/MapLinks.jsx';
 import Stat from '../../../components/Stat.jsx';
 import { buildWorkReportRows } from '../utils/buildWorkReportRows.js';
 import { exportWorkReport } from '../utils/exportWorkReport.js';
+import SickCertificateLink from '../../attendance/components/SickCertificateLink.jsx';
 
 export default function WorkReportPanel() {
   useTranslation();
@@ -183,13 +184,14 @@ export default function WorkReportPanel() {
                 <th>{t('יציאה')}</th>
                 <th>{t('משך')}</th>
                 <th>{t('מיקומים')}</th>
+                <th>{t('אישור מחלה')}</th>
                 <th>{t('הערה')}</th>
               </tr>
             </thead>
             <tbody>
               {filteredAttendance.length === 0 && (
                 <tr>
-                  <td colSpan={8}>{t('אין נתוני נוכחות כללית בטווח שנבחר')}</td>
+                  <td colSpan={9}>{t('אין נתוני נוכחות כללית בטווח שנבחר')}</td>
                 </tr>
               )}
               {filteredAttendance.map((item) => (
@@ -228,6 +230,13 @@ export default function WorkReportPanel() {
                         startLinks={[mapsLink(item.started_lat, item.started_lng)].filter(Boolean)}
                         endLinks={[mapsLink(item.ended_lat, item.ended_lng)].filter(Boolean)}
                       />
+                    )}
+                  </td>
+                  <td>
+                    {item.attendance_type === 'sick' ? (
+                      <SickCertificateLink certificate={item.sick_certificate} compact />
+                    ) : (
+                      '-'
                     )}
                   </td>
                   <td>{item.end_note || '-'}</td>

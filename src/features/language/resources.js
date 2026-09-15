@@ -51,6 +51,7 @@ export const enTranslations = {
   'יש להריץ את עדכון מסד הנתונים של הצ׳אט ב־Supabase.':
     'Run the chat database migration in Supabase.',
   תפריט: 'Menu',
+  'כלים לעובד': 'Employee tools',
   'פתיחת תפריט': 'Open menu',
   'סגירת תפריט': 'Close menu',
   'סגירת הודעה': 'Close message',
@@ -262,6 +263,7 @@ export const enTranslations = {
   'כל השיוכים': 'All assignments',
   'ללא עובד אחראי': 'Without a lead employee',
   'מס׳': 'No.',
+  'מספר הזמנה': 'Order number',
   'שם הפרויקט': 'Project name',
   'סטטוס נוכחי': 'Current status',
   'עובד שטח אחראי': 'Lead field employee',
@@ -494,6 +496,32 @@ export const enTranslations = {
   'משימה פתוחה יותר מדי זמן': 'Task open for too long',
   'המשימה "{{title}}" פתוחה כבר {{days}} ימים.':
     'The task "{{title}}" has been open for {{days}} days.',
+  'אישור מחלה': 'Sick leave certificate',
+  'אישור מחלה · אופציונלי': 'Sick leave certificate · optional',
+  'הוספת אישור מחלה': 'Add sick leave certificate',
+  'PDF או תמונה, עד 10MB': 'PDF or image, up to 10MB',
+  'ניתן לצפות באישור או להחליף אותו': 'View or replace the attached certificate',
+  'דיווח מחלה': 'Sick leave report',
+  'בחרו טווח תאריכים וצרפו אישור מחלה לפי הצורך':
+    'Choose a date range and attach a sick leave certificate if needed',
+  'תאריך תחילת המחלה': 'Sick leave start date',
+  'תאריך סיום המחלה': 'Sick leave end date',
+  'אישור מחלה (אופציונלי)': 'Sick leave certificate (optional)',
+  'בחירת קובץ': 'Choose file',
+  'החלפת קובץ': 'Replace file',
+  'האישור המצורף': 'Attached certificate',
+  'צפייה באישור מחלה': 'View sick leave certificate',
+  'לא צורף אישור': 'No certificate attached',
+  'שמירת דיווח מחלה': 'Save sick leave report',
+  'שומר דיווח...': 'Saving report...',
+  'סגירת דיווח מחלה': 'Close sick leave report',
+  'טווח התאריכים אינו תקין.': 'The selected date range is invalid.',
+  'ניתן לדווח על עד 92 ימי מחלה בכל פעולה.':
+    'You can report up to 92 sick days at a time.',
+  'אפשר לצרף קובץ PDF, JPG או PNG בלבד.':
+    'Only PDF, JPG or PNG files can be attached.',
+  'גודל הקובץ המקסימלי הוא 10MB.': 'The maximum file size is 10MB.',
+  'פותח...': 'Opening...',
 };
 
 const greekTranslations = {
@@ -501,6 +529,7 @@ const greekTranslations = {
   'מעקב פרויקטים לעובדי שטח, שרטוט, GPR והיתרים':
     'Παρακολούθηση έργων για συνεργεία πεδίου, σχεδίαση, GPR και άδειες',
   התראות: 'Ειδοποιήσεις',
+  'כלים לעובד': 'Εργαλεία εργαζομένου',
   'צ׳אט פנימי': 'Ομαδική συνομιλία',
   'שיחה חדשה': 'Νέα συνομιλία',
   חדש: 'Νέα',
@@ -772,6 +801,7 @@ const greekTranslations = {
   'כל השיוכים': 'Όλες οι αναθέσεις',
   'ללא עובד אחראי': 'Χωρίς υπεύθυνο εργαζόμενο',
   'מס׳': 'Αρ.',
+  'מספר הזמנה': 'Αριθμός παραγγελίας',
   'שם הפרויקט': 'Όνομα έργου',
   'סטטוס נוכחי': 'Τρέχουσα κατάσταση',
   'עובד שטח אחראי': 'Υπεύθυνος εργαζόμενος πεδίου',

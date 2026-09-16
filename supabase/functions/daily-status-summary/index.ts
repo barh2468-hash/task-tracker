@@ -123,8 +123,13 @@ Deno.serve(async (req) => {
     const cronRequest = isAuthorizedCronRequest(req);
     await requireManagerOrCron(req, supabaseUrl, anonKey);
 
+    const body = await req.json().catch(() => ({}));
+    const previewRecipient =
+      typeof body?.previewRecipient === 'string'
+        ? body.previewRecipient.trim().toLocaleLowerCase('en-US')
+        : '';
     const now = new Date();
-    if (cronRequest && !isScheduledIsraelTime(now)) {
+    if (cronRequest && !previewRecipient && !isScheduledIsraelTime(now)) {
       return Response.json(
         { ok: true, skipped: true, reason: 'outside_17_00_israel' },
         {
@@ -133,7 +138,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    const body = await req.json().catch(() => ({}));
     const requestedAppUrl = typeof body?.appUrl === 'string' ? body.appUrl.trim() : '';
     const appUrl = /^https?:\/\//i.test(requestedAppUrl) ? requestedAppUrl : '';
     const windowEnd = now;
@@ -157,9 +161,16 @@ Deno.serve(async (req) => {
     if (managersError) throw managersError;
     if (historyError) throw historyError;
 
-    const recipients = Array.from(
+    const managerRecipients = Array.from(
       new Set((managers || []).map((manager: any) => manager.email).filter(Boolean)),
     ) as string[];
+    const previewManagerEmail = previewRecipient
+      ? managerRecipients.find((email) => email.toLocaleLowerCase('en-US') === previewRecipient)
+      : '';
+    if (previewRecipient && !previewManagerEmail) {
+      throw new HttpError(400, 'Preview recipient must be a manager email');
+    }
+    const recipients = previewManagerEmail ? [previewManagerEmail] : managerRecipients;
     if (!recipients.length) {
       return Response.json(
         { ok: true, sentTo: 0, reason: 'no_manager_emails' },
@@ -200,14 +211,19 @@ Deno.serve(async (req) => {
       .join('');
 
     const rangeLabel = `${formatIsraelDateTime(windowStart)} עד ${formatIsraelDateTime(windowEnd)}`;
-    const subject = `סיכום שינויי סטטוס – 24 השעות האחרונות – ${new Intl.DateTimeFormat('he-IL', {
-      timeZone: ISRAEL_TIME_ZONE,
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }).format(now)}`;
+    const subjectPrefix = previewManagerEmail ? '[דוגמה] ' : '';
+    const subject = `${subjectPrefix}סיכום שינויי סטטוס – 24 השעות האחרונות – ${new Intl.DateTimeFormat(
+      'he-IL',
+      {
+        timeZone: ISRAEL_TIME_ZONE,
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      },
+    ).format(now)}`;
     const html = `
       <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.6;color:#0b2545;max-width:1000px;margin:auto">
+        ${previewManagerEmail ? '<div style="background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:10px;padding:10px 14px;margin-bottom:16px"><b>מייל דוגמה</b> – זוהי תצוגה מקדימה של הסיכום היומי.</div>' : ''}
         <h2 style="margin:0 0 8px">סיכום שינויי סטטוס</h2>
         <p style="margin:0 0 18px;color:#475569">השינויים שבוצעו במערכת במהלך 24 השעות האחרונות.</p>
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px 16px;margin-bottom:18px">
@@ -251,6 +267,7 @@ Deno.serve(async (req) => {
       )
       .join('\n\n');
     const text = [
+      previewManagerEmail ? 'מייל דוגמה – תצוגה מקדימה של הסיכום היומי' : '',
       'סיכום שינויי סטטוס – 24 השעות האחרונות',
       `טווח: ${rangeLabel}`,
       `מספר שינויים: ${changes.length}`,
@@ -280,6 +297,7 @@ Deno.serve(async (req) => {
         changeCount: changes.length,
         windowStart: windowStart.toISOString(),
         windowEnd: windowEnd.toISOString(),
+        preview: Boolean(previewManagerEmail),
         result,
       },
       { headers: corsHeaders },

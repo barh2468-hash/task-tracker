@@ -111,6 +111,38 @@ export async function sendProjectAssignmentEmail(workerId, project, assignedByNa
 
 // ---- Status / photos -----------------------------------------------------
 
+async function sendStatusChangeNotifications(project, newStatus, cleanNote, profile) {
+  const notificationBody =
+    `${profile.full_name} עדכן סטטוס בפרויקט ${project.name}: ${project.status} → ${newStatus}.` +
+    `${cleanNote ? ` הערה: ${cleanNote}` : ''}`;
+
+  const [, emailResult] = await Promise.all([
+    createManagerNotification(
+      'status_change',
+      `עדכון סטטוס: ${project.name}`,
+      notificationBody,
+      project.id,
+    ),
+    edgeFunctions.notifyStatusChange({
+      projectId: project.id,
+      projectName: project.name,
+      clientName: project.client_name,
+      location: project.location,
+      oldStatus: project.status,
+      newStatus,
+      note: cleanNote,
+      changedByName: profile.full_name,
+      changedByEmail: profile.email,
+      changedByRole: profile.role,
+      appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+    }),
+  ]);
+
+  if (emailResult.error) {
+    console.warn('Email notification failed:', emailResult.error.message);
+  }
+}
+
 export async function updateStatus(project, newStatus, note, profile) {
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '' };
@@ -143,34 +175,19 @@ export async function updateStatus(project, newStatus, note, profile) {
   if (historyError) return { message: historyError.message, ok: false };
 
   if (profile?.role === 'field_worker' || profile?.role === 'manager') {
-    await createManagerNotification(
-      'status_change',
-      `עדכון סטטוס: ${project.name}`,
-      `${profile.full_name} עדכן סטטוס בפרויקט ${project.name}: ${project.status} → ${newStatus}.${cleanNote ? ` הערה: ${cleanNote}` : ''}`,
-      project.id,
-    );
-
-    const { error: notifyError } = await edgeFunctions.notifyStatusChange({
-      projectId: project.id,
-      projectName: project.name,
-      clientName: project.client_name,
-      location: project.location,
-      oldStatus: project.status,
-      newStatus,
-      note: cleanNote,
-      changedByName: profile.full_name,
-      changedByEmail: profile.email,
-      changedByRole: profile.role,
-      appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+    void sendStatusChangeNotifications(project, newStatus, cleanNote, profile).catch((notificationError) => {
+      console.warn(
+        'Status change notifications failed:',
+        notificationError instanceof Error ? notificationError.message : notificationError,
+      );
     });
-
-    if (notifyError) {
-      console.warn('Email notification failed:', notifyError.message);
-      return { message: `הסטטוס עודכן ל: ${newStatus}. שים לב: התראת המייל לא נשלחה (${notifyError.message}).`, ok: true };
-    }
   }
 
-  return { message: `הסטטוס של ${project.name} עודכן ל: ${newStatus}`, ok: true };
+  return {
+    message: `הסטטוס של ${project.name} עודכן ל: ${newStatus}`,
+    ok: true,
+    optimistic: { status: newStatus, progress: nextProgress },
+  };
 }
 
 export async function uploadPhoto(projectId, file, category = 'תמונת שטח') {

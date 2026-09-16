@@ -117,6 +117,22 @@ export function ProjectsProvider({ children }) {
     return result;
   }
 
+  async function runStatusMutation(project, newStatus, note) {
+    const result = await projectsFeatureApi.updateStatus(project, newStatus, note, profile);
+    if (result?.message) setMessage(result.message);
+    if (result?.optimistic) {
+      setProjects((items) =>
+        items.map((item) =>
+          item.id === project.id ? { ...item, ...result.optimistic } : item,
+        ),
+      );
+    }
+    if (!result?.offline && result?.ok) {
+      void loadHistory();
+    }
+    return result;
+  }
+
   const value = {
     projects,
     projectsLoaded,
@@ -137,12 +153,7 @@ export function ProjectsProvider({ children }) {
     deleteProject: (project) => runMutation(projectsFeatureApi.deleteProject(project, profile)),
     archiveProject: (project) => runMutation(projectsFeatureApi.archiveProject(project, profile)),
     restoreProject: (project) => runMutation(projectsFeatureApi.restoreProject(project, profile)),
-    updateStatus: (project, newStatus, note) =>
-      runMutation(projectsFeatureApi.updateStatus(project, newStatus, note, profile), (result) =>
-        setProjects((items) =>
-          items.map((item) => (item.id === project.id ? { ...item, ...result.optimistic } : item)),
-        ),
-      ),
+    updateStatus: runStatusMutation,
     uploadPhoto: (projectId, file, category) =>
       runMutation(projectsFeatureApi.uploadPhoto(projectId, file, category)),
     deletePhoto: (photo, project) =>

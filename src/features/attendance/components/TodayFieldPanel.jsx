@@ -1,18 +1,23 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
-import { AlertTriangle, Clock, PlayCircle, Users } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, Clock, FileSpreadsheet, LoaderCircle, PlayCircle, Users } from 'lucide-react';
 import { useAttendance } from '../AttendanceContext.jsx';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
+import { useMessage } from '../../../context/MessageContext.jsx';
 import { attendanceTypeLabel } from '../api.js';
 import { dailyManagerSummary } from '../../../services/api/edgeFunctions.js';
 import { formatDuration, durationMinutes } from '../../../utils/format.js';
 import { getTodayAttendance } from '../utils/todayAttendance.js';
+import { exportDailySummaryExcel } from '../utils/exportDailySummaryExcel.js';
 import Stat from '../../../components/Stat.jsx';
 
 export default function TodayFieldPanel() {
   useTranslation();
   const { workSessions, attendanceSessions, attendanceAvailable } = useAttendance();
-  const { workers } = useProjects();
+  const { workers, projects, historyItems } = useProjects();
+  const { setMessage } = useMessage();
+  const [exportingExcel, setExportingExcel] = useState(false);
 
   const { todaySessions, todayAttendance, activeSessions, presentSessions, notStarted } =
     getTodayAttendance({ workSessions, attendanceSessions, workers });
@@ -28,6 +33,25 @@ export default function TodayFieldPanel() {
     );
   }
 
+  async function exportDailySummaryNow() {
+    if (exportingExcel) return;
+    setExportingExcel(true);
+    try {
+      await exportDailySummaryExcel(
+        {
+          todaySessions,
+          todayAttendance,
+          notStarted,
+          historyItems,
+          projects,
+        },
+        setMessage,
+      );
+    } finally {
+      setExportingExcel(false);
+    }
+  }
+
   return (
     <section className="card">
       <div className="panelHeader">
@@ -35,9 +59,15 @@ export default function TodayFieldPanel() {
           <h2>{t('היום בשטח')}</h2>
           <p className="muted">{t('מעקב נוכחות כללי לצד שעות העבודה שנרשמו לכל פרויקט.')}</p>
         </div>
-        <button className="ghost smallBtn" onClick={sendDailySummaryNow}>
-          {t('שלח סיכום יומי עכשיו')}
-        </button>
+        <div className="todaySummaryActions">
+          <button className="ghost smallBtn" onClick={sendDailySummaryNow}>
+            {t('שלח סיכום יומי עכשיו')}
+          </button>
+          <button className="smallBtn" onClick={exportDailySummaryNow} disabled={exportingExcel}>
+            {exportingExcel ? <LoaderCircle className="spinIcon" size={17} /> : <FileSpreadsheet size={17} />}
+            {exportingExcel ? t('מייצא ל־Excel...') : t('ייצוא סיכום יומי ל־Excel')}
+          </button>
+        </div>
       </div>
       <div className="grid miniStats">
         <Stat

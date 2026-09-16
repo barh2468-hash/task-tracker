@@ -437,6 +437,8 @@
   flex-wrap:wrap;
   margin-bottom:16px;
 }
+.todaySummaryActions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.todaySummaryActions .smallBtn{display:inline-flex;align-items:center;justify-content:center;gap:7px}
 .miniStats{grid-template-columns:repeat(4,minmax(150px,1fr));margin-bottom:18px}
 .twoColumns{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .innerPanel{border:1px solid var(--line);border-radius:18px;background:#f8fbff;padding:14px;box-shadow:var(--soft)}

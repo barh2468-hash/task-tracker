@@ -88,6 +88,11 @@ git push
    - ניתן לשלוח ידנית מתוך מסך היום בשטח
    - ניתן לתזמן אוטומטית דרך `supabase/daily-manager-summary-schedule.sql`
 
+5. סיכום שינויי סטטוס יומי:
+   - הפונקציה `daily-status-summary` שולחת לכל המנהלים טבלה של שינויי הסטטוס ב-24 השעות האחרונות
+   - המייל נשלח בכל יום בשעה 17:00 לפי `Asia/Jerusalem`, כולל מעבר אוטומטי בין שעון קיץ לחורף
+   - התזמון מוגדר ב-`supabase/migrations/20260916170000_daily_status_summary.sql`
+
 ### פעולות Supabase נדרשות
 
 להריץ ב-SQL Editor:
@@ -111,7 +116,7 @@ supabase/daily-manager-summary-schedule.sql
 
 ## אבטחת פונקציות מתוזמנות
 
-הפונקציות `attendance-reminder` ו-`daily-manager-summary` אינן סומכות על עצם
+הפונקציות `attendance-reminder`, `daily-manager-summary` ו-`daily-status-summary` אינן סומכות על עצם
 הגישה לכתובת הפונקציה. קריאות מתוזמנות חייבות לשלוח סוד ייעודי, וקריאה ידנית
 לסיכום היומי מותרת רק למשתמש מחובר בעל תפקיד `manager`.
 
@@ -137,6 +142,7 @@ select vault.create_secret(
 ```cmd
 supabase functions deploy attendance-reminder
 supabase functions deploy daily-manager-summary
+supabase functions deploy daily-status-summary
 supabase db push
 ```
 
@@ -144,12 +150,12 @@ supabase db push
 התזכורות הישנה. אם הסוד חסר מ-Vault או מ-Edge Functions, הקריאה נכשלת במכוון
 עם `401` ואינה מפעילה פעולות באמצעות service role.
 
-
 ## עדכון: טלפון איש קשר בשטח
 
 נוסף שדה `טלפון איש קשר בשטח` לכל פרויקט.
 
 מה נוסף:
+
 - בעת יצירת פרויקט אפשר להזין מספר טלפון של איש קשר בשטח.
 - בעריכת פרויקט אפשר לעדכן את המספר.
 - בכרטיס הפרויקט המספר מוצג כלינק לחיץ.

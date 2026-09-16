@@ -7,3 +7,8 @@ verify_jwt = false
 # authenticated and manager-authorized inside the function.
 [functions.daily-manager-summary]
 verify_jwt = false
+
+# Scheduled status summaries authenticate with x-cron-secret. Manual calls are
+# authenticated and manager-authorized inside the function.
+[functions.daily-status-summary]
+verify_jwt = false

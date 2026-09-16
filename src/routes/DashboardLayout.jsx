@@ -185,7 +185,7 @@ export default function DashboardLayout() {
   }
 
   function beginMobileMenuDrag(clientX, clientY, eventTarget, pointerId) {
-    if (window.innerWidth > 760) return;
+    if (window.innerWidth > 1180) return;
     const target = eventTarget instanceof Element ? eventTarget : null;
     const gestureSurface = mobileMenuOpen
       ? target?.closest('.sidebar, .mobileMenuBackdrop')

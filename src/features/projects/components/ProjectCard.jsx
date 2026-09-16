@@ -739,6 +739,24 @@ export default function ProjectCard({ project, focused = false }) {
               </div>
             </section>
 
+            <ProjectDocumentsPanel
+              documents={assets.project_documents}
+              canUpload={isManager || isAssignedFieldWorker}
+              canDelete={(document) =>
+                isManager || (isAssignedFieldWorker && document.uploaded_by === currentUserId)
+              }
+              defaultDocumentType={isAssignedFieldWorker ? 'drawing_source' : 'general'}
+              onUpload={async (file, documentType) => {
+                const result = await uploadProjectDocument(project, file, documentType);
+                if (result?.ok) await refreshAssets();
+                return result;
+              }}
+              onDelete={async (document) => {
+                const result = await deleteProjectDocument(document, project);
+                if (result) await refreshAssets();
+              }}
+            />
+
             <div className="projectOperationsPanel">
               <section className="projectOperationCard projectStatusCard">
                 <header className="projectOperationHeader">
@@ -778,9 +796,7 @@ export default function ProjectCard({ project, focused = false }) {
                 [
                   'documents',
                   t('מסמכים'),
-                  assets.project_photos.length +
-                    assets.project_documents.length +
-                    assets.project_review_files.length,
+                  assets.project_photos.length + assets.project_review_files.length,
                 ],
                 ['updates', t('עדכונים'), projectHistory.length],
               ].map(([tab, label, count]) => (
@@ -858,24 +874,6 @@ export default function ProjectCard({ project, focused = false }) {
                     </label>
                   </div>
                 </section>
-
-                <ProjectDocumentsPanel
-                  documents={assets.project_documents}
-                  canUpload={isManager || isAssignedFieldWorker}
-                  canDelete={(document) =>
-                    isManager || (isAssignedFieldWorker && document.uploaded_by === currentUserId)
-                  }
-                  defaultDocumentType={isAssignedFieldWorker ? 'drawing_source' : 'general'}
-                  onUpload={async (file, documentType) => {
-                    const result = await uploadProjectDocument(project, file, documentType);
-                    if (result?.ok) await refreshAssets();
-                    return result;
-                  }}
-                  onDelete={async (document) => {
-                    const result = await deleteProjectDocument(document, project);
-                    if (result) await refreshAssets();
-                  }}
-                />
 
                 {project.requires_work_diary && (
                   <WorkDiaryPanel

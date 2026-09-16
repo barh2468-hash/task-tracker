@@ -661,7 +661,6 @@ export default function EquipmentPage() {
                 <tr>
                   <th>{t('עובד')}</th>
                   <th>{t('קבוצה')}</th>
-                  <th>{t('מכשירים ומזהים')}</th>
                   <th>{t('כמות ציוד')}</th>
                   <th>{t('פעולות')}</th>
                 </tr>
@@ -670,11 +669,10 @@ export default function EquipmentPage() {
                 {filteredRecords.map((record) => {
                   const recordKey = record.id || record.source_row_number;
                   const expanded = expandedId === recordKey;
-                  const devices = getDeviceValues(record);
                   const completion = Math.min(100, Math.round(((record.checked_item_count || 0) / EQUIPMENT_CHECKLIST_COLUMNS.length) * 100));
                   return (
                     <tr className={expanded ? 'expanded' : ''} key={recordKey}>
-                      <td colSpan={5}>
+                      <td colSpan={4}>
                         <div className="equipmentRowShell">
                           <button
                             type="button"
@@ -690,14 +688,6 @@ export default function EquipmentPage() {
                               </span>
                             </span>
                             <span className="equipmentSectionCell"><span />{record.section_name}</span>
-                            <span className="equipmentDevicesCell">
-                              {devices.length ? (
-                                devices.slice(0, 4).map((device, index) => <code key={`${device}-${index}`}>{device}</code>)
-                              ) : (
-                                <span className="muted">{t('ללא מכשיר משויך')}</span>
-                              )}
-                              {devices.length > 4 && <small>+{devices.length - 4}</small>}
-                            </span>
                             <span className="equipmentCountCell">
                               <span><CheckCircle size={15} /> {record.checked_item_count || 0} {t('יח׳')}</span>
                               <span className="equipmentMiniProgress"><i style={{ width: `${completion}%` }} /></span>

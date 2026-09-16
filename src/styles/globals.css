@@ -1637,3 +1637,15 @@ body.language-en { direction: ltr; }
   .equipmentChecklistEditor{grid-template-columns:1fr}
   .equipmentQuantityItem{min-height:64px}
 }
+
+/* Keep device identifiers inside the expanded employee details only */
+.equipmentTable th:first-child{width:36%}
+.equipmentTable th:nth-child(2){width:34%}
+.equipmentTable th:nth-child(3){width:22%}
+.equipmentTable th:last-child{width:8%}
+.equipmentRowButton{grid-template-columns:minmax(210px,36%) minmax(170px,34%) minmax(120px,22%) 8%}
+
+@media(max-width:760px){
+  .equipmentRowButton{min-height:82px;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto}
+  .equipmentCountCell{grid-column:2;grid-row:2}
+}

@@ -1,6 +1,13 @@
+import {
+  EQUIPMENT_CHECKLIST_COLUMNS,
+  getEquipmentQuantity,
+  getEquipmentQuantityTotal,
+} from './equipmentQuantities.js';
+
 const DEVICE_COLUMNS = [1, 2, 3, 4, 13, 14, 34];
 
-function cleanWorksheetValue(value) {
+function cleanWorksheetValue(value, isQuantity = false) {
+  if (isQuantity) return getEquipmentQuantity(value);
   const text = String(value ?? '').trim();
   if (/^v$/i.test(text)) return 'קיים';
   if (text === '-') return '';
@@ -76,8 +83,8 @@ export async function createEquipmentWorkbook({ equipmentImport, records }) {
     records.length,
     'עובדים עם מכשירים ומזהים',
     records.filter(hasDevice).length,
-    'פריטי ציוד מסומנים',
-    records.reduce((total, record) => total + (record.checked_item_count || 0), 0),
+    'סה״כ יחידות ציוד',
+    records.reduce((total, record) => total + getEquipmentQuantityTotal(record.cells), 0),
   ];
   worksheet.getRow(2).values = summary;
   worksheet.getRow(2).height = 25;
@@ -111,18 +118,19 @@ export async function createEquipmentWorkbook({ equipmentImport, records }) {
 
   records.forEach((record, recordIndex) => {
     const cells = Array.from({ length: headers.length }, (_, index) =>
-      cleanWorksheetValue(record.cells?.[index]),
+      cleanWorksheetValue(record.cells?.[index], EQUIPMENT_CHECKLIST_COLUMNS.includes(index)),
     );
     cells[0] = record.worker_name;
     const row = worksheet.addRow([
       record.section_name || 'ללא קבוצה',
       ...cells,
-      record.checked_item_count || 0,
+      getEquipmentQuantityTotal(record.cells),
     ]);
     row.height = 24;
     row.eachCell({ includeEmpty: true }, (cell, columnIndex) => {
-      const value = String(cell.value ?? '');
-      const isMarked = value === 'קיים';
+      const sourceCellIndex = columnIndex - 2;
+      const isQuantity = EQUIPMENT_CHECKLIST_COLUMNS.includes(sourceCellIndex);
+      const isMarked = isQuantity && Number(cell.value) > 0;
       const isGroup = columnIndex === 1;
       const isCount = columnIndex === exportHeaders.length;
       const banded = recordIndex % 2 === 1;
@@ -144,8 +152,8 @@ export async function createEquipmentWorkbook({ equipmentImport, records }) {
       };
       cell.border = { bottom: { style: 'thin', color: { argb: 'FFE1E9EE' } } };
       cell.numFmt = '@';
+      if (isQuantity || isCount) cell.numFmt = '0';
     });
-    row.getCell(exportHeaders.length).numFmt = '0';
   });
 
   worksheet.autoFilter = {

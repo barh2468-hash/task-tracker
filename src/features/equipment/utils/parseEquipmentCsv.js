@@ -1,3 +1,5 @@
+import { getEquipmentQuantityTotal } from './equipmentQuantities.js';
+
 const DEFAULT_COLUMN_LABELS = [
   'שם העובד',
   'דגם מכשיר 1',
@@ -156,7 +158,7 @@ export function parseEquipmentRows(rows, fileName = '') {
     const sourceNameUnreadable = !rawWorkerName || isUnreadableEquipmentText(rawWorkerName);
     const workerNumber = records.length + 1;
     const workerName = sourceNameUnreadable ? `עובד ${workerNumber}` : rawWorkerName;
-    const checkedItemCount = cells.slice(5, 34).filter((cell) => /^v$/i.test(cell)).length;
+    const checkedItemCount = getEquipmentQuantityTotal(cells);
 
     records.push({
       source_row_number: sourceIndex + 2,

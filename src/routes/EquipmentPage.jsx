@@ -15,6 +15,7 @@ import {
   HardHat,
   Package,
   Pencil,
+  Minus,
   Plus,
   Search,
   Save,
@@ -38,14 +39,15 @@ import {
   parseEquipmentFile,
 } from '../features/equipment/utils/parseEquipmentCsv.js';
 import { exportEquipmentWorkbook } from '../features/equipment/utils/exportEquipmentWorkbook.js';
+import {
+  EQUIPMENT_CHECKLIST_COLUMNS,
+  getEquipmentQuantity,
+  getEquipmentQuantityTotal,
+  toEquipmentQuantityCell,
+} from '../features/equipment/utils/equipmentQuantities.js';
 
 const DEVICE_COLUMNS = [1, 2, 3, 4, 13, 14, 34];
 const EDITOR_TEXT_COLUMNS = [1, 2, 3, 4, 13, 14, 15, 34, 35, 36];
-const CHECKLIST_COLUMNS = [
-  5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
-  28, 29, 30, 31, 32, 33,
-];
-
 function hasDatabaseSchemaError(error) {
   return error?.code === '42P01' || error?.code === 'PGRST205';
 }
@@ -89,7 +91,7 @@ function EquipmentMetric({ icon: Icon, value, label, tone }) {
 function EquipmentDetails({ record, headers }) {
   const populatedCells = (record.cells || [])
     .map((value, index) => ({ index, label: headers[index] || `${t('עמודה')} ${index + 1}`, value }))
-    .filter(({ index, value }) => index > 0 && value);
+    .filter(({ index, value }) => index > 0 && (value || EQUIPMENT_CHECKLIST_COLUMNS.includes(index)));
 
   return (
     <div className="equipmentDetails">
@@ -101,8 +103,12 @@ function EquipmentDetails({ record, headers }) {
       )}
       <div className="equipmentDetailsGrid">
         {populatedCells.map(({ index, label, value }) => {
-          const checked = /^v$/i.test(value);
-          const unavailable = value === '-';
+          const isQuantityCell = EQUIPMENT_CHECKLIST_COLUMNS.includes(index);
+          const quantity = isQuantityCell
+            ? getEquipmentQuantity(value)
+            : 0;
+          const checked = quantity > 0;
+          const unavailable = isQuantityCell ? quantity === 0 : value === '-';
           const unreadable = isUnreadableEquipmentText(value);
           return (
             <div
@@ -111,8 +117,8 @@ function EquipmentDetails({ record, headers }) {
             >
               <span>{label}</span>
               <b>
-                {checked
-                  ? t('קיים')
+                {isQuantityCell
+                  ? `${t('כמות')}: ${quantity}`
                   : unavailable
                     ? t('לא מסומן')
                     : formatEquipmentValue(value)}
@@ -125,7 +131,7 @@ function EquipmentDetails({ record, headers }) {
   );
 }
 
-function EquipmentEditor({ draft, headers, sections, saving, error, onChange, onToggle, onClose, onSave }) {
+function EquipmentEditor({ draft, headers, sections, saving, error, onChange, onQuantityChange, onClose, onSave }) {
   const isNew = !draft.id;
 
   return (
@@ -206,27 +212,53 @@ function EquipmentEditor({ draft, headers, sections, saving, error, onChange, on
               <ClipboardCheck size={17} />
               <div>
                 <b>{t('ציוד אישי וכלי עבודה')}</b>
-                <span>{t('לחיצה על פריט מעדכנת אם הוא נמצא אצל העובד.')}</span>
+                <span>{t('הגדירו כמות לכל אביזר באמצעות כפתורי הפלוס והמינוס.')}</span>
               </div>
-              <strong>{draft.checked_item_count} / {CHECKLIST_COLUMNS.length}</strong>
+              <strong>{draft.checked_item_count} {t('יחידות')}</strong>
             </div>
             <div className="equipmentChecklistEditor">
-              {CHECKLIST_COLUMNS.filter((index) => headers[index]).map((index) => {
-                const checked = /^v$/i.test(draft.cells[index] || '');
+              {EQUIPMENT_CHECKLIST_COLUMNS.filter((index) => headers[index]).map((index) => {
+                const quantity = getEquipmentQuantity(draft.cells[index]);
                 return (
-                  <button
-                    type="button"
-                    className={checked ? 'checked' : ''}
-                    aria-pressed={checked}
-                    onClick={() => onToggle(index)}
+                  <div
+                    className={`equipmentQuantityItem${quantity > 0 ? ' checked' : ''}`}
                     key={index}
                   >
                     <span className="equipmentChecklistMark">
-                      {checked ? <CheckCircle size={17} /> : <span />}
+                      {quantity > 0 ? <CheckCircle size={17} /> : <span />}
                     </span>
-                    <b>{headers[index]}</b>
-                    <small>{t(checked ? 'קיים' : 'לא מסומן')}</small>
-                  </button>
+                    <span className="equipmentQuantityLabel">
+                      <b>{headers[index]}</b>
+                      <small>{quantity > 0 ? `${quantity} ${t('יחידות')}` : t('לא הוקצה')}</small>
+                    </span>
+                    <span className="equipmentQuantityControl">
+                      <button
+                        type="button"
+                        onClick={() => onQuantityChange(index, quantity - 1)}
+                        disabled={quantity === 0}
+                        aria-label={`${t('הפחתת כמות')} ${headers[index]}`}
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <input
+                        type="number"
+                        min="0"
+                        max="999"
+                        inputMode="numeric"
+                        value={quantity}
+                        onChange={(event) => onQuantityChange(index, event.target.value)}
+                        aria-label={`${t('כמות')} ${headers[index]}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => onQuantityChange(index, quantity + 1)}
+                        disabled={quantity >= 999}
+                        aria-label={`${t('הגדלת כמות')} ${headers[index]}`}
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </span>
+                  </div>
                 );
               })}
             </div>
@@ -328,7 +360,7 @@ export default function EquipmentPage() {
     () => records.filter((record) => getDeviceValues(record).length > 0).length,
     [records],
   );
-  const markedItems = useMemo(
+  const equipmentUnits = useMemo(
     () => records.reduce((total, record) => total + (record.checked_item_count || 0), 0),
     [records],
   );
@@ -405,15 +437,15 @@ export default function EquipmentPage() {
     });
   }
 
-  function toggleEditorItem(cellIndex) {
+  function changeEditorQuantity(cellIndex, value) {
     setEditor((current) => {
       if (!current) return current;
       const cells = [...current.cells];
-      cells[cellIndex] = /^v$/i.test(cells[cellIndex] || '') ? '-' : 'V';
+      cells[cellIndex] = toEquipmentQuantityCell(value);
       return {
         ...current,
         cells,
-        checked_item_count: CHECKLIST_COLUMNS.filter((index) => /^v$/i.test(cells[index] || '')).length,
+        checked_item_count: getEquipmentQuantityTotal(cells),
       };
     });
   }
@@ -437,7 +469,7 @@ export default function EquipmentPage() {
         source_name_unreadable: false,
         section_name: sectionName,
         source_section: sectionName,
-        checked_item_count: CHECKLIST_COLUMNS.filter((index) => /^v$/i.test(cells[index] || '')).length,
+        checked_item_count: getEquipmentQuantityTotal(cells),
         cells,
       };
 
@@ -545,7 +577,7 @@ export default function EquipmentPage() {
       <section className="equipmentMetrics" aria-label={t('סיכום ציוד')}>
         <EquipmentMetric icon={Users} value={records.length} label="עובדים בריכוז" tone="blue" />
         <EquipmentMetric icon={Package} value={recordsWithDevices} label="עובדים עם מזהי ציוד" tone="teal" />
-        <EquipmentMetric icon={CheckCircle} value={markedItems} label="פריטי ציוד מסומנים" tone="orange" />
+        <EquipmentMetric icon={CheckCircle} value={equipmentUnits} label="סה״כ יחידות ציוד" tone="orange" />
         <EquipmentMetric
           icon={CalendarDays}
           value={equipmentImport ? formatPeriod(equipmentImport.source_period, language) : '—'}
@@ -630,7 +662,7 @@ export default function EquipmentPage() {
                   <th>{t('עובד')}</th>
                   <th>{t('קבוצה')}</th>
                   <th>{t('מכשירים ומזהים')}</th>
-                  <th>{t('פריטים מסומנים')}</th>
+                  <th>{t('כמות ציוד')}</th>
                   <th>{t('פעולות')}</th>
                 </tr>
               </thead>
@@ -639,7 +671,7 @@ export default function EquipmentPage() {
                   const recordKey = record.id || record.source_row_number;
                   const expanded = expandedId === recordKey;
                   const devices = getDeviceValues(record);
-                  const completion = Math.round(((record.checked_item_count || 0) / CHECKLIST_COLUMNS.length) * 100);
+                  const completion = Math.min(100, Math.round(((record.checked_item_count || 0) / EQUIPMENT_CHECKLIST_COLUMNS.length) * 100));
                   return (
                     <tr className={expanded ? 'expanded' : ''} key={recordKey}>
                       <td colSpan={5}>
@@ -667,7 +699,7 @@ export default function EquipmentPage() {
                               {devices.length > 4 && <small>+{devices.length - 4}</small>}
                             </span>
                             <span className="equipmentCountCell">
-                              <span><CheckCircle size={15} /> {record.checked_item_count || 0}</span>
+                              <span><CheckCircle size={15} /> {record.checked_item_count || 0} {t('יח׳')}</span>
                               <span className="equipmentMiniProgress"><i style={{ width: `${completion}%` }} /></span>
                             </span>
                             <span className="equipmentExpandIcon">
@@ -703,7 +735,7 @@ export default function EquipmentPage() {
           saving={savingRecord}
           error={editorError}
           onChange={changeEditorValue}
-          onToggle={toggleEditorItem}
+          onQuantityChange={changeEditorQuantity}
           onClose={() => setEditor(null)}
           onSave={submitRecordEditor}
         />

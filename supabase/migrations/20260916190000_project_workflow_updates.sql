@@ -106,7 +106,7 @@ using (
     or exists (
       select 1
       from public.projects pr
-      where pr.id::text = (storage.foldername(name))[1]
+      where pr.id::text = (storage.foldername(objects.name))[1]
         and (
           pr.assigned_to = auth.uid()
           or exists (
@@ -147,7 +147,7 @@ using (
     or exists (
       select 1
       from public.projects pr
-      where pr.id::text = (storage.foldername(name))[1]
+      where pr.id::text = (storage.foldername(objects.name))[1]
         and (
           pr.assigned_to = auth.uid()
           or exists (

@@ -39,6 +39,15 @@ function bytesToBase64(bytes: Uint8Array) {
   return btoa(binary);
 }
 
+function formatIsraelDate(value: string) {
+  return new Intl.DateTimeFormat('he-IL', {
+    timeZone: 'Asia/Jerusalem',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -95,6 +104,22 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'no_manager_emails' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    const awaitingDrafterAssignment = payload.newStatus === 'עבר לשרטוט';
+    let executionStartDate: string | null = null;
+    if (awaitingDrafterAssignment) {
+      const { data: firstWorkSession, error: firstWorkSessionError } = await adminClient
+        .from('work_sessions')
+        .select('started_at')
+        .eq('project_id', payload.projectId)
+        .order('started_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (firstWorkSessionError) throw firstWorkSessionError;
+      if (firstWorkSession?.started_at) {
+        executionStartDate = formatIsraelDate(firstWorkSession.started_at);
+      }
+    }
+
     let attachedDiaryNumber: number | null = null;
     const attachments: Array<{ filename: string; content: string }> = [];
     if (payload.newStatus === 'הושלם') {
@@ -120,7 +145,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    const awaitingDrafterAssignment = payload.newStatus === 'עבר לשרטוט';
     const subject = awaitingDrafterAssignment
       ? `ממתין לשיוך שרטט: ${payload.projectName}`
       : `עדכון סטטוס: ${payload.projectName} → ${payload.newStatus}`;
@@ -133,6 +157,7 @@ Deno.serve(async (req) => {
         <p><b>מיקום:</b> ${escapeHtml(payload.location || 'לא צוין')}</p>
         <p><b>סטטוס קודם:</b> ${escapeHtml(payload.oldStatus || 'לא צוין')}</p>
         <p><b>סטטוס חדש:</b> ${escapeHtml(payload.newStatus)}</p>
+        ${awaitingDrafterAssignment ? `<p><b>תאריך תחילת ביצוע:</b> ${escapeHtml(executionStartDate || 'לא נמצא דיווח כניסה')}</p>` : ''}
         ${awaitingDrafterAssignment ? '<p style="padding:12px;border-radius:10px;background:#f3edff;color:#4c1d95"><b>נדרשת פעולת מנהל:</b> יש להיכנס למערכת ולשייך את הפרויקט לשרטט.</p>' : ''}
         <p><b>עודכן על ידי:</b> ${escapeHtml(changer.full_name)} (${escapeHtml(changer.email)})</p>
         ${attachedDiaryNumber ? `<p><b>מצורף:</b> יומן עבודה ${attachedDiaryNumber} (PDF)</p>` : ''}
@@ -148,6 +173,7 @@ Deno.serve(async (req) => {
       `מיקום: ${payload.location || 'לא צוין'}`,
       `סטטוס קודם: ${payload.oldStatus || 'לא צוין'}`,
       `סטטוס חדש: ${payload.newStatus}`,
+      awaitingDrafterAssignment ? `תאריך תחילת ביצוע: ${executionStartDate || 'לא נמצא דיווח כניסה'}` : '',
       awaitingDrafterAssignment ? 'נדרשת פעולת מנהל: יש לשייך את הפרויקט לשרטט במערכת.' : '',
       `עודכן על ידי: ${changer.full_name} (${changer.email})`,
       attachedDiaryNumber ? `מצורף: יומן עבודה ${attachedDiaryNumber} (PDF)` : '',

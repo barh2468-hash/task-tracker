@@ -37,12 +37,16 @@ export default function ProjectDocumentsPanel({
   onUpload,
   onDelete,
   defaultDocumentType = 'general',
+  lockedDocumentType,
+  title = 'קבצים לשרטוט ולתיקונים',
+  eyebrow = 'מסמכים מהשטח לשרטט',
+  compact = false,
 }) {
   useTranslation();
   const [links, setLinks] = useState({});
   const [uploading, setUploading] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [documentType, setDocumentType] = useState(defaultDocumentType);
+  const [documentType, setDocumentType] = useState(lockedDocumentType || defaultDocumentType);
   const [previewDocument, setPreviewDocument] = useState(null);
   const allowsImages = documentTypeAllowsImages(documentType);
 
@@ -94,7 +98,7 @@ export default function ProjectDocumentsPanel({
 
     setUploading(true);
     try {
-      const result = await onUpload(file, documentType);
+      const result = await onUpload(file, lockedDocumentType || documentType);
       if (result?.ok) setUploadOpen(false);
     } finally {
       setUploading(false);
@@ -104,12 +108,14 @@ export default function ProjectDocumentsPanel({
 
   return (
     <>
-      <section className="projectSectionPanel projectDocumentsPanel">
+      <section
+        className={`projectSectionPanel projectDocumentsPanel${compact ? ' projectDocumentsPanelCompact' : ''}`}
+      >
       <header className="projectSectionHeader projectDocumentsHeader">
         <div>
-          <span className="projectDocumentsEyebrow">{t('מסמכים מהשטח לשרטט')}</span>
+          <span className="projectDocumentsEyebrow">{t(eyebrow)}</span>
           <h3>
-            <FileText size={19} /> {t('קבצים לשרטוט ולתיקונים')}
+            <FileText size={19} /> {t(title)}
           </h3>
         </div>
         <div className="projectDocumentsHeaderActions">
@@ -237,20 +243,22 @@ export default function ProjectDocumentsPanel({
                   <X size={18} />
                 </button>
               </div>
-              <label className="projectDocumentType">
-                <span>{t('מטרת המסמך')}</span>
-                <select
-                  value={documentType}
-                  disabled={uploading}
-                  onChange={(event) => setDocumentType(event.target.value)}
-                >
-                  {documentTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {t(type.label)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {!lockedDocumentType && (
+                <label className="projectDocumentType">
+                  <span>{t('מטרת המסמך')}</span>
+                  <select
+                    value={documentType}
+                    disabled={uploading}
+                    onChange={(event) => setDocumentType(event.target.value)}
+                  >
+                    {documentTypes.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {t(type.label)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label className={`filePickerControl documentFilePicker ${uploading ? 'uploading' : ''}`}>
                 {uploading ? <LoaderCircle size={19} /> : <Upload size={19} />}
                 <span>

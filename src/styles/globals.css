@@ -1439,7 +1439,6 @@ body.language-en { direction: ltr; }
 .statusUpdateControls,.projectOperationsPanel .photoUploadBox{grid-column:2;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end;min-width:0;padding:0;border:0;background:transparent;overflow:visible}
 .statusUpdateControls>button,.projectOperationsPanel .photoUploadBox .smallBtn{width:100%;min-width:0;min-height:46px;margin:0}
 .projectOperationField{min-width:0;gap:5px}.projectOperationField>span{color:var(--muted);font-size:11px;font-weight:850}.projectOperationField select{width:100%;min-width:0;min-height:46px;margin:0}
-.projectExpandedBody>.projectDocumentsPanel{grid-column:auto}
 
 @media(max-width:1050px){
   .projectOverviewPanel{grid-template-columns:minmax(0,1fr)}
@@ -1460,7 +1459,6 @@ body.language-en { direction: ltr; }
   .projectStatusActions>button{width:100%;min-width:0}
   .projectOperationsPanel .timeBox,.statusUpdateControls,.projectOperationsPanel .photoUploadBox{grid-column:auto}
   .statusUpdateControls,.projectOperationsPanel .photoUploadBox{grid-template-columns:minmax(0,1fr)}
-  .projectExpandedBody>.projectDocumentsPanel{grid-column:auto}
 }
 
 /* Review workflow, document exchange and consistent expanded-card sections */

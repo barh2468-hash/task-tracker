@@ -47,7 +47,7 @@ export default function TodayFieldPanel() {
         />
         <Stat number={activeSessions.length} label={t('משמרות פתוחות')} icon={<PlayCircle />} />
         <Stat number={presentSessions.length} label={t('נוכחים עכשיו')} icon={<Users />} />
-        <Stat number={notStarted.length} label={t('עובדים שלא התחילו')} icon={<AlertTriangle />} />
+        <Stat number={notStarted.length} label={t('עובדי שטח שלא התחילו')} icon={<AlertTriangle />} />
       </div>
       {!attendanceAvailable && (
         <p className="attendanceSetupNotice">
@@ -79,7 +79,7 @@ export default function TodayFieldPanel() {
           ))}
         </div>
         <div className="innerPanel">
-          <h3>{t('טרם התחילו היום')}</h3>
+          <h3>{t('עובדי שטח שטרם התחילו היום')}</h3>
           {notStarted.length === 0 && (
             <p className="muted">{t('כל העובדים התחילו או שאין עובדים להצגה.')}</p>
           )}

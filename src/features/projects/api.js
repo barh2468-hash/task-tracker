@@ -9,6 +9,7 @@ import * as statusHistoryApi from '../../services/api/statusHistory.js';
 import * as storageApi from '../../services/api/storage.js';
 import * as edgeFunctions from '../../services/api/edgeFunctions.js';
 import {
+  FIELD_WORKER_STATUSES,
   statusProgress,
   REVIEW_COMPLETED_STATUS,
   REVIEW_STATUS,
@@ -16,6 +17,12 @@ import {
 import { createManagerNotification, createUserNotification } from '../notifications/api.js';
 import { enqueueOfflineAction } from '../../services/offlineStore.js';
 import { findAssignedDrafter, isDrafterCandidate } from './utils/drafters.js';
+import {
+  documentTypeAllowsImages,
+  isPdfFile,
+  isSupportedImageFile,
+  MAX_PROJECT_FILE_SIZE,
+} from './utils/projectFiles.js';
 
 // ---- Loading ----------------------------------------------------------
 
@@ -98,7 +105,6 @@ export async function sendProjectAssignmentEmail(workerId, project, assignedByNa
     location: project.location || null,
     contactPhone: project.contact_phone || null,
     description: project.description || null,
-    dueDate: project.due_date || null,
     assignedByName: assignedByName || 'מנהל מערכת',
     appUrl: typeof window !== 'undefined' ? window.location.origin : undefined,
   });
@@ -149,6 +155,12 @@ export async function updateStatus(project, newStatus, note, profile) {
 
   if (newStatus === project.status) {
     return { message: 'יש לבחור סטטוס שונה מהסטטוס הנוכחי.', ok: false };
+  }
+  if (profile?.role === 'field_worker' && !FIELD_WORKER_STATUSES.includes(newStatus)) {
+    return {
+      message: 'עובד שטח יכול לעדכן סטטוס רק לעבודה בשטח או לעבר לשרטוט.',
+      ok: false,
+    };
   }
   const cleanNote = String(note || '').trim();
 
@@ -266,8 +278,6 @@ export async function deletePhoto(photo, project, profile) {
 
 // ---- Shared project PDF documents ---------------------------------------
 
-const MAX_PROJECT_DOCUMENT_SIZE = 20 * 1024 * 1024;
-
 function isAssignedFieldWorker(project, profile, userId) {
   return (
     profile?.role === 'field_worker' &&
@@ -282,23 +292,30 @@ export async function uploadProjectDocument(project, file, profile, documentType
 
   const canUpload = profile.role === 'manager' || isAssignedFieldWorker(project, profile, user.id);
   if (!canUpload) return { message: 'אין לך הרשאה להעלות מסמכים לפרויקט הזה.' };
-  if (!navigator.onLine) return { message: 'נדרש חיבור לאינטרנט כדי להעלות מסמך PDF.' };
+  if (!navigator.onLine) return { message: 'נדרש חיבור לאינטרנט כדי להעלות קובץ.' };
 
-  const isPdfName = file.name.toLowerCase().endsWith('.pdf');
-  const isPdfType = !file.type || file.type === 'application/pdf';
-  if (!isPdfName || !isPdfType) return { message: 'אפשר להעלות קובצי PDF בלבד.' };
-  if (!file.size) return { message: 'קובץ ה־PDF ריק ולא ניתן להעלות אותו.' };
-  if (file.size > MAX_PROJECT_DOCUMENT_SIZE) {
-    return { message: 'קובץ ה־PDF גדול מדי. הגודל המרבי הוא 20MB.' };
+  const pdfFile = isPdfFile(file);
+  const imageFile = isSupportedImageFile(file);
+  const allowsImages = documentTypeAllowsImages(documentType);
+  if (!pdfFile && !(allowsImages && imageFile)) {
+    return {
+      message: allowsImages
+        ? 'אפשר להעלות PDF או תמונה בפורמט JPG, PNG, WEBP או HEIC.'
+        : 'אפשר להעלות קובץ PDF בלבד.',
+    };
+  }
+  if (!file.size) return { message: 'הקובץ ריק ולא ניתן להעלות אותו.' };
+  if (file.size > MAX_PROJECT_FILE_SIZE) {
+    return { message: 'הקובץ גדול מדי. הגודל המרבי הוא 20MB.' };
   }
 
   const path = `${project.id}/${user.id}/${Date.now()}-${storageApi.safeFileName(file.name)}`;
   const { error: uploadError } = await storageApi.uploadFile('project-documents', path, file, {
     upsert: false,
-    contentType: 'application/pdf',
+    contentType: file.type || (pdfFile ? 'application/pdf' : undefined),
     cacheControl: '3600',
   });
-  if (uploadError) return { message: `העלאת ה־PDF נכשלה: ${uploadError.message}` };
+  if (uploadError) return { message: `העלאת הקובץ נכשלה: ${uploadError.message}` };
 
   const { error: insertError } = await projectDocumentsApi.insertProjectDocument({
     project_id: project.id,
@@ -306,17 +323,18 @@ export async function uploadProjectDocument(project, file, profile, documentType
     file_path: path,
     file_name: file.name,
     file_size: file.size,
+    mime_type: file.type || (pdfFile ? 'application/pdf' : null),
     document_type: documentType,
   });
   if (insertError) {
     await storageApi.removeFiles('project-documents', [path]);
-    return { message: `שמירת מסמך ה־PDF בפרויקט נכשלה: ${insertError.message}` };
+    return { message: `שמירת הקובץ בפרויקט נכשלה: ${insertError.message}` };
   }
 
   await statusHistoryApi.insertStatusHistory({
     project_id: project.id,
     old_status: null,
-    new_status: 'הועלה מסמך PDF',
+    new_status: 'הועלה מסמך',
     changed_by: user.id,
     note: `${documentType === 'boundary_sketch' ? 'סקיצת גבול עבודה' : documentType === 'drawing_correction' ? 'תיקוני שרטוט' : documentType === 'drawing_source' ? 'חומר לשרטוט' : 'מסמך כללי'}: ${file.name}`,
   });
@@ -343,7 +361,7 @@ export async function uploadProjectDocument(project, file, profile, documentType
     }
   }
 
-  return { message: 'מסמך ה־PDF הועלה ונשמר בפרויקט.', ok: true };
+  return { message: 'הקובץ הועלה ונשמר בפרויקט.', ok: true };
 }
 
 export async function deleteProjectDocument(projectDocument, project, profile) {
@@ -355,15 +373,15 @@ export async function deleteProjectDocument(projectDocument, project, profile) {
   const canDelete =
     profile.role === 'manager' ||
     (projectDocument.uploaded_by === user.id && isAssignedFieldWorker(project, profile, user.id));
-  if (!canDelete) return { message: 'אין לך הרשאה למחוק את מסמך ה־PDF הזה.' };
+  if (!canDelete) return { message: 'אין לך הרשאה למחוק את הקובץ הזה.' };
 
-  const ok = window.confirm(`למחוק את מסמך ה־PDF "${projectDocument.file_name}"?`);
+  const ok = window.confirm(`למחוק את הקובץ "${projectDocument.file_name}"?`);
   if (!ok) return null;
 
   const { error: storageError } = await storageApi.removeFiles('project-documents', [
     projectDocument.file_path,
   ]);
-  if (storageError) return { message: `מחיקת ה־PDF מהאחסון נכשלה: ${storageError.message}` };
+  if (storageError) return { message: `מחיקת הקובץ מהאחסון נכשלה: ${storageError.message}` };
 
   const { error: deleteError } = await projectDocumentsApi.deleteProjectDocument(
     projectDocument.id,
@@ -375,12 +393,12 @@ export async function deleteProjectDocument(projectDocument, project, profile) {
   await statusHistoryApi.insertStatusHistory({
     project_id: project.id,
     old_status: null,
-    new_status: 'נמחק מסמך PDF',
+    new_status: 'נמחק מסמך',
     changed_by: user.id,
     note: projectDocument.file_name,
   });
 
-  return { message: 'מסמך ה־PDF נמחק מהפרויקט.' };
+  return { message: 'הקובץ נמחק מהפרויקט.' };
 }
 
 // ---- Drafter / review workflow --------------------------------------------
@@ -463,7 +481,7 @@ export async function sendProjectToReview(project, file, note, profile) {
   const isPdfType = !file.type || file.type === 'application/pdf';
   if (!isPdfName || !isPdfType) return { message: 'אפשר להעלות להגהה קובץ PDF בלבד.', ok: false };
   if (!file.size) return { message: 'קובץ ה־PDF ריק ולא ניתן להעלות אותו.', ok: false };
-  if (file.size > MAX_PROJECT_DOCUMENT_SIZE) {
+  if (file.size > MAX_PROJECT_FILE_SIZE) {
     return { message: 'קובץ ה־PDF גדול מדי. הגודל המרבי הוא 20MB.', ok: false };
   }
 
@@ -597,8 +615,8 @@ export async function createProject(newProject, profile) {
     contact_phone: newProject.contact_phone || null,
     contact_email: newProject.contact_email || null,
     description: newProject.description || null,
+    additional_notes: newProject.additional_notes || null,
     assigned_to: newProject.assigned_to || null,
-    due_date: newProject.due_date || null,
     created_by: user.id,
     status: 'בעבודה בשטח',
     progress: 25,
@@ -690,8 +708,8 @@ export async function saveProject(projectId, changes, profile, originalProject) 
     contact_phone: changes.contact_phone || null,
     contact_email: changes.contact_email || null,
     description: changes.description || null,
+    additional_notes: changes.additional_notes || null,
     assigned_to: nextAssignedTo,
-    due_date: changes.due_date || null,
     requires_work_diary: Boolean(changes.requires_work_diary),
   });
   if (error) return { message: error.message };
@@ -730,7 +748,6 @@ export async function saveProject(projectId, changes, profile, originalProject) 
     location: changes.location || originalProject?.location || null,
     contact_phone: changes.contact_phone || originalProject?.contact_phone || null,
     description: changes.description || originalProject?.description || null,
-    due_date: changes.due_date || originalProject?.due_date || null,
   };
 
   for (const workerId of addedExtraWorkers) {

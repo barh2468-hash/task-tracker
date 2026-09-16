@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { FileUp, LoaderCircle } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../ProjectsContext.jsx';
+import { PDF_OR_IMAGE_ACCEPT } from '../utils/projectFiles.js';
 
 const emptyProject = {
   name: '',
@@ -13,9 +14,9 @@ const emptyProject = {
   contact_phone: '',
   contact_email: '',
   description: '',
+  additional_notes: '',
   assigned_to: '',
   assigned_workers: [],
-  due_date: '',
   requires_work_diary: false,
   boundary_sketch: null,
 };
@@ -28,7 +29,6 @@ export default function NewProjectForm() {
   const [project, setProject] = useState(emptyProject);
   const [creating, setCreating] = useState(false);
 
-  const projectLeads = workers.filter((worker) => worker.role !== 'drafter');
   const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
 
   async function handleCreate() {
@@ -99,14 +99,14 @@ export default function NewProjectForm() {
           />
         </label>
         <label>
-          {t('שיוך לאחראי ראשי (מנהל או עובד שטח), אופציונלי')}
+          {t('שיוך לעובד שטח אחראי, אופציונלי')}
 
           <select
             value={project.assigned_to}
             onChange={(e) => setProject({ ...project, assigned_to: e.target.value })}
           >
             <option value="">{t('ללא שיוך כרגע')}</option>
-            {projectLeads.map((w) => (
+            {fieldWorkers.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.full_name} - {w.email}
               </option>
@@ -134,15 +134,6 @@ export default function NewProjectForm() {
             ))}
           </div>
         </label>
-        <label>
-          {t('תאריך יעד')}
-
-          <input
-            type="date"
-            value={project.due_date}
-            onChange={(e) => setProject({ ...project, due_date: e.target.value })}
-          />
-        </label>
         <label className="workDiaryProjectToggle">
           <input
             type="checkbox"
@@ -158,11 +149,11 @@ export default function NewProjectForm() {
           <span className="filePickerControl">
             <FileUp size={18} />
             <span>
-              {project.boundary_sketch?.name || t('בחירת קובץ PDF של סקיצת גבול עבודה')}
+              {project.boundary_sketch?.name || t('בחירת PDF או תמונה של סקיצת גבול עבודה')}
             </span>
             <input
               type="file"
-              accept="application/pdf,.pdf"
+              accept={PDF_OR_IMAGE_ACCEPT}
               disabled={creating}
               onChange={(event) =>
                 setProject({ ...project, boundary_sketch: event.target.files?.[0] || null })
@@ -170,16 +161,25 @@ export default function NewProjectForm() {
             />
           </span>
         </label>
-      </div>
-      <label>
-        {t('תיאור העבודה')}
+        <label>
+          {t('תיאור העבודה')}
 
-        <textarea
-          value={project.description}
-          onChange={(e) => setProject({ ...project, description: e.target.value })}
-          placeholder={t('פירוט איתור תשתיות, דרישות לקוח, חסמים וכו׳')}
-        />
-      </label>
+          <textarea
+            value={project.description}
+            onChange={(e) => setProject({ ...project, description: e.target.value })}
+            placeholder={t('פירוט איתור תשתיות, דרישות לקוח, חסמים וכו׳')}
+          />
+        </label>
+        <label>
+          {t('הערות נוספות')}
+
+          <textarea
+            value={project.additional_notes}
+            onChange={(e) => setProject({ ...project, additional_notes: e.target.value })}
+            placeholder={t('הערות פנימיות או מידע משלים לפרויקט')}
+          />
+        </label>
+      </div>
       <button onClick={handleCreate} disabled={creating}>
         {creating && <LoaderCircle className="spinIcon" size={17} />}
         {creating ? t('יוצר פרויקט...') : t('צור פרויקט')}

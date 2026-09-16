@@ -20,6 +20,7 @@ import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../ProjectsContext.jsx';
 import {
   appStatuses,
+  FIELD_WORKER_STATUSES,
   REVIEW_COMPLETED_STATUS,
   REVIEW_STATUS,
 } from '../../../services/supabase.js';
@@ -70,7 +71,10 @@ export default function ProjectCard({ project, focused = false }) {
 
   const projectHistory = historyItems.filter((h) => h.project_id === project.id).slice(0, 4);
 
-  const [status, setStatus] = useState(project.status);
+  const statusOptions = profile?.role === 'field_worker' ? FIELD_WORKER_STATUSES : appStatuses;
+  const [status, setStatus] = useState(
+    statusOptions.includes(project.status) ? project.status : '',
+  );
   const [statusNote, setStatusNote] = useState('');
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
@@ -92,7 +96,6 @@ export default function ProjectCard({ project, focused = false }) {
   const [assetsLoading, setAssetsLoading] = useState(false);
   const assignedDrafterId = findAssignedDrafter(project)?.worker_id || '';
   const [selectedDrafterId, setSelectedDrafterId] = useState(assignedDrafterId);
-  const projectLeads = workers.filter((worker) => worker.role !== 'drafter');
   const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
   const drafters = workers.filter(isDrafterCandidate);
   const [editProject, setEditProject] = useState({
@@ -102,17 +105,17 @@ export default function ProjectCard({ project, focused = false }) {
     contact_phone: project.contact_phone || '',
     contact_email: project.contact_email || '',
     description: project.description || '',
+    additional_notes: project.additional_notes || '',
     assigned_to: project.assigned_to || '',
     assigned_workers: (project.project_workers || [])
       .filter(
         (assignment) => !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
       )
       .map((assignment) => assignment.worker_id),
-    due_date: project.due_date || '',
     requires_work_diary: Boolean(project.requires_work_diary),
   });
   useEffect(() => {
-    setStatus(project.status);
+    setStatus(statusOptions.includes(project.status) ? project.status : '');
     setEditProject({
       name: project.name,
       client_name: project.client_name || '',
@@ -120,17 +123,17 @@ export default function ProjectCard({ project, focused = false }) {
       contact_phone: project.contact_phone || '',
       contact_email: project.contact_email || '',
       description: project.description || '',
+      additional_notes: project.additional_notes || '',
       assigned_to: project.assigned_to || '',
       assigned_workers: (project.project_workers || [])
         .filter(
           (assignment) => !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
         )
         .map((assignment) => assignment.worker_id),
-      due_date: project.due_date || '',
       requires_work_diary: Boolean(project.requires_work_diary),
     });
     setSelectedDrafterId(findAssignedDrafter(project)?.worker_id || '');
-  }, [project]);
+  }, [project, statusOptions]);
 
   // Project objects are replaced by the realtime/polling refresh even when the
   // project itself did not change. Keep a selected review PDF across those
@@ -200,7 +203,7 @@ export default function ProjectCard({ project, focused = false }) {
         <div className="editHeader modalHeader">
           <div>
             <h3>{t('עריכת פרויקט')}</h3>
-            <p className="muted">{t('עדכון פרטי הפרויקט, שיוך עובד ותאריך יעד.')}</p>
+            <p className="muted">{t('עדכון פרטי הפרויקט ושיוך עובדי שטח.')}</p>
           </div>
           <button
             className="ghost smallBtn iconBtn"
@@ -258,14 +261,14 @@ export default function ProjectCard({ project, focused = false }) {
             />
           </label>
           <label>
-            {t('שיוך לאחראי ראשי (מנהל או עובד שטח)')}
+            {t('שיוך לעובד שטח אחראי')}
 
             <select
               value={editProject.assigned_to}
               onChange={(e) => setEditProject({ ...editProject, assigned_to: e.target.value })}
             >
               <option value="">{t('לא משויך')}</option>
-              {projectLeads.map((w) => (
+              {fieldWorkers.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.full_name} - {w.email}
                 </option>
@@ -293,15 +296,6 @@ export default function ProjectCard({ project, focused = false }) {
               ))}
             </div>
           </label>
-          <label>
-            {t('תאריך יעד')}
-
-            <input
-              type="date"
-              value={editProject.due_date}
-              onChange={(e) => setEditProject({ ...editProject, due_date: e.target.value })}
-            />
-          </label>
           <label className="workDiaryProjectToggle wideField">
             <input
               type="checkbox"
@@ -317,15 +311,26 @@ export default function ProjectCard({ project, focused = false }) {
             {t('הפרויקט דורש יומן עבודה וחתימות')}
           </label>
         </div>
-        <label>
-          {t('תיאור')}
+        <div className="formGrid">
+          <label>
+            {t('תיאור')}
 
-          <textarea
-            className="modalTextarea"
-            value={editProject.description}
-            onChange={(e) => setEditProject({ ...editProject, description: e.target.value })}
-          />
-        </label>
+            <textarea
+              className="modalTextarea"
+              value={editProject.description}
+              onChange={(e) => setEditProject({ ...editProject, description: e.target.value })}
+            />
+          </label>
+          <label>
+            {t('הערות נוספות')}
+
+            <textarea
+              className="modalTextarea"
+              value={editProject.additional_notes}
+              onChange={(e) => setEditProject({ ...editProject, additional_notes: e.target.value })}
+            />
+          </label>
+        </div>
         <div className="modalActions">
           <button
             onClick={() => {
@@ -575,12 +580,6 @@ export default function ProjectCard({ project, focused = false }) {
               {project.progress}
               {t('% התקדמות')}
             </span>
-            <span className="muted" style={{ whiteSpace: 'nowrap', fontWeight: 700 }}>
-              {t('יעד:')}
-              {project.due_date
-                ? new Date(project.due_date).toLocaleDateString('he-IL')
-                : t('לא הוגדר')}
-            </span>
           </div>
         </button>
 
@@ -666,6 +665,12 @@ export default function ProjectCard({ project, focused = false }) {
                 <p className="projectOverviewDescription">
                   {project.description || t('אין תיאור')}
                 </p>
+                {project.additional_notes && (
+                  <div className="projectAdditionalNotes">
+                    <b>{t('הערות נוספות')}</b>
+                    <p>{project.additional_notes}</p>
+                  </div>
+                )}
 
                 <div className="projectOverviewAssignments">
                   <div>
@@ -747,7 +752,8 @@ export default function ProjectCard({ project, focused = false }) {
                   <label className="projectOperationField">
                     <span>{t('סטטוס חדש')}</span>
                     <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                      {appStatuses.map((s) => (
+                      {!status && <option value="">{t('בחירת סטטוס')}</option>}
+                      {statusOptions.map((s) => (
                         <option key={s} value={s}>
                           {t(s)}
                         </option>
@@ -756,7 +762,7 @@ export default function ProjectCard({ project, focused = false }) {
                   </label>
                   <button
                     className="smallBtn"
-                    disabled={status === project.status}
+                    disabled={!status || status === project.status}
                     onClick={() => setStatusDialogOpen(true)}
                   >
                     <MessageSquareText size={16} />
@@ -862,7 +868,7 @@ export default function ProjectCard({ project, focused = false }) {
                   defaultDocumentType={isAssignedFieldWorker ? 'drawing_source' : 'general'}
                   onUpload={async (file, documentType) => {
                     const result = await uploadProjectDocument(project, file, documentType);
-                    if (result) await refreshAssets();
+                    if (result?.ok) await refreshAssets();
                     return result;
                   }}
                   onDelete={async (document) => {

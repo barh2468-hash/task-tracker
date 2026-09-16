@@ -45,7 +45,9 @@ export const supabase = createClient(url || 'https://missing.supabase.co', anon 
 });
 
 export const REVIEW_STATUS = 'נשלח להגהה';
-export const REVIEW_COMPLETED_STATUS = 'הגהה הושלמה';
+export const REVIEW_COMPLETED_STATUS = 'עבר לבקרה';
+
+export const FIELD_WORKER_STATUSES = ['בעבודה בשטח', 'עבר לשרטוט'];
 
 export const statuses = [
   'בעבודה בשטח',

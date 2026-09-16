@@ -60,6 +60,15 @@ async function requireManagerOrCron(
   if (profile?.role !== 'manager') throw new HttpError(403, 'Manager access required');
 }
 
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') {
@@ -123,7 +132,7 @@ Deno.serve(async (req) => {
     const sessionRows = (sessions || []).map((s: any) => {
       const start = new Date(s.started_at).toLocaleString('he-IL');
       const end = s.ended_at ? new Date(s.ended_at).toLocaleString('he-IL') : 'פתוח';
-      return `<li><b>${s.profiles?.full_name || 'עובד'}</b> - ${s.projects?.name || 'פרויקט'} (${s.projects?.location || ''})<br/>התחלה: ${start} · סיום: ${end}${s.end_note ? `<br/>הערת סיום: ${s.end_note}` : ''}</li>`;
+      return `<tr><td>${escapeHtml(s.profiles?.full_name || 'עובד')}</td><td><b>${escapeHtml(s.projects?.name || 'פרויקט')}</b><br/><span style="color:#64748b">${escapeHtml(s.projects?.location || '')}</span></td><td>${escapeHtml(start)}</td><td>${escapeHtml(end)}</td><td>${escapeHtml(s.end_note || '—')}</td></tr>`;
     }).join('');
 
     const attendanceRows = (attendance || []).map((s: any) => {
@@ -136,32 +145,32 @@ Deno.serve(async (req) => {
       };
       const typeLabel = typeLabels[s.attendance_type] || 'נוכחות כללית';
       if (s.is_all_day) {
-        return `<li><b>${s.profiles?.full_name || 'עובד'}</b> - ${typeLabel}<br/>דיווח יומי ללא שעות</li>`;
+        return `<tr><td>${escapeHtml(s.profiles?.full_name || 'עובד')}</td><td>${escapeHtml(typeLabel)}</td><td colspan="3">דיווח יומי ללא שעות</td><td>${escapeHtml(s.end_note || '—')}</td></tr>`;
       }
       const start = new Date(s.started_at);
       const end = s.ended_at ? new Date(s.ended_at) : null;
       const minutes = Math.max(0, Math.round(((end || new Date()).getTime() - start.getTime()) / 60000));
       const duration = `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
-      return `<li><b>${s.profiles?.full_name || 'עובד'}</b> - ${typeLabel}<br/>כניסה: ${start.toLocaleString('he-IL')} · יציאה: ${end ? end.toLocaleString('he-IL') : 'פתוח'} · משך: ${duration}${s.end_note ? `<br/>הערה: ${s.end_note}` : ''}</li>`;
+      return `<tr><td>${escapeHtml(s.profiles?.full_name || 'עובד')}</td><td>${escapeHtml(typeLabel)}</td><td>${escapeHtml(start.toLocaleString('he-IL'))}</td><td>${escapeHtml(end ? end.toLocaleString('he-IL') : 'פתוח')}</td><td>${escapeHtml(duration)}</td><td>${escapeHtml(s.end_note || '—')}</td></tr>`;
     }).join('');
 
     const historyRows = (history || []).map((h: any) => {
       const time = new Date(h.created_at).toLocaleString('he-IL');
-      return `<li><b>${h.projects?.name || 'פרויקט'}</b> - ${h.new_status}<br/>${h.profiles?.full_name || 'משתמש'} · ${time}${h.note ? `<br/>${h.note}` : ''}</li>`;
+      return `<tr><td><b>${escapeHtml(h.projects?.name || 'פרויקט')}</b><br/><span style="color:#64748b">${escapeHtml(h.projects?.location || '')}</span></td><td>${escapeHtml(h.new_status)}</td><td>${escapeHtml(h.profiles?.full_name || 'משתמש')}</td><td>${escapeHtml(time)}</td><td>${escapeHtml(h.note || '—')}</td></tr>`;
     }).join('');
 
     const subject = `סיכום יומי - מערכת משימות מאיה - ${new Date().toLocaleDateString('he-IL')}`;
     const html = `
-      <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.7;color:#0b2545">
+      <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.6;color:#0b2545;max-width:1100px;margin:auto">
         <h2>סיכום יומי - מערכת משימות מאיה</h2>
         <p>תאריך: ${new Date().toLocaleDateString('he-IL')}</p>
         <h3>נוכחות כללית היום</h3>
-        <ul>${attendanceRows || '<li>לא נרשמה נוכחות כללית היום.</li>'}</ul>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;border:1px solid #dbe4ee;font-size:14px"><thead style="background:#0b2545;color:#fff"><tr><th>עובד</th><th>סוג נוכחות</th><th>כניסה</th><th>יציאה</th><th>משך</th><th>הערה</th></tr></thead><tbody>${attendanceRows || '<tr><td colspan="6">לא נרשמה נוכחות כללית היום.</td></tr>'}</tbody></table></div>
         <h3>שעות לפי פרויקט היום</h3>
-        <ul>${sessionRows || '<li>לא נרשמו שעות עבודה היום.</li>'}</ul>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;border:1px solid #dbe4ee;font-size:14px"><thead style="background:#0b2545;color:#fff"><tr><th>עובד</th><th>פרויקט</th><th>התחלה</th><th>סיום</th><th>הערת סיום</th></tr></thead><tbody>${sessionRows || '<tr><td colspan="5">לא נרשמו שעות עבודה היום.</td></tr>'}</tbody></table></div>
         <h3>עדכונים ושינויי סטטוס היום</h3>
-        <ul>${historyRows || '<li>לא נרשמו עדכונים היום.</li>'}</ul>
-        ${appUrl ? `<p><a href="${appUrl}">כניסה למערכת</a></p>` : ''}
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;border:1px solid #dbe4ee;font-size:14px"><thead style="background:#0b2545;color:#fff"><tr><th>פרויקט</th><th>סטטוס חדש</th><th>עודכן על ידי</th><th>מועד</th><th>הערה</th></tr></thead><tbody>${historyRows || '<tr><td colspan="5">לא נרשמו עדכונים היום.</td></tr>'}</tbody></table></div>
+        ${appUrl ? `<p><a href="${escapeHtml(appUrl)}">כניסה למערכת</a></p>` : ''}
       </div>`;
 
     const resendResponse = await fetch('https://api.resend.com/emails', {

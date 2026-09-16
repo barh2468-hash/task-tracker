@@ -67,7 +67,7 @@ export default function ProjectsPage() {
 
   const visibleProjects = projects.filter((p) => {
     const text =
-      `${p.name} ${p.location} ${p.contact_phone || ''} ${p.contact_email || ''} ${p.client_name || ''} ${p.description || ''}`.toLowerCase();
+      `${p.name} ${p.location} ${p.contact_phone || ''} ${p.contact_email || ''} ${p.client_name || ''} ${p.description || ''} ${p.additional_notes || ''}`.toLowerCase();
     const okQuery = !query || text.includes(query.toLowerCase());
     const okStatus = !statusFilter || p.status === statusFilter;
     const okArchive = filter === 'archive' ? !!p.is_archived : !p.is_archived;

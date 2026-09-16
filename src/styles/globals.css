@@ -1649,3 +1649,9 @@ body.language-en { direction: ltr; }
   .equipmentRowButton{min-height:82px;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto}
   .equipmentCountCell{grid-column:2;grid-row:2}
 }
+
+/* Project notes and shared image previews */
+.projectAdditionalNotes{padding:12px 14px;border:1px solid #dbe7f0;border-radius:12px;background:#fffaf2;color:#52677d;font-size:13px;line-height:1.65}
+.projectAdditionalNotes b{display:block;margin-bottom:4px;color:var(--navy)}
+.projectAdditionalNotes p{margin:0;white-space:pre-wrap}
+.pdfPreviewFrame .filePreviewImage{position:relative;z-index:1;width:100%;height:100%;display:block;object-fit:contain;background:#eef3f7}

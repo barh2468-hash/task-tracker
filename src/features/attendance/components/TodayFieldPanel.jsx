@@ -1,7 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
 import { useState } from 'react';
-import { AlertTriangle, Clock, FileSpreadsheet, LoaderCircle, PlayCircle, Users } from 'lucide-react';
+import {
+  AlertTriangle,
+  Clock,
+  FileSpreadsheet,
+  LoaderCircle,
+  PlayCircle,
+  Users,
+} from 'lucide-react';
 import { useAttendance } from '../AttendanceContext.jsx';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useMessage } from '../../../context/MessageContext.jsx';
@@ -18,19 +25,35 @@ export default function TodayFieldPanel() {
   const { workers, projects, historyItems } = useProjects();
   const { setMessage } = useMessage();
   const [exportingExcel, setExportingExcel] = useState(false);
+  const [sendingSummary, setSendingSummary] = useState(false);
 
   const { todaySessions, todayAttendance, activeSessions, presentSessions, notStarted } =
     getTodayAttendance({ workSessions, attendanceSessions, workers });
 
   async function sendDailySummaryNow() {
-    const { error } = await dailyManagerSummary({
-      appUrl: typeof window !== 'undefined' ? window.location.origin : '',
-    });
-    alert(
-      error
-        ? t('שליחת הסיכום נכשלה: {{value0}}', { value0: error.message })
-        : t('סיכום יומי נשלח למנהלים'),
-    );
+    if (sendingSummary) return;
+    setSendingSummary(true);
+    try {
+      const { data, error } = await dailyManagerSummary({
+        appUrl: typeof window !== 'undefined' ? window.location.origin : '',
+      });
+      if (error) {
+        setMessage(t('שליחת הסיכום נכשלה: {{value0}}', { value0: error.message }));
+        return;
+      }
+      if (!data?.sentTo) {
+        setMessage(t('לא נמצאו מנהלים עם כתובת דוא״ל לקבלת הסיכום.'));
+        return;
+      }
+      setMessage(
+        t('הסיכום הניהולי נשלח ל־{{value0}} מנהלים. נמצאו {{value1}} פריטים לטיפול.', {
+          value0: data.sentTo,
+          value1: data.metrics?.actionCount || 0,
+        }),
+      );
+    } finally {
+      setSendingSummary(false);
+    }
   }
 
   async function exportDailySummaryNow() {
@@ -60,11 +83,20 @@ export default function TodayFieldPanel() {
           <p className="muted">{t('מעקב נוכחות כללי לצד שעות העבודה שנרשמו לכל פרויקט.')}</p>
         </div>
         <div className="todaySummaryActions">
-          <button className="ghost smallBtn" onClick={sendDailySummaryNow}>
-            {t('שלח סיכום יומי עכשיו')}
+          <button
+            className="ghost smallBtn"
+            onClick={sendDailySummaryNow}
+            disabled={sendingSummary}
+          >
+            {sendingSummary && <LoaderCircle className="spinIcon" size={17} />}
+            {sendingSummary ? t('מכין סיכום ניהולי...') : t('שלח סיכום ניהולי עכשיו')}
           </button>
           <button className="smallBtn" onClick={exportDailySummaryNow} disabled={exportingExcel}>
-            {exportingExcel ? <LoaderCircle className="spinIcon" size={17} /> : <FileSpreadsheet size={17} />}
+            {exportingExcel ? (
+              <LoaderCircle className="spinIcon" size={17} />
+            ) : (
+              <FileSpreadsheet size={17} />
+            )}
             {exportingExcel ? t('מייצא ל־Excel...') : t('ייצוא סיכום יומי ל־Excel')}
           </button>
         </div>
@@ -77,7 +109,11 @@ export default function TodayFieldPanel() {
         />
         <Stat number={activeSessions.length} label={t('משמרות פתוחות')} icon={<PlayCircle />} />
         <Stat number={presentSessions.length} label={t('נוכחים עכשיו')} icon={<Users />} />
-        <Stat number={notStarted.length} label={t('עובדי שטח שלא התחילו')} icon={<AlertTriangle />} />
+        <Stat
+          number={notStarted.length}
+          label={t('עובדי שטח שלא התחילו')}
+          icon={<AlertTriangle />}
+        />
       </div>
       {!attendanceAvailable && (
         <p className="attendanceSetupNotice">

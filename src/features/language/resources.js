@@ -111,10 +111,10 @@ export const enTranslations = {
   'ללא תאריך': 'No date',
   'רשימת עובדים': 'Employee list',
   'עדיין לא יובא ריכוז ציוד': 'No equipment register has been imported yet',
-  'מציג': 'Showing',
-  'מתוך': 'of',
+  מציג: 'Showing',
+  מתוך: 'of',
   'שם עובד, דגם או מספר סידורי...': 'Employee, model or serial number...',
-  'קבוצה': 'Group',
+  קבוצה: 'Group',
   'כל הקבוצות': 'All groups',
   'טוען את ריכוז הציוד...': 'Loading equipment register...',
   'אין עדיין נתוני ציוד': 'No equipment data yet',
@@ -128,34 +128,40 @@ export const enTranslations = {
   'נסו לשנות את החיפוש או את סינון הקבוצה.': 'Try changing the search or group filter.',
   'מכשירים ומזהים': 'Devices and IDs',
   'פריטים מסומנים': 'Marked items',
-  'פרטים': 'Details',
+  פרטים: 'Details',
   'שם לא קריא': 'Unreadable name',
   'שם העובד לא קריא בקובץ המקורי.': 'The employee name is unreadable in the source file.',
-  'קיים': 'Present',
+  קיים: 'Present',
   'לא מסומן': 'Not marked',
   'לא קריא במקור': 'Unreadable in source',
   'יש לבחור קובץ CSV.': 'Choose a CSV file.',
   'יש לבחור קובץ Excel או CSV.': 'Choose an Excel or CSV file.',
-  'קובץ ה־CSV גדול מדי. הגודל המרבי הוא 5MB.': 'The CSV file is too large. The maximum size is 5MB.',
+  'קובץ ה־CSV גדול מדי. הגודל המרבי הוא 5MB.':
+    'The CSV file is too large. The maximum size is 5MB.',
   'קובץ הציוד גדול מדי. הגודל המרבי הוא 10MB.':
     'The equipment file is too large. The maximum size is 10MB.',
-  'לא נמצא גיליון ציוד עובדים בקובץ ה־Excel.': 'No employee equipment sheet was found in the Excel file.',
+  'לא נמצא גיליון ציוד עובדים בקובץ ה־Excel.':
+    'No employee equipment sheet was found in the Excel file.',
   'ריכוז הציוד יובא בהצלחה.': 'The equipment register was imported successfully.',
   'ייבוא קובץ הציוד נכשל.': 'The equipment file import failed.',
   'לא ניתן לטעון את ריכוז הציוד.': 'The equipment register could not be loaded.',
   'עובד חדש': 'New employee',
   'עריכת כרטיס ציוד': 'Edit equipment card',
   'פרטי העובד': 'Employee details',
-  'כל שינוי נשמר מיד בריכוז הציוד המשותף.': 'Every change is saved to the shared equipment register.',
+  'כל שינוי נשמר מיד בריכוז הציוד המשותף.':
+    'Every change is saved to the shared equipment register.',
   'שם העובד': 'Employee name',
   'שם מלא': 'Full name',
   'לדוגמה: עובדי שטח': 'For example: Field workers',
   'מכשירים, מזהים והערות': 'Devices, IDs and notes',
-  'אפשר לעדכן דגמים, מספרים סידוריים ומידע נוסף.': 'Update models, serial numbers and additional information.',
+  'אפשר לעדכן דגמים, מספרים סידוריים ומידע נוסף.':
+    'Update models, serial numbers and additional information.',
   'לא הוזן': 'Not entered',
   'ציוד אישי וכלי עבודה': 'Personal equipment and tools',
-  'לחיצה על פריט מעדכנת אם הוא נמצא אצל העובד.': 'Select an item to mark whether it is assigned to the employee.',
-  'הגדירו כמות לכל אביזר באמצעות כפתורי הפלוס והמינוס.': 'Set a quantity for each item using the plus and minus buttons.',
+  'לחיצה על פריט מעדכנת אם הוא נמצא אצל העובד.':
+    'Select an item to mark whether it is assigned to the employee.',
+  'הגדירו כמות לכל אביזר באמצעות כפתורי הפלוס והמינוס.':
+    'Set a quantity for each item using the plus and minus buttons.',
   כמות: 'Quantity',
   יחידות: 'units',
   'יח׳': 'units',
@@ -386,8 +392,7 @@ export const enTranslations = {
   'עובד שטח אחראי': 'Lead field employee',
   'לא נמצאו פרויקטים': 'No projects found',
   'נסו לשנות את החיפוש או את הסינון.': 'Try changing the search or filter.',
-  'עדכון פרטי הפרויקט ושיוך עובדי שטח.':
-    'Update project details and field-worker assignments.',
+  'עדכון פרטי הפרויקט ושיוך עובדי שטח.': 'Update project details and field-worker assignments.',
   'שיוך הפרויקט לשרטט': 'Assign project to drafter',
   'ללא שרטט משויך': 'No assigned drafter',
   'הוספת פרויקט חדש': 'Add new project',
@@ -396,8 +401,7 @@ export const enTranslations = {
   'יוצר פרויקט...': 'Creating project...',
   'סקיצת גבול עבודה, אופציונלי': 'Work-boundary sketch, optional',
   'בחירת קובץ PDF של סקיצת גבול עבודה': 'Choose a work-boundary sketch PDF',
-  'בחירת PDF או תמונה של סקיצת גבול עבודה':
-    'Choose a work-boundary sketch PDF or image',
+  'בחירת PDF או תמונה של סקיצת גבול עבודה': 'Choose a work-boundary sketch PDF or image',
   'הערות נוספות': 'Additional notes',
   'הערות פנימיות או מידע משלים לפרויקט': 'Internal notes or supporting project information',
   'בחירת PDF או תמונה': 'Choose a PDF or image',
@@ -459,6 +463,12 @@ export const enTranslations = {
   'מעקב נוכחות כללי לצד שעות העבודה שנרשמו לכל פרויקט.':
     'General attendance alongside hours recorded for each project.',
   'שלח סיכום יומי עכשיו': 'Send daily summary now',
+  'שלח סיכום ניהולי עכשיו': 'Send management summary now',
+  'מכין סיכום ניהולי...': 'Preparing management summary...',
+  'לא נמצאו מנהלים עם כתובת דוא״ל לקבלת הסיכום.':
+    'No managers with an email address were found for the summary.',
+  'הסיכום הניהולי נשלח ל־{{value0}} מנהלים. נמצאו {{value1}} פריטים לטיפול.':
+    'The management summary was sent to {{value0}} managers. {{value1}} action items were found.',
   'ייצוא סיכום יומי ל־Excel': 'Export daily summary to Excel',
   'מייצא ל־Excel...': 'Exporting to Excel...',
   'נוכחים עכשיו': 'Present now',
@@ -533,7 +543,7 @@ export const enTranslations = {
   'סה״כ היום': 'Total today',
   'כניסה ראשונה': 'First clock-in',
   'מצב נוכחי': 'Current status',
-  'בעבודה': 'Working',
+  בעבודה: 'Working',
   'יום העבודה הסתיים': 'Workday finished',
   'טרם התחיל': 'Not started',
   'המיקום נשמר רק בעת התחלה וסיום של יום העבודה.':
@@ -648,10 +658,8 @@ export const enTranslations = {
   'שומר דיווח...': 'Saving report...',
   'סגירת דיווח מחלה': 'Close sick leave report',
   'טווח התאריכים אינו תקין.': 'The selected date range is invalid.',
-  'ניתן לדווח על עד 92 ימי מחלה בכל פעולה.':
-    'You can report up to 92 sick days at a time.',
-  'אפשר לצרף קובץ PDF, JPG או PNG בלבד.':
-    'Only PDF, JPG or PNG files can be attached.',
+  'ניתן לדווח על עד 92 ימי מחלה בכל פעולה.': 'You can report up to 92 sick days at a time.',
+  'אפשר לצרף קובץ PDF, JPG או PNG בלבד.': 'Only PDF, JPG or PNG files can be attached.',
   'גודל הקובץ המקסימלי הוא 10MB.': 'The maximum file size is 10MB.',
   'פותח...': 'Opening...',
 };
@@ -735,8 +743,7 @@ const greekTranslations = {
     'Δεν καταγράφηκαν αλλαγές κατάστασης τις τελευταίες 24 ώρες.',
   'לא נרשמו שינויי סטטוס בתאריך שנבחר.':
     'Δεν καταγράφηκαν αλλαγές κατάστασης την επιλεγμένη ημερομηνία.',
-  'לא נמצאו שינויים בסטטוס שנבחר.':
-    'Δεν βρέθηκαν αλλαγές για την επιλεγμένη κατάσταση.',
+  'לא נמצאו שינויים בסטטוס שנבחר.': 'Δεν βρέθηκαν αλλαγές για την επιλεγμένη κατάσταση.',
   'הפרויקטים שלי': 'Τα έργα μου',
   'כל הפרויקטים': 'Όλα τα έργα',
   'משימות פתוחות': 'Ανοιχτές εργασίες',
@@ -806,7 +813,8 @@ const greekTranslations = {
   'פרטי קשר': 'Στοιχεία επικοινωνίας',
   'עדכון סטטוס': 'Ενημέρωση κατάστασης',
   'סטטוס חדש': 'Νέα κατάσταση',
-  'בחר סטטוס חדש והוסף הערה לפי הצורך': 'Επιλέξτε νέα κατάσταση και προσθέστε σημείωση αν χρειάζεται',
+  'בחר סטטוס חדש והוסף הערה לפי הצורך':
+    'Επιλέξτε νέα κατάσταση και προσθέστε σημείωση αν χρειάζεται',
   'מסמכים משותפים לפרויקט': 'Κοινόχρηστα έγγραφα έργου',
   'מסמכים מהשרטט': 'Έγγραφα από τον σχεδιαστή',
   'מסמכי PDF': 'Έγγραφα PDF',
@@ -892,8 +900,7 @@ const greekTranslations = {
   'נוכחים עכשיו': 'Παρόντες τώρα',
   'טרם התחילו היום': 'Δεν ξεκίνησαν σήμερα',
   'עובדי שטח שלא התחילו': 'Εργαζόμενοι πεδίου που δεν ξεκίνησαν',
-  'עובדי שטח שטרם התחילו היום':
-    'Εργαζόμενοι πεδίου που δεν ξεκίνησαν σήμερα',
+  'עובדי שטח שטרם התחילו היום': 'Εργαζόμενοι πεδίου που δεν ξεκίνησαν σήμερα',
   'משמרות כלליות היום': 'Γενικές βάρδιες σήμερα',
   'פעולות לפי פרויקט היום': 'Δραστηριότητα ανά έργο σήμερα',
   'סיום עבודה בפרויקט': 'Τέλος εργασίας έργου',
@@ -1027,6 +1034,12 @@ const greekTranslations = {
   'מעקב נוכחות כללי לצד שעות העבודה שנרשמו לכל פרויקט.':
     'Παρακολούθηση γενικής παρουσίας μαζί με τις ώρες εργασίας ανά έργο.',
   'שלח סיכום יומי עכשיו': 'Αποστολή ημερήσιας σύνοψης τώρα',
+  'שלח סיכום ניהולי עכשיו': 'Αποστολή διοικητικής σύνοψης τώρα',
+  'מכין סיכום ניהולי...': 'Προετοιμασία διοικητικής σύνοψης...',
+  'לא נמצאו מנהלים עם כתובת דוא״ל לקבלת הסיכום.':
+    'Δεν βρέθηκαν διαχειριστές με διεύθυνση email για τη σύνοψη.',
+  'הסיכום הניהולי נשלח ל־{{value0}} מנהלים. נמצאו {{value1}} פריטים לטיפול.':
+    'Η διοικητική σύνοψη στάλθηκε σε {{value0}} διαχειριστές. Βρέθηκαν {{value1}} ενέργειες.',
   'ייצוא סיכום יומי ל־Excel': 'Εξαγωγή ημερήσιας σύνοψης σε Excel',
   'מייצא ל־Excel...': 'Εξαγωγή σε Excel...',
   'אין משמרות כלליות פתוחות כרגע.': 'Δεν υπάρχουν ανοιχτές γενικές βάρδιες αυτή τη στιγμή.',
@@ -1075,13 +1088,12 @@ const greekTranslations = {
   'התחלת יום העבודה': 'Έναρξη εργάσιμης ημέρας',
   'שמירת דיווח יומי': 'Αποθήκευση ημερήσιας αναφοράς',
   'לחיצה אחת ומתחילים': 'Ένα πάτημα για έναρξη',
-  'אפשר לעדכן את הדיווח שנשמר להיום':
-    'Μπορείτε να ενημερώσετε τη σημερινή αποθηκευμένη αναφορά',
+  'אפשר לעדכן את הדיווח שנשמר להיום': 'Μπορείτε να ενημερώσετε τη σημερινή αποθηκευμένη αναφορά',
   'הדיווח יישמר עבור היום כולו': 'Η αναφορά θα αποθηκευτεί για ολόκληρη την ημέρα',
   'סה״כ היום': 'Σύνολο σήμερα',
   'כניסה ראשונה': 'Πρώτη προσέλευση',
   'מצב נוכחי': 'Τρέχουσα κατάσταση',
-  'בעבודה': 'Σε εργασία',
+  בעבודה: 'Σε εργασία',
   'יום העבודה הסתיים': 'Η εργάσιμη ημέρα ολοκληρώθηκε',
   'טרם התחיל': 'Δεν ξεκίνησε',
   'המיקום נשמר רק בעת התחלה וסיום של יום העבודה.':

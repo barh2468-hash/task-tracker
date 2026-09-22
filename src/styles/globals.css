@@ -1519,8 +1519,10 @@ body.language-en { direction: ltr; }
 .projectExpandedBody .reviewFilesBox .projectDocumentsHeaderActions,
 .projectExpandedBody .projectDocumentsPanel .projectDocumentsHeaderActions{width:auto;display:flex;align-items:center;gap:9px}
 .reviewApproveButton{background:linear-gradient(135deg,var(--navy),var(--navy3));color:#fff;box-shadow:0 8px 20px rgba(7,30,65,.16)}
-.reviewApproveButton:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.reviewApproveButton:hover{background:linear-gradient(135deg,var(--navy),var(--navy3));color:#fff;transform:translateY(-1px);box-shadow:0 8px 20px rgba(7,30,65,.16)}
 .reviewApproveButton:disabled{opacity:.7;cursor:wait}
+.reviewApproveDialog{width:min(440px,100%)}
+.reviewApproveDialogActions{display:flex;justify-content:flex-end;gap:9px}
 .reviewFileField{min-width:0;gap:6px}
 .reviewFilePicker{position:relative;width:100%;min-width:0;min-height:50px;padding:11px 14px;display:flex;align-items:center;justify-content:center;gap:9px;overflow:hidden;border:1px solid #b8d4e4;border-radius:14px;background:linear-gradient(145deg,#f4faff,#eaf5fb);color:#0b3768;box-shadow:0 7px 18px rgba(7,55,104,.08);cursor:pointer;transition:border-color .16s ease,background .16s ease,box-shadow .16s ease,transform .16s ease}
 .reviewFilePicker:hover{border-color:#7cb9d6;background:linear-gradient(145deg,#eef9ff,#e1f2fa);box-shadow:0 10px 23px rgba(7,55,104,.13);transform:translateY(-1px)}

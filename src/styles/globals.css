@@ -1148,15 +1148,7 @@ body.language-en { direction: ltr; }
 .attendanceTypePicker button:hover{transform:none;background:rgba(255,255,255,.12);box-shadow:none}
 .attendanceTypePicker button.selected{border-color:rgba(255,174,111,.6);background:#fff;color:#09264a;box-shadow:0 8px 24px rgba(1,14,33,.2)}
 .attendanceTypePicker button:disabled:not(.selected){opacity:.3}
-.attendanceProjectTrigger{width:min(600px,100%);min-height:68px;align-self:center;padding:10px 13px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid rgba(255,255,255,.17);border-radius:18px;background:rgba(255,255,255,.09);box-shadow:0 12px 30px rgba(1,14,33,.14);color:#fff;text-align:start}
-.attendanceProjectTrigger:hover{transform:translateY(-1px);background:rgba(255,255,255,.13);box-shadow:0 16px 34px rgba(1,14,33,.2)}
-.attendanceProjectTriggerIcon,.attendanceProjectModalIcon,.attendanceProjectOptionIcon{display:grid;place-items:center;flex:0 0 auto}
-.attendanceProjectTriggerIcon{width:43px;height:43px;border-radius:14px;background:rgba(117,216,223,.15);color:#8de2e8}
-.attendanceProjectTriggerCopy{min-width:0;display:grid;gap:2px}
-.attendanceProjectTriggerCopy small{color:#8de2e8;font-size:9px;font-weight:950;letter-spacing:.3px}
-.attendanceProjectTriggerCopy strong,.attendanceProjectTriggerCopy span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.attendanceProjectTriggerCopy strong{font-size:13px}
-.attendanceProjectTriggerCopy span{color:rgba(226,241,250,.62);font-size:10px;font-weight:800}
+.attendanceProjectModalIcon,.attendanceProjectOptionIcon{display:grid;place-items:center;flex:0 0 auto}
 .attendanceSickTrigger{width:min(600px,100%);min-height:68px;align-self:center;padding:10px 13px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid rgba(244,172,205,.28);border-radius:18px;background:rgba(173,74,121,.13);box-shadow:0 12px 30px rgba(1,14,33,.14);color:#fff;text-align:start}
 .attendanceSickTrigger:hover{transform:translateY(-1px);background:rgba(196,91,139,.19);box-shadow:0 16px 34px rgba(1,14,33,.2)}
 .attendanceSickTriggerIcon{width:43px;height:43px;display:grid;place-items:center;border-radius:14px;background:rgba(244,172,205,.16);color:#ffc2df}
@@ -1287,8 +1279,6 @@ body.language-en { direction: ltr; }
   .attendanceHeroWidget{padding:10px;border-radius:15px;grid-template-columns:minmax(0,1fr) auto}
   .attendanceHeroWidgetTime strong{font-size:19px}
   .attendanceHeroWidget button{min-height:38px;padding:8px 10px}
-  .attendanceProjectTrigger{min-height:61px;padding:8px 10px;border-radius:15px}
-  .attendanceProjectTriggerIcon{width:39px;height:39px;border-radius:12px}
   .attendanceSickTrigger{min-height:61px;padding:8px 10px;border-radius:15px}
   .attendanceSickTriggerIcon{width:39px;height:39px;border-radius:12px}
   .attendanceProjectModalBackdrop{padding:8px;place-items:center}

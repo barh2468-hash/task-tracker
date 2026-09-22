@@ -171,7 +171,8 @@ export default function AttendancePage() {
   function runPrimaryAction() {
     if (openSession) openAttendanceEndDialog();
     else if (selectedType === 'sick') setSickLeaveDialogOpen(true);
-    else void startAttendance(selectedType, selectedType === 'field' ? selectedProject : null);
+    else if (selectedType === 'field') openProjectPicker();
+    else void startAttendance(selectedType, null);
   }
 
   function openProjectPicker() {
@@ -182,6 +183,8 @@ export default function AttendancePage() {
   function chooseProject(projectId) {
     setSelectedProjectId(projectId);
     setProjectPickerOpen(false);
+    const project = availableProjects.find((item) => item.id === projectId) || null;
+    void startAttendance('field', project);
   }
 
   function closeSickLeaveDialog() {
@@ -241,29 +244,6 @@ export default function AttendancePage() {
         })}
       </div>
 
-      {selectedType === 'field' && !openSession && (
-        <button
-          type="button"
-          className="attendanceProjectTrigger"
-          disabled={busy}
-          onClick={openProjectPicker}
-        >
-          <span className="attendanceProjectTriggerIcon" aria-hidden="true">
-            <FolderKanban size={17} />
-          </span>
-          <span className="attendanceProjectTriggerCopy">
-            <small>
-              {t('בחירת פרויקט')} · {t('אופציונלי')}
-            </small>
-            <strong>{selectedProject?.name || t('התחלה ללא פרויקט')}</strong>
-            <span>
-              {selectedProject?.location || t('בחר פרויקט או התחל ללא שיוך')}
-            </span>
-          </span>
-          <ChevronDown size={19} aria-hidden="true" />
-        </button>
-      )}
-
       {selectedType === 'sick' && !openSession && (
         <button
           type="button"
@@ -314,8 +294,6 @@ export default function AttendancePage() {
           <span>
             {openSession
               ? formatTimer(elapsedMilliseconds)
-              : selectedType === 'field' && selectedProject
-                ? t('יום העבודה והפרויקט יתחילו יחד')
               : selectedOption.timed
                 ? t('לחיצה אחת ומתחילים')
                 : dayStatus

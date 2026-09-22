@@ -2,17 +2,20 @@ import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Clock, MapPin, Square, Users, X } from 'lucide-react';
+import { CheckCircle2, Clock, MapPin, Square, Users } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useAttendance } from '../AttendanceContext.jsx';
 import { attendanceTypeLabel } from '../api.js';
 import { helperNames } from '../crewOptions.js';
+import { statuses } from '../../../services/supabase.js';
+
+const DRAFTING_STATUS = 'עבר לשרטוט';
 
 export default function AttendanceEndDialog() {
   useTranslation();
   const { session } = useAuth();
-  const { workers } = useProjects();
+  const { workers, projects, updateStatus } = useProjects();
   const {
     myAttendanceSessions: sessions,
     workSessions,
@@ -25,6 +28,7 @@ export default function AttendanceEndDialog() {
   } = useAttendance();
   const [selectedWorkerIds, setSelectedWorkerIds] = useState([]);
   const [selectedHelpers, setSelectedHelpers] = useState([]);
+  const [markReadyForDrafting, setMarkReadyForDrafting] = useState(false);
 
   const openSession = sessions.find((item) => !item.ended_at && !item.is_all_day) || null;
   const linkedWorkSession = openSession
@@ -37,6 +41,12 @@ export default function AttendanceEndDialog() {
           ) < 5000,
       )
     : null;
+  const linkedProject = linkedWorkSession
+    ? projects.find((item) => item.id === linkedWorkSession.project_id) || null
+    : null;
+  const canMarkReadyForDrafting = Boolean(
+    linkedProject && statuses.indexOf(linkedProject.status) < statuses.indexOf(DRAFTING_STATUS),
+  );
   const availableWorkers = useMemo(
     () =>
       workers
@@ -48,6 +58,7 @@ export default function AttendanceEndDialog() {
   useEffect(() => {
     setSelectedWorkerIds([]);
     setSelectedHelpers([]);
+    setMarkReadyForDrafting(false);
   }, [attendanceEndDialogOpen, openSession?.id]);
 
   if (!attendanceEndDialogOpen || typeof document === 'undefined' || !openSession) return null;
@@ -62,12 +73,15 @@ export default function AttendanceEndDialog() {
     setAttendanceEndDialogOpen(false);
   }
 
-  function confirm() {
+  async function confirm() {
     const systemCrew = availableWorkers
       .filter((worker) => selectedWorkerIds.includes(worker.id))
       .map((worker) => ({ id: worker.id, name: worker.full_name, source: 'system' }));
     const helperCrew = selectedHelpers.map((name) => ({ id: null, name, source: 'helper' }));
-    void finishAttendance(note, [...systemCrew, ...helperCrew]);
+    const result = await finishAttendance(note, [...systemCrew, ...helperCrew]);
+    if (result?.success && markReadyForDrafting && canMarkReadyForDrafting) {
+      void updateStatus(linkedProject, DRAFTING_STATUS, t('סומן כניתן להתחיל לשרטט בסיום העבודה בשטח.'));
+    }
   }
 
   return createPortal(
@@ -106,15 +120,6 @@ export default function AttendanceEndDialog() {
               })}
             </p>
           </div>
-          <button
-            type="button"
-            className="iconOnly"
-            aria-label={t('סגירה')}
-            disabled={busy}
-            onClick={close}
-          >
-            <X size={18} />
-          </button>
         </div>
         <div className={`attendanceEndBody ${linkedWorkSession ? 'projectWorkEndBody' : ''}`}>
           <label>
@@ -180,6 +185,23 @@ export default function AttendanceEndDialog() {
               : t('בעת האישור נבקש את מיקום הסיום ונשמור אותו בדיווח.')}
           </p>
         </div>
+        {canMarkReadyForDrafting && (
+          <div className="attendanceEndPinned">
+            <label className="draftingReadyToggle">
+              <input
+                type="checkbox"
+                checked={markReadyForDrafting}
+                disabled={busy}
+                onChange={(event) => setMarkReadyForDrafting(event.target.checked)}
+              />
+              <CheckCircle2 size={18} aria-hidden="true" />
+              <span>
+                <strong>{t('ניתן להתחיל לשרטט')}</strong>
+                <small>{t('הסטטוס של הפרויקט יעודכן ל"עבר לשרטוט" בעת האישור.')}</small>
+              </span>
+            </label>
+          </div>
+        )}
         <div className="attendanceEndActions">
           <button type="button" className="ghost" disabled={busy} onClick={close}>
             {t('חזרה')}

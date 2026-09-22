@@ -182,9 +182,11 @@ export default function AttendancePage() {
 
   function chooseProject(projectId) {
     setSelectedProjectId(projectId);
+  }
+
+  function confirmProjectSelection() {
     setProjectPickerOpen(false);
-    const project = availableProjects.find((item) => item.id === projectId) || null;
-    void startAttendance('field', project);
+    void startAttendance('field', selectedProject);
   }
 
   function closeSickLeaveDialog() {
@@ -450,6 +452,17 @@ export default function AttendancePage() {
                   </p>
                 )}
               </div>
+
+              <footer className="attendanceProjectModalFooter">
+                <button
+                  type="button"
+                  className="smallBtn"
+                  disabled={busy}
+                  onClick={confirmProjectSelection}
+                >
+                  {t('אישור והתחלת עבודה')}
+                </button>
+              </footer>
             </section>
           </div>,
           document.body,

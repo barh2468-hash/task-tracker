@@ -1160,7 +1160,9 @@ body.language-en { direction: ltr; }
 .attendanceProjectModalBackdrop{position:fixed;inset:0;z-index:180;padding:20px;display:grid;place-items:center;background:rgba(1,14,33,.72);backdrop-filter:blur(10px)}
 .attendanceProjectModalDismiss{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
 .attendanceProjectModalDismiss:hover{transform:none;background:transparent;box-shadow:none}
-.attendanceProjectModal{position:relative;z-index:1;width:min(600px,100%);max-height:min(720px,calc(100dvh - 40px));padding:21px;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:15px;overflow:hidden;border:1px solid #dce8f0;border-radius:27px;background:linear-gradient(160deg,#fff,#f4f9fc);box-shadow:0 30px 90px rgba(1,14,33,.38);color:#09264a;text-align:start}
+.attendanceProjectModal{position:relative;z-index:1;width:min(600px,100%);max-height:min(720px,calc(100dvh - 40px));padding:21px;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:15px;overflow:hidden;border:1px solid #dce8f0;border-radius:27px;background:linear-gradient(160deg,#fff,#f4f9fc);box-shadow:0 30px 90px rgba(1,14,33,.38);color:#09264a;text-align:start}
+.attendanceProjectModalFooter{padding-top:3px;border-top:1px dashed #d9e6ee}
+.attendanceProjectModalFooter .smallBtn{width:100%;min-height:50px}
 .attendanceProjectModalHeader{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px}
 .attendanceProjectModalIcon{width:47px;height:47px;border-radius:15px;background:#e8f7f8;color:#077d87}
 .attendanceProjectModalHeader h2,.attendanceProjectModalHeader p{margin:0}

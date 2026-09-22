@@ -1,14 +1,26 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
 import { useEffect, useState } from 'react';
-import { Eye, FileText, Trash2 } from 'lucide-react';
+import { CheckCircle2, Eye, FileText, Trash2 } from 'lucide-react';
 import { createSignedUrl } from '../../../services/api/storage.js';
 import PdfPreviewModal from './PdfPreviewModal.jsx';
 
-export default function ReviewFilesPanel({ files, canDelete, onDelete }) {
+export default function ReviewFilesPanel({ files, canDelete, onDelete, canApprove, onApprove }) {
   useTranslation();
   const [urls, setUrls] = useState({});
   const [previewFile, setPreviewFile] = useState(null);
+  const [approving, setApproving] = useState(false);
+
+  async function handleApprove() {
+    if (approving) return;
+    if (!window.confirm(t('להעביר את סטטוס הפרויקט ל"עבר לבקרה"?'))) return;
+    setApproving(true);
+    try {
+      await onApprove();
+    } finally {
+      setApproving(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -37,7 +49,20 @@ export default function ReviewFilesPanel({ files, canDelete, onDelete }) {
             <FileText size={19} /> {t('קבצי הגהה')}
           </h3>
         </div>
-        <span className="projectDocumentsCount">{files.length}</span>
+        <div className="projectDocumentsHeaderActions">
+          <span className="projectDocumentsCount">{files.length}</span>
+          {canApprove && (
+            <button
+              type="button"
+              className="projectDocumentUpload reviewApproveButton"
+              disabled={approving}
+              onClick={handleApprove}
+            >
+              <CheckCircle2 size={16} />
+              {approving ? t('מעדכן...') : t('אישור הגהה')}
+            </button>
+          )}
+        </div>
       </header>
       <div className="projectDocumentsList">
         {files.map((file) => (

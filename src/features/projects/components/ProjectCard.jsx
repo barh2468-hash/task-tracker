@@ -945,6 +945,8 @@ export default function ProjectCard({ project, focused = false }) {
                     await deleteProjectReviewFile(file, project.id);
                     await refreshAssets();
                   }}
+                  canApprove={isReviewSent}
+                  onApprove={() => updateStatus(project, REVIEW_COMPLETED_STATUS, '')}
                 />
 
                 {canManageReview && project.status === 'עבר לשרטוט' && (

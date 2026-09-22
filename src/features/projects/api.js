@@ -156,7 +156,12 @@ export async function updateStatus(project, newStatus, note, profile) {
   if (newStatus === project.status) {
     return { message: 'יש לבחור סטטוס שונה מהסטטוס הנוכחי.', ok: false };
   }
-  if (profile?.role === 'field_worker' && !FIELD_WORKER_STATUSES.includes(newStatus)) {
+  const isReviewApproval = project.status === REVIEW_STATUS && newStatus === REVIEW_COMPLETED_STATUS;
+  if (
+    profile?.role === 'field_worker' &&
+    !FIELD_WORKER_STATUSES.includes(newStatus) &&
+    !isReviewApproval
+  ) {
     return {
       message: 'עובד שטח יכול לעדכן סטטוס רק לעבודה בשטח או לעבר לשרטוט.',
       ok: false,

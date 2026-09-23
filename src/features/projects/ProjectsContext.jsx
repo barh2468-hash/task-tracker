@@ -164,8 +164,8 @@ export function ProjectsProvider({ children }) {
       runMutation(projectsFeatureApi.deleteProjectDocument(projectDocument, project, profile)),
     assignProjectDrafter: (project, drafterId) =>
       runMutation(projectsFeatureApi.assignProjectDrafter(project, drafterId, profile, workers)),
-    sendProjectToReview: (project, file, note) =>
-      runMutation(projectsFeatureApi.sendProjectToReview(project, file, note, profile)),
+    sendProjectToReview: (project, files, note) =>
+      runMutation(projectsFeatureApi.sendProjectToReview(project, files, note, profile)),
     deleteProjectReviewFile: (file, projectId) =>
       runMutation(projectsFeatureApi.deleteProjectReviewFile(file, projectId, profile)),
     addProjectTask: (projectId, title, description) => {

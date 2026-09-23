@@ -471,7 +471,7 @@ export async function assignProjectDrafter(project, drafterId, profile, workers)
   };
 }
 
-export async function sendProjectToReview(project, file, note, profile) {
+export async function sendProjectToReview(project, selectedFiles, note, profile) {
   const user = await authApi.getCurrentUser();
   if (!user || !profile) return { message: '', ok: false };
   if (profile.role !== 'manager' && !isDrafterCandidate(profile)) {
@@ -480,32 +480,56 @@ export async function sendProjectToReview(project, file, note, profile) {
   if (project.status !== 'עבר לשרטוט') {
     return { message: 'אפשר לשלוח להגהה רק פרויקט שנמצא בסטטוס עבר לשרטוט.', ok: false };
   }
-  if (!file) return { message: 'יש לבחור קובץ PDF לפני שליחה להגהה.', ok: false };
-  if (!navigator.onLine) return { message: 'נדרש חיבור לאינטרנט כדי לשלוח PDF להגהה.', ok: false };
-  const isPdfName = file.name.toLowerCase().endsWith('.pdf');
-  const isPdfType = !file.type || file.type === 'application/pdf';
-  if (!isPdfName || !isPdfType) return { message: 'אפשר להעלות להגהה קובץ PDF בלבד.', ok: false };
-  if (!file.size) return { message: 'קובץ ה־PDF ריק ולא ניתן להעלות אותו.', ok: false };
-  if (file.size > MAX_PROJECT_FILE_SIZE) {
-    return { message: 'קובץ ה־PDF גדול מדי. הגודל המרבי הוא 20MB.', ok: false };
+  const files = Array.from(Array.isArray(selectedFiles) ? selectedFiles : selectedFiles ? [selectedFiles] : []);
+  if (!files.length) return { message: 'יש לבחור לפחות קובץ PDF אחד לפני שליחה להגהה.', ok: false };
+  if (!navigator.onLine) return { message: 'נדרש חיבור לאינטרנט כדי לשלוח קובצי PDF להגהה.', ok: false };
+
+  for (const file of files) {
+    const isPdfName = file.name.toLowerCase().endsWith('.pdf');
+    const isPdfType = !file.type || file.type === 'application/pdf';
+    if (!isPdfName || !isPdfType) {
+      return { message: `הקובץ "${file.name}" אינו PDF. אפשר להעלות להגהה קובצי PDF בלבד.`, ok: false };
+    }
+    if (!file.size) {
+      return { message: `הקובץ "${file.name}" ריק ולא ניתן להעלות אותו.`, ok: false };
+    }
+    if (file.size > MAX_PROJECT_FILE_SIZE) {
+      return { message: `הקובץ "${file.name}" גדול מדי. הגודל המרבי לכל קובץ הוא 20MB.`, ok: false };
+    }
   }
 
-  const path = `${project.id}/${user.id}/${Date.now()}-${storageApi.safeFileName(file.name)}`;
-  const { error: uploadError } = await storageApi.uploadFile('project-review-files', path, file, {
-    upsert: false,
-    contentType: 'application/pdf',
-  });
-  if (uploadError) return { message: `העלאת קובץ ההגהה נכשלה: ${uploadError.message}`, ok: false };
+  const uploadStamp = Date.now();
+  const uploads = files.map((file, index) => ({
+    file,
+    path: `${project.id}/${user.id}/${uploadStamp}-${index}-${storageApi.safeFileName(file.name)}`,
+  }));
+  const uploadResults = await Promise.all(
+    uploads.map(async ({ file, path }) => {
+      const { error } = await storageApi.uploadFile('project-review-files', path, file, {
+        upsert: false,
+        contentType: 'application/pdf',
+      });
+      return { path, error };
+    }),
+  );
+  const uploadedPaths = uploadResults.filter(({ error }) => !error).map(({ path }) => path);
+  const failedUpload = uploadResults.find(({ error }) => error);
+  if (failedUpload) {
+    if (uploadedPaths.length) await storageApi.removeFiles('project-review-files', uploadedPaths);
+    return { message: `העלאת קובצי ההגהה נכשלה: ${failedUpload.error.message}`, ok: false };
+  }
 
-  const { data: insertedFile, error: fileError } = await projectReviewFilesApi.insertProjectReviewFile({
-    project_id: project.id,
-    uploaded_by: user.id,
-    file_path: path,
-    file_name: file.name,
-  });
+  const { data: insertedFiles, error: fileError } = await projectReviewFilesApi.insertProjectReviewFiles(
+    uploads.map(({ file, path }) => ({
+      project_id: project.id,
+      uploaded_by: user.id,
+      file_path: path,
+      file_name: file.name,
+    })),
+  );
   if (fileError) {
-    await storageApi.removeFiles('project-review-files', [path]);
-    return { message: `שמירת קובץ ההגהה נכשלה: ${fileError.message}`, ok: false };
+    await storageApi.removeFiles('project-review-files', uploadedPaths);
+    return { message: `שמירת קובצי ההגהה נכשלה: ${fileError.message}`, ok: false };
   }
 
   const { error: projectError } = await projectsApi.updateProject(project.id, {
@@ -513,27 +537,33 @@ export async function sendProjectToReview(project, file, note, profile) {
     progress: 85,
   });
   if (projectError) {
-    if (insertedFile?.id) await projectReviewFilesApi.deleteProjectReviewFile(insertedFile.id);
-    await storageApi.removeFiles('project-review-files', [path]);
+    const insertedFileIds = (insertedFiles || []).map(({ id }) => id).filter(Boolean);
+    if (insertedFileIds.length) await projectReviewFilesApi.deleteProjectReviewFiles(insertedFileIds);
+    await storageApi.removeFiles('project-review-files', uploadedPaths);
     return { message: `עדכון הפרויקט לסטטוס הגהה נכשל: ${projectError.message}`, ok: false };
   }
 
   const cleanNote = String(note || '').trim();
+  const fileNames = files.map(({ name }) => name);
+  const fileDescription =
+    files.length === 1 ? `PDF: ${fileNames[0]}` : `${files.length} קובצי PDF: ${fileNames.join(', ')}`;
   await statusHistoryApi.insertStatusHistory({
     project_id: project.id,
     old_status: project.status,
     new_status: REVIEW_STATUS,
     changed_by: user.id,
-    note: `נשלח להגהה על ידי ${profile.full_name}. PDF: ${file.name}${cleanNote ? ` · הערה: ${cleanNote}` : ''}`,
+    note: `נשלח להגהה על ידי ${profile.full_name}. ${fileDescription}${cleanNote ? ` · הערה: ${cleanNote}` : ''}`,
   });
 
+  const notificationFileDescription =
+    files.length === 1 ? 'וצירף PDF לבדיקה.' : `וצירף ${files.length} קובצי PDF לבדיקה.`;
   const workerIds = getProjectFieldWorkerIds(project);
   for (const workerId of workerIds) {
     await createUserNotification(
       workerId,
       'project_review_sent',
       `נשלח להגהה: ${project.name}`,
-      `השרטט ${profile.full_name} שלח את הפרויקט להגהה וצירף PDF לבדיקה.${cleanNote ? ` הערה: ${cleanNote}` : ''}`,
+      `השרטט ${profile.full_name} שלח את הפרויקט להגהה ${notificationFileDescription}${cleanNote ? ` הערה: ${cleanNote}` : ''}`,
       project.id,
     );
   }
@@ -545,7 +575,7 @@ export async function sendProjectToReview(project, file, note, profile) {
       drafterId,
       'project_review_sent',
       `נשלח להגהה: ${project.name}`,
-      `${profile.full_name} שלח את הפרויקט להגהה וצירף PDF לבדיקה.${cleanNote ? ` הערה: ${cleanNote}` : ''}`,
+      `${profile.full_name} שלח את הפרויקט להגהה ${notificationFileDescription}${cleanNote ? ` הערה: ${cleanNote}` : ''}`,
       project.id,
     );
   }
@@ -556,8 +586,9 @@ export async function sendProjectToReview(project, file, note, profile) {
     clientName: project.client_name,
     location: project.location,
     contactPhone: project.contact_phone || null,
-    pdfFileName: file.name,
-    pdfFilePath: path,
+    pdfFileName: files[0].name,
+    pdfFilePath: uploads[0].path,
+    pdfFiles: uploads.map(({ file, path }) => ({ name: file.name, path })),
     note: cleanNote,
     changedByName: profile.full_name,
     changedByEmail: profile.email,
@@ -572,7 +603,13 @@ export async function sendProjectToReview(project, file, note, profile) {
     };
   }
 
-  return { message: 'הפרויקט נשלח להגהה, ה-PDF נשמר ונשלחו התראות ומיילים.', ok: true };
+  return {
+    message:
+      files.length === 1
+        ? 'הפרויקט נשלח להגהה, ה-PDF נשמר ונשלחו התראות ומיילים.'
+        : `הפרויקט נשלח להגהה, ${files.length} קובצי PDF נשמרו ונשלחו התראות ומיילים.`,
+    ok: true,
+  };
 }
 
 export async function deleteProjectReviewFile(file, projectId, profile) {

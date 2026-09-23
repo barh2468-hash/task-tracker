@@ -82,7 +82,7 @@ export default function ProjectCard({ project, focused = false }) {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
-  const [reviewFile, setReviewFile] = useState(null);
+  const [reviewFiles, setReviewFiles] = useState([]);
   const [reviewNote, setReviewNote] = useState('');
   const [editing, setEditing] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -136,10 +136,10 @@ export default function ProjectCard({ project, focused = false }) {
   }, [project, statusOptions]);
 
   // Project objects are replaced by the realtime/polling refresh even when the
-  // project itself did not change. Keep a selected review PDF across those
+  // project itself did not change. Keep selected review PDFs across those
   // refreshes so the native file input and React state cannot drift apart.
   useEffect(() => {
-    setReviewFile(null);
+    setReviewFiles([]);
     setReviewNote('');
     setStatusDialogOpen(false);
     setStatusNote('');
@@ -149,7 +149,7 @@ export default function ProjectCard({ project, focused = false }) {
 
   useEffect(() => {
     if (project.status === 'עבר לשרטוט') return;
-    setReviewFile(null);
+    setReviewFiles([]);
     setReviewNote('');
   }, [project.status]);
   useEffect(() => {
@@ -951,16 +951,16 @@ export default function ProjectCard({ project, focused = false }) {
 
                 {canManageReview && project.status === 'עבר לשרטוט' && (
                   <DrafterReviewBox
-                    reviewFile={reviewFile}
-                    setReviewFile={setReviewFile}
+                    reviewFiles={reviewFiles}
+                    setReviewFiles={setReviewFiles}
                     reviewNote={reviewNote}
                     setReviewNote={setReviewNote}
                     onSend={async () => {
-                      if (!reviewFile) return { ok: false };
-                      const result = await sendProjectToReview(project, reviewFile, reviewNote);
+                      if (!reviewFiles.length) return { ok: false };
+                      const result = await sendProjectToReview(project, reviewFiles, reviewNote);
                       if (result?.ok) {
                         await refreshAssets();
-                        setReviewFile(null);
+                        setReviewFiles([]);
                         setReviewNote('');
                       }
                       return result;

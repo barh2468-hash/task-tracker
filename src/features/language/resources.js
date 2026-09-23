@@ -265,8 +265,11 @@ export const enTranslations = {
   'מעלה PDF...': 'Uploading PDF...',
   'מעלה קובץ...': 'Uploading file...',
   'מעלה את מסמך ההגהה...': 'Uploading the review document...',
+  'מעלה את קובצי ההגהה...': 'Uploading the review documents...',
   'הקובץ נשמר והפרויקט מועבר לסטטוס הגהה':
     'The file is being saved and the project is moving to review',
+  'הקבצים נשמרים והפרויקט מועבר לסטטוס הגהה':
+    'The files are being saved and the project is moving to review',
   'שולח להגהה...': 'Sending for review...',
   'אין עדיין מסמכי PDF בפרויקט': 'No PDF documents in this project yet',
   'אין עדיין קבצים בפרויקט': 'No files in this project yet',
@@ -416,8 +419,16 @@ export const enTranslations = {
   'שליחה להגהה': 'Send for review',
   'העלה PDF ושלח התראה לעובדי השטח, למנהלים ולשרטטים.':
     'Upload a PDF and notify field workers, managers and drafters.',
+  'העלה קובץ PDF אחד או יותר ושלח התראה לעובדי השטח, למנהלים ולשרטטים.':
+    'Upload one or more PDF files and notify field workers, managers and drafters.',
   'קובץ PDF להגהה': 'Review PDF',
+  'קובצי PDF להגהה': 'Review PDFs',
   'בחירת קובץ PDF': 'Choose a PDF file',
+  'בחירת קובצי PDF': 'Choose PDF files',
+  'קובצי PDF שנבחרו': 'Selected PDF files',
+  '{{value0}} קובצי PDF נבחרו': '{{value0}} PDF files selected',
+  'הסרת קובץ': 'Remove file',
+  'הסרת הקובץ {{value0}}': 'Remove {{value0}}',
   'שלח להגהה': 'Send for review',
   'העלאת מסמך PDF': 'Upload PDF document',
   'בחר את מטרת המסמך ולאחר מכן את קובץ ה־PDF.':
@@ -830,6 +841,9 @@ const greekTranslations = {
   'העלאת קובץ': 'Μεταφόρτωση αρχείου',
   'מעלה PDF...': 'Μεταφόρτωση PDF...',
   'מעלה קובץ...': 'Μεταφόρτωση αρχείου...',
+  'מעלה את קובצי ההגהה...': 'Μεταφόρτωση των εγγράφων ελέγχου...',
+  'הקבצים נשמרים והפרויקט מועבר לסטטוס הגהה':
+    'Τα αρχεία αποθηκεύονται και το έργο μεταφέρεται σε έλεγχο',
   'אין עדיין מסמכי PDF בפרויקט': 'Δεν υπάρχουν ακόμη έγγραφα PDF στο έργο',
   'הועלה על ידי': 'Μεταφορτώθηκε από',
   'פתיחת PDF': 'Άνοιγμα PDF',
@@ -1002,8 +1016,16 @@ const greekTranslations = {
   'שליחה להגהה': 'Αποστολή για έλεγχο',
   'העלה PDF ושלח התראה לעובדי השטח, למנהלים ולשרטטים.':
     'Μεταφορτώστε ένα PDF και ειδοποιήστε τους εργαζομένους πεδίου, τους διαχειριστές και τους σχεδιαστές.',
+  'העלה קובץ PDF אחד או יותר ושלח התראה לעובדי השטח, למנהלים ולשרטטים.':
+    'Μεταφορτώστε ένα ή περισσότερα αρχεία PDF και ειδοποιήστε τους εργαζομένους πεδίου, τους διαχειριστές και τους σχεδιαστές.',
   'קובץ PDF להגהה': 'PDF για έλεγχο',
+  'קובצי PDF להגהה': 'PDF για έλεγχο',
   'בחירת קובץ PDF': 'Επιλογή αρχείου PDF',
+  'בחירת קובצי PDF': 'Επιλογή αρχείων PDF',
+  'קובצי PDF שנבחרו': 'Επιλεγμένα αρχεία PDF',
+  '{{value0}} קובצי PDF נבחרו': 'Επιλέχθηκαν {{value0}} αρχεία PDF',
+  'הסרת קובץ': 'Αφαίρεση αρχείου',
+  'הסרת הקובץ {{value0}}': 'Αφαίρεση {{value0}}',
   'שלח להגהה': 'Αποστολή για έλεγχο',
   'העלאת מסמך PDF': 'Μεταφόρτωση εγγράφου PDF',
   'בחר את מטרת המסמך ולאחר מכן את קובץ ה־PDF.':

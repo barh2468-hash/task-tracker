@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sendEmail } from '../_shared/smtp.ts';
+import { getStatusEmailTheme } from '../_shared/status-email-theme.ts';
 
 const ISRAEL_TIME_ZONE = 'Asia/Jerusalem';
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -82,6 +83,12 @@ function formatIsraelDateTime(value: Date | string) {
   }).format(new Date(value));
 }
 
+function statusBadge(status: string | null | undefined, fallback = 'לא צוין') {
+  const label = status || fallback;
+  const theme = getStatusEmailTheme(status);
+  return `<span style="display:inline-block;padding:5px 9px;border:1px solid ${theme.border};border-radius:999px;background:${theme.background};color:${theme.text};font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap">${escapeHtml(label)}</span>`;
+}
+
 function israelTimeParts(value: Date) {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: ISRAEL_TIME_ZONE,
@@ -114,9 +121,7 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     if (!supabaseUrl || !anonKey || !serviceRoleKey) {
-      throw new Error(
-        'Missing SUPABASE_URL, SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY',
-      );
+      throw new Error('Missing SUPABASE_URL, SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY');
     }
 
     const cronRequest = isAuthorizedCronRequest(req);
@@ -193,8 +198,8 @@ Deno.serve(async (req) => {
             ${projectDetails ? `<div style="color:#64748b;font-size:12px">${escapeHtml(projectDetails)}</div>` : ''}
           </td>
           <td style="padding:12px;border-bottom:1px solid #e5e7eb;vertical-align:top">
-            <div><span style="color:#64748b">קודם:</span> ${escapeHtml(change.old_status)}</div>
-            <div><span style="color:#64748b">חדש:</span> <b>${escapeHtml(change.new_status)}</b></div>
+            <div style="margin-bottom:7px"><span style="display:inline-block;width:38px;color:#64748b;font-size:12px">קודם:</span> ${statusBadge(change.old_status)}</div>
+            <div><span style="display:inline-block;width:38px;color:#64748b;font-size:12px">חדש:</span> ${statusBadge(change.new_status)}</div>
           </td>
           <td style="padding:12px;border-bottom:1px solid #e5e7eb;vertical-align:top">
             ${escapeHtml(change.profiles?.full_name || 'משתמש')}
@@ -221,20 +226,28 @@ Deno.serve(async (req) => {
       },
     ).format(now)}`;
     const html = `
-      <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.6;color:#0b2545;max-width:1000px;margin:auto">
-        ${previewManagerEmail ? '<div style="background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:10px;padding:10px 14px;margin-bottom:16px"><b>מייל דוגמה</b> – זוהי תצוגה מקדימה של הסיכום היומי.</div>' : ''}
-        <h2 style="margin:0 0 8px">סיכום שינויי סטטוס</h2>
-        <p style="margin:0 0 18px;color:#475569">השינויים שבוצעו במערכת במהלך 24 השעות האחרונות.</p>
-        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px 16px;margin-bottom:18px">
-          <b>טווח הדוח:</b> ${escapeHtml(rangeLabel)}<br/>
-          <b>מספר שינויים:</b> ${changes.length}
-        </div>
-        ${
-          changes.length
-            ? `
-          <div style="overflow-x:auto">
-            <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;font-size:14px">
-              <thead style="background:#0b2545;color:white">
+      <div dir="rtl" style="margin:0;padding:24px 12px;background:#eef4fa;font-family:Arial,Helvetica,sans-serif;line-height:1.6;color:#0b2545">
+        <div style="max-width:960px;margin:auto;background:#ffffff;border:1px solid #dfe8f2;border-radius:20px;overflow:hidden;box-shadow:0 14px 36px rgba(7,30,65,.10)">
+          <div style="height:6px;background:#258fc4;font-size:0;line-height:0">&nbsp;</div>
+          <div style="padding:25px 28px;background:#0b2a55;color:#ffffff">
+            <div style="font-size:12px;font-weight:700;letter-spacing:1.6px;color:#9bd8ff">MAYA TRACKER</div>
+            <h2 style="margin:6px 0 5px;color:#ffffff;font-size:25px">סיכום שינויי סטטוס</h2>
+            <p style="margin:0;color:#d7e8f7;font-size:14px">24 השעות האחרונות בפרויקטים שלך</p>
+          </div>
+          <div style="padding:24px 28px">
+            ${previewManagerEmail ? '<div style="background:#fff7ed;border:1px solid #fdba74;color:#9a3412;border-radius:10px;padding:10px 14px;margin-bottom:16px"><b>מייל דוגמה</b> – זוהי תצוגה מקדימה של הסיכום היומי.</div>' : ''}
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:separate;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;margin-bottom:18px">
+              <tr>
+                <td style="padding:13px 16px;color:#475569;font-size:13px"><b style="color:#0b2545">טווח הדוח</b><br/>${escapeHtml(rangeLabel)}</td>
+                <td width="150" style="width:150px;padding:13px 16px;border-right:1px solid #bfdbfe;text-align:center"><span style="display:block;color:#64748b;font-size:12px">מספר שינויים</span><b style="display:block;color:#0b5f9a;font-size:24px">${changes.length}</b></td>
+              </tr>
+            </table>
+            ${
+              changes.length
+                ? `
+            <div style="overflow-x:auto;border:1px solid #dfe7f1;border-radius:12px">
+              <table style="width:100%;border-collapse:collapse;font-size:14px">
+                <thead style="background:#0b2545;color:white">
                 <tr>
                   <th style="padding:11px;text-align:right">פרויקט</th>
                   <th style="padding:11px;text-align:right">שינוי סטטוס</th>
@@ -242,13 +255,16 @@ Deno.serve(async (req) => {
                   <th style="padding:11px;text-align:right">מועד</th>
                   <th style="padding:11px;text-align:right">הערה</th>
                 </tr>
-              </thead>
-              <tbody>${tableRows}</tbody>
-            </table>
-          </div>`
-            : '<p style="padding:18px;background:#f8fafc;border-radius:12px">לא בוצעו שינויי סטטוס במהלך 24 השעות האחרונות.</p>'
-        }
-        ${appUrl ? `<p style="margin-top:20px"><a href="${escapeHtml(appUrl)}" style="color:#0b5fff">פתיחת המערכת</a></p>` : ''}
+                </thead>
+                <tbody>${tableRows}</tbody>
+              </table>
+            </div>`
+                : '<p style="padding:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center;color:#64748b">לא בוצעו שינויי סטטוס במהלך 24 השעות האחרונות.</p>'
+            }
+            ${appUrl ? `<p style="margin:22px 0 4px;text-align:center"><a href="${escapeHtml(appUrl)}" style="display:inline-block;padding:12px 22px;border-radius:11px;background:#0b2a55;color:#ffffff;font-weight:700;text-decoration:none">פתיחת המערכת</a></p>` : ''}
+          </div>
+          <div style="padding:15px 28px;background:#f7fafc;border-top:1px solid #e6edf4;text-align:center;color:#7b8aa0;font-size:11px">ההודעה נשלחה אוטומטית ממערכת MAYA לניהול פרויקטי תשתיות</div>
+        </div>
       </div>`;
 
     const textRows = changes

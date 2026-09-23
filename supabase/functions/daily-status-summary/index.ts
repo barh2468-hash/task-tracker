@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { sendEmail } from '../_shared/smtp.ts';
 
 const ISRAEL_TIME_ZONE = 'Asia/Jerusalem';
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -109,14 +110,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const fromEmail = Deno.env.get('FROM_EMAIL');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!resendApiKey || !fromEmail || !supabaseUrl || !anonKey || !serviceRoleKey) {
+    if (!supabaseUrl || !anonKey || !serviceRoleKey) {
       throw new Error(
-        'Missing RESEND_API_KEY, FROM_EMAIL, SUPABASE_URL, SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY',
+        'Missing SUPABASE_URL, SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE_KEY',
       );
     }
 
@@ -277,19 +276,7 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .join('\n\n');
 
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ from: fromEmail, to: recipients, subject, html, text }),
-    });
-    if (!resendResponse.ok) {
-      throw new Error(`Resend error: ${await resendResponse.text()}`);
-    }
-
-    const result = await resendResponse.json();
+    const result = await sendEmail({ to: recipients, subject, html, text });
     return Response.json(
       {
         ok: true,

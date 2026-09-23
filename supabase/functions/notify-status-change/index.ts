@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { sendEmail, type EmailAttachment } from '../_shared/smtp.ts';
 import { createWorkDiaryPdf } from './work-diary-pdf.ts';
 
 type Payload = {
@@ -61,11 +62,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const fromEmail = Deno.env.get('FROM_EMAIL') || 'MAYA Tracker <onboarding@resend.dev>';
-
     if (!supabaseUrl || !anonKey || !serviceRoleKey) throw new Error('Missing Supabase Edge Function secrets');
-    if (!resendApiKey) throw new Error('Missing RESEND_API_KEY secret');
 
     const authHeader = req.headers.get('Authorization') || '';
     const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
@@ -121,7 +118,7 @@ Deno.serve(async (req) => {
     }
 
     let attachedDiaryNumber: number | null = null;
-    const attachments: Array<{ filename: string; content: string }> = [];
+    const attachments: EmailAttachment[] = [];
     if (payload.newStatus === 'הושלם') {
       const { data: latestDiary, error: diaryError } = await adminClient
         .from('work_diaries')
@@ -141,6 +138,8 @@ Deno.serve(async (req) => {
         attachments.push({
           filename: `work-diary-${latestDiary.diary_number}.pdf`,
           content: bytesToBase64(pdfBytes),
+          contentType: 'application/pdf',
+          encoding: 'base64',
         });
       }
     }
@@ -182,21 +181,13 @@ Deno.serve(async (req) => {
       projectUrl ? `מערכת: ${projectUrl}` : ''
     ].filter(Boolean).join('\n');
 
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ from: fromEmail, to: recipients, subject, html, text, ...(attachments.length ? { attachments } : {}) })
+    const result = await sendEmail({
+      to: recipients,
+      subject,
+      html,
+      text,
+      attachments: attachments.length ? attachments : undefined,
     });
-
-    if (!resendResponse.ok) {
-      const details = await resendResponse.text();
-      throw new Error(`Resend error: ${details}`);
-    }
-
-    const result = await resendResponse.json();
     return new Response(JSON.stringify({ ok: true, sentTo: recipients.length, attachedDiaryNumber, result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

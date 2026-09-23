@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { sendEmail } from '../_shared/smtp.ts';
 
 type Payload = {
   projectId: string;
@@ -38,11 +39,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const fromEmail = Deno.env.get('FROM_EMAIL') || 'MAYA Tasks <onboarding@resend.dev>';
-
     if (!supabaseUrl || !anonKey || !serviceRoleKey) throw new Error('Missing Supabase Edge Function secrets');
-    if (!resendApiKey) throw new Error('Missing RESEND_API_KEY secret');
 
     const authHeader = req.headers.get('Authorization') || '';
     const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
@@ -104,21 +101,7 @@ Deno.serve(async (req) => {
       payload.appUrl ? `מערכת: ${payload.appUrl}` : ''
     ].filter(Boolean).join('\n');
 
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ from: fromEmail, to: recipients, subject, html, text })
-    });
-
-    if (!resendResponse.ok) {
-      const details = await resendResponse.text();
-      throw new Error(`Resend error: ${details}`);
-    }
-
-    const result = await resendResponse.json();
+    const result = await sendEmail({ to: recipients, subject, html, text });
     return new Response(JSON.stringify({ ok: true, sentTo: recipients.length, result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

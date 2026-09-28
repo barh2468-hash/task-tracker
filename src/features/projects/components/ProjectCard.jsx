@@ -107,6 +107,12 @@ export default function ProjectCard({ project, focused = false }) {
   const [selectedDrafterId, setSelectedDrafterId] = useState(assignedDrafterId);
   const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
   const drafters = workers.filter(isDrafterCandidate);
+  const workerDirectoryById = new Map(workers.map((worker) => [worker.id, worker]));
+  const responsibleWorkerName = project.assigned_to
+    ? project.profiles?.full_name ||
+      workerDirectoryById.get(project.assigned_to)?.full_name ||
+      t('עובד אחראי')
+    : t('לא משויך');
   const [editProject, setEditProject] = useState({
     name: project.name,
     client_name: project.client_name || '',
@@ -686,7 +692,7 @@ export default function ProjectCard({ project, focused = false }) {
                 <div className="projectOverviewAssignments">
                   <div>
                     <span>{t('עובד אחראי:')}</span>
-                    <b>{project.profiles?.full_name || t('לא משויך')}</b>
+                    <b>{responsibleWorkerName}</b>
                   </div>
                   {!!project.project_workers?.some(
                     (assignment) =>
@@ -701,7 +707,12 @@ export default function ProjectCard({ project, focused = false }) {
                               !assignment.profiles?.role ||
                               assignment.profiles.role === 'field_worker',
                           )
-                          .map((assignment) => assignment.profiles?.full_name || t('עובד'))
+                          .map(
+                            (assignment) =>
+                              assignment.profiles?.full_name ||
+                              workerDirectoryById.get(assignment.worker_id)?.full_name ||
+                              t('עובד'),
+                          )
                           .join(', ')}
                       </b>
                     </div>
@@ -712,7 +723,9 @@ export default function ProjectCard({ project, focused = false }) {
                       <b>
                         {project.project_workers?.find(
                           (assignment) => assignment.worker_id === assignedDrafterId,
-                        )?.profiles?.full_name || t('שרטט')}
+                        )?.profiles?.full_name ||
+                          workerDirectoryById.get(assignedDrafterId)?.full_name ||
+                          t('שרטט')}
                       </b>
                     </div>
                   )}

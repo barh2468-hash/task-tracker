@@ -1571,8 +1571,8 @@ body.language-en { direction: ltr; }
 .projectMoreActionsMenu button:hover{background:#eef6fb;transform:none;box-shadow:none}
 .projectMoreActionsMenu button.danger{background:#fff1f2!important;color:#b4232f}
 .projectExpandedBody>.projectOperationsPanel{background:transparent;box-shadow:none}
-.projectSectionTabs{grid-column:1/-1;padding:5px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;border:1px solid #d9e6ef;border-radius:16px;background:#eef4f8}
-.projectSectionTabs button{min-width:0;min-height:43px;padding:8px 12px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;background:transparent;color:#52677d;box-shadow:none;font-size:13px}
+.projectSectionTabs{grid-column:1/-1;padding:5px;display:flex;gap:5px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;border:1px solid #d9e6ef;border-radius:16px;background:#eef4f8}
+.projectSectionTabs button{min-width:128px;min-height:43px;padding:8px 12px;display:flex;flex:1 0 128px;align-items:center;justify-content:center;gap:8px;border-radius:12px;background:transparent;color:#52677d;box-shadow:none;font-size:13px;white-space:nowrap}
 .projectSectionTabs button:hover{background:rgba(255,255,255,.72);color:var(--navy);transform:none;box-shadow:none}
 .projectSectionTabs button.active{background:#fff;color:var(--navy);box-shadow:0 5px 14px rgba(7,30,65,.09)}
 .projectSectionTabs small{min-width:24px;height:20px;padding:0 6px;display:grid;place-items:center;border-radius:999px;background:#e4f1f7;color:#17698f;font-size:10px;font-weight:950;font-variant-numeric:tabular-nums}

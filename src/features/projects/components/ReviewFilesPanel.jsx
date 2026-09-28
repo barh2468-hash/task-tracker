@@ -6,7 +6,14 @@ import { CheckCircle2, Eye, FileText, Trash2, X } from 'lucide-react';
 import { createSignedUrl } from '../../../services/api/storage.js';
 import PdfPreviewModal from './PdfPreviewModal.jsx';
 
-export default function ReviewFilesPanel({ files, canDelete, onDelete, canApprove, onApprove }) {
+export default function ReviewFilesPanel({
+  files,
+  canDelete,
+  onDelete,
+  canApprove,
+  onApprove,
+  approvalDescription = 'להעביר את סטטוס הפרויקט ל"עבר לבקרה"?',
+}) {
   useTranslation();
   const [urls, setUrls] = useState({});
   const [previewFile, setPreviewFile] = useState(null);
@@ -135,7 +142,7 @@ export default function ReviewFilesPanel({ files, canDelete, onDelete, canApprov
               <div className="statusNoteHeader">
                 <div>
                   <h3 id="review-approve-title">{t('אישור הגהה')}</h3>
-                  <p className="muted">{t('להעביר את סטטוס הפרויקט ל"עבר לבקרה"?')}</p>
+                  <p className="muted">{t(approvalDescription)}</p>
                 </div>
                 <button
                   type="button"

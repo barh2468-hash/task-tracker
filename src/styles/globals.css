@@ -1509,6 +1509,32 @@ body.language-en { direction: ltr; }
 
 .statusNoteModal{width:min(620px,100%);max-height:calc(100dvh - 40px);overflow:auto;padding:22px;display:grid;gap:17px;border:1px solid var(--line);border-radius:26px;background:#fff;box-shadow:0 30px 90px rgba(3,20,45,.32)}
 .statusNoteHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}.statusNoteHeader h3{margin:4px 0;color:var(--navy);font-size:22px}.statusNoteModal textarea{min-height:150px}
+.continuationReportCard{border-color:#b9dfd2;background:linear-gradient(145deg,#f2fcf7,#fff)}
+.continuationReportCard .projectOperationIcon{background:#def5e9;color:#087a4b}
+.continuationReportButton{background:linear-gradient(135deg,#087a4b,#0f9b68)}
+.continuationReportDialog{width:min(700px,100%)}
+.continuationReportGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.continuationDateField{position:relative;display:flex;align-items:center;color:#16759e}.continuationDateField>svg{position:absolute;right:14px;z-index:1;pointer-events:none}.continuationDateField input{padding-right:42px}
+.continuationReportHint{justify-self:end;color:var(--muted);font-size:11px;font-weight:750}
+.continuationReportNotice{padding:12px 14px;border:1px solid #cde6dc;border-radius:14px;background:#f3fbf7;color:#17654a;font-size:12px;font-weight:800;line-height:1.55}
+.reviewSelectedFiles.continuationAttachmentList li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center}.continuationAttachmentPicker{min-height:58px}
+@media(max-width:680px){.continuationReportGrid{grid-template-columns:minmax(0,1fr)}}
+
+.drawingBatchesPanel{padding:0;overflow:hidden}.drawingBatchesPanel>.projectTabPanelHeader>div{display:grid;gap:3px}.drawingBatchesPanel>.projectTabPanelHeader small{color:var(--muted);font-weight:750}
+.drawingBatchesList{padding:14px;display:grid;gap:14px;background:#f6f9fc}
+.drawingBatchCard{padding:16px;display:grid;gap:13px;border:1px solid #d7e4ed;border-right:5px solid #9cb7ca;border-radius:18px;background:#fff;box-shadow:0 8px 22px rgba(7,30,65,.05)}
+.drawingBatchCard.batchStatus-pending_drafting{border-right-color:#d68a1f}.drawingBatchCard.batchStatus-in_drafting{border-right-color:#6b21a8}.drawingBatchCard.batchStatus-sent_to_review{border-right-color:#e11d48}.drawingBatchCard.batchStatus-approved{border-right-color:#15925b}.drawingBatchCard.batchStatus-cancelled{opacity:.72;border-right-color:#7b8794}
+.drawingBatchHeader{display:flex;align-items:center;justify-content:space-between;gap:12px}.drawingBatchIdentity{min-width:0;display:flex;align-items:center;gap:11px}.drawingBatchIdentity>div{min-width:0;display:grid;gap:3px}.drawingBatchIdentity b{color:var(--navy);overflow-wrap:anywhere}.drawingBatchIdentity small{color:var(--muted);font-weight:750}.drawingBatchNumber{flex:0 0 auto;padding:8px 11px;border-radius:12px;background:#eaf4fb;color:#0b5f8d;font-size:12px;font-weight:950}
+.drawingBatchStatus{padding:7px 10px;border-radius:999px;background:#eef2f6;color:#536475;font-size:11px;font-weight:950;white-space:nowrap}.drawingBatchStatus.pending_drafting{background:#fff3df;color:#9a5a00}.drawingBatchStatus.in_drafting{background:#f1e8ff;color:#6b21a8}.drawingBatchStatus.sent_to_review{background:#ffe4e6;color:#be123c}.drawingBatchStatus.approved{background:#dcfce7;color:#087a36}
+.drawingBatchSummary{margin:0;padding:12px 14px;border-radius:13px;background:#f6f9fb;color:#41576a;font-size:13px;font-weight:750;line-height:1.65}
+.drawingBatchMeta{display:flex;flex-wrap:wrap;gap:8px}.drawingBatchMeta>span{padding:7px 9px;display:inline-flex;align-items:center;gap:6px;border:1px solid #dde7ee;border-radius:999px;background:#fff;color:#586d7f;font-size:11px;font-weight:850}.drawingBatchMeta>.batchImpactWarning{border-color:#f4b6bd;background:#fff2f3;color:#ae2535}
+.drawingBatchFiles{padding:11px 13px;border:1px solid #d8e6ee;border-radius:14px;background:#f8fbfd}.drawingBatchFiles>b{display:flex;align-items:center;gap:7px;color:var(--navy);font-size:12px}.drawingBatchFiles ul{margin:8px 0 0;padding:0 18px 0 0;color:#52697c;font-size:11px;line-height:1.8}
+.drawingBatchPrimaryAction{justify-self:start;background:linear-gradient(135deg,#5b258f,#7d3fc2)}
+.drawingBatchCard>.reviewBox,.drawingBatchCard>.reviewFilesBox{height:auto!important;margin:0;padding:13px!important;border-radius:15px!important;box-shadow:none!important}.drawingBatchCard>.reviewFilesBox .projectSectionHeader{min-height:0}
+.drawingBatchApproved{padding:10px 12px;display:flex;align-items:center;gap:8px;border-radius:13px;background:#e9f9f0;color:#087a4b;font-size:12px;font-weight:900}
+.drawingBatchEvents{border-top:1px dashed #d8e3eb;padding-top:10px}.drawingBatchEvents summary{cursor:pointer;color:#31536d;font-size:11px;font-weight:900}.drawingBatchEvents>div{margin-top:8px;display:grid;gap:6px}.drawingBatchEvents p{margin:0;padding:8px 10px;display:grid;gap:3px;border-radius:10px;background:#f6f9fb;font-size:11px}.drawingBatchEvents p span{color:var(--muted);font-size:10px;font-weight:750}
+.drawingBatchesEmpty{min-height:190px;display:grid;place-items:center;align-content:center;gap:8px;text-align:center;color:#6a7e90}.drawingBatchesEmpty svg{color:#258fc4}.drawingBatchesEmpty span{max-width:420px;font-size:12px;line-height:1.55}
+@media(max-width:680px){.drawingBatchHeader{align-items:flex-start;flex-direction:column}.drawingBatchStatus{align-self:flex-start}.drawingBatchPrimaryAction{width:100%}}
 
 .filePickerControl{position:relative;min-height:52px;padding:12px 14px;display:flex;align-items:center;gap:9px;border:1px dashed #9fc5d9;border-radius:16px;background:#f6fbfe;color:#17698f;overflow:hidden}.filePickerControl>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.filePickerControl input{position:absolute;inset:0;width:100%;height:100%;padding:0;opacity:0;cursor:pointer}.boundarySketchField{align-content:start}
 .projectDocumentUploadControls{display:flex;align-items:end;gap:8px}.projectDocumentType{min-width:190px;gap:4px}.projectDocumentType>span{color:var(--muted);font-size:10px}.projectDocumentType select{min-height:40px;padding:8px 10px;border-radius:12px;font-size:12px}.projectDocumentTypeBadge{justify-self:start;padding:3px 7px;border-radius:999px;background:#e8f6fb;color:#0b6c7f;font-size:10px;font-weight:900}

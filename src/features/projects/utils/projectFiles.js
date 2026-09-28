@@ -8,7 +8,11 @@ const supportedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'i
 const supportedImageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic'];
 
 export function documentTypeAllowsImages(documentType) {
-  return documentType === 'boundary_sketch' || documentType === 'drawing_correction';
+  return (
+    documentType === 'boundary_sketch' ||
+    documentType === 'drawing_source' ||
+    documentType === 'drawing_correction'
+  );
 }
 
 export function isPdfFile(file) {

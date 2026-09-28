@@ -92,6 +92,8 @@ export function ProjectsProvider({ children }) {
       'project_workers',
       'project_review_files',
       'project_documents',
+      'project_drawing_batches',
+      'project_drawing_batch_events',
       'work_sessions',
       'profiles',
     ],
@@ -154,6 +156,27 @@ export function ProjectsProvider({ children }) {
     archiveProject: (project) => runMutation(projectsFeatureApi.archiveProject(project, profile)),
     restoreProject: (project) => runMutation(projectsFeatureApi.restoreProject(project, profile)),
     updateStatus: runStatusMutation,
+    submitContinuationReport: (project, report) =>
+      runMutation(projectsFeatureApi.submitContinuationReport(project, report, profile)),
+    updateDrawingBatchStatus: (project, drawingBatch, newStatus) =>
+      runMutation(
+        projectsFeatureApi.updateDrawingBatchStatus(
+          project,
+          drawingBatch,
+          newStatus,
+          profile,
+        ),
+      ),
+    sendDrawingBatchToReview: (project, drawingBatch, files, note) =>
+      runMutation(
+        projectsFeatureApi.sendDrawingBatchToReview(
+          project,
+          drawingBatch,
+          files,
+          note,
+          profile,
+        ),
+      ),
     uploadPhoto: (projectId, file, category) =>
       runMutation(projectsFeatureApi.uploadPhoto(projectId, file, category)),
     deletePhoto: (photo, project) =>

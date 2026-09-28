@@ -8,6 +8,9 @@ export default function DrafterReviewBox({
   reviewNote,
   setReviewNote,
   onSend,
+  title = 'שליחה להגהה',
+  description = 'העלה קובץ PDF אחד או יותר ושלח התראה לעובדי השטח, למנהלים ולשרטטים.',
+  progressDescription = 'הקבצים נשמרים והפרויקט מועבר לסטטוס הגהה',
 }) {
   useTranslation();
   const [uploading, setUploading] = useState(false);
@@ -35,9 +38,9 @@ export default function DrafterReviewBox({
   return (
     <section className={`projectSectionPanel reviewBox drafterReviewBox ${uploading ? 'uploading' : ''}`}>
       <div>
-        <b>{t('שליחה להגהה')}</b>
+        <b>{t(title)}</b>
         <p className="muted" style={{ margin: '4px 0 0' }}>
-          {t('העלה קובץ PDF אחד או יותר ושלח התראה לעובדי השטח, למנהלים ולשרטטים.')}
+          {t(description)}
         </p>
       </div>
       <label className="reviewFileField">
@@ -101,9 +104,7 @@ export default function DrafterReviewBox({
                 : t('מעלה את מסמך ההגהה...')}
             </b>
             <small>
-              {selectedFiles.length > 1
-                ? t('הקבצים נשמרים והפרויקט מועבר לסטטוס הגהה')
-                : t('הקובץ נשמר והפרויקט מועבר לסטטוס הגהה')}
+              {t(progressDescription)}
             </small>
           </span>
         </div>

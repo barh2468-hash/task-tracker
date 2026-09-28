@@ -11,6 +11,7 @@ import {
   MessageSquareText,
   MoreHorizontal,
   Pencil,
+  PlusCircle,
   Phone,
   RotateCcw,
   Trash2,
@@ -33,6 +34,8 @@ import TaskPanel from './TaskPanel.jsx';
 import PhotoGallery from '../../photos/components/PhotoGallery.jsx';
 import WorkDiaryPanel from '../../work-diary/components/WorkDiaryPanel.jsx';
 import { findAssignedDrafter, isDrafterCandidate } from '../utils/drafters.js';
+import ContinuationReportDialog from './ContinuationReportDialog.jsx';
+import DrawingBatchesPanel from './DrawingBatchesPanel.jsx';
 
 const photoCategories = [
   'תמונת שטח',
@@ -50,6 +53,9 @@ export default function ProjectCard({ project, focused = false }) {
     historyItems,
     workers,
     updateStatus,
+    submitContinuationReport,
+    updateDrawingBatchStatus,
+    sendDrawingBatchToReview,
     uploadPhoto,
     deletePhoto,
     uploadProjectDocument,
@@ -78,6 +84,8 @@ export default function ProjectCard({ project, focused = false }) {
   const [statusNote, setStatusNote] = useState('');
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [continuationDialogOpen, setContinuationDialogOpen] = useState(false);
+  const [continuationSubmitting, setContinuationSubmitting] = useState(false);
   const [photoCategory, setPhotoCategory] = useState(photoCategories[0]);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
@@ -92,6 +100,7 @@ export default function ProjectCard({ project, focused = false }) {
     project_photos: [],
     project_review_files: [],
     project_documents: [],
+    project_drawing_batches: [],
   });
   const [assetsLoading, setAssetsLoading] = useState(false);
   const assignedDrafterId = findAssignedDrafter(project)?.worker_id || '';
@@ -142,6 +151,7 @@ export default function ProjectCard({ project, focused = false }) {
     setReviewFiles([]);
     setReviewNote('');
     setStatusDialogOpen(false);
+    setContinuationDialogOpen(false);
     setStatusNote('');
     setActiveDetailTab('tasks');
     setMoreActionsOpen(false);
@@ -153,7 +163,7 @@ export default function ProjectCard({ project, focused = false }) {
     setReviewNote('');
   }, [project.status]);
   useEffect(() => {
-    if (!editing && !statusDialogOpen) return;
+    if (!editing && !statusDialogOpen && !continuationDialogOpen) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -161,7 +171,7 @@ export default function ProjectCard({ project, focused = false }) {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [editing, statusDialogOpen]);
+  }, [continuationDialogOpen, editing, statusDialogOpen]);
 
   useEffect(() => {
     if (focused) setDetailsOpen(true);
@@ -189,6 +199,7 @@ export default function ProjectCard({ project, focused = false }) {
   const isReviewSent = project.status === REVIEW_STATUS;
   const isReviewCompleted = project.status === REVIEW_COMPLETED_STATUS;
   const canManageReview = isManager || isDrafter || isDrafterCandidate(profile);
+  const canReportContinuation = !project.is_archived && (isManager || isAssignedFieldWorker);
 
   const editModal = editing ? (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click-to-close is a mouse convenience; the close button covers keyboard access
@@ -762,6 +773,25 @@ export default function ProjectCard({ project, focused = false }) {
             />
 
             <div className="projectOperationsPanel">
+              {canReportContinuation && (
+                <section className="projectOperationCard continuationReportCard">
+                  <header className="projectOperationHeader">
+                    <span className="projectOperationIcon"><PlusCircle size={20} /></span>
+                    <div>
+                      <b>דיווח המשך עבודה</b>
+                      <span>שליחת עבודה נוספת לשרטוט בלי לשנות את סטטוס הפרויקט</span>
+                    </div>
+                  </header>
+                  <button
+                    type="button"
+                    className="smallBtn continuationReportButton"
+                    onClick={() => setContinuationDialogOpen(true)}
+                  >
+                    <PlusCircle size={16} />
+                    דיווח חדש לשרטוט
+                  </button>
+                </section>
+              )}
               <section className="projectOperationCard projectStatusCard">
                 <header className="projectOperationHeader">
                   <span className="projectOperationIcon"><MessageSquareText size={20} /></span>
@@ -797,6 +827,11 @@ export default function ProjectCard({ project, focused = false }) {
             <div className="projectSectionTabs" role="tablist" aria-label={t('פרטי הפרויקט')}>
               {[
                 ['tasks', t('משימות'), (project.project_tasks || []).length],
+                [
+                  'drawing-batches',
+                  'מנות שרטוט',
+                  assets.project_drawing_batches.length,
+                ],
                 [
                   'documents',
                   t('מסמכים'),
@@ -907,7 +942,7 @@ export default function ProjectCard({ project, focused = false }) {
                   />
                 )}
 
-                {isManager && project.status === 'עבר לשרטוט' && (
+                {isManager && !project.is_archived && (
                   <section className="projectSectionPanel drafterAssignmentBox">
                     <div>
                       <b>{t('שיוך הפרויקט לשרטט')}</b>
@@ -930,7 +965,10 @@ export default function ProjectCard({ project, focused = false }) {
                     </select>
                     <button
                       type="button"
-                      onClick={() => assignProjectDrafter(project, selectedDrafterId)}
+                      onClick={async () => {
+                        await assignProjectDrafter(project, selectedDrafterId);
+                        await refreshAssets();
+                      }}
                       disabled={!drafters.length && !assignedDrafterId}
                     >
                       <Pencil size={16} /> {assignedDrafterId ? t('עדכון שיוך') : t('שיוך לשרטט')}
@@ -939,7 +977,7 @@ export default function ProjectCard({ project, focused = false }) {
                 )}
 
                 <ReviewFilesPanel
-                  files={assets.project_review_files}
+                  files={assets.project_review_files.filter((file) => !file.drawing_batch_id)}
                   canDelete={canManageReview}
                   onDelete={async (file) => {
                     await deleteProjectReviewFile(file, project.id);
@@ -999,6 +1037,41 @@ export default function ProjectCard({ project, focused = false }) {
               </div>
             )}
 
+            {activeDetailTab === 'drawing-batches' && (
+              <DrawingBatchesPanel
+                batches={assets.project_drawing_batches}
+                documents={assets.project_documents}
+                reviewFiles={assets.project_review_files}
+                currentUserId={currentUserId}
+                isManager={isManager}
+                isAssignedFieldWorker={isAssignedFieldWorker}
+                canManageReview={canManageReview}
+                onUpdateStatus={async (drawingBatch, newStatus) => {
+                  const result = await updateDrawingBatchStatus(
+                    project,
+                    drawingBatch,
+                    newStatus,
+                  );
+                  if (result?.ok) await refreshAssets();
+                  return result;
+                }}
+                onSendToReview={async (drawingBatch, files, note) => {
+                  const result = await sendDrawingBatchToReview(
+                    project,
+                    drawingBatch,
+                    files,
+                    note,
+                  );
+                  if (result?.ok) await refreshAssets();
+                  return result;
+                }}
+                onDeleteReviewFile={async (file) => {
+                  await deleteProjectReviewFile(file, project.id);
+                  await refreshAssets();
+                }}
+              />
+            )}
+
             {activeDetailTab === 'updates' && (
               <section className="projectTabPanel projectHistoryPanel" role="tabpanel">
                 <header className="projectTabPanelHeader">
@@ -1037,6 +1110,28 @@ export default function ProjectCard({ project, focused = false }) {
       </article>
       {editModal && createPortal(editModal, document.body)}
       {statusModal && createPortal(statusModal, document.body)}
+      {continuationDialogOpen &&
+        createPortal(
+          <ContinuationReportDialog
+            project={project}
+            submitting={continuationSubmitting}
+            onClose={() => setContinuationDialogOpen(false)}
+            onSubmit={async (report) => {
+              setContinuationSubmitting(true);
+              try {
+                const result = await submitContinuationReport(project, report);
+                if (result?.ok) {
+                  await refreshAssets();
+                  setContinuationDialogOpen(false);
+                  setActiveDetailTab('drawing-batches');
+                }
+              } finally {
+                setContinuationSubmitting(false);
+              }
+            }}
+          />,
+          document.body,
+        )}
     </>
   );
 }

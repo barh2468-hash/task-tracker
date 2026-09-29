@@ -864,6 +864,14 @@ button{transition:transform .16s ease,box-shadow .16s ease,filter .16s ease,back
   background:linear-gradient(135deg,var(--navy),var(--navy3));
   box-shadow:0 12px 24px rgba(7,30,65,.16);
 }
+.authTextLink{color:var(--navy);font-weight:900;text-align:center;text-decoration:none}
+.authTextLink:hover{text-decoration:underline}
+.authPrimaryLink{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 18px;border-radius:15px;background:linear-gradient(135deg,var(--navy),var(--navy3));color:#fff;font-weight:900;text-decoration:none;box-shadow:0 12px 24px rgba(7,30,65,.16)}
+.authPrimaryLink:hover{filter:brightness(1.05)}
+.authActions,.authResult{display:grid;gap:14px;margin-top:22px}
+.authMessage{margin:0;padding:12px 14px;border-radius:14px;font-weight:800;line-height:1.55}
+.authMessage.success{background:#eaf8ef;border:1px solid #b9e5c8;color:#087a36}
+.authMessage.error{background:#fff1f1;border:1px solid #fecaca;color:#a71919}
 @media(max-width:760px){
   .login.loginScreen{
     padding:20px 12px;

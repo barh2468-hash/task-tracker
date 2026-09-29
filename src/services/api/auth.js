@@ -17,6 +17,14 @@ export function signInWithPassword(email, password) {
   return supabase.auth.signInWithPassword({ email, password });
 }
 
+export function requestPasswordReset(email, redirectTo) {
+  return supabase.auth.resetPasswordForEmail(email, { redirectTo });
+}
+
+export function updatePassword(password) {
+  return supabase.auth.updateUser({ password });
+}
+
 export function signUp(email, password, fullName) {
   return supabase.auth.signUp({
     email,

@@ -5,6 +5,14 @@ export function signIn(email, password) {
   return authApi.signInWithPassword(email, password);
 }
 
+export function requestPasswordReset(email, redirectTo) {
+  return authApi.requestPasswordReset(email, redirectTo);
+}
+
+export function updatePassword(password) {
+  return authApi.updatePassword(password);
+}
+
 export function signUp(email, password, fullName) {
   return authApi.signUp(email, password, fullName);
 }

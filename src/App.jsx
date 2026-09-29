@@ -9,6 +9,8 @@ import { AttendanceProvider } from './features/attendance/AttendanceContext.jsx'
 import { ChatProvider } from './features/chat/ChatContext.jsx';
 import SetupPage from './routes/SetupPage.jsx';
 import LoginPage, { LoadingScreen } from './routes/LoginPage.jsx';
+import ForgotPasswordPage from './routes/ForgotPasswordPage.jsx';
+import ResetPasswordPage from './routes/ResetPasswordPage.jsx';
 import RequireAuth from './routes/RequireAuth.jsx';
 import DashboardLayout from './routes/DashboardLayout.jsx';
 import ProjectsPage from './routes/ProjectsPage.jsx';
@@ -65,6 +67,8 @@ export default function App() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route element={<RequireAuth />}>
               <Route
                 path="/app"

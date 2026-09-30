@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ShieldAlert } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useMessage } from '../context/MessageContext.jsx';
@@ -177,10 +177,6 @@ export default function ProjectsPage() {
             </option>
           ))}
         </select>
-        <button className="ghost">
-          <Search size={16} />
-          {t('סינון')}
-        </button>
       </div>
       {deepLinkDenied && (
         <div className="projectDeepLinkNotice" role="alert">

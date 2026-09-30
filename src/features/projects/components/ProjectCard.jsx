@@ -36,6 +36,7 @@ import WorkDiaryPanel from '../../work-diary/components/WorkDiaryPanel.jsx';
 import { findAssignedDrafter, isDrafterCandidate } from '../utils/drafters.js';
 import ContinuationReportDialog from './ContinuationReportDialog.jsx';
 import DrawingBatchesPanel from './DrawingBatchesPanel.jsx';
+import ProjectHistoryPanel from './ProjectHistoryPanel.jsx';
 
 const photoCategories = [
   'תמונת שטח',
@@ -75,7 +76,8 @@ export default function ProjectCard({ project, focused = false }) {
   const currentUserId = session?.user?.id;
   const currentUserName = profile?.full_name || '';
 
-  const projectHistory = historyItems.filter((h) => h.project_id === project.id).slice(0, 4);
+  const projectHistory = historyItems.filter((h) => h.project_id === project.id);
+  const projectHistoryPreview = projectHistory.slice(0, 4);
 
   const statusOptions = profile?.role === 'field_worker' ? FIELD_WORKER_STATUSES : appStatuses;
   const [status, setStatus] = useState(
@@ -657,7 +659,7 @@ export default function ProjectCard({ project, focused = false }) {
                             role="menuitem"
                             onClick={() => {
                               setMoreActionsOpen(false);
-                              exportProjectPdf({ ...project, ...assets }, projectHistory);
+                              exportProjectPdf({ ...project, ...assets }, projectHistoryPreview);
                             }}
                           >
                             <FileText size={16} /> {t('דוח PDF')}
@@ -1086,37 +1088,11 @@ export default function ProjectCard({ project, focused = false }) {
             )}
 
             {activeDetailTab === 'updates' && (
-              <section className="projectTabPanel projectHistoryPanel" role="tabpanel">
-                <header className="projectTabPanelHeader">
-                  <b>{t('עדכונים אחרונים')}</b>
-                  <small>
-                    {projectHistory.length === 0
-                      ? t('אין עדכונים')
-                      : t('{{value0}} עדכונים', { value0: projectHistory.length })}
-                  </small>
-                </header>
-                <div className="historyList">
-                  {projectHistory.length === 0 && (
-                    <div className="muted">{t('אין עדכונים עדיין')}</div>
-                  )}
-                  {projectHistory.map((h) => (
-                    <div className="historyItem" key={h.id}>
-                      • {t(h.new_status)}
-                      <br />
-                      <span>
-                        {h.profiles?.full_name || t('משתמש')} ·{' '}
-                        {new Date(h.created_at).toLocaleString('he-IL')}
-                      </span>
-                      {h.note && (
-                        <>
-                          <br />
-                          <span>{h.note}</span>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
+              <ProjectHistoryPanel
+                projectId={project.id}
+                fallbackItems={projectHistory}
+                refreshKey={historyItems[0]?.id || ''}
+              />
             )}
           </div>
         )}

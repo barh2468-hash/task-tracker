@@ -143,6 +143,7 @@ export function ProjectsProvider({ children }) {
     loadProjects,
     loadWorkers,
     loadHistory,
+    loadProjectHistory: projectsFeatureApi.getProjectHistory,
     loadProjectAssets: projectsFeatureApi.getProjectAssets,
     createProject: (newProject) =>
       runMutation(projectsFeatureApi.createProject(newProject, profile)),

@@ -66,6 +66,19 @@ export async function getHistory() {
   return data || [];
 }
 
+export async function getProjectHistory(projectId, options) {
+  const { data, error, count } = await statusHistoryApi.getProjectHistory(projectId, options);
+  if (error) throw error;
+
+  const items = data || [];
+  const total = count || 0;
+  return {
+    items,
+    total,
+    hasMore: (options?.offset || 0) + items.length < total,
+  };
+}
+
 export function getProjectAssets(projectId) {
   return projectsApi.getProjectAssets(projectId);
 }

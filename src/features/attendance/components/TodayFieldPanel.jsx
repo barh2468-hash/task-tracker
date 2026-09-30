@@ -6,6 +6,7 @@ import {
   Clock,
   FileSpreadsheet,
   LoaderCircle,
+  MessageSquareText,
   PlayCircle,
   Users,
 } from 'lucide-react';
@@ -18,6 +19,43 @@ import { formatDuration, durationMinutes } from '../../../utils/format.js';
 import { getTodayAttendance } from '../utils/todayAttendance.js';
 import { exportDailySummaryExcel } from '../utils/exportDailySummaryExcel.js';
 import Stat from '../../../components/Stat.jsx';
+
+function ActivityMeta({ startedAt, endedAt, startLabel, endLabel, crewMembers = [] }) {
+  return (
+    <div className="todayActivityMeta">
+      <span className="todayActivityMetric duration">
+        <Clock size={14} aria-hidden="true" />
+        <span>
+          <em>{t('משך')}</em>
+          <b>{t(formatDuration(durationMinutes(startedAt, endedAt)))}</b>
+        </span>
+      </span>
+      <span className="todayActivityMetric">
+        <PlayCircle size={14} aria-hidden="true" />
+        <span>
+          <em>{t(startLabel)}</em>
+          <b>{new Date(startedAt).toLocaleTimeString('he-IL')}</b>
+        </span>
+      </span>
+      <span className={`todayActivityMetric ${endedAt ? 'closed' : 'open'}`}>
+        <i aria-hidden="true" />
+        <span>
+          <em>{t(endLabel)}</em>
+          <b>{endedAt ? new Date(endedAt).toLocaleTimeString('he-IL') : t('פתוח')}</b>
+        </span>
+      </span>
+      {crewMembers.length > 0 && (
+        <span className="todayActivityMetric crew">
+          <Users size={14} aria-hidden="true" />
+          <span>
+            <em>{t('צוות נוסף')}</em>
+            <b>{crewMembers.map((member) => member.name).join(', ')}</b>
+          </span>
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function TodayFieldPanel() {
   useTranslation();
@@ -163,23 +201,30 @@ export default function TodayFieldPanel() {
           <p className="muted">{t('אין רישומי נוכחות כללית להיום.')}</p>
         )}
         {todayAttendance.map((session) => (
-          <div className="listRow" key={session.id}>
+          <div className="listRow todayActivityRow" key={session.id}>
             <b>{session.profiles?.full_name || t('עובד')}</b>
             <span>{t(attendanceTypeLabel[session.attendance_type])}</span>
             {session.is_all_day ? (
-              <small>{t('דיווח יומי ללא שעות')}</small>
+              <div className="todayActivityMeta">
+                <span className="todayActivityMetric allDay">
+                  <Clock size={14} aria-hidden="true" />
+                  <b>{t('דיווח יומי ללא שעות')}</b>
+                </span>
+              </div>
             ) : (
-              <small>
-                {t(formatDuration(durationMinutes(session.started_at, session.ended_at)))}
-                {t('· כניסה:')}
-                {new Date(session.started_at).toLocaleTimeString('he-IL')} ·{' '}
-                {session.ended_at
-                  ? t('יציאה: {{value0}}', {
-                      value0: new Date(session.ended_at).toLocaleTimeString('he-IL'),
-                    })
-                  : t('פתוח')}
-                {session.end_note ? t(' · הערה: {{value0}}', { value0: session.end_note }) : ''}
-              </small>
+              <ActivityMeta
+                startedAt={session.started_at}
+                endedAt={session.ended_at}
+                startLabel="כניסה"
+                endLabel="יציאה"
+              />
+            )}
+            {session.end_note && (
+              <div className="todayActivityNote">
+                <MessageSquareText size={16} aria-hidden="true" />
+                <b>{t('הערה')}</b>
+                <span>{session.end_note}</span>
+              </div>
             )}
           </div>
         ))}
@@ -188,26 +233,25 @@ export default function TodayFieldPanel() {
         <h3>{t('פעולות לפי פרויקט היום')}</h3>
         {todaySessions.length === 0 && <p className="muted">{t('אין רישומי עבודה להיום.')}</p>}
         {todaySessions.map((session) => (
-          <div className="listRow" key={session.id}>
+          <div className="listRow todayActivityRow" key={session.id}>
             <b>{session.profiles?.full_name || t('עובד')}</b>
             <span>
               {session.projects?.name || t('פרויקט')} · {session.projects?.location || ''}
             </span>
-            <small>
-              {t('התחלה:')}
-              {new Date(session.started_at).toLocaleTimeString('he-IL')} ·{' '}
-              {session.ended_at
-                ? t('סיום: {{value0}}', {
-                    value0: new Date(session.ended_at).toLocaleTimeString('he-IL'),
-                  })
-                : t('פתוח')}
-              {session.end_note ? t(' · הערה: {{value0}}', { value0: session.end_note }) : ''}
-              {session.crew_members?.length
-                ? t(' · צוות: {{value0}}', {
-                    value0: session.crew_members.map((member) => member.name).join(', '),
-                  })
-                : ''}
-            </small>
+            <ActivityMeta
+              startedAt={session.started_at}
+              endedAt={session.ended_at}
+              startLabel="התחלה"
+              endLabel="סיום"
+              crewMembers={session.crew_members}
+            />
+            {session.end_note && (
+              <div className="todayActivityNote">
+                <MessageSquareText size={16} aria-hidden="true" />
+                <b>{t('הערה')}</b>
+                <span>{session.end_note}</span>
+              </div>
+            )}
           </div>
         ))}
       </div>

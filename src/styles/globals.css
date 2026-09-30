@@ -445,7 +445,15 @@
 .innerPanel h3{margin:0 0 10px;color:var(--navy)}
 .listRow{display:grid;grid-template-columns:minmax(150px,.7fr) minmax(180px,1fr) auto;gap:10px;align-items:center;border-top:1px dashed #dbeafe;padding:10px 0;color:var(--text)}
 .listRow:first-of-type{border-top:0}.listRow small{color:var(--muted);font-weight:700}.workerChecks{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:8px;border:1px solid var(--line);border-radius:16px;padding:10px;background:#f8fbff;max-height:190px;overflow:auto}.compactChecks{max-height:150px}.checkLine{display:flex!important;align-items:center;gap:8px;font-size:13px;font-weight:800;color:var(--text);padding:6px 8px;border:1px solid #e5eef8;border-radius:12px;background:#fff}.checkLine input{width:auto!important;min-height:auto!important}.wideField{grid-column:1 / -1}
-@media(max-width:900px){.miniStats{grid-template-columns:1fr 1fr}.twoColumns{grid-template-columns:1fr}.listRow{grid-template-columns:1fr}.workerChecks{grid-template-columns:1fr}}
+.todayActivityRow{grid-template-columns:minmax(150px,.7fr) minmax(180px,1fr) minmax(260px,1.35fr)}
+.todayActivityRow>span,.todayActivityMeta{min-width:0;overflow-wrap:anywhere}
+.todayActivityMeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.todayActivityMetric{min-height:38px;padding:6px 8px;display:inline-flex;align-items:center;gap:6px;border:1px solid #d8e5ee;border-radius:11px;background:#fff;color:#456176;font-size:11px;line-height:1.15;box-shadow:0 2px 7px rgba(7,30,65,.035)}
+.todayActivityMetric>span{display:grid;gap:2px}.todayActivityMetric em{color:#7890a3;font-size:9px;font-style:normal;font-weight:850}.todayActivityMetric b{color:#173954;font-size:11px;white-space:nowrap}.todayActivityMetric svg{flex:0 0 auto;color:#2684aa}.todayActivityMetric>i{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#7f96a8;box-shadow:0 0 0 3px rgba(127,150,168,.12)}
+.todayActivityMetric.duration{border-color:#cfe3ef;background:#f5fbfe}.todayActivityMetric.open{border-color:#bfe4d3;background:#f1fbf6}.todayActivityMetric.open>i{background:#13966f;box-shadow:0 0 0 3px rgba(19,150,111,.13)}.todayActivityMetric.open b{color:#08775a}.todayActivityMetric.closed{background:#f6f8fb}.todayActivityMetric.crew{max-width:100%;border-color:#ddd5f2;background:#faf8ff}.todayActivityMetric.crew b{overflow-wrap:anywhere;white-space:normal}.todayActivityMetric.allDay{background:#f5f8fb}
+.todayActivityNote{grid-column:1 / 3;min-width:0;padding:8px 10px;display:flex;align-items:flex-start;gap:7px;border:1px solid #f1cf95;border-radius:11px;background:#fff9ec;color:#7a4b12;font-size:12px;line-height:1.45}
+.todayActivityNote svg{flex:0 0 auto;margin-top:1px}.todayActivityNote b{white-space:nowrap}.todayActivityNote span{min-width:0;overflow-wrap:anywhere}.language-en .todayActivityNote{grid-column:2 / 4}
+@media(max-width:900px){.miniStats{grid-template-columns:1fr 1fr}.twoColumns{grid-template-columns:1fr}.listRow{grid-template-columns:1fr}.todayActivityNote,.language-en .todayActivityNote{grid-column:1}.workerChecks{grid-template-columns:1fr}}
 
 .phoneLink {
   display: inline-flex;

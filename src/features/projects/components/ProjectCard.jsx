@@ -131,8 +131,13 @@ export default function ProjectCard({ project, focused = false }) {
       .map((assignment) => assignment.worker_id),
     requires_work_diary: Boolean(project.requires_work_diary),
   });
+  // Background polling replaces the project object even when its status is unchanged.
+  // Only reset the dropdown when the persisted status itself actually changes.
   useEffect(() => {
     setStatus(statusOptions.includes(project.status) ? project.status : '');
+  }, [project.status, statusOptions]);
+
+  useEffect(() => {
     setEditProject({
       name: project.name,
       client_name: project.client_name || '',
@@ -150,7 +155,7 @@ export default function ProjectCard({ project, focused = false }) {
       requires_work_diary: Boolean(project.requires_work_diary),
     });
     setSelectedDrafterId(findAssignedDrafter(project)?.worker_id || '');
-  }, [project, statusOptions]);
+  }, [project]);
 
   // Project objects are replaced by the realtime/polling refresh even when the
   // project itself did not change. Keep selected review PDFs across those

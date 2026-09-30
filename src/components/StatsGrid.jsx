@@ -42,91 +42,100 @@ export default function StatsGrid() {
   }
 
   return (
-    <div className="grid">
-      <Stat
-        number={stats.total}
-        label={t('סה״כ פרויקטים')}
-        icon={<FolderKanban />}
-        onClick={() => openProjectsByStatus()}
-        active={isMineOrAll && !currentStatus}
-      />
+    <div className="statsGroups">
+      <section className="statsGroup" aria-labelledby="project-status-stats-heading">
+        <h2 id="project-status-stats-heading">{t('סטטוס פרויקטים')}</h2>
+        <div className="grid">
+          <Stat
+            number={stats.field}
+            label={t('בעבודה בשטח')}
+            icon={<Clock />}
+            onClick={() => openProjectsByStatus('בעבודה בשטח')}
+            active={isMineOrAll && currentStatus === 'בעבודה בשטח'}
+          />
 
-      <Stat
-        number={stats.field}
-        label={t('בעבודה בשטח')}
-        icon={<Clock />}
-        onClick={() => openProjectsByStatus('בעבודה בשטח')}
-        active={isMineOrAll && currentStatus === 'בעבודה בשטח'}
-      />
+          <Stat
+            number={stats.gpr}
+            label={t('נדרש GPR')}
+            icon={<Shield />}
+            onClick={() => openProjectsByStatus('נדרש GPR')}
+            active={isMineOrAll && currentStatus === 'נדרש GPR'}
+          />
 
-      <Stat
-        number={stats.gpr}
-        label={t('נדרש GPR')}
-        icon={<Shield />}
-        onClick={() => openProjectsByStatus('נדרש GPR')}
-        active={isMineOrAll && currentStatus === 'נדרש GPR'}
-      />
+          <Stat
+            number={stats.drafting}
+            label={t('עבר לשרטוט')}
+            icon={<Pencil />}
+            onClick={() => openProjectsByStatus('עבר לשרטוט')}
+            active={isMineOrAll && currentStatus === 'עבר לשרטוט'}
+          />
 
-      <Stat
-        number={stats.drafting}
-        label={t('עבר לשרטוט')}
-        icon={<Pencil />}
-        onClick={() => openProjectsByStatus('עבר לשרטוט')}
-        active={isMineOrAll && currentStatus === 'עבר לשרטוט'}
-      />
+          <Stat
+            number={stats.review}
+            label={t('בהגהה')}
+            icon={<FileText />}
+            onClick={() => openProjectsByStatus(REVIEW_STATUS)}
+            active={isMineOrAll && currentStatus === REVIEW_STATUS}
+          />
 
-      <Stat
-        number={stats.review}
-        label={t('בהגהה')}
-        icon={<FileText />}
-        onClick={() => openProjectsByStatus(REVIEW_STATUS)}
-        active={isMineOrAll && currentStatus === REVIEW_STATUS}
-      />
+          <Stat
+            number={stats.done}
+            label={t('הושלמו')}
+            icon={<CheckCircle />}
+            onClick={() => openProjectsByStatus('הושלם')}
+            active={isMineOrAll && currentStatus === 'הושלם'}
+          />
+        </div>
+      </section>
 
-      <Stat
-        number={stats.done}
-        label={t('הושלמו')}
-        icon={<CheckCircle />}
-        onClick={() => openProjectsByStatus('הושלם')}
-        active={isMineOrAll && currentStatus === 'הושלם'}
-      />
-
-      {isManager && (
-        <Stat
-          number={stats.unassigned}
-          label={t('ללא שיוך')}
-          icon={<Users />}
-          onClick={() => navigate('/app/projects?filter=unassigned')}
-          active={onProjectsList && currentFilter === 'unassigned'}
-        />
-      )}
-      {isManager && (
-        <Stat
-          number={stats.archived}
-          label={t('בארכיון')}
-          icon={<Archive />}
-          onClick={() => navigate('/app/projects?filter=archive')}
-          active={onProjectsList && currentFilter === 'archive'}
-        />
-      )}
-      {!isDrafter && (
-        <Stat
-          number={stats.exceptions}
-          label={t('חריגות לטיפול')}
-          icon={<AlertTriangle />}
-          onClick={() => navigate('/app/exceptions')}
-          active={location.pathname === '/app/exceptions'}
-        />
-      )}
-      {!isDrafter && (
-        <Stat
-          number={stats.openTasks}
-          label={t('משימות פתוחות')}
-          icon={<PlusCircle />}
-          onClick={() => navigate('/app/tasks')}
-          active={location.pathname === '/app/tasks'}
-        />
-      )}
+      <section className="statsGroup" aria-labelledby="overview-stats-heading">
+        <h2 id="overview-stats-heading">{t('סקירה כללית')}</h2>
+        <div className="grid">
+          <Stat
+            number={stats.total}
+            label={t('סה״כ פרויקטים')}
+            icon={<FolderKanban />}
+            onClick={() => openProjectsByStatus()}
+            active={isMineOrAll && !currentStatus}
+          />
+          {isManager && (
+            <Stat
+              number={stats.unassigned}
+              label={t('ללא שיוך')}
+              icon={<Users />}
+              onClick={() => navigate('/app/projects?filter=unassigned')}
+              active={onProjectsList && currentFilter === 'unassigned'}
+            />
+          )}
+          {isManager && (
+            <Stat
+              number={stats.archived}
+              label={t('בארכיון')}
+              icon={<Archive />}
+              onClick={() => navigate('/app/projects?filter=archive')}
+              active={onProjectsList && currentFilter === 'archive'}
+            />
+          )}
+          {!isDrafter && (
+            <Stat
+              number={stats.exceptions}
+              label={t('חריגות לטיפול')}
+              icon={<AlertTriangle />}
+              onClick={() => navigate('/app/exceptions')}
+              active={location.pathname === '/app/exceptions'}
+            />
+          )}
+          {!isDrafter && (
+            <Stat
+              number={stats.openTasks}
+              label={t('משימות פתוחות')}
+              icon={<PlusCircle />}
+              onClick={() => navigate('/app/tasks')}
+              active={location.pathname === '/app/tasks'}
+            />
+          )}
+        </div>
+      </section>
     </div>
   );
 }

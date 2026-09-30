@@ -2,11 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ShieldAlert } from 'lucide-react';
+import { Search, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useMessage } from '../context/MessageContext.jsx';
-import { appStatuses } from '../services/supabase.js';
 import ProjectCard from '../features/projects/components/ProjectCard.jsx';
 
 const PROJECT_BATCH_SIZE = 20;
@@ -57,13 +56,6 @@ export default function ProjectsPage() {
     const linkedIndex = projects.findIndex((p) => p.id === projectId);
     if (linkedIndex >= 0) setVisibleLimit((limit) => Math.max(limit, linkedIndex + 1));
   }, [isManager, projects, projectsLoaded, searchParams, setMessage, setSearchParams]);
-
-  function setStatusFilter(nextStatus) {
-    const next = new URLSearchParams(searchParams);
-    if (nextStatus) next.set('status', nextStatus);
-    else next.delete('status');
-    setSearchParams(next);
-  }
 
   const visibleProjects = projects.filter((p) => {
     const text =
@@ -116,9 +108,7 @@ export default function ProjectsPage() {
 
         setIsLoadingMore(true);
         loadMoreTimerRef.current = window.setTimeout(() => {
-          setVisibleLimit((limit) =>
-            Math.min(limit + PROJECT_BATCH_SIZE, visibleProjects.length),
-          );
+          setVisibleLimit((limit) => Math.min(limit + PROJECT_BATCH_SIZE, visibleProjects.length));
           setIsLoadingMore(false);
           loadMoreTimerRef.current = null;
         }, LOAD_MORE_DELAY_MS);
@@ -149,35 +139,6 @@ export default function ProjectsPage() {
 
   return (
     <section className="card">
-      <div className="toolbar">
-        <div style={{ minWidth: 260, flex: 1 }}>
-          <label htmlFor="project-search" className="visuallyHidden">
-            {t('חיפוש פרויקטים')}
-          </label>
-          <input
-            id="project-search"
-            placeholder={t('חיפוש לפי שם, לקוח או מיקום...')}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-        <label htmlFor="project-status-filter" className="visuallyHidden">
-          {t('סינון לפי סטטוס')}
-        </label>
-        <select
-          id="project-status-filter"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          style={{ maxWidth: 220 }}
-        >
-          <option value="">{t('כל הסטטוסים')}</option>
-          {appStatuses.map((s) => (
-            <option key={s} value={s}>
-              {t(s)}
-            </option>
-          ))}
-        </select>
-      </div>
       {deepLinkDenied && (
         <div className="projectDeepLinkNotice" role="alert">
           <ShieldAlert size={22} />
@@ -185,16 +146,26 @@ export default function ProjectsPage() {
             <b>{t('אין לך הרשאה לצפות בפרויקט זה')}</b>
             <span>{t('הפרויקט אינו משויך אליך ולכן פרטיו אינם זמינים עבורך.')}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setDeepLinkDenied(false)}
-            aria-label={t('סגירה')}
-          >
+          <button type="button" onClick={() => setDeepLinkDenied(false)} aria-label={t('סגירה')}>
             ×
           </button>
         </div>
       )}
-      <h2>{heading}</h2>
+      <header className="projectListHeader">
+        <h2>{heading}</h2>
+        <div className="projectListSearch">
+          <label htmlFor="project-search" className="visuallyHidden">
+            {t('חיפוש פרויקטים')}
+          </label>
+          <Search size={18} aria-hidden="true" />
+          <input
+            id="project-search"
+            placeholder={t('חיפוש לפי שם, לקוח או מיקום...')}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+      </header>
       <div className="projects" aria-busy={isLoadingMore}>
         {visibleProjects.length === 0 && (
           <div className="empty">{t('אין פרויקטים להצגה כרגע')}</div>
@@ -205,10 +176,7 @@ export default function ProjectsPage() {
             id={`project-${project.id}`}
             className={project.id === focusedProjectId ? 'projectDeepLinkTarget' : ''}
           >
-            <ProjectCard
-              project={project}
-              focused={project.id === focusedProjectId}
-            />
+            <ProjectCard project={project} focused={project.id === focusedProjectId} />
           </div>
         ))}
         {hasMoreProjects && (

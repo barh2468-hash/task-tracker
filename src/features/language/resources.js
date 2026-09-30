@@ -1,6 +1,8 @@
 export const heTranslations = {};
 
 export const enTranslations = {
+  'סטטוס פרויקטים': 'Project statuses',
+  'סקירה כללית': 'Overview',
   'מערכת איתור תשתיות': 'Infrastructure Tracking System',
   'מעקב פרויקטים לעובדי שטח, שרטוט, GPR והיתרים':
     'Project tracking for field teams, drafting, GPR and permits',
@@ -731,6 +733,8 @@ export const enTranslations = {
 };
 
 const greekTranslations = {
+  'סטטוס פרויקטים': 'Κατάσταση έργων',
+  'סקירה כללית': 'Επισκόπηση',
   'מערכת איתור תשתיות': 'Σύστημα Εντοπισμού Υποδομών',
   'מעקב פרויקטים לעובדי שטח, שרטוט, GPR והיתרים':
     'Παρακολούθηση έργων για συνεργεία πεδίου, σχεδίαση, GPR και άδειες',

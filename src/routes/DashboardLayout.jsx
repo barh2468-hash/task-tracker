@@ -3,27 +3,13 @@ import { t } from '../features/language/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Archive,
   Bell,
   ChevronLeft,
   ChevronRight,
-  ClipboardList,
-  Clock,
-  Download,
-  FilePlus2,
-  FileText,
-  FolderKanban,
-  History,
-  Activity,
-  HardHat,
   Languages,
-  LayoutDashboard,
   LogOut,
-  MapPin,
   MessageCircle,
   X,
-  AlertTriangle,
-  Users,
   CheckCircle,
 } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
@@ -35,9 +21,10 @@ import { getTabTitle, getTabSubtitle, isHeroSuppressed } from './dashboardTabs.j
 import { projectDeepLinkPath } from '../utils/navigation.js';
 import DashboardHero from '../components/DashboardHero.jsx';
 import NotificationsPopover from '../features/notifications/components/NotificationsPopover.jsx';
-import PwaControls from '../features/pwa/components/PwaControls.jsx';
+import DashboardNavigation from '../components/DashboardNavigation.jsx';
 import AttendanceEndDialog from '../features/attendance/components/AttendanceEndDialog.jsx';
 import ProjectWorkEndDialog from '../features/attendance/components/ProjectWorkEndDialog.jsx';
+import ProjectWorkspaceNavigation from '../features/projects/components/ProjectWorkspaceNavigation.jsx';
 import { useLanguage } from '../features/language/LanguageContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
 
@@ -310,8 +297,10 @@ export default function DashboardLayout() {
     event.stopPropagation();
   }
 
-  const projectsFilter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
-  const isProjectsRoute = location.pathname === '/app/projects';
+  const isProjectWorkspace =
+    location.pathname === '/app/projects' ||
+    location.pathname.startsWith('/app/projects/') ||
+    location.pathname === '/app/assignments';
   const navActive = (path) => location.pathname === path;
 
   const tabTitle = getTabTitle(location.pathname, searchParams, isManager);
@@ -420,7 +409,7 @@ export default function DashboardLayout() {
         <aside
           ref={sidebarRef}
           id="main-navigation"
-          className={`sidebar ${mobileMenuOpen ? 'mobileOpen' : ''} ${
+          className={`sidebar sidebarCompact ${mobileMenuOpen ? 'mobileOpen' : ''} ${
             mobileMenuDragProgress === null ? '' : 'mobileDragging'
           }`}
           aria-label={t('תפריט ראשי')}
@@ -434,212 +423,17 @@ export default function DashboardLayout() {
                 }
           }
         >
-          <div className="mobileMenuHeader">
-            <div>
-              <b>{t('תפריט ראשי')}</b>
-              <small>{profile ? t(roleLabel[profile.role]) : t('משתמש')}</small>
-            </div>
-            <button
-              className="mobileMenuClose"
-              aria-label={t('סגירת תפריט')}
-              onClick={closeMobileMenu}
-            >
-              <X size={19} />
-            </button>
-          </div>
-          <div className="logoBox">
-            <img src="/logo.png" alt={t('לוגו')} />
-            <b>
-              {t('תשתיות')}
-
-              <br />
-              {t('מתקדמות')}
-            </b>
-          </div>
-          <PwaControls />
-          <button
-            className={`navBtn ${navActive('/app/overview') ? 'active' : ''}`}
-            onClick={() => openTab('/app/overview')}
-          >
-            <span>{t('סקירה כללית')}</span>
-            <LayoutDashboard size={18} />
-          </button>
-          <div className="navSectionLabel">
-            <span>{t('כלים לעובד')}</span>
-          </div>
-          {!isDrafter && (
-            <button
-              className={`navBtn ${navActive('/app/attendance') ? 'active' : ''}`}
-              onClick={() => openTab('/app/attendance')}
-            >
-              <span>{t('שעון נוכחות')}</span>
-              <Clock size={18} />
-            </button>
-          )}
-          <div className="navSectionLabel">
-            <span>{t('עבודה')}</span>
-          </div>
-          <button
-            className={`navBtn ${isProjectsRoute && projectsFilter === 'mine' ? 'active' : ''}`}
-            onClick={() => openTab('/app/projects?filter=mine')}
-          >
-            <span>{t('הפרויקטים שלי')}</span>
-            <FolderKanban size={18} />
-          </button>
-          {isManager && (
-            <button
-              className={`navBtn ${isProjectsRoute && projectsFilter === 'all' ? 'active' : ''}`}
-              onClick={() => openTab('/app/projects?filter=all')}
-            >
-              <span>{t('כל הפרויקטים')}</span>
-              <Users size={18} />
-            </button>
-          )}
-          {!isDrafter && (
-            <button
-              className={`navBtn ${navActive('/app/tasks') ? 'active' : ''}`}
-              onClick={() => openTab('/app/tasks')}
-            >
-              <span className="navBtnLabel">
-                <span>{t('משימות פתוחות')}</span>
-                <span className="navCountBadge">{stats.openTasks}</span>
-              </span>
-              <ClipboardList size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/assignments') ? 'active' : ''}`}
-              onClick={() => openTab('/app/assignments')}
-            >
-              <span>{t('פרויקטים משויכים')}</span>
-              <FolderKanban size={18} />
-            </button>
-          )}
-          {!isDrafter && (
-            <div className="navSectionLabel">
-              <span>{t('שטח')}</span>
-            </div>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/today') ? 'active' : ''}`}
-              onClick={() => openTab('/app/today')}
-            >
-              <span>{t('היום בשטח')}</span>
-              <Clock size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/map') ? 'active' : ''}`}
-              onClick={() => openTab('/app/map')}
-            >
-              <span>{t('מפה חיה')}</span>
-              <MapPin size={18} />
-            </button>
-          )}
-          {!isDrafter && (
-            <button
-              className={`navBtn ${navActive('/app/exceptions') ? 'active' : ''}`}
-              onClick={() => openTab('/app/exceptions')}
-            >
-              <span className="navBtnLabel">
-                <span>{t('דוח חריגות')}</span>
-                <span className="navCountBadge">{stats.exceptions}</span>
-              </span>
-              <AlertTriangle size={18} />
-            </button>
-          )}
-          <div className="navSectionLabel">
-            <span>{t('ניהול ומידע')}</span>
-          </div>
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/status-report') ? 'active' : ''}`}
-              onClick={() => openTab('/app/status-report')}
-            >
-              <span>{t('דו״ח מצב פרויקטים')}</span>
-              <FileText size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/equipment') ? 'active' : ''}`}
-              onClick={() => openTab('/app/equipment')}
-            >
-              <span>{t('ציוד עובדי שטח')}</span>
-              <HardHat size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/recent-status-changes') ? 'active' : ''}`}
-              onClick={() => openTab('/app/recent-status-changes')}
-            >
-              <span>{t('שינויי סטטוס')}</span>
-              <Activity size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${isProjectsRoute && projectsFilter === 'unassigned' ? 'active' : ''}`}
-              onClick={() => openTab('/app/projects?filter=unassigned')}
-            >
-              <span className="navBtnLabel">
-                <span>{t('ללא שיוך')}</span>
-                <span className="navCountBadge">{stats.unassigned}</span>
-              </span>
-              <FolderKanban size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${isProjectsRoute && projectsFilter === 'archive' ? 'active' : ''}`}
-              onClick={() => openTab('/app/projects?filter=archive')}
-            >
-              <span className="navBtnLabel">
-                <span>{t('ארכיון')}</span>
-                <span className="navCountBadge">{stats.archived}</span>
-              </span>
-              <Archive size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/projects/new') ? 'active' : ''}`}
-              onClick={() => openTab('/app/projects/new')}
-            >
-              <span>{t('הוספת פרויקט')}</span>
-              <FilePlus2 size={18} />
-            </button>
-          )}
-          <button
-            className={`navBtn ${navActive('/app/history') ? 'active' : ''}`}
-            onClick={() => openTab('/app/history')}
-          >
-            <span>{t('היסטוריית שינויים')}</span>
-            <History size={18} />
-          </button>
-          <button
-            className={`navBtn ${navActive('/app/notifications') ? 'active' : ''}`}
-            onClick={() => openTab('/app/notifications')}
-          >
-            <span className="navBtnLabel">
-              <span>{t('התראות')}</span>
-              {unreadCount > 0 && <span className="navCountBadge">{unreadCount}</span>}
-            </span>
-            <Bell size={18} />
-          </button>
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/report') ? 'active' : ''}`}
-              onClick={() => openTab('/app/report')}
-            >
-              <span>{t('דוח שעות עובדים')}</span>
-              <Download size={18} />
-            </button>
-          )}
+          <DashboardNavigation
+            role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
+            isManager={isManager}
+            isDrafter={isDrafter}
+            pathname={location.pathname}
+            isProjectWorkspace={isProjectWorkspace}
+            stats={stats}
+            unreadCount={unreadCount}
+            onOpenTab={openTab}
+            onClose={closeMobileMenu}
+          />
         </aside>
 
         <section className="mainContent">
@@ -661,6 +455,7 @@ export default function DashboardLayout() {
             </div>
           )}
 
+          {isProjectWorkspace && <ProjectWorkspaceNavigation stats={stats} />}
           <Outlet />
         </section>
       </section>

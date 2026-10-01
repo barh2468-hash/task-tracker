@@ -181,7 +181,12 @@ export default function ProjectsPage() {
       <header className="projectListHeader">
         <div className="projectListHeading">
           <h2>{heading}</h2>
-          <span className="projectListCount" role="status" aria-live="polite" aria-atomic="true">
+          <span
+            className={listLoading || query || statusFilter || !isManager ? 'projectListCount' : 'visuallyHidden'}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             {countLabel}
           </span>
         </div>

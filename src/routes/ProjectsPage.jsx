@@ -6,6 +6,7 @@ import { Search, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useMessage } from '../context/MessageContext.jsx';
+import { appStatuses } from '../services/supabase.js';
 import ProjectCard from '../features/projects/components/ProjectCard.jsx';
 
 const PROJECT_BATCH_SIZE = 20;
@@ -29,6 +30,13 @@ export default function ProjectsPage() {
   const statusFilter = searchParams.get('status') || '';
   const listViewKey = `${query}\u0000${filter}\u0000${statusFilter}`;
   const previousListViewKeyRef = useRef(listViewKey);
+
+  function setStatusFilter(nextStatus) {
+    const next = new URLSearchParams(searchParams);
+    if (nextStatus) next.set('status', nextStatus);
+    else next.delete('status');
+    setSearchParams(next);
+  }
 
   // A project reference can arrive from chat, notifications, reports or a push link.
   // Resolve it only after the permitted project list has finished loading.
@@ -57,17 +65,20 @@ export default function ProjectsPage() {
     if (linkedIndex >= 0) setVisibleLimit((limit) => Math.max(limit, linkedIndex + 1));
   }, [isManager, projects, projectsLoaded, searchParams, setMessage, setSearchParams]);
 
-  const visibleProjects = projects.filter((p) => {
-    const text =
-      `${p.name} ${p.location} ${p.contact_phone || ''} ${p.contact_email || ''} ${p.client_name || ''} ${p.description || ''} ${p.additional_notes || ''}`.toLowerCase();
-    const okQuery = !query || text.includes(query.toLowerCase());
-    const okStatus = !statusFilter || p.status === statusFilter;
+  const categoryProjects = projects.filter((p) => {
     const okArchive = filter === 'archive' ? !!p.is_archived : !p.is_archived;
     const okTab =
       filter === 'unassigned'
         ? !p.assigned_to
         : filter !== 'mine' || !isManager || p.assigned_to === session?.user?.id;
-    return okQuery && okStatus && okArchive && okTab;
+    return okArchive && okTab;
+  });
+  const visibleProjects = categoryProjects.filter((p) => {
+    const text =
+      `${p.name} ${p.location} ${p.contact_phone || ''} ${p.contact_email || ''} ${p.client_name || ''} ${p.description || ''} ${p.additional_notes || ''}`.toLowerCase();
+    const okQuery = !query || text.includes(query.toLowerCase());
+    const okStatus = !statusFilter || p.status === statusFilter;
+    return okQuery && okStatus;
   });
   const pagedProjects = visibleProjects.slice(0, visibleLimit);
   const hasMoreProjects = visibleLimit < visibleProjects.length;
@@ -133,9 +144,25 @@ export default function ProjectsPage() {
       ? t('פרויקטים ללא שיוך')
       : filter === 'archive'
         ? t('ארכיון פרויקטים')
-        : filter === 'mine' && !isManager
+        : filter === 'mine'
           ? t('הפרויקטים שלי')
           : t('כל הפרויקטים');
+  const listLoading = !projectsLoaded && !projects.length;
+  const countLabel = listLoading
+    ? t('טוען...')
+    : query || statusFilter
+      ? t(
+          categoryProjects.length === 1
+            ? '{{count}} מתוך פרויקט אחד'
+            : '{{count}} מתוך {{total}} פרויקטים',
+          {
+            count: visibleProjects.length,
+            total: categoryProjects.length,
+          },
+        )
+      : visibleProjects.length === 1
+        ? t('פרויקט אחד')
+        : t('{{count}} פרויקטים', { count: visibleProjects.length });
 
   return (
     <section className="card">
@@ -152,18 +179,40 @@ export default function ProjectsPage() {
         </div>
       )}
       <header className="projectListHeader">
-        <h2>{heading}</h2>
-        <div className="projectListSearch">
-          <label htmlFor="project-search" className="visuallyHidden">
-            {t('חיפוש פרויקטים')}
+        <div className="projectListHeading">
+          <h2>{heading}</h2>
+          <span className="projectListCount" role="status" aria-live="polite" aria-atomic="true">
+            {countLabel}
+          </span>
+        </div>
+        <div className="projectListFilters">
+          <div className="projectListSearch">
+            <label htmlFor="project-search" className="visuallyHidden">
+              {t('חיפוש פרויקטים')}
+            </label>
+            <Search size={18} aria-hidden="true" />
+            <input
+              id="project-search"
+              placeholder={t('חיפוש לפי שם, לקוח או מיקום...')}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <label htmlFor="project-status-filter" className="visuallyHidden">
+            {t('סינון לפי סטטוס')}
           </label>
-          <Search size={18} aria-hidden="true" />
-          <input
-            id="project-search"
-            placeholder={t('חיפוש לפי שם, לקוח או מיקום...')}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+          <select
+            id="project-status-filter"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+          >
+            <option value="">{t('כל הסטטוסים')}</option>
+            {appStatuses.map((status) => (
+              <option key={status} value={status}>
+                {t(status)}
+              </option>
+            ))}
+          </select>
         </div>
       </header>
       <div className="projects" aria-busy={isLoadingMore}>

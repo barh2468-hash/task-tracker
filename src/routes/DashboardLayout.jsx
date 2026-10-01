@@ -17,6 +17,7 @@ import {
   Activity,
   HardHat,
   Languages,
+  LayoutDashboard,
   LogOut,
   MapPin,
   MessageCircle,
@@ -33,7 +34,6 @@ import { roleLabel } from '../services/supabase.js';
 import { getTabTitle, getTabSubtitle, isHeroSuppressed } from './dashboardTabs.js';
 import { projectDeepLinkPath } from '../utils/navigation.js';
 import DashboardHero from '../components/DashboardHero.jsx';
-import StatsGrid from '../components/StatsGrid.jsx';
 import NotificationsPopover from '../features/notifications/components/NotificationsPopover.jsx';
 import PwaControls from '../features/pwa/components/PwaControls.jsx';
 import AttendanceEndDialog from '../features/attendance/components/AttendanceEndDialog.jsx';
@@ -244,7 +244,10 @@ export default function DashboardLayout() {
     const isRtl = language === 'he';
     const drawerWidth = getMobileDrawerWidth();
     const openingDistance = deltaX * (isRtl ? -1 : 1);
-    const progress = Math.max(0, Math.min(1, start.initialProgress + openingDistance / drawerWidth));
+    const progress = Math.max(
+      0,
+      Math.min(1, start.initialProgress + openingDistance / drawerWidth),
+    );
     if (event.cancelable) event.preventDefault();
     setMobileMenuDragProgress(progress);
   }
@@ -313,7 +316,7 @@ export default function DashboardLayout() {
 
   const tabTitle = getTabTitle(location.pathname, searchParams, isManager);
   const tabSubtitle = getTabSubtitle(isManager, isDrafter);
-  const showHeroAndStats = !isHeroSuppressed(location.pathname);
+  const showHero = !isHeroSuppressed(location.pathname);
 
   return (
     <main
@@ -454,6 +457,13 @@ export default function DashboardLayout() {
             </b>
           </div>
           <PwaControls />
+          <button
+            className={`navBtn ${navActive('/app/overview') ? 'active' : ''}`}
+            onClick={() => openTab('/app/overview')}
+          >
+            <span>{t('סקירה כללית')}</span>
+            <LayoutDashboard size={18} />
+          </button>
           <div className="navSectionLabel">
             <span>{t('כלים לעובד')}</span>
           </div>
@@ -633,9 +643,7 @@ export default function DashboardLayout() {
         </aside>
 
         <section className="mainContent">
-          {showHeroAndStats && <DashboardHero title={tabTitle} subtitle={tabSubtitle} />}
-
-          {showHeroAndStats && <StatsGrid />}
+          {showHero && <DashboardHero title={tabTitle} subtitle={tabSubtitle} />}
 
           {message && (
             <div className="appToast" role="status" aria-live="polite">

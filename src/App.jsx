@@ -14,6 +14,7 @@ import ResetPasswordPage from './routes/ResetPasswordPage.jsx';
 import RequireAuth from './routes/RequireAuth.jsx';
 import DashboardLayout from './routes/DashboardLayout.jsx';
 import ProjectsPage from './routes/ProjectsPage.jsx';
+import OverviewPage from './routes/OverviewPage.jsx';
 import PwaBootstrap from './features/pwa/components/PwaBootstrap.jsx';
 import OfflineSync from './features/offline/OfflineSync.jsx';
 import { LanguageProvider } from './features/language/LanguageContext.jsx';
@@ -88,6 +89,7 @@ export default function App() {
                   }
                 />
                 <Route path="projects" element={<ProjectsPage />} />
+                <Route path="overview" element={<OverviewPage />} />
                 <Route
                   path="today"
                   element={

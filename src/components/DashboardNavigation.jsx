@@ -45,9 +45,9 @@ export default function DashboardNavigation({
     <>
       <header className="sidebarHeader">
         <div className="sidebarIdentity">
-          <img src="/logo.png" alt={t('לוגו')} />
+          <img src="/logo-transparent.png" alt={t('לוגו')} />
           <div>
-            <b>{t('תשתיות מתקדמות')}</b>
+            <b>{t('קבוצת מאיה')}</b>
             <small>{role}</small>
           </div>
         </div>

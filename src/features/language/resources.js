@@ -1,6 +1,7 @@
 export const heTranslations = {};
 
 export const enTranslations = {
+  'קבוצת מאיה': 'Maya Group',
   'תשתיות מתקדמות': 'Advanced Infrastructure',
   'יום העבודה': 'Workday',
   'ניהול שטח': 'Field management',
@@ -780,6 +781,7 @@ export const enTranslations = {
 };
 
 const greekTranslations = {
+  'קבוצת מאיה': 'Όμιλος Μάγια',
   'תשתיות מתקדמות': 'Προηγμένες Υποδομές',
   'יום העבודה': 'Εργάσιμη ημέρα',
   'ניהול שטח': 'Διαχείριση πεδίου',

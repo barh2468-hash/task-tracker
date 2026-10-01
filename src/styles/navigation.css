@@ -22,7 +22,7 @@
   margin-bottom: 18px;
 }
 .sidebarCompact .sidebarIdentity { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.sidebarCompact .sidebarIdentity img { width: 38px; height: 38px; padding: 4px; border-radius: 10px; object-fit: contain; flex-shrink: 0; }
+.sidebarCompact .sidebarIdentity img { width: 44px; height: 38px; padding: 0; border-radius: 0; background: transparent; object-fit: contain; flex-shrink: 0; }
 .sidebarCompact .sidebarIdentity b { display: block; font-size: 15px; font-weight: 700; line-height: 1.4; }
 .sidebarCompact .sidebarIdentity small { display: block; margin-top: 3px; color: #afc0d7; font-size: 12px; line-height: 1.4; }
 .sidebarCompact .mobileMenuClose { display: none; flex-shrink: 0; }

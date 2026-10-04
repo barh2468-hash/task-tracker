@@ -5,6 +5,7 @@ import {
   LogOut, MessageCircle, X,
 } from 'lucide-react';
 import { t, useLanguage } from '../features/language/LanguageContext.jsx';
+import { useAttendance } from '../features/attendance/AttendanceContext.jsx';
 import DashboardNavigation from './DashboardNavigation.jsx';
 import AppPreferences from './AppPreferences.jsx';
 import '../styles/mobile-navigation.css';
@@ -15,12 +16,58 @@ const languageOptions = [
   { code: 'el', label: 'Ελληνικά' },
 ];
 
+function AttendanceNavTimer({ startedAt }) {
+  const [now, setNow] = useState(Date.now);
+
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    const interval = window.setInterval(update, 1000);
+    document.addEventListener('visibilitychange', update);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', update);
+    };
+  }, []);
+
+  const started = new Date(startedAt).getTime();
+  const totalSeconds = Number.isFinite(started) ? Math.max(0, Math.floor((now - started) / 1000)) : 0;
+  const elapsed = [Math.floor(totalSeconds / 3600), Math.floor(totalSeconds / 60) % 60, totalSeconds % 60]
+    .map((value) => String(value).padStart(2, '0')).join(':');
+  const circumference = 2 * Math.PI * 34;
+
+  return (
+    <>
+      <svg className="mobileAttendanceTimerRing" viewBox="0 0 76 76" aria-hidden="true">
+        <circle className="mobileAttendanceTimerTrack" cx="38" cy="38" r="34" />
+        <circle
+          className="mobileAttendanceTimerArc"
+          cx="38" cy="38" r="34"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - (totalSeconds % 60) / 60)}
+        />
+      </svg>
+      <span
+        id="mobile-attendance-elapsed"
+        className="mobileAttendanceTimer"
+        role="timer"
+        aria-live="off"
+        aria-label={`${t('זמן עבודה')}: ${elapsed}`}
+      >
+        <bdi dir="ltr">{elapsed}</bdi>
+      </span>
+    </>
+  );
+}
+
 export default function MobileNavigation({
   role, displayName, isManager, isDrafter, pathname, isProjectWorkspace, stats,
   unreadChatCount, onOpenTab, onOpenMore, onLogout,
 }) {
   useTranslation();
   const { language, setLanguage } = useLanguage();
+  const { myAttendanceSessions } = useAttendance();
+  const openAttendance = myAttendanceSessions.find((item) => !item.ended_at && !item.is_all_day);
+  const hasOpenAttendance = Boolean(openAttendance);
   const [moreOpen, setMoreOpen] = useState(false);
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
@@ -89,8 +136,9 @@ export default function MobileNavigation({
             key={key}
             ref={key === 'more' ? moreRef : undefined}
             type="button"
-            className={`mobileBottomTab${center ? ' mobileBottomTabCenter' : ''}`}
+            className={`mobileBottomTab${center ? ' mobileBottomTabCenter' : ''}${key === 'attendance' && hasOpenAttendance ? ' mobileBottomTabAttendanceRunning' : ''}`}
             aria-label={count > 0 ? `${t(label)} (${count})` : t(label)}
+            aria-describedby={key === 'attendance' && hasOpenAttendance ? 'mobile-attendance-elapsed' : undefined}
             aria-current={(key === 'more' ? active : !moreOpen && (active || pathname === path)) ? 'page' : undefined}
             aria-expanded={key === 'more' ? moreOpen : undefined}
             aria-haspopup={key === 'more' ? 'dialog' : undefined}
@@ -105,6 +153,9 @@ export default function MobileNavigation({
           >
             <span className="mobileBottomTabIcon">
               <Icon size={center ? 27 : 21} aria-hidden="true" />
+              {key === 'attendance' && hasOpenAttendance && (
+                <AttendanceNavTimer key={openAttendance.id} startedAt={openAttendance.started_at} />
+              )}
               {count > 0 && <span className="mobileBottomBadge">{count > 99 ? '99+' : count}</span>}
             </span>
             <span className="mobileBottomTabLabel">{t(label)}</span>

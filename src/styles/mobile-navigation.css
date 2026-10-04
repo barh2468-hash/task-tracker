@@ -51,6 +51,29 @@
   }
   .mobileBottomTabCenter:hover .mobileBottomTabIcon { background: #ff914d; }
   .mobileBottomTabCenter[aria-current="page"] { color: #f5a46e; }
+  .mobileBottomTabAttendanceRunning,
+  .mobileBottomTabAttendanceRunning[aria-current="page"] { color: #9ee5ca; }
+  .mobileBottomTabAttendanceRunning .mobileBottomTabIcon,
+  .mobileBottomTabAttendanceRunning[aria-current="page"] .mobileBottomTabIcon {
+    background: var(--green); color: #fff;
+    box-shadow: 0 0 0 5px var(--navigation-background), 0 7px 16px rgba(20, 150, 71, .24);
+  }
+  .mobileBottomTabAttendanceRunning:hover .mobileBottomTabIcon { background: #11803c; }
+  .mobileBottomTabAttendanceRunning { gap: 17px; }
+  .mobileAttendanceTimerRing {
+    position: absolute; inset: -10px; width: 76px; height: 76px;
+    overflow: visible; pointer-events: none; transform: rotate(-90deg);
+  }
+  .mobileAttendanceTimerRing circle { fill: none; stroke-width: 3; }
+  .mobileAttendanceTimerTrack { stroke: #9ee5ca33; }
+  .mobileAttendanceTimerArc { stroke: #9ee5ca; stroke-linecap: round; }
+  .mobileAttendanceTimer {
+    position: absolute; top: 46px; left: 50%; transform: translateX(-50%);
+    padding: 2px 6px; border: 1px solid #9ee5ca66; border-radius: 999px;
+    background: var(--navigation-background); color: #b8f3d7; white-space: nowrap;
+    font-size: 11px; font-weight: 700; line-height: 16px; font-variant-numeric: tabular-nums;
+    box-shadow: 0 2px 6px rgba(7, 30, 65, .2); pointer-events: none;
+  }
   .mobileBottomBadge {
     position: absolute; top: -5px; inset-inline-end: -5px; display: grid; place-items: center;
     min-width: 18px; height: 18px; padding: 0 4px; border: 2px solid var(--navigation-background); border-radius: 999px;

@@ -689,7 +689,10 @@ function wallNum(w){const m={N:1,E:2,S:3,W:4};if(w in m)return m[w];return parse
 const WALLNAMES={1:'1 צפון',2:'2 מזרח',3:'3 דרום',4:'4 מערב'};
 function wallLabel(P){if(P.arc)return P.num+' קשת';return (S.shape==='rect'||S.shape==='square')?WALLNAMES[P.num]:P.num+' '+wallArrow(P.n);}
 function wallArrow(n){const a=Math.atan2(n[1],n[0]);const arr=['→','↘','↓','↙','←','↖','↑','↗'];return arr[((Math.round(a/(Math.PI/4))%8)+8)%8];}
-function isBezeq(){return (S.infra||'').includes('בזק')||(S.label||'').includes('בזק');}
+function isBezeq(draft=S){
+  const infrastructure=(draft.infra||'').trim();
+  return infrastructure ? infrastructure.includes('בזק') : (draft.label||'').includes('בזק');
+}
 function thumb(shape){
   const cv=document.createElement('canvas');cv.width=120;cv.height=90;const g=cv.getContext('2d');
   const G=shaftGeom(shape,'','',false),p0=G.d?0.8*G.d.r:0.85*Math.min(G.a,G.b),PN=panelsOf(G,p0);
@@ -859,11 +862,13 @@ function renderWallChips(){
 }
 function paintChips(){
   S.shape=S.shape||'round';
+  const sewage=(S.infra||'').trim()==='ביוב';
+  if(sewage)applyInfrastructureTemplate(S,'ביוב');
   const bz=isBezeq();
   if(bz&&S.shape==='round')S.shape='rect';
   if(bz&&!lastBz&&(S.coverShape||'round')==='round')S.coverShape='rect';   // Bezeq: rectangular cover by default
   lastBz=bz;
-  $('shapeChips').hidden=bz;$('tplGrid').hidden=!bz;$('shapeLbl').textContent=bz?'תבנית שוחת בזק':'צורת השוחה';
+  $('shapeChips').hidden=bz||sewage;$('tplGrid').hidden=!bz;$('shapeLbl').textContent=bz?'תבנית שוחת בזק':sewage?'צורת השוחה: עגולה':'צורת השוחה';
   [...$('shapeChips').children].forEach(b=>b.setAttribute('aria-pressed',S.shape===b.dataset.k));
   [...$('tplGrid').children].forEach(b=>b.setAttribute('aria-pressed',S.shape===b.dataset.k));
   $('w-diam').hidden=S.shape!=='round';$('w-len').hidden=S.shape==='round'||S.shape==='dshape';$('w-wid').hidden=S.shape==='round'||S.shape==='square';
@@ -873,7 +878,7 @@ function paintChips(){
   const cRect=(S.coverShape||'round')!=='round';const multi=['rect3','sq2','tri4'].includes(S.coverShape);
   $('w-clen').firstChild.textContent=multi?'אורך כולל של המכסים ':'אורך מכסה ';$('w-cwid').firstChild.textContent=multi?'רוחב כולל ':'רוחב מכסה ';
   $('w-cdiam').hidden=cRect;$('w-clen').hidden=!cRect;$('w-cwid').hidden=!cRect;
-  [...$('coverShapeChips').children].forEach(b=>b.setAttribute('aria-pressed',(S.coverShape||'round')===b.dataset.k));
+  [...$('coverShapeChips').children].forEach(b=>{b.hidden=sewage&&b.dataset.k!=='round';b.setAttribute('aria-pressed',(S.coverShape||'round')===b.dataset.k)});
   $('lenLbl').textContent=S.shape==='square'?'אורך צלע':'אורך';
   [...$('infraChips').children].forEach(b=>b.setAttribute('aria-pressed',S.infra===b.textContent));
   [...$('shaftChips').children].forEach(b=>b.setAttribute('aria-pressed',S.shaft.includes(b.textContent)));

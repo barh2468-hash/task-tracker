@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Download, Eye, Mail, Pencil, RefreshCw, Search } from 'lucide-react';
+import { Download, Eye, Mail, Pencil, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { t } from '../language/LanguageContext.jsx';
 import { filterSavedLayouts } from './savedLayouts.js';
 
-export default function SavedLayoutsPanel({ rows, loading, error, busy, editableProjectIds, onRefresh, onEdit, onView, onDownload, onEmail }) {
+export default function SavedLayoutsPanel({ rows, loading, error, busy, editableProjectIds, userId, isManager, onRefresh, onEdit, onView, onDownload, onEmail, onDelete }) {
   const [projectId, setProjectId] = useState('');
   const [workerId, setWorkerId] = useState('');
   const [search, setSearch] = useState('');
@@ -13,7 +13,10 @@ export default function SavedLayoutsPanel({ rows, loading, error, busy, editable
   const workers = [...new Map(rows.map(row => [row.created_by, row.created_by_name])).entries()];
   const selectedRows = rows.filter(row => selected.includes(row.id));
   function toggle(id) {
-    setSelected(current => current.includes(id) ? current.filter(value => value !== id) : current.length < 5 ? [...current, id] : current);
+    setSelected(current => {
+      const visible = current.filter(value => rows.some(row => row.id === value));
+      return visible.includes(id) ? visible.filter(value => value !== id) : visible.length < 5 ? [...visible, id] : visible;
+    });
   }
   return (
     <section className="manholeSavedPanel" aria-label={t('פרישות שמורות')}>
@@ -47,7 +50,9 @@ export default function SavedLayoutsPanel({ rows, loading, error, busy, editable
             <button type="button" disabled={busy || !editableProjectIds.includes(row.project_id)} onClick={() => onEdit(row)}><Pencil size={16} aria-hidden="true" />{t('עריכה')}</button>
             <button type="button" disabled={busy} onClick={() => onDownload(row)}><Download size={16} aria-hidden="true" />PDF</button>
             <button type="button" disabled={busy} onClick={() => onEmail([row])}><Mail size={16} aria-hidden="true" />{t('מייל')}</button>
+            <button type="button" className="manholeDeleteButton" disabled={busy || !(isManager || row.created_by === userId)} aria-describedby={!(isManager || row.created_by === userId) ? `manhole-delete-hint-${row.id}` : undefined} onClick={() => onDelete(row)}><Trash2 size={16} aria-hidden="true" />{t('מחיקה')}</button>
           </div>
+          {!(isManager || row.created_by === userId) && <small id={`manhole-delete-hint-${row.id}`} className="manholeDeleteHint">{t('מחיקה זמינה ליוצר הפרישה ולמנהלים בלבד.')}</small>}
         </article>)}
       </div>
     </section>

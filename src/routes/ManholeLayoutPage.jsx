@@ -10,6 +10,7 @@ import editorStyles from '../features/manhole-layout/editor.css?raw';
 import { readSheetValues, saveSheetValue } from '../features/manhole-layout/draftStorage.js';
 import SavedLayoutsPanel from '../features/manhole-layout/SavedLayoutsPanel.jsx';
 import EmailLayoutsDialog from '../features/manhole-layout/EmailLayoutsDialog.jsx';
+import DeleteLayoutDialog from '../features/manhole-layout/DeleteLayoutDialog.jsx';
 import * as sheetApi from '../services/api/manholeLayouts.js';
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh.js';
 import '../features/manhole-layout/manhole-layout.css';
@@ -37,6 +38,8 @@ export default function ManholeLayoutPage() {
   const [actionBusy, setActionBusy] = useState(false);
   const [editingLayout, setEditingLayout] = useState(null);
   const [emailRows, setEmailRows] = useState(null);
+  const [deleteRow, setDeleteRow] = useState(null);
+  const [layoutsStatus, setLayoutsStatus] = useState('');
   const saveInProgressRef = useRef(false);
   const savedSnapshotRef = useRef(null);
   const layoutsRequestRef = useRef(0);
@@ -52,7 +55,12 @@ export default function ManholeLayoutPage() {
     setLayoutsError('');
     try {
       const rows = userId ? await sheetApi.listLayouts() : [];
-      if (request === layoutsRequestRef.current) setLayouts(rows);
+      if (request === layoutsRequestRef.current) {
+        setLayouts(rows);
+        if (savedSnapshotRef.current && !rows.some(row => row.id === savedSnapshotRef.current.row.id)) {
+          savedSnapshotRef.current = null; setEditingLayout(null);
+        }
+      }
     } catch {
       if (request === layoutsRequestRef.current) setLayoutsError(t('לא ניתן לטעון את הפרישות השמורות. בדקו את החיבור ונסו שוב.'));
     } finally {
@@ -61,7 +69,7 @@ export default function ManholeLayoutPage() {
   }, [userId]);
 
   useEffect(() => {
-    savedSnapshotRef.current = null; setEditingLayout(null); setLayouts([]);
+    savedSnapshotRef.current = null; setEditingLayout(null); setLayouts([]); setDeleteRow(null); setLayoutsStatus('');
     loadLayouts();
   }, [loadLayouts]);
   useRealtimeRefresh({ enabled: Boolean(userId), channelName: 'manhole-layouts', tables: ['project_manhole_layouts'], onRefresh: loadLayouts });
@@ -72,7 +80,7 @@ export default function ManholeLayoutPage() {
       return;
     }
     saveInProgressRef.current = true;
-    setActionBusy(true);
+    setActionBusy(true); setLayoutsStatus('');
     try {
       if (!projectOptions.some(project => project.id === data.source?.draft?.projectId)) throw new Error(t('יש לבחור פרויקט פעיל מהרשימה שלכם.'));
       const sourceJson = JSON.stringify(data.source);
@@ -111,6 +119,17 @@ export default function ManholeLayoutPage() {
       }
     } catch (error) { setLayoutsError(error.message || t('לא ניתן לפתוח את הפרישה. נסו שוב.')); }
     finally { setActionBusy(false); }
+  }
+
+  async function deleteSavedLayout(row) {
+    setActionBusy(true); setLayoutsError(''); setLayoutsStatus('');
+    try {
+      await sheetApi.deleteLayout(row);
+      layoutsRequestRef.current++; setLayoutsLoading(false);
+      setLayouts(rows => rows.filter(item => item.id !== row.id));
+      if (savedSnapshotRef.current?.row.id === row.id) { savedSnapshotRef.current = null; setEditingLayout(null); }
+      setDeleteRow(null); setLayoutsStatus(t('הפרישה נמחקה מהפרישות השמורות.'));
+    } finally { setActionBusy(false); }
   }
 
   function initializeFrame() {
@@ -187,7 +206,10 @@ export default function ManholeLayoutPage() {
         <button type="button" aria-pressed={activeTab === 'editor'} onClick={() => setActiveTab('editor')}><Pencil size={17} aria-hidden="true" />{t('מילוי פרישה')}</button>
         <button type="button" aria-pressed={activeTab === 'saved'} onClick={() => setActiveTab('saved')}><Archive size={17} aria-hidden="true" />{t('פרישות שמורות')} <span>{layouts.length}</span></button>
       </div>
-      {activeTab === 'saved' && <SavedLayoutsPanel rows={layouts} loading={layoutsLoading} error={layoutsError} busy={actionBusy} editableProjectIds={projectOptions.map(project => project.id)} onRefresh={loadLayouts} onEdit={row => savedLayoutAction(row, 'edit')} onView={row => savedLayoutAction(row, 'view')} onDownload={row => savedLayoutAction(row, 'download')} onEmail={setEmailRows} />}
+      {activeTab === 'saved' && <>
+        {layoutsStatus && <p className="manholeEmailSuccess" role="status">{layoutsStatus}</p>}
+        <SavedLayoutsPanel rows={layouts} loading={layoutsLoading} error={layoutsError} busy={actionBusy} editableProjectIds={projectOptions.map(project => project.id)} userId={userId} isManager={isManager} onRefresh={loadLayouts} onEdit={row => savedLayoutAction(row, 'edit')} onView={row => savedLayoutAction(row, 'view')} onDownload={row => savedLayoutAction(row, 'download')} onEmail={setEmailRows} onDelete={row => { setLayoutsStatus(''); setDeleteRow(row); }} />
+      </>}
       <div className="manholeEditorPanel" hidden={activeTab !== 'editor'}>
       {editingLayout && <p className="manholeEditingNotice">{t('עריכת פרישה שמורה')}: {editingLayout.project_name} · {t('שוחה')} {editingLayout.manhole_number}. {t('שמירה יוצרת גרסה נוספת.')}</p>}
       <div className="manholeLayoutNotice">
@@ -251,6 +273,7 @@ export default function ManholeLayoutPage() {
         </footer>
       </dialog>
       {emailRows && <EmailLayoutsDialog rows={emailRows} onSend={sheetApi.emailLayouts} onClose={() => setEmailRows(null)} />}
+      {deleteRow && <DeleteLayoutDialog row={deleteRow} onDelete={deleteSavedLayout} onClose={() => setDeleteRow(null)} />}
     </section>
   );
 }

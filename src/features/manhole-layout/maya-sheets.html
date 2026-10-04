@@ -764,12 +764,22 @@ window.addEventListener('message',event=>{
   }
 });
 
+function applyInfrastructureTemplate(draft,infra){
+  draft.infra=infra;
+  if(infra==='ביוב'){
+    draft.shape='round';draft.coverShape='round';
+  }else if(infra==='ניקוז'){
+    draft.shape='square';draft.coverShape='round';
+    draft.walls={...draft.walls,square:['0','1','2','3']};
+  }
+  return draft;
+}
 function chipGroup(el,opts,key,multi){
   el.innerHTML='';
   opts.forEach(o=>{
     const b=document.createElement('button');b.type='button';b.className='chip';b.textContent=o;
     b.addEventListener('click',()=>{
-      if(key==='infra'){S.infra=(S.infra===o?'':o);}
+      if(key==='infra'){applyInfrastructureTemplate(S,o);renderGroups();}
       else if(multi){const i=S[key].indexOf(o);i>=0?S[key].splice(i,1):S[key].push(o);}
       else{S[key]=S[key][0]===o?[]:[o];}
       sync();

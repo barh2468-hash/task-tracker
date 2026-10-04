@@ -3,12 +3,17 @@ import { LAYOUT_BUCKET, validateLayoutSource } from '../../features/manhole-layo
 import { persistLayout } from '../../features/manhole-layout/persistLayout.js';
 
 export async function listLayouts() {
-  const { data, error } = await supabase.from('project_manhole_layouts').select('*').order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('project_manhole_layouts').select('*').is('deleted_at', null).order('created_at', { ascending: false });
   if (error) throw error;
   return data || [];
 }
 
 export const saveLayout = payload => persistLayout(supabase, payload);
+
+export async function deleteLayout(row) {
+  const { data, error } = await supabase.rpc('delete_manhole_layout', { layout_id: row.id });
+  if (error || data !== row.id) throw new Error('לא ניתן למחוק את הפרישה. בדקו את ההרשאות והחיבור ונסו שוב.');
+}
 
 export async function loadLayoutSource(row) {
   const { data, error } = await supabase.storage.from(LAYOUT_BUCKET).download(row.source_path);

@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { useNotifications } from '../NotificationsContext.jsx';
 
 export default function NotificationsPopover({
+  containerRef,
   position,
   onClose,
   onOpenFullPage,
@@ -28,6 +29,10 @@ export default function NotificationsPopover({
 
   return (
     <div
+      ref={containerRef}
+      id="notifications-popover"
+      role="region"
+      aria-label={t('התראות')}
       className="notificationsPopover notificationsPopoverViewport"
       dir="rtl"
       style={

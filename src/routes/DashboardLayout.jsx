@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Bell,
-  ChevronLeft,
-  ChevronRight,
   Languages,
   LogOut,
   MessageCircle,
@@ -22,6 +20,7 @@ import { projectDeepLinkPath } from '../utils/navigation.js';
 import DashboardHero from '../components/DashboardHero.jsx';
 import NotificationsPopover from '../features/notifications/components/NotificationsPopover.jsx';
 import DashboardNavigation from '../components/DashboardNavigation.jsx';
+import MobileNavigation from '../components/MobileNavigation.jsx';
 import AttendanceEndDialog from '../features/attendance/components/AttendanceEndDialog.jsx';
 import ProjectWorkEndDialog from '../features/attendance/components/ProjectWorkEndDialog.jsx';
 import ProjectWorkspaceNavigation from '../features/projects/components/ProjectWorkspaceNavigation.jsx';
@@ -41,72 +40,21 @@ export default function DashboardLayout() {
   const [searchParams] = useSearchParams();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsPopoverPosition, setNotificationsPopoverPosition] = useState(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileMenuDragProgress, setMobileMenuDragProgress] = useState(null);
   const notificationBellRef = useRef(null);
-  const sidebarRef = useRef(null);
-  const pageSwipeRef = useRef(null);
-  const suppressPageClickRef = useRef(false);
-
-  useEffect(() => {
-    if (!mobileMenuOpen) return;
-    const resetMenuScroll = window.requestAnimationFrame(() => {
-      sidebarRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    });
-    const closeOnEscape = (event) => {
-      if (event.key === 'Escape') closeMobileMenu();
-    };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => {
-      window.cancelAnimationFrame(resetMenuScroll);
-      window.removeEventListener('keydown', closeOnEscape);
-    };
-  }, [mobileMenuOpen]);
-
-  useEffect(() => {
-    const menuVisible = mobileMenuOpen || mobileMenuDragProgress !== null;
-    if (!menuVisible) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    const previousOverscrollBehavior = document.body.style.overscrollBehavior;
-    document.body.style.overflow = 'hidden';
-    document.body.style.overscrollBehavior = 'none';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.overscrollBehavior = previousOverscrollBehavior;
-    };
-  }, [mobileMenuDragProgress, mobileMenuOpen]);
-
-  useEffect(() => {
-    const restoreInterruptedDrag = () => {
-      const start = pageSwipeRef.current;
-      if (!start?.dragging) return;
-      pageSwipeRef.current = null;
-      setMobileMenuOpen(start.initialProgress === 1);
-      setMobileMenuDragProgress(null);
-    };
-    const restoreHiddenDrag = () => {
-      if (document.visibilityState === 'hidden') restoreInterruptedDrag();
-    };
-
-    window.addEventListener('blur', restoreInterruptedDrag);
-    document.addEventListener('visibilitychange', restoreHiddenDrag);
-    return () => {
-      window.removeEventListener('blur', restoreInterruptedDrag);
-      document.removeEventListener('visibilitychange', restoreHiddenDrag);
-    };
-  }, []);
+  const mobileNotificationBellRef = useRef(null);
+  const notificationsPopoverRef = useRef(null);
 
   useEffect(() => {
     if (!notificationsOpen) return;
 
     const updatePopoverPosition = () => {
-      const bellRect = notificationBellRef.current?.getBoundingClientRect();
+      const isMobile = window.innerWidth <= 1180;
+      const bellRect = (isMobile ? mobileNotificationBellRef : notificationBellRef).current?.getBoundingClientRect();
       if (!bellRect) return;
 
-      const viewportPadding = window.innerWidth <= 760 ? 12 : 14;
+      const viewportPadding = isMobile ? 12 : 14;
       const width = Math.min(380, window.innerWidth - viewportPadding * 2);
-      const preferredLeft = language === 'en' ? bellRect.right - width : bellRect.left;
+      const preferredLeft = !isMobile && language === 'en' ? bellRect.right - width : bellRect.left;
       const left = Math.max(
         viewportPadding,
         Math.min(preferredLeft, window.innerWidth - width - viewportPadding),
@@ -119,18 +67,33 @@ export default function DashboardLayout() {
       });
     };
 
+    const closeOnOutsidePress = (event) => {
+      if (notificationsPopoverRef.current?.contains(event.target) ||
+          notificationBellRef.current?.contains(event.target) ||
+          mobileNotificationBellRef.current?.contains(event.target)) return;
+      setNotificationsOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key !== 'Escape') return;
+      setNotificationsOpen(false);
+      (window.innerWidth <= 1180 ? mobileNotificationBellRef : notificationBellRef).current?.focus();
+    };
+
     updatePopoverPosition();
     window.addEventListener('resize', updatePopoverPosition);
     window.addEventListener('scroll', updatePopoverPosition, true);
+    document.addEventListener('pointerdown', closeOnOutsidePress);
+    document.addEventListener('keydown', closeOnEscape);
     return () => {
       window.removeEventListener('resize', updatePopoverPosition);
       window.removeEventListener('scroll', updatePopoverPosition, true);
+      document.removeEventListener('pointerdown', closeOnOutsidePress);
+      document.removeEventListener('keydown', closeOnEscape);
     };
   }, [language, notificationsOpen]);
 
   function openTab(path) {
     navigate(path);
-    closeMobileMenu();
   }
 
   function toggleChat() {
@@ -148,153 +111,6 @@ export default function DashboardLayout() {
         },
       });
     }
-    closeMobileMenu();
-  }
-
-  function closeMobileMenu() {
-    pageSwipeRef.current = null;
-    setMobileMenuDragProgress(null);
-    setMobileMenuOpen(false);
-  }
-
-  function openMobileMenu() {
-    pageSwipeRef.current = null;
-    setMobileMenuDragProgress(null);
-    setMobileMenuOpen(true);
-    setNotificationsOpen(false);
-  }
-
-  function getMobileDrawerWidth() {
-    return (
-      sidebarRef.current?.getBoundingClientRect().width ||
-      Math.min(310, document.documentElement.clientWidth * 0.86)
-    );
-  }
-
-  function beginMobileMenuDrag(clientX, clientY, eventTarget, pointerId) {
-    if (window.innerWidth > 1180) return;
-    const target = eventTarget instanceof Element ? eventTarget : null;
-    const gestureSurface = mobileMenuOpen
-      ? target?.closest('.sidebar, .mobileMenuBackdrop')
-      : target?.closest('.mobileMenuHandle');
-    if (!gestureSurface) {
-      pageSwipeRef.current = null;
-      return;
-    }
-
-    const interactiveAncestor = target?.closest(
-      'input, textarea, select, [contenteditable="true"], .leaflet-container, canvas, button, a',
-    );
-    const isGestureControl =
-      interactiveAncestor?.classList.contains('mobileMenuHandle') ||
-      interactiveAncestor?.classList.contains('mobileMenuBackdrop');
-    if (interactiveAncestor && !isGestureControl) {
-      pageSwipeRef.current = null;
-      return;
-    }
-
-    pageSwipeRef.current = {
-      x: clientX,
-      y: clientY,
-      startedAt: Date.now(),
-      initialProgress: mobileMenuOpen ? 1 : 0,
-      lastX: clientX,
-      pointerId,
-      dragging: false,
-    };
-  }
-
-  function updateMobileMenuDrag(clientX, clientY, event) {
-    const start = pageSwipeRef.current;
-    if (!start || (start.pointerId !== undefined && start.pointerId !== event.pointerId)) return;
-
-    const deltaX = clientX - start.x;
-    const deltaY = clientY - start.y;
-    start.lastX = clientX;
-    if (!start.dragging) {
-      if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) return;
-      if (Math.abs(deltaY) >= Math.abs(deltaX)) {
-        pageSwipeRef.current = null;
-        return;
-      }
-      start.dragging = true;
-      if (typeof event.pointerId === 'number') {
-        try {
-          event.currentTarget.setPointerCapture?.(event.pointerId);
-        } catch {
-          cancelPageSwipe(event);
-          return;
-        }
-      }
-    }
-
-    const isRtl = language === 'he';
-    const drawerWidth = getMobileDrawerWidth();
-    const openingDistance = deltaX * (isRtl ? -1 : 1);
-    const progress = Math.max(
-      0,
-      Math.min(1, start.initialProgress + openingDistance / drawerWidth),
-    );
-    if (event.cancelable) event.preventDefault();
-    setMobileMenuDragProgress(progress);
-  }
-
-  function finishMobileMenuDrag(clientX, pointerId) {
-    const start = pageSwipeRef.current;
-    if (start?.pointerId !== undefined && start.pointerId !== pointerId) return;
-    pageSwipeRef.current = null;
-    if (!start?.dragging) return;
-
-    const isRtl = language === 'he';
-    const endX = Number.isFinite(clientX) ? clientX : start.lastX;
-    const deltaX = endX - start.x;
-    const openingDistance = deltaX * (isRtl ? -1 : 1);
-    const drawerWidth = getMobileDrawerWidth();
-    const progress = Math.max(
-      0,
-      Math.min(1, start.initialProgress + openingDistance / drawerWidth),
-    );
-    const quickSwipe = Date.now() - start.startedAt < 300;
-    const shouldOpen = quickSwipe
-      ? openingDistance > 42 || (openingDistance >= -42 && progress >= 0.5)
-      : progress >= 0.5;
-
-    suppressPageClickRef.current = true;
-    window.setTimeout(() => {
-      suppressPageClickRef.current = false;
-    }, 450);
-    if (shouldOpen) setNotificationsOpen(false);
-    setMobileMenuOpen(shouldOpen);
-    setMobileMenuDragProgress(null);
-  }
-
-  function startPagePointerSwipe(event) {
-    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
-    beginMobileMenuDrag(event.clientX, event.clientY, event.target, event.pointerId);
-  }
-
-  function movePagePointerSwipe(event) {
-    updateMobileMenuDrag(event.clientX, event.clientY, event);
-  }
-
-  function finishPagePointerSwipe(event) {
-    finishMobileMenuDrag(event.clientX, event.pointerId);
-  }
-
-  function cancelPageSwipe(event) {
-    const start = pageSwipeRef.current;
-    if (start?.pointerId !== undefined && start.pointerId !== event?.pointerId) return;
-    pageSwipeRef.current = null;
-    if (!start?.dragging) return;
-    setMobileMenuOpen(start.initialProgress === 1);
-    setMobileMenuDragProgress(null);
-  }
-
-  function suppressClickAfterPageSwipe(event) {
-    if (!suppressPageClickRef.current) return;
-    suppressPageClickRef.current = false;
-    event.preventDefault();
-    event.stopPropagation();
   }
 
   const isProjectWorkspace =
@@ -312,11 +128,6 @@ export default function DashboardLayout() {
       className={`page${location.pathname === '/app/chat' ? ' chatPage' : ''}${
         location.pathname === '/app/attendance' ? ' attendanceClockShell' : ''
       }`}
-      onPointerDownCapture={startPagePointerSwipe}
-      onPointerMoveCapture={movePagePointerSwipe}
-      onPointerUpCapture={finishPagePointerSwipe}
-      onPointerCancelCapture={cancelPageSwipe}
-      onClickCapture={suppressClickAfterPageSwipe}
     >
       <header className="topbar">
         <div className="brand">
@@ -345,6 +156,8 @@ export default function DashboardLayout() {
               className={`notificationBell ${notificationsOpen ? 'active' : ''}`}
               onClick={() => setNotificationsOpen((open) => !open)}
               title={t('התראות')}
+              aria-expanded={notificationsOpen}
+              aria-controls="notifications-popover"
             >
               <Bell size={18} />
               {unreadCount > 0 && <span>{unreadCount}</span>}
@@ -362,8 +175,22 @@ export default function DashboardLayout() {
         </div>
       </header>
 
+      <button
+        ref={mobileNotificationBellRef}
+        type="button"
+        className={`notificationBell mobileNotificationBell${notificationsOpen || navActive('/app/notifications') ? ' active' : ''}`}
+        aria-label={unreadCount > 0 ? `${t('התראות')} (${unreadCount})` : t('התראות')}
+        aria-expanded={notificationsOpen}
+        aria-controls="notifications-popover"
+        onClick={() => setNotificationsOpen((open) => !open)}
+      >
+        <Bell size={21} aria-hidden="true" />
+        {unreadCount > 0 && <span aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+      </button>
+
       {notificationsOpen && (
         <NotificationsPopover
+          containerRef={notificationsPopoverRef}
           position={notificationsPopoverPosition}
           onClose={() => setNotificationsOpen(false)}
           onOpenFullPage={() => {
@@ -377,52 +204,8 @@ export default function DashboardLayout() {
         />
       )}
 
-      {!mobileMenuOpen && (
-        <button
-          className="mobileMenuHandle"
-          onClick={openMobileMenu}
-          aria-label={t('פתיחת תפריט')}
-          aria-controls="main-navigation"
-          aria-expanded="false"
-          title={t('פתיחת תפריט')}
-        >
-          {language === 'he' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-        </button>
-      )}
-
       <section className="container layout">
-        {(mobileMenuOpen || mobileMenuDragProgress !== null) && (
-          <button
-            className="mobileMenuBackdrop"
-            aria-label={t('סגירת תפריט')}
-            onClick={closeMobileMenu}
-            style={
-              mobileMenuDragProgress === null
-                ? undefined
-                : {
-                    opacity: mobileMenuDragProgress,
-                    transition: 'none',
-                  }
-            }
-          />
-        )}
-        <aside
-          ref={sidebarRef}
-          id="main-navigation"
-          className={`sidebar sidebarCompact ${mobileMenuOpen ? 'mobileOpen' : ''} ${
-            mobileMenuDragProgress === null ? '' : 'mobileDragging'
-          }`}
-          aria-label={t('תפריט ראשי')}
-          style={
-            mobileMenuDragProgress === null
-              ? undefined
-              : {
-                  opacity: 1,
-                  visibility: 'visible',
-                  transform: `translate3d(${(language === 'he' ? 1 : -1) * (1 - mobileMenuDragProgress) * 105}%, 0, 0)`,
-                }
-          }
-        >
+        <aside id="main-navigation" className="sidebar sidebarCompact" aria-label={t('תפריט ראשי')}>
           <DashboardNavigation
             role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
             isManager={isManager}
@@ -432,10 +215,8 @@ export default function DashboardLayout() {
             stats={stats}
             unreadCount={unreadCount}
             onOpenTab={openTab}
-            onClose={closeMobileMenu}
           />
         </aside>
-
         <section className="mainContent">
           {showHero && <DashboardHero title={tabTitle} subtitle={tabSubtitle} />}
 
@@ -478,6 +259,24 @@ export default function DashboardLayout() {
         )}
       </button>
 
+      <MobileNavigation
+        role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
+        displayName={profile?.full_name || session?.user?.email}
+        isManager={isManager}
+        isDrafter={isDrafter}
+        pathname={location.pathname}
+        isProjectWorkspace={isProjectWorkspace}
+        stats={stats}
+        unreadChatCount={unreadChatCount}
+        onLogout={logout}
+        onOpenMore={() => setNotificationsOpen(false)}
+        onOpenTab={(path) => {
+          setNotificationsOpen(false);
+          if (path === '/app/chat' && location.pathname !== '/app/chat') {
+            navigate(path, { state: { chatReturnTo: `${location.pathname}${location.search}${location.hash}` } });
+          } else openTab(path);
+        }}
+      />
       <AttendanceEndDialog />
       <ProjectWorkEndDialog />
     </main>

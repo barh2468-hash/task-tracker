@@ -1,5 +1,8 @@
 project_id = "qopsdkmzvncamjrxjwni"
 
+[functions.send-manhole-layouts]
+verify_jwt = true
+
 [functions.attendance-reminder]
 verify_jwt = false
 

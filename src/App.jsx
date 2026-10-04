@@ -37,6 +37,7 @@ const ChatPage = lazy(() => import('./routes/ChatPage.jsx'));
 const AttendancePage = lazy(() => import('./routes/AttendancePage.jsx'));
 const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
 const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
+const ManholeLayoutPage = lazy(() => import('./routes/ManholeLayoutPage.jsx'));
 
 function AppLanding() {
   const { isDrafter } = useAuth();
@@ -90,6 +91,14 @@ export default function App() {
                 />
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="overview" element={<OverviewPage />} />
+                <Route
+                  path="manhole-layout"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <ManholeLayoutPage />
+                    </Suspense>
+                  }
+                />
                 <Route
                   path="today"
                   element={

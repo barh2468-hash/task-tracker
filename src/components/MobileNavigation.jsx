@@ -179,8 +179,8 @@ export default function MobileNavigation({
       >
         <div className="mobileMoreHeader">
           <div>
-            <h2 id="mobile-more-title">{t('עוד')}</h2>
-            <p className="mobileMoreIdentity"><b>{displayName}</b><span>{role}</span></p>
+            <h2 id="mobile-more-title">{displayName}</h2>
+            <p>{role}</p>
           </div>
           <button ref={closeRef} type="button" className="mobileMoreClose" aria-label={t('סגירת תפריט')} onClick={() => setMoreOpen(false)}>
             <X size={22} aria-hidden="true" />

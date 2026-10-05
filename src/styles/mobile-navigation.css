@@ -112,11 +112,9 @@
   }
   .mobileMoreSheet::backdrop { background: rgba(3, 20, 45, .48); }
   .mobileMoreHeader { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 19px 20px 15px; border-bottom: 1px solid #ffffff18; }
-  .mobileMoreHeader h2 { margin: 0 0 4px; color: #eff5fd; font-size: 22px; }
+  .mobileMoreHeader h2 { margin: 0 0 4px; color: #eff5fd; font-size: 22px; overflow-wrap: anywhere; }
   .mobileMoreHeader p { margin: 0; color: #afc0d7; font-size: 12px; }
   .mobileMoreHeader > div { min-width: 0; }
-  .mobileMoreIdentity { display: flex; flex-wrap: wrap; gap: 4px 10px; overflow-wrap: anywhere; }
-  .mobileMoreIdentity b { color: #eff5fd; font-weight: 600; }
   .mobileMoreClose { width: 44px; height: 44px; padding: 0; border-radius: 14px; background: #ffffff0c; color: #eff5fd; box-shadow: none; }
   .mobileMoreClose:hover { transform: none; box-shadow: none; background: #ffffff18; }
   .mobileMoreClose:focus-visible { outline: 2px solid #9bd8ff; outline-offset: -2px; }

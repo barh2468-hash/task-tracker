@@ -4,11 +4,17 @@
 
 @media (max-width: 1180px) {
   .page { --mobile-nav-height: calc(78px + env(safe-area-inset-bottom)); padding-bottom: calc(var(--mobile-nav-height) + 18px); }
-  .page.attendanceClockShell { padding-bottom: calc(var(--mobile-nav-height) + 18px); }
+  .page.attendanceClockShell { padding-bottom: var(--mobile-nav-height); }
   .page > .topbar { display: none; }
   .page > .container { margin-top: calc(64px + env(safe-area-inset-top)); }
-  .page.attendanceClockShell > .container { margin-bottom: 0; }
-  .page.attendanceClockShell .attendanceClockPage { min-height: calc(100dvh - var(--mobile-nav-height) - env(safe-area-inset-top) - 82px); }
+  /* Attendance clock fills the whole viewport above the bottom nav, edge to edge. */
+  .page.attendanceClockShell > .container { margin: 0; padding: 0; max-width: none; }
+  .page.attendanceClockShell .attendanceClockPage {
+    min-height: calc(100dvh - var(--mobile-nav-height));
+    padding-top: calc(18px + env(safe-area-inset-top));
+    padding-inline: max(14px, env(safe-area-inset-left)) max(14px, env(safe-area-inset-right));
+    border: 0; border-radius: 0; box-shadow: none;
+  }
   .page .sidebar.sidebarCompact, .page .floatingChatButton { display: none; }
   .page .mobileNotificationBell {
     display: grid; position: fixed; top: calc(10px + env(safe-area-inset-top));
@@ -20,6 +26,14 @@
   .page .mobileNotificationBell.active { color: #f5a46e; border-color: #f5a46e; }
   .page .mobileNotificationBell:focus-visible { outline: 2px solid #258fc4; outline-offset: 3px; }
   .page .mobileNotificationBell span { left: auto; right: -5px; border-color: var(--navigation-background); }
+  /* On the full-bleed attendance card the bell matches the card's frosted status pill. */
+  .page.attendanceClockShell .mobileNotificationBell {
+    background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .16); box-shadow: none;
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
+  .page.attendanceClockShell .mobileNotificationBell:hover { background: rgba(255, 255, 255, .14); }
+  .page.attendanceClockShell .mobileNotificationBell.active { border-color: #f5a46e; }
+  .page.attendanceClockShell .mobileNotificationBell span { border-color: #0a2a4f; }
   .page .notificationsPopover.notificationsPopoverViewport {
     bottom: auto; z-index: 95;
     max-height: calc(100dvh - var(--notifications-popover-top, 62px) - var(--mobile-nav-height) - 18px);

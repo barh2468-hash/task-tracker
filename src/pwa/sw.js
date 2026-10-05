@@ -1,13 +1,20 @@
-const CACHE_NAME = 'maya-app-shell-v1';
-const PRECACHE_URLS = self.__WB_MANIFEST.map((entry) => entry.url);
+const PRECACHE_ENTRIES = self.__WB_MANIFEST;
+// index.html references the fingerprinted app bundle, so its revision identifies
+// the shell. Older workers must never overwrite a newer release's offline HTML.
+const SHELL_REVISION = PRECACHE_ENTRIES.find((entry) => entry.url === 'index.html')?.revision;
+const CACHE_NAME = `maya-app-shell-v2-${SHELL_REVISION}`;
+const PRECACHE_REQUESTS = PRECACHE_ENTRIES.map(
+  (entry) => new Request(new URL(entry.url, self.location.origin), { cache: 'reload' }),
+);
 
 // Activate updated push/badge handling immediately. The page no longer reloads
 // on controllerchange, so this does not bring back the former login-screen jump.
 self.addEventListener('install', (event) => {
-  event.waitUntil(Promise.all([
-    self.skipWaiting(),
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS)),
-  ]));
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_REQUESTS))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -25,22 +32,39 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
+      // Network-first alone can still return Safari's HTTP-cached old HTML.
+      fetch(request, { cache: 'no-store' })
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+          if (response.ok && response.headers.get('content-type')?.includes('text/html')) {
+            const copy = response.clone();
+            event.waitUntil(
+              caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy))
+                .catch((error) => console.warn('Offline shell cache update failed:', error)),
+            );
+          }
           return response;
         })
-        .catch(() => caches.match('/index.html').then((response) => response || caches.match('/'))),
+        .catch(async () => {
+          const cache = await caches.open(CACHE_NAME);
+          return (await cache.match('/index.html')) || cache.match('/');
+        }),
     );
     return;
   }
 
   event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request).then((response) => {
-      if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cached = await cache.match(request);
+      if (cached) return cached;
+      const response = await fetch(request);
+      if (response.ok) {
+        event.waitUntil(
+          cache.put(request, response.clone())
+            .catch((error) => console.warn('Offline asset cache update failed:', error)),
+        );
+      }
       return response;
-    })),
+    }),
   );
 });
 

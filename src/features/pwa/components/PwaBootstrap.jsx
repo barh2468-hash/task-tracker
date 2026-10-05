@@ -24,7 +24,7 @@ export default function PwaBootstrap() {
     // register() already performs an update check. Calling update() again here
     // caused duplicate checks (especially under React StrictMode) and occasional
     // update work while the authentication screen was opening.
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' })
       .catch((error) => console.warn('PWA registration failed:', error));
 
     return () => {

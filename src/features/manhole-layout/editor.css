@@ -87,7 +87,8 @@ button:focus-visible{outline:3px solid #258fc43b;outline-offset:3px}
   .mobileLiveViewport canvas{display:block;flex:none;max-width:none;width:auto;height:100%;margin:auto}
   fieldset{scroll-margin-top:330px}
   input,select,textarea{font-size:16px}
-  :root[data-mobile-editing="true"] .preview{padding:7px;gap:4px}
+  :root[data-mobile-editing="true"] .preview{position:fixed;top:0;left:12px;right:12px;width:auto;padding:7px;gap:4px}
+  :root[data-mobile-editing="true"] .grid::before{content:"";display:block;order:-1;height:var(--live-preview-space,220px);flex:none}
   :root[data-mobile-editing="true"] .previewHeading{display:none}
   :root[data-mobile-editing="true"] .mobileLiveToolbar{padding-bottom:4px}
 }

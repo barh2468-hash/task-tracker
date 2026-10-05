@@ -150,15 +150,18 @@ export default function ManholeLayoutPage() {
     const viewport = window.visualViewport;
     let raf = 0;
     let previous = '';
+    let editing = false;
     function updateViewport() {
       window.cancelAnimationFrame(raf);
       raf = window.requestAnimationFrame(() => {
         if (!frame || !window.matchMedia('(max-width:759px)').matches) return;
-        const bounds = frame.getBoundingClientRect();
         const viewportTop = viewport?.offsetTop || 0;
         let viewportBottom = viewportTop + (viewport?.height || window.innerHeight);
         const navigation = document.querySelector('.mobileBottomNav')?.getBoundingClientRect();
-        if (navigation?.height > 0 && navigation.top >= viewportTop) viewportBottom = Math.min(viewportBottom, navigation.top);
+        if (!editing && navigation?.height > 0 && navigation.top >= viewportTop) viewportBottom = Math.min(viewportBottom, navigation.top);
+        frame.style.setProperty('--mobile-editor-top', `${viewportTop}px`);
+        frame.style.setProperty('--mobile-editor-height', `${Math.max(1, viewportBottom - viewportTop)}px`);
+        const bounds = frame.getBoundingClientRect();
         const top = Math.max(0, viewportTop - bounds.top);
         const height = Math.max(0, Math.min(bounds.bottom, viewportBottom) - Math.max(bounds.top, viewportTop));
         if (height < 1) return;
@@ -170,7 +173,10 @@ export default function ManholeLayoutPage() {
     }
     function editorReady(event) {
       if (event.source !== frame?.contentWindow || event.origin !== 'null' || event.data?.type !== 'maya-sheets-editor-focus') return;
-      setMobileEditing(event.data.editing === true);
+      const nextEditing = event.data.editing === true;
+      if (nextEditing && !editing) frame.parentElement.style.setProperty('--editor-placeholder-height', `${frame.getBoundingClientRect().height}px`);
+      editing = nextEditing;
+      setMobileEditing(editing);
       previous = '';
       updateViewport();
     }

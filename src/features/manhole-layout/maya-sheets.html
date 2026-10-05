@@ -935,28 +935,36 @@ sheetEditor.addEventListener('toggle',()=>{
 });
 let mobileLiveZoom=1;
 let mobileLiveEditing=false,mobileVisibleTop=0,mobileVisibleHeight=window.innerHeight,mobileFocusRaf=0;
+let mobileEditingPreviewHeight=160;
+let mobilePreviewPointerActive=false;
 function isMobileTextField(element){
   return element?.matches('textarea:not([readonly]):not(:disabled), input:not([readonly]):not(:disabled)') &&
     !['button','submit','reset','checkbox','radio','file','range','color','date','time','month','week','hidden'].includes(element.type);
 }
 function updateMobileEditingPreview(){
   if(!mobileLiveMedia.matches)return;
-  mobileLiveEditing=Boolean(isMobileTextField(document.activeElement));
+  const editing=Boolean(isMobileTextField(document.activeElement))||(mobileLiveEditing&&mobilePreviewPointerActive);
+  if(editing&&!mobileLiveEditing)mobileEditingPreviewHeight=$('liveViewport').offsetHeight;
+  mobileLiveEditing=editing;
   document.documentElement.dataset.mobileEditing=String(mobileLiveEditing);
+  const preview=document.querySelector('.preview');
+  const fieldHeight=mobileLiveEditing?document.activeElement.getBoundingClientRect().height:0;
+  const previewChrome=preview.offsetHeight-$('liveViewport').offsetHeight;
   const expanded=!sheetEditor.open;
   const height=mobileLiveEditing
-    ? Math.max(72,Math.min(110,mobileVisibleHeight*.24))
+    ? Math.max(100,Math.min(mobileEditingPreviewHeight,window.innerHeight-fieldHeight-previewChrome-24))
     : Math.max(145,Math.min(expanded?400:235,mobileVisibleHeight*(expanded ? .65 : .32),mobileVisibleHeight-document.querySelector('.mobileEditorToggle').offsetHeight-166));
   document.documentElement.style.setProperty('--live-preview-top',mobileVisibleTop+'px');
   document.documentElement.style.setProperty('--live-preview-height',height+'px');
-  document.documentElement.style.scrollPaddingTop=(mobileVisibleTop+height+82)+'px';
+  document.documentElement.style.setProperty('--live-preview-space',preview.offsetHeight+'px');
+  document.documentElement.style.scrollPaddingTop=((mobileLiveEditing?0:mobileVisibleTop)+preview.offsetHeight+10)+'px';
   renderMobilePreview();
   cancelAnimationFrame(mobileFocusRaf);
   if(mobileLiveEditing)mobileFocusRaf=requestAnimationFrame(()=>{
     const field=document.activeElement;
     if(!isMobileTextField(field))return;
-    const bounds=field.getBoundingClientRect(),preview=document.querySelector('.preview').getBoundingClientRect();
-    const top=Math.max(mobileVisibleTop,preview.bottom)+10,bottom=mobileVisibleTop+mobileVisibleHeight-12;
+    const bounds=field.getBoundingClientRect(),previewBounds=preview.getBoundingClientRect();
+    const top=previewBounds.bottom+10,bottom=window.innerHeight-12;
     if(bounds.top<top)window.scrollBy({top:bounds.top-top,behavior:'instant'});
     else if(bounds.bottom>bottom)window.scrollBy({top:bounds.bottom-bottom,behavior:'instant'});
   });
@@ -973,6 +981,15 @@ function notifyMobileEditorFocus(){
 }
 document.addEventListener('focusin',notifyMobileEditorFocus);
 document.addEventListener('focusout',()=>queueMicrotask(notifyMobileEditorFocus));
+// Keep the toolbar still until its click has completed, even though pressing it blurs the field.
+document.addEventListener('pointerdown',event=>{mobilePreviewPointerActive=Boolean(event.target.closest('.preview'));});
+function finishMobilePreviewPointer(){
+  if(!mobilePreviewPointerActive)return;
+  mobilePreviewPointerActive=false;requestAnimationFrame(notifyMobileEditorFocus);
+}
+document.addEventListener('pointerup',finishMobilePreviewPointer);
+document.addEventListener('pointercancel',finishMobilePreviewPointer);
+window.addEventListener('resize',updateMobileEditingPreview);
 mobileLiveMedia.addEventListener('change',()=>{updateEditorDisclosure();notifyMobileEditorFocus();});
 updateEditorDisclosure();
 notifyMobileEditorFocus();

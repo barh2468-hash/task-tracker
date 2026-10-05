@@ -86,6 +86,12 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px soli
   </header>
 
   <div class="grid">
+    <details class="sheetEditor" id="sheetEditor" open>
+      <summary class="mobileEditorToggle">
+        <span class="mobileEditorIcon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 5 5-11 11-6 1 1-6Z"/><path d="m13 6 5 5M4 20h16"/></svg></span>
+        <span class="mobileEditorLabel"><strong>עריכת השוחה</strong><span>פרטים · מידות · קנים</span></span>
+        <span class="mobileEditorToggleState" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+      </summary>
     <form id="frm" autocomplete="off" novalidate>
       <fieldset>
         <legend>פרויקט</legend>
@@ -213,12 +219,13 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px soli
         <div class="status" id="status" role="status" aria-live="polite"></div>
       </div>
     </form>
+    </details>
 
     <section class="preview" aria-label="תצוגה מקדימה">
       <div class="previewHeading">תצוגה מקדימה <span>מתעדכנת בזמן אמת</span></div>
       <div class="mobileLivePreview">
         <div class="mobileLiveToolbar">
-          <span>פריסת השוחה</span>
+          <button type="button" id="livePdf" aria-haspopup="dialog">דף מלא</button>
           <div role="group" aria-label="הגדלת הפריסה">
             <button type="button" id="liveZoomOut" aria-label="הקטנת הפריסה">−</button>
             <button type="button" id="liveFit">התאמה</button>
@@ -915,6 +922,17 @@ function fileName(){
 }
 
 const mobileLiveMedia=window.matchMedia('(max-width:759px)');
+const mobileDrawingCanvas=document.createElement('canvas');
+const sheetEditor=$('sheetEditor');
+let mobileEditorOpen=false;
+function updateEditorDisclosure(){
+  sheetEditor.open=mobileLiveMedia.matches?mobileEditorOpen:true;
+  updateMobileEditingPreview();
+}
+sheetEditor.addEventListener('toggle',()=>{
+  if(mobileLiveMedia.matches)mobileEditorOpen=sheetEditor.open;
+  updateMobileEditingPreview();
+});
 let mobileLiveZoom=1;
 let mobileLiveEditing=false,mobileVisibleTop=0,mobileVisibleHeight=window.innerHeight,mobileFocusRaf=0;
 function isMobileTextField(element){
@@ -925,7 +943,10 @@ function updateMobileEditingPreview(){
   if(!mobileLiveMedia.matches)return;
   mobileLiveEditing=Boolean(isMobileTextField(document.activeElement));
   document.documentElement.dataset.mobileEditing=String(mobileLiveEditing);
-  const height=Math.max(72,Math.min(mobileLiveEditing?110:235,mobileVisibleHeight*(mobileLiveEditing ? .24 : .3)));
+  const expanded=!sheetEditor.open;
+  const height=mobileLiveEditing
+    ? Math.max(72,Math.min(110,mobileVisibleHeight*.24))
+    : Math.max(145,Math.min(expanded?400:235,mobileVisibleHeight*(expanded ? .65 : .32),mobileVisibleHeight-document.querySelector('.mobileEditorToggle').offsetHeight-166));
   document.documentElement.style.setProperty('--live-preview-top',mobileVisibleTop+'px');
   document.documentElement.style.setProperty('--live-preview-height',height+'px');
   document.documentElement.style.scrollPaddingTop=(mobileVisibleTop+height+82)+'px';
@@ -952,16 +973,21 @@ function notifyMobileEditorFocus(){
 }
 document.addEventListener('focusin',notifyMobileEditorFocus);
 document.addEventListener('focusout',()=>queueMicrotask(notifyMobileEditorFocus));
-mobileLiveMedia.addEventListener('change',notifyMobileEditorFocus);
+mobileLiveMedia.addEventListener('change',()=>{updateEditorDisclosure();notifyMobileEditorFocus();});
+updateEditorDisclosure();
 notifyMobileEditorFocus();
 function renderMobilePreview(){
   if(!mobileLiveMedia.matches)return;
-  const source=$('cv'),target=$('liveCanvas');
+  const source=mobileDrawingCanvas,target=$('liveCanvas');
+  if(!source.dataset.liveBounds)draw(source,2,true);
   if(!source.dataset.liveBounds)return;
   const [x,y,w,h]=JSON.parse(source.dataset.liveBounds),scale=source.width/W;
   target.width=Math.round(w*scale);target.height=Math.round(h*scale);
   target.getContext('2d').drawImage(source,x*scale,y*scale,w*scale,h*scale,0,0,target.width,target.height);
-  target.style.height=((mobileLiveEditing?1:mobileLiveZoom)*100)+'%';
+  const viewport=$('liveViewport'),zoom=mobileLiveEditing?1:mobileLiveZoom;
+  const fit=Math.min((viewport.clientWidth-2)/target.width,(viewport.clientHeight-2)/target.height);
+  target.style.height=(target.height*fit*zoom)+'px';
+  target.style.width=(target.width*fit*zoom)+'px';
   target.setAttribute('aria-label','פריסת שוחה '+(S.num||'')+', '+(S.infra||'')+', מתעדכנת בזמן העריכה');
   $('liveZoomOut').disabled=mobileLiveEditing||mobileLiveZoom<=1;
   $('liveZoomIn').disabled=mobileLiveEditing||mobileLiveZoom>=3;
@@ -973,7 +999,9 @@ function setMobileLiveZoom(zoom){
 $('liveZoomIn').onclick=()=>setMobileLiveZoom(mobileLiveZoom+.5);
 $('liveZoomOut').onclick=()=>setMobileLiveZoom(mobileLiveZoom-.5);
 $('liveFit').onclick=()=>setMobileLiveZoom(1);
+$('livePdf').onclick=()=>window.parent.postMessage({type:'maya-sheets-open-preview'},hostOrigin);
 mobileLiveMedia.addEventListener('change',renderMobilePreview);
+new ResizeObserver(renderMobilePreview).observe($('liveViewport'));
 let raf=0;
 function sync(fill=true){
   if(fill)toInputs();
@@ -982,6 +1010,8 @@ function sync(fill=true){
   store.set('maya-sheet-draft',S);
   cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{
     const canvas=$('cv');draw(canvas,2);
+    if(mobileLiveMedia.matches)draw(mobileDrawingCanvas,2,true);
+    else delete mobileDrawingCanvas.dataset.liveBounds;
     renderMobilePreview();
     if(previewActive)window.parent.postMessage({type:'maya-sheets-preview',image:canvas.toDataURL('image/png'),fileName:fileName()},hostOrigin);
   });
@@ -1009,7 +1039,7 @@ function shaftText(){
 }
 function fmtDate(v){const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+'/'+m[2]+'/'+m[1]:(v||'')}
 
-function draw(cv,scale){
+function draw(cv,scale,liveOnly=false){
   cv.width=W*scale;cv.height=H*scale;
   const c=cv.getContext('2d');
   c.setTransform(scale,0,0,scale,0,0);
@@ -1040,6 +1070,7 @@ function draw(cv,scale){
     lines.forEach(l=>{c.fillText(l,tx,ty);ty+=lh});
   }
 
+  if(!liveOnly){
   // frames
   rect(8,35.9,834,559.1,.9);rect(16.7,44.6,678.1,551.5,.6);
 
@@ -1110,6 +1141,7 @@ function draw(cv,scale){
   c.beginPath();c.moveTo(625.2,75.5);c.lineTo(633.8,124.2);c.lineTo(625.2,124.2);c.closePath();c.fillStyle='#000';c.fill();c.stroke();
   font(15);c.direction='ltr';c.textAlign='left';c.fillText('N',637,92);
 
+  }
   // central drawing
   const cx=348.9,cy=293.5;
   cv.dataset.liveBounds=JSON.stringify([cx-118,cy-118,236,236]);

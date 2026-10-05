@@ -213,6 +213,7 @@ export default function ManholeLayoutPage() {
       }
       if (event.data?.type === 'maya-sheets-publish' && typeof event.data.requestId === 'string') void publishLayout(event.data, event.source);
       if (event.data?.type === 'maya-sheets-new') { savedSnapshotRef.current = null; setEditingLayout(null); }
+      if (event.data?.type === 'maya-sheets-open-preview') { setPreviewMode('editor'); setPreview(null); setPreviewZoomed(false); setPreviewOpen(true); }
     }
     window.addEventListener('message', receiveMessage);
     return () => window.removeEventListener('message', receiveMessage);

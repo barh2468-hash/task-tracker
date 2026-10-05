@@ -60,5 +60,5 @@
   .manholeLayoutHeading{align-items:center}
   .manholeLayoutIcon{width:34px;height:34px;flex-basis:34px;border-radius:10px}
   .manholePreviewShortcut{padding:9px 12px;font-size:12px;bottom:calc(var(--mobile-nav-height,78px) + 12px)}
-  .manholeLayoutPage[data-mobile-editing="true"] .manholePreviewShortcut{display:none}
+  .manholePreviewShortcut{display:none}
 }

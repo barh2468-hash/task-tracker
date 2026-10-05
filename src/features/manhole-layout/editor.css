@@ -48,10 +48,29 @@ button:focus-visible{outline:3px solid #258fc43b;outline-offset:3px}
 .ph input{min-height:34px;font-size:12px}
 .ph button{border-radius:9px;background:#fff}
 .mobileLivePreview{display:none}
+.sheetEditor{min-width:0}
+.mobileEditorToggle{display:none}
 @media(max-width:759px){.grid{grid-template-columns:minmax(0,1fr)}.wrap{padding:16px 12px 20px}.preview{position:static}.editorHeader{margin-bottom:14px}fieldset{padding:13px 12px 15px;border-radius:15px;gap:10px}.preview{padding:13px;border-radius:15px}.actions{padding-bottom:calc(8px + env(safe-area-inset-bottom))}}
 @media(max-width:759px){
   .grid{display:flex;flex-direction:column;gap:14px}
-  .grid>form{width:100%}
+  .grid>.sheetEditor{width:100%;border:1px solid #d7e5ef;border-radius:18px;background:#fff;overflow:clip;box-shadow:0 8px 24px #07203f0b}
+  .sheetEditor>form{padding:0 10px 10px}
+  .sheetEditor .actions{position:static}
+  .mobileEditorToggle{display:flex;align-items:center;gap:12px;min-height:80px;padding:14px 16px;color:#fff;background:linear-gradient(115deg,#123f64,#0b284b);cursor:pointer;list-style:none;touch-action:manipulation;transition:background .16s}
+  .mobileEditorToggle::-webkit-details-marker{display:none}
+  .mobileEditorToggle:hover{background:linear-gradient(115deg,#174e77,#103358)}
+  .mobileEditorIcon{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border:1px solid #ffffff24;border-radius:13px;background:#ffffff0d;color:#ffad69}
+  .mobileEditorIcon svg{width:23px;height:23px}
+  .mobileEditorLabel{display:grid;gap:4px;flex:1;min-width:0;text-align:right}
+  .mobileEditorLabel strong{font:700 16px var(--f-body);color:#fff}
+  .mobileEditorLabel>span{font-size:12px;font-weight:400;color:#b9d4e5}
+  .mobileEditorToggleState{display:flex;align-items:center;gap:7px;flex:none;padding:7px 9px;border:1px solid #ffffff24;border-radius:10px;background:#ffffff0b;font-size:12px;font-weight:600;color:#e1eff8}
+  .mobileEditorToggleState::before{content:'פתיחה'}
+  .mobileEditorToggleState svg{width:17px;height:17px;transition:transform .2s}
+  .sheetEditor[open]>.mobileEditorToggle .mobileEditorToggleState::before{content:'סגירה'}
+  .sheetEditor[open]>.mobileEditorToggle .mobileEditorToggleState svg{transform:rotate(180deg)}
+  .sheetEditor[open]>.mobileEditorToggle{margin-bottom:12px}
+  .mobileEditorToggle:focus-visible{outline:3px solid #62c7ed;outline-offset:-3px;border-radius:17px}
   .editorHeader{margin-bottom:10px}
   .editorEyebrow,.editorHeader p{display:none}
   .editorHeader h1{font-size:16px}
@@ -72,4 +91,5 @@ button:focus-visible{outline:3px solid #258fc43b;outline-offset:3px}
   :root[data-mobile-editing="true"] .previewHeading{display:none}
   :root[data-mobile-editing="true"] .mobileLiveToolbar{padding-bottom:4px}
 }
+@media(max-width:380px){.mobileEditorToggleState::before{display:none}.mobileEditorToggle{padding-inline:12px;gap:10px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}

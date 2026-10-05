@@ -8,6 +8,7 @@ import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useMessage } from '../context/MessageContext.jsx';
 import { appStatuses } from '../services/supabase.js';
 import ProjectCard from '../features/projects/components/ProjectCard.jsx';
+import { getProjectPage } from '../features/projects/utils/projectPage.js';
 
 const PROJECT_BATCH_SIZE = 20;
 const LOAD_MORE_DELAY_MS = 650;
@@ -22,6 +23,7 @@ export default function ProjectsPage() {
   const [visibleLimit, setVisibleLimit] = useState(PROJECT_BATCH_SIZE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [focusedProjectId, setFocusedProjectId] = useState(null);
+  const [linkedProjectTarget, setLinkedProjectTarget] = useState(null);
   const [deepLinkDenied, setDeepLinkDenied] = useState(false);
   const loadMoreRef = useRef(null);
   const loadMoreTimerRef = useRef(null);
@@ -50,6 +52,7 @@ export default function ProjectsPage() {
     next.delete('project');
     if (!linkedProject) {
       setFocusedProjectId(null);
+      setLinkedProjectTarget(null);
       setDeepLinkDenied(true);
       setMessage(t('אין לך הרשאה לצפות בפרויקט זה.'));
       setSearchParams(next, { replace: true });
@@ -57,12 +60,18 @@ export default function ProjectsPage() {
     }
 
     setDeepLinkDenied(false);
+    const linkedFilter = linkedProject.is_archived ? 'archive' : isManager ? 'all' : 'mine';
+    setLinkedProjectTarget({ id: projectId, filter: linkedFilter });
     setFocusedProjectId(projectId);
-    next.set('filter', linkedProject.is_archived ? 'archive' : isManager ? 'all' : 'mine');
+    setQuery('');
+    // Cancel a pending load-more batch before replacing the list's target.
+    window.clearTimeout(loadMoreTimerRef.current);
+    loadMoreTimerRef.current = null;
+    setIsLoadingMore(false);
+    setVisibleLimit(PROJECT_BATCH_SIZE);
+    next.set('filter', linkedFilter);
     next.delete('status');
     setSearchParams(next, { replace: true });
-    const linkedIndex = projects.findIndex((p) => p.id === projectId);
-    if (linkedIndex >= 0) setVisibleLimit((limit) => Math.max(limit, linkedIndex + 1));
   }, [isManager, projects, projectsLoaded, searchParams, setMessage, setSearchParams]);
 
   const categoryProjects = projects.filter((p) => {
@@ -80,17 +89,23 @@ export default function ProjectsPage() {
     const okStatus = !statusFilter || p.status === statusFilter;
     return okQuery && okStatus;
   });
-  const pagedProjects = visibleProjects.slice(0, visibleLimit);
+  // Keep the target in place after its temporary focus highlight expires.
+  // Search and other list filters still take precedence over this ordering.
+  const linkedProjectId = !query && !statusFilter && filter === linkedProjectTarget?.filter
+    ? linkedProjectTarget.id
+    : null;
+  const pagedProjects = getProjectPage(visibleProjects, visibleLimit, linkedProjectId);
   const hasMoreProjects = visibleLimit < visibleProjects.length;
 
   useEffect(() => {
     if (!focusedProjectId) return;
     const projectElement = document.getElementById(`project-${focusedProjectId}`);
     if (!projectElement) return;
-    window.requestAnimationFrame(() => {
-      projectElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const frame = window.requestAnimationFrame(() => {
+      projectElement.scrollIntoView({ behavior: 'auto', block: 'start' });
     });
-  }, [focusedProjectId, pagedProjects.length]);
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusedProjectId]);
 
   useEffect(() => {
     if (!focusedProjectId) return undefined;

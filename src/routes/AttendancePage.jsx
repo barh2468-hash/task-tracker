@@ -40,6 +40,12 @@ const typeIcons = {
   reserve_duty: Shield,
 };
 
+// All-day types that open the date-range dialog with an optional certificate.
+const leaveTriggerCopy = {
+  sick: { eyebrow: 'אישור מחלה · אופציונלי', add: 'הוספת אישור מחלה', action: 'דיווח מחלה' },
+  vacation: { eyebrow: 'אישור חופשה · אופציונלי', add: 'הוספת אישור חופשה', action: 'דיווח חופש' },
+};
+
 function formatTimer(milliseconds) {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
   const hours = Math.floor(totalSeconds / 3600);
@@ -66,7 +72,7 @@ export default function AttendancePage() {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const [projectQuery, setProjectQuery] = useState('');
-  const [sickLeaveDialogOpen, setSickLeaveDialogOpen] = useState(false);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const projectSearchRef = useRef(null);
 
   useEffect(() => {
@@ -78,8 +84,9 @@ export default function AttendancePage() {
   const today = toLocalDateKey(now);
   const dayStatus =
     sessions.find((item) => item.is_all_day && item.attendance_date === today) || null;
-  const existingSickCertificate =
-    dayStatus?.attendance_type === 'sick' ? dayStatus.sick_certificate || null : null;
+  const leaveCopy = leaveTriggerCopy[selectedType] || null;
+  const existingLeaveCertificate =
+    leaveCopy && dayStatus?.attendance_type === selectedType ? dayStatus.sick_certificate || null : null;
   const todaySessions = useMemo(
     () =>
       sessions
@@ -159,8 +166,8 @@ export default function AttendancePage() {
     ? t('סיום יום העבודה')
     : selectedOption.timed
       ? t('התחלת יום העבודה')
-      : selectedType === 'sick'
-        ? t('דיווח מחלה')
+      : leaveCopy
+        ? t(leaveCopy.action)
         : t('שמירת דיווח יומי');
   const statusLabel = openSession
     ? t('יום העבודה פעיל')
@@ -170,7 +177,7 @@ export default function AttendancePage() {
 
   function runPrimaryAction() {
     if (openSession) openAttendanceEndDialog();
-    else if (selectedType === 'sick') setSickLeaveDialogOpen(true);
+    else if (leaveCopy) setLeaveDialogOpen(true);
     else if (selectedType === 'field') openProjectPicker();
     else void startAttendance(selectedType, null);
   }
@@ -189,12 +196,12 @@ export default function AttendancePage() {
     void startAttendance('field', selectedProject);
   }
 
-  function closeSickLeaveDialog() {
-    if (!busy) setSickLeaveDialogOpen(false);
+  function closeLeaveDialog() {
+    if (!busy) setLeaveDialogOpen(false);
   }
 
-  function saveSickLeave(sickLeave) {
-    return startAttendance('sick', null, { sickLeave });
+  function saveLeave(sickLeave) {
+    return startAttendance(selectedType, null, { sickLeave });
   }
 
   return (
@@ -246,23 +253,23 @@ export default function AttendancePage() {
         })}
       </div>
 
-      {selectedType === 'sick' && !openSession && (
+      {leaveCopy && !openSession && (
         <button
           type="button"
-          className="attendanceSickTrigger"
+          className={`attendanceSickTrigger ${selectedType === 'vacation' ? 'vacation' : ''}`}
           disabled={busy}
-          onClick={() => setSickLeaveDialogOpen(true)}
+          onClick={() => setLeaveDialogOpen(true)}
         >
           <span className="attendanceSickTriggerIcon" aria-hidden="true">
             <Paperclip size={18} />
           </span>
           <span className="attendanceSickTriggerCopy">
-            <small>{t('אישור מחלה · אופציונלי')}</small>
+            <small>{t(leaveCopy.eyebrow)}</small>
             <strong>
-              {existingSickCertificate?.original_name || t('הוספת אישור מחלה')}
+              {existingLeaveCertificate?.original_name || t(leaveCopy.add)}
             </strong>
             <span>
-              {existingSickCertificate?.file_path
+              {existingLeaveCertificate?.file_path
                 ? t('ניתן לצפות באישור או להחליף אותו')
                 : t('PDF או תמונה, עד 10MB')}
             </span>
@@ -468,12 +475,13 @@ export default function AttendancePage() {
           document.body,
         )}
       <SickLeaveDialog
-        open={sickLeaveDialogOpen}
+        open={leaveDialogOpen && !!leaveCopy}
         busy={busy}
+        leaveType={selectedType}
         today={today}
-        existingCertificate={existingSickCertificate}
-        onClose={closeSickLeaveDialog}
-        onSubmit={saveSickLeave}
+        existingCertificate={existingLeaveCertificate}
+        onClose={closeLeaveDialog}
+        onSubmit={saveLeave}
       />
     </>
   );

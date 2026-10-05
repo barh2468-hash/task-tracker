@@ -209,7 +209,7 @@ function addAttendanceSheet(workbook, attendance, context) {
       minutes === null ? null : minutes / 60, status,
       item.is_all_day || !startLink ? '-' : { text: 'פתיחה במפה', hyperlink: startLink },
       item.is_all_day || !endLink ? '-' : { text: 'פתיחה במפה', hyperlink: endLink },
-      item.attendance_type === 'sick'
+      ['sick', 'vacation'].includes(item.attendance_type)
         ? item.sick_certificate?.file_path
           ? item.sick_certificate.original_name || 'צורף אישור'
           : 'לא צורף'

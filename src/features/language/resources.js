@@ -801,6 +801,18 @@ export const enTranslations = {
   'אפשר לצרף קובץ PDF, JPG או PNG בלבד.': 'Only PDF, JPG or PNG files can be attached.',
   'גודל הקובץ המקסימלי הוא 10MB.': 'The maximum file size is 10MB.',
   'פותח...': 'Opening...',
+  'צפייה באישור': 'View certificate',
+  'אישור חופשה · אופציונלי': 'Vacation certificate · optional',
+  'הוספת אישור חופשה': 'Add vacation certificate',
+  'דיווח חופש': 'Vacation report',
+  'בחרו טווח תאריכים וצרפו אישור חופשה לפי הצורך':
+    'Choose a date range and attach a vacation certificate if needed',
+  'תאריך תחילת החופשה': 'Vacation start date',
+  'תאריך סיום החופשה': 'Vacation end date',
+  'אישור חופשה (אופציונלי)': 'Vacation certificate (optional)',
+  'שמירת דיווח חופש': 'Save vacation report',
+  'סגירת דיווח חופש': 'Close vacation report',
+  'ניתן לדווח על עד 92 ימי חופש בכל פעולה.': 'You can report up to 92 vacation days at a time.',
 };
 
 const greekTranslations = {

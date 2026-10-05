@@ -1258,6 +1258,15 @@ body.language-en { direction: ltr; }
 .sickLeaveFileField strong,.sickLeaveFileField small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sickLeaveFileField small{color:#71839a;font-size:10px}
 .sickLeaveFileField>b{padding:8px 10px;border-radius:11px;background:#fff;color:#8c315b;font-size:10px;box-shadow:0 4px 12px rgba(7,30,65,.07)}
+/* Vacation variant of the certificate button and dialog: green instead of pink. */
+.attendanceSickTrigger.vacation{border-color:rgba(110,231,183,.3);background:rgba(16,150,105,.15)}
+.attendanceSickTrigger.vacation:hover{background:rgba(16,170,118,.22)}
+.attendanceSickTrigger.vacation .attendanceSickTriggerIcon{background:rgba(110,231,183,.16);color:#9ee5ca}
+.attendanceSickTrigger.vacation .attendanceSickTriggerCopy small{color:#9ee5ca}
+.sickLeaveModal.vacation .sickLeaveModalIcon{background:#e7f8f0;color:#11803c}
+.sickLeaveModal.vacation .sickLeaveFileField:hover{border-color:#11803c;background:#f3fbf7}
+.sickLeaveModal.vacation .sickLeaveFileField>b{color:#11803c}
+.sickLeaveModal.vacation .sickLeaveFileIcon{background:#e3f6ec;color:#11803c}
 .sickLeaveFileIcon{width:45px;height:45px;display:grid;place-items:center;border-radius:14px;background:#ffe9f3;color:#ad3b70}
 .sickLeaveExisting{padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-radius:14px;background:#edf7f7;color:#526a83;font-size:11px;font-weight:850}
 .sickCertificateLink{max-width:100%;min-height:38px;padding:8px 11px;border:1px solid #b9dfe1;border-radius:12px;background:#fff;color:#087c86;box-shadow:none;font-size:11px}

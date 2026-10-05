@@ -216,6 +216,17 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px soli
 
     <section class="preview" aria-label="תצוגה מקדימה">
       <div class="previewHeading">תצוגה מקדימה <span>מתעדכנת בזמן אמת</span></div>
+      <div class="mobileLivePreview">
+        <div class="mobileLiveToolbar">
+          <span>פריסת השוחה</span>
+          <div role="group" aria-label="הגדלת הפריסה">
+            <button type="button" id="liveZoomOut" aria-label="הקטנת הפריסה">−</button>
+            <button type="button" id="liveFit">התאמה</button>
+            <button type="button" id="liveZoomIn" aria-label="הגדלת הפריסה">+</button>
+          </div>
+        </div>
+        <div class="mobileLiveViewport" id="liveViewport"><canvas id="liveCanvas" role="img" aria-label="פריסת השוחה המתעדכנת בזמן העריכה">פריסת השוחה</canvas></div>
+      </div>
       <div class="fname">קובץ: <b id="fname"></b></div>
       <div class="sheet"><canvas id="cv" width="1684" height="1190"></canvas></div>
       <div class="made" id="made"></div>
@@ -903,6 +914,28 @@ function fileName(){
   return ('מס '+(n.replace(/^0+(?=\d)/,'')||'')+' '+lab).replace(/\s+/g,' ').trim()+'.pdf';
 }
 
+const mobileLiveMedia=window.matchMedia('(max-width:759px)');
+let mobileLiveZoom=1;
+function renderMobilePreview(){
+  if(!mobileLiveMedia.matches)return;
+  const source=$('cv'),target=$('liveCanvas');
+  if(!source.dataset.liveBounds)return;
+  const [x,y,w,h]=JSON.parse(source.dataset.liveBounds),scale=source.width/W;
+  target.width=Math.round(w*scale);target.height=Math.round(h*scale);
+  target.getContext('2d').drawImage(source,x*scale,y*scale,w*scale,h*scale,0,0,target.width,target.height);
+  target.style.height=(mobileLiveZoom*100)+'%';
+  target.setAttribute('aria-label','פריסת שוחה '+(S.num||'')+', '+(S.infra||'')+', מתעדכנת בזמן העריכה');
+  $('liveZoomOut').disabled=mobileLiveZoom<=1;
+  $('liveZoomIn').disabled=mobileLiveZoom>=3;
+}
+function setMobileLiveZoom(zoom){
+  mobileLiveZoom=Math.max(1,Math.min(3,zoom));renderMobilePreview();
+  if(mobileLiveZoom===1){$('liveViewport').scrollTop=0;$('liveViewport').scrollLeft=0;}
+}
+$('liveZoomIn').onclick=()=>setMobileLiveZoom(mobileLiveZoom+.5);
+$('liveZoomOut').onclick=()=>setMobileLiveZoom(mobileLiveZoom-.5);
+$('liveFit').onclick=()=>setMobileLiveZoom(1);
+mobileLiveMedia.addEventListener('change',renderMobilePreview);
 let raf=0;
 function sync(fill=true){
   if(fill)toInputs();
@@ -911,6 +944,7 @@ function sync(fill=true){
   store.set('maya-sheet-draft',S);
   cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{
     const canvas=$('cv');draw(canvas,2);
+    renderMobilePreview();
     if(previewActive)window.parent.postMessage({type:'maya-sheets-preview',image:canvas.toDataURL('image/png'),fileName:fileName()},hostOrigin);
   });
 }
@@ -1040,6 +1074,7 @@ function draw(cv,scale){
 
   // central drawing
   const cx=348.9,cy=293.5;
+  cv.dataset.liveBounds=JSON.stringify([cx-118,cy-118,236,236]);
   c.lineWidth=.8;
   // dimension line with arrowheads + extension lines; label above (horizontal) or left (vertical)
   function dim(xa,ya,xb,yb,label,ext){
@@ -1076,6 +1111,8 @@ function draw(cv,scale){
     let bx0=0,by0=0,bx1=G.a,by1=G.b;
     PN.forEach(P=>P.pts.forEach(([x,y])=>{bx0=Math.min(bx0,x);by0=Math.min(by0,y);bx1=Math.max(bx1,x);by1=Math.max(by1,y);}));
     const k=Math.min(500/(bx1-bx0),430/(by1-by0)),p=p0*k,kv=dd?p/dd:k;
+    const liveW=(bx1-bx0)*k+48,liveH=(by1-by0)*k+48;
+    cv.dataset.liveBounds=JSON.stringify([cx-liveW/2,cy-liveH/2,liveW,liveH]);
     const X=x=>cx+(x-(bx0+bx1)/2)*k,Y=y=>cy+(y-(by0+by1)/2)*k;
     const x0=X(0),y0=Y(0),x1=X(G.a),y1=Y(G.b),w=x1-x0,h=y1-y0;
     c.lineWidth=1.1;c.strokeStyle='#000';

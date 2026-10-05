@@ -1331,6 +1331,8 @@ body.language-en { direction: ltr; }
   .attendanceClockIntro p{font-size:12px}
   .attendanceTypePicker{gap:6px;flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;padding:2px 1px 5px;scrollbar-width:none}
   .attendanceTypePicker::-webkit-scrollbar{display:none}
+  .attendanceTypePicker>:first-child{margin-inline-start:auto}
+  .attendanceTypePicker>:last-child{margin-inline-end:auto}
   .attendanceTypePicker button{flex:0 0 auto;min-height:39px;padding:8px 11px;border-radius:12px;font-size:11px}
   .attendanceHeroWidget{padding:10px;border-radius:15px;grid-template-columns:minmax(0,1fr) auto}
   .attendanceHeroWidgetTime strong{font-size:19px}
@@ -1577,6 +1579,26 @@ body.language-en { direction: ltr; }
 .mainContent .overviewPage .statsGroup > .grid .stat > span { font-size: 13px; font-weight: 700; white-space: normal; color: #547089; margin-top: 12px; line-height: 1.4; }
 .mainContent .overviewPage .statsGroup > .grid .stat svg { width: 19px; height: 19px; padding: 8px; border-radius: 12px; }
 .mainContent .overviewPage .statsGroup > .grid .stat:hover { transform: none; border-color: #d8e5ee; box-shadow: none; }
+/* Clickable overview cards: lift, tint the border and fill the icon chip with the card's accent. */
+.mainContent .overviewPage .statsGroup > .grid .stat.statClickable { transition: transform .17s ease, box-shadow .17s ease, border-color .17s ease; }
+.mainContent .overviewPage .statsGroup > .grid .stat.statClickable svg { transition: color .17s ease, background-color .17s ease; }
+.mainContent .overviewPage .statsGroup > .grid .stat.statClickable:hover,
+.mainContent .overviewPage .statsGroup > .grid .stat.statClickable:focus-visible {
+  transform: translateY(-3px); border-color: var(--stat-color);
+  box-shadow: 0 14px 30px rgba(7, 30, 65, .10);
+}
+.mainContent .overviewPage .statsGroup > .grid .stat.statClickable:hover svg,
+.mainContent .overviewPage .statsGroup > .grid .stat.statClickable:focus-visible svg { color: #fff; background: var(--stat-color); }
+.mainContent .overviewPage .statsGroup > .grid .stat.statClickable:active { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(7, 30, 65, .08); }
+@media (hover: none) {
+  .mainContent .overviewPage .statsGroup > .grid .stat.statClickable:hover { transform: none; box-shadow: none; border-color: #d8e5ee; }
+  .mainContent .overviewPage .statsGroup > .grid .stat.statClickable:hover svg { color: var(--stat-color); background: var(--stat-bg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mainContent .overviewPage .statsGroup > .grid .stat.statClickable,
+  .mainContent .overviewPage .statsGroup > .grid .stat.statClickable:hover,
+  .mainContent .overviewPage .statsGroup > .grid .stat.statClickable:active { transform: none; }
+}
 .overviewPage .stat:only-child { grid-column: 1 / -1; }
 .overviewWorkspace { display: grid; grid-template-columns: minmax(0,1.65fr) minmax(0,1fr); gap: 20px; align-items: stretch; }
 .overviewAttention, .overviewActivity { min-width: 0; border: 1px solid #d6e3ed; border-radius: 23px; background: #fff; overflow: hidden; display: flex; flex-direction: column; }

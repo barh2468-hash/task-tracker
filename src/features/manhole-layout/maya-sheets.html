@@ -916,6 +916,44 @@ function fileName(){
 
 const mobileLiveMedia=window.matchMedia('(max-width:759px)');
 let mobileLiveZoom=1;
+let mobileLiveEditing=false,mobileVisibleTop=0,mobileVisibleHeight=window.innerHeight,mobileFocusRaf=0;
+function isMobileTextField(element){
+  return element?.matches('textarea:not([readonly]):not(:disabled), input:not([readonly]):not(:disabled)') &&
+    !['button','submit','reset','checkbox','radio','file','range','color','date','time','month','week','hidden'].includes(element.type);
+}
+function updateMobileEditingPreview(){
+  if(!mobileLiveMedia.matches)return;
+  mobileLiveEditing=Boolean(isMobileTextField(document.activeElement));
+  document.documentElement.dataset.mobileEditing=String(mobileLiveEditing);
+  const height=Math.max(72,Math.min(mobileLiveEditing?110:235,mobileVisibleHeight*(mobileLiveEditing ? .24 : .3)));
+  document.documentElement.style.setProperty('--live-preview-top',mobileVisibleTop+'px');
+  document.documentElement.style.setProperty('--live-preview-height',height+'px');
+  document.documentElement.style.scrollPaddingTop=(mobileVisibleTop+height+82)+'px';
+  renderMobilePreview();
+  cancelAnimationFrame(mobileFocusRaf);
+  if(mobileLiveEditing)mobileFocusRaf=requestAnimationFrame(()=>{
+    const field=document.activeElement;
+    if(!isMobileTextField(field))return;
+    const bounds=field.getBoundingClientRect(),preview=document.querySelector('.preview').getBoundingClientRect();
+    const top=Math.max(mobileVisibleTop,preview.bottom)+10,bottom=mobileVisibleTop+mobileVisibleHeight-12;
+    if(bounds.top<top)window.scrollBy({top:bounds.top-top,behavior:'instant'});
+    else if(bounds.bottom>bottom)window.scrollBy({top:bounds.bottom-bottom,behavior:'instant'});
+  });
+}
+window.addEventListener('message',event=>{
+  if(event.source!==window.parent || event.origin!==hostOrigin || event.data?.type!=='maya-sheets-viewport')return;
+  if(!Number.isFinite(event.data.top)||!Number.isFinite(event.data.height)||event.data.top<0||event.data.height<=0)return;
+  mobileVisibleTop=event.data.top;mobileVisibleHeight=event.data.height;updateMobileEditingPreview();
+});
+function notifyMobileEditorFocus(){
+  updateMobileEditingPreview();
+  // Only a focus flag is sent to this frame's parent; the receiver checks the sending Window.
+  window.parent.postMessage({type:'maya-sheets-editor-focus',editing:mobileLiveEditing},'*');
+}
+document.addEventListener('focusin',notifyMobileEditorFocus);
+document.addEventListener('focusout',()=>queueMicrotask(notifyMobileEditorFocus));
+mobileLiveMedia.addEventListener('change',notifyMobileEditorFocus);
+notifyMobileEditorFocus();
 function renderMobilePreview(){
   if(!mobileLiveMedia.matches)return;
   const source=$('cv'),target=$('liveCanvas');
@@ -923,10 +961,10 @@ function renderMobilePreview(){
   const [x,y,w,h]=JSON.parse(source.dataset.liveBounds),scale=source.width/W;
   target.width=Math.round(w*scale);target.height=Math.round(h*scale);
   target.getContext('2d').drawImage(source,x*scale,y*scale,w*scale,h*scale,0,0,target.width,target.height);
-  target.style.height=(mobileLiveZoom*100)+'%';
+  target.style.height=((mobileLiveEditing?1:mobileLiveZoom)*100)+'%';
   target.setAttribute('aria-label','פריסת שוחה '+(S.num||'')+', '+(S.infra||'')+', מתעדכנת בזמן העריכה');
-  $('liveZoomOut').disabled=mobileLiveZoom<=1;
-  $('liveZoomIn').disabled=mobileLiveZoom>=3;
+  $('liveZoomOut').disabled=mobileLiveEditing||mobileLiveZoom<=1;
+  $('liveZoomIn').disabled=mobileLiveEditing||mobileLiveZoom>=3;
 }
 function setMobileLiveZoom(zoom){
   mobileLiveZoom=Math.max(1,Math.min(3,zoom));renderMobilePreview();

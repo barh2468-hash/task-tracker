@@ -31,6 +31,7 @@ export default function ManholeLayoutPage() {
   const [preview, setPreview] = useState(null);
   const [previewZoomed, setPreviewZoomed] = useState(false);
   const [previewMode, setPreviewMode] = useState('editor');
+  const [mobileEditing, setMobileEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('editor');
   const [layouts, setLayouts] = useState([]);
   const [layoutsLoading, setLayoutsLoading] = useState(true);
@@ -144,6 +145,52 @@ export default function ManholeLayoutPage() {
   }
 
   useEffect(() => {
+    if (activeTab !== 'editor') return;
+    const frame = frameRef.current;
+    const viewport = window.visualViewport;
+    let raf = 0;
+    let previous = '';
+    function updateViewport() {
+      window.cancelAnimationFrame(raf);
+      raf = window.requestAnimationFrame(() => {
+        if (!frame || !window.matchMedia('(max-width:759px)').matches) return;
+        const bounds = frame.getBoundingClientRect();
+        const viewportTop = viewport?.offsetTop || 0;
+        let viewportBottom = viewportTop + (viewport?.height || window.innerHeight);
+        const navigation = document.querySelector('.mobileBottomNav')?.getBoundingClientRect();
+        if (navigation?.height > 0 && navigation.top >= viewportTop) viewportBottom = Math.min(viewportBottom, navigation.top);
+        const top = Math.max(0, viewportTop - bounds.top);
+        const height = Math.max(0, Math.min(bounds.bottom, viewportBottom) - Math.max(bounds.top, viewportTop));
+        if (height < 1) return;
+        const next = JSON.stringify([Math.round(top), Math.round(height)]);
+        if (next === previous) return;
+        previous = next;
+        frame.contentWindow?.postMessage({ type: 'maya-sheets-viewport', top, height }, '*');
+      });
+    }
+    function editorReady(event) {
+      if (event.source !== frame?.contentWindow || event.origin !== 'null' || event.data?.type !== 'maya-sheets-editor-focus') return;
+      setMobileEditing(event.data.editing === true);
+      previous = '';
+      updateViewport();
+    }
+    window.addEventListener('message', editorReady);
+    window.addEventListener('resize', updateViewport);
+    window.addEventListener('scroll', updateViewport, { passive: true });
+    viewport?.addEventListener('resize', updateViewport);
+    viewport?.addEventListener('scroll', updateViewport);
+    updateViewport();
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener('message', editorReady);
+      window.removeEventListener('resize', updateViewport);
+      window.removeEventListener('scroll', updateViewport);
+      viewport?.removeEventListener('resize', updateViewport);
+      viewport?.removeEventListener('scroll', updateViewport);
+    };
+  }, [activeTab, userId]);
+
+  useEffect(() => {
     frameRef.current?.contentWindow?.postMessage({
       type: 'maya-sheets-projects', projects: projectOptions, projectsLoaded,
       defaultLeader: profile?.full_name || '',
@@ -188,7 +235,7 @@ export default function ManholeLayoutPage() {
   }, [previewOpen, previewMode]);
 
   return (
-    <section className="manholeLayoutPage" aria-labelledby="manhole-layout-title">
+    <section className="manholeLayoutPage" aria-labelledby="manhole-layout-title" data-mobile-editing={mobileEditing || undefined}>
       <header className="manholeLayoutHeader">
         <div className="manholeLayoutHeading">
           <span className="manholeLayoutIcon"><Layers size={27} aria-hidden="true" /></span>

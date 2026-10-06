@@ -293,6 +293,7 @@ export default function WorkReportPanel() {
                   <br />
                   <span className="muted">
                     {formatHoursDecimal(row.totalMinutes)}
+                    {' '}
                     {t('שעות')}
                   </span>
                 </td>

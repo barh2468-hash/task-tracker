@@ -109,8 +109,7 @@ export default function AttendanceEndDialog() {
           <div>
             <span>{t('סיום משמרת')}</span>
             <h2 id="attendance-end-title">
-              {t('סיום')}
-              {t(attendanceTypeLabel[openSession.attendance_type])}
+              {t('סיום {{value0}}', { value0: t(attendanceTypeLabel[openSession.attendance_type]) })}
             </h2>
             <p>
               {t('התחלת ב־')}

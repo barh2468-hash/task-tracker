@@ -79,6 +79,7 @@ export default function OpenTasksPanel({ onOpenProject }) {
         </div>
         <span className="openTasksCount">
           {openTasks.length}
+          {' '}
           {t('פתוחות')}
         </span>
       </div>

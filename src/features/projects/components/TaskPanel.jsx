@@ -66,6 +66,7 @@ export default function TaskPanel({
             {task.description && <p className="muted">{task.description}</p>}
             <span className="muted">
               {t('נוצר על ידי')}
+              {' '}
               {task.profiles?.full_name || t('מנהל')} ·{' '}
               {new Date(task.created_at).toLocaleDateString('he-IL')}
             </span>

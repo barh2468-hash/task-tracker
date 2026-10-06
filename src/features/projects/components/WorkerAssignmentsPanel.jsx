@@ -123,6 +123,7 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
               </div>
               <span className="assignmentCount">
                 {assignedProjects.length}
+                {' '}
                 {t('פרויקטים')}
               </span>
             </header>

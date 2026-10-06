@@ -177,6 +177,7 @@ export default function TodayFieldPanel() {
               </span>
               <small>
                 {t('כניסה:')}
+                {' '}
                 {new Date(session.started_at).toLocaleString('he-IL')}
               </small>
             </div>

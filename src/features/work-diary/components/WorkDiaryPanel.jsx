@@ -218,12 +218,15 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete }) 
               <div>
                 <b>
                   {t('יומן עבודה')}
+                  {' '}
                   {diary.diary_number}
                 </b>
                 <span>
                   {new Date(diary.form_data.work_date).toLocaleDateString('he-IL')} ·{' '}
                   {diary.form_data.customer_name}
+                  {' '}
                   {t('· נחתם על ידי')}
+                  {' '}
                   {diary.profiles?.full_name || t('משתמש')}
                 </span>
               </div>
@@ -266,6 +269,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete }) 
                   <h2>{t('יומן עבודה חדש')}</h2>
                   <p>
                     {project.name}
+                    {' '}
                     {t('· המספר יינתן אוטומטית בשמירה')}
                   </p>
                 </div>

@@ -814,6 +814,7 @@ export default function ProjectCard({ project, focused = false }) {
                 </div>
                 <div className="muted projectOverviewUpdated">
                   {t('עודכן:')}
+                  {' '}
                   {new Date(project.updated_at).toLocaleDateString('he-IL')}
                 </div>
               </div>

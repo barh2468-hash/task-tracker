@@ -73,4 +73,5 @@ export const roleLabel = {
   manager: 'מנהל מערכת',
   field_worker: 'עובד שטח',
   drafter: 'שרטט',
+  accounting: 'הנהלת חשבונות',
 };

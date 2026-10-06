@@ -1,204 +1,101 @@
-# MAYA Infrastructure Tracker - Archive Projects Addon
+# MAYA Infrastructure Tracker
 
-## עדכון: צוות ועוזרים בסיום עבודה
+A field-operations tracker for MAYA's infrastructure projects: project and task
+management, field attendance and work sessions, a live map, work diaries with
+digital signatures, equipment registers, and email/push notifications for
+managers and field crews.
 
-- לחיצה על "סיים עבודה" בפרויקט פותחת חלון עם הערת סיום ובחירה מרובה של אנשי צוות.
-- ניתן לבחור עובדים הרשומים במערכת וכן עוזרים מהרשימה הקבועה.
-- הצוות נשמר ברישום העבודה ומוצג בהיסטוריה, במסך היום בשטח, בדוח השעות, בייצוא CSV ובדוח הפרויקט.
-- לעובדי שטח נחשפים לצורך הבחירה רק שם העובד והתפקיד, ללא מיילים או פרטים נוספים.
+Vite + React 19 single-page app, plain JavaScript (JSX, no TypeScript). No
+SSR, no file-based routing — client-side routing via React Router. Backend is
+Supabase (Postgres, Auth, Storage, Edge Functions).
 
-## עדכון: מספר התראות על אייקון האפליקציה
+## Tech stack
 
-- מספר ההתראות שלא נקראו מוצג כ־badge על אייקון ה־PWA במכשירים תומכים.
-- המספר מתעדכן בפתיחת האפליקציה, בקריאת התראה ובקבלת Push ברקע.
-- המספר מוגבל לתצוגה של עד 99 ואינו משפיע על מכשירים שאינם תומכים ב־Badging API.
+- **Frontend:** React 19, Vite 6, React Router 7, i18next (Hebrew/English),
+  Leaflet (map), ExcelJS (import/export), `vite-plugin-pwa` (installable PWA
+  with offline support and push notifications)
+- **Backend:** Supabase — Postgres with Row Level Security, Auth, Storage,
+  and Deno Edge Functions (email notifications, scheduled summaries)
+- **Deploy:** Vercel (see [`vercel.json`](vercel.json))
 
-## עדכון: סיום אוטומטי בחצות וייצוב החיבור
-
-- רישומי עבודה בפרויקט ומשמרות נוכחות שנשכחו פתוחים נסגרים אוטומטית בחצות לפי שעון ישראל.
-- נוספה בדיקת השלמה גם בעת פתיחת האפליקציה מחדש או חזרה אליה לאחר שהייתה ברקע.
-- בקשות רשת אינן נשארות תלויות ללא הגבלה, וקריאות מידע מקבלות ניסיון חוזר מבוקר.
-- מסך הכניסה והרקע נטענים בצורה יציבה יותר ובדיקת ה-Service Worker אינה מוכפלת.
-
-יש להחיל את המיגרציה הבאה על פרויקט Supabase:
-
-```text
-supabase/migrations/20260902120000_auto_close_midnight_sessions.sql
-```
-
-עדכון זה מוסיף **ארכיון פרויקטים** בצורה בטוחה:
-
-- מנהל יכול להעביר פרויקט לארכיון במקום למחוק אותו.
-- פרויקטים בארכיון לא מוצגים ברשימת הפרויקטים הפעילים.
-- נוסף מסך/תפריט **ארכיון** למנהלים.
-- אפשר לשחזר פרויקט מהארכיון.
-- כל הנתונים נשמרים: שעות, משימות, תמונות, התראות והיסטוריה.
-
-## Supabase
-
-לפני העלאה לייצור, הרץ ב-Supabase SQL Editor את הקובץ:
-
-```text
-supabase/archive-projects-fix.sql
-```
-
-הקובץ מוסיף רק עמודות ואינדקסים:
-
-- `projects.is_archived`
-- `projects.archived_at`
-
-אין מחיקה של מידע קיים.
-
-## Local run
+## Getting started
 
 ```bash
 npm install
+cp .env.example .env   # fill in your Supabase project URL and anon key
 npm run dev
 ```
 
-## Deploy
+Other scripts:
 
 ```bash
-git add .
-git commit -m "Add project archive support"
+npm run build     # production build to dist/
+npm run preview   # preview a production build locally
+npm run lint      # ESLint (flat config)
+```
+
+## Environment variables
+
+Set these in `.env` for local development (see
+[`.env.example`](.env.example)):
+
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — Supabase project
+  credentials used by the frontend.
+- `RESEND_API_KEY`, `FROM_EMAIL` — set as Supabase Edge Function secrets
+  (server-side only), used for outgoing notification emails.
+- `CRON_SECRET` — Edge Function secret shared with `pg_cron` so scheduled
+  functions can authenticate; also stored in Supabase Vault as
+  `maya_cron_secret`. See [`CHANGELOG.md`](CHANGELOG.md) for setup steps.
+
+## Project structure
+
+```
+src/
+  services/
+    supabase.js       # Supabase client — the only place it's constructed
+    api/*.js           # thin 1:1 wrappers per Supabase resource
+  features/<name>/     # one folder per feature, each self-contained:
+    api.js              # composed business operations for the feature
+    context (optional)  # a Context provider where the feature owns shared state
+    components/         # feature-specific UI
+  routes/               # one file per URL under /app/*, plus DashboardLayout
+                        # (header/sidebar shell) and auth/setup gating pages
+  components/, hooks/, utils/  # shared, feature-agnostic code only
+  styles/globals.css    # the whole app's styling, one file — reuse existing
+                        # class names rather than adding new CSS
+```
+
+Features currently under `src/features/`: `auth`, `projects`, `attendance`,
+`work-diary`, `equipment`, `notifications`, `reporting`, `map`, `chat`,
+`photos`, `pwa`, `offline`, `language`.
+
+Every Supabase call goes through `src/services/supabase.js` and
+`src/services/api/*.js`, or through a feature's own `api.js` — no other file
+talks to the Supabase client directly.
+
+`scripts/` holds one-off local admin utilities that use the Supabase Admin
+API (service role key, never committed) — e.g. `reset-user-password.mjs` for
+setting a user's password directly when email delivery isn't available.
+
+## Backend (Supabase)
+
+`supabase/` holds the schema, one-off SQL fixes, versioned migrations
+(`supabase/migrations/`), and Edge Functions (`supabase/functions/`). This
+frontend rewrite kept the same backend, RLS policies, and functions as
+before — no schema changes were introduced by the rewrite itself.
+
+Feature-by-feature migration/setup notes (which SQL file to run, what it
+does, and what Edge Functions to deploy) are tracked in
+[`CHANGELOG.md`](CHANGELOG.md).
+
+## Deployment
+
+Deploys to Vercel using the Vite framework preset
+([`vercel.json`](vercel.json)): `npm run build` outputs to `dist/`, and all
+routes rewrite to `index.html` for client-side routing.
+
+```bash
 git push
 ```
 
-## עדכון: היום בשטח, כמה עובדים לפרויקט, הערת סיום וסיכום יומי
-
-נוספו היכולות הבאות:
-
-1. מסך **היום בשטח** למנהלים:
-   - עובדים פעילים עכשיו
-   - עובדים שטרם התחילו היום
-   - כל רישומי העבודה של היום
-   - כפתור בדיקה לשליחת סיכום יומי למנהלים
-
-2. שיוך כמה עובדים לאותו פרויקט:
-   - עובד אחראי ראשי נשאר כמו קודם
-   - ניתן להוסיף עובדים נוספים לפרויקט
-   - העובדים הנוספים רואים את הפרויקט, יכולים להתחיל/לסיים עבודה ולסמן משימות
-
-3. הערת סיום עבודה:
-   - בלחיצה על סיים עבודה נפתחת בקשה להערת סיום
-   - ההערה נשמרת ברישום השעות ובהיסטוריית הפרויקט
-
-4. סיכום יומי במייל:
-   - נוספה פונקציית Edge Function בשם `daily-manager-summary`
-   - ניתן לשלוח ידנית מתוך מסך היום בשטח
-   - ניתן לתזמן אוטומטית דרך `supabase/daily-manager-summary-schedule.sql`
-
-5. סיכום שינויי סטטוס יומי:
-   - הפונקציה `daily-status-summary` שולחת לכל המנהלים טבלה של שינויי הסטטוס ב-24 השעות האחרונות
-   - המייל נשלח בכל יום בשעה 17:00 לפי `Asia/Jerusalem`, כולל מעבר אוטומטי בין שעון קיץ לחורף
-   - התזמון מוגדר ב-`supabase/migrations/20260916170000_daily_status_summary.sql`
-
-### פעולות Supabase נדרשות
-
-להריץ ב-SQL Editor:
-
-```text
-supabase/field-team-daily-summary-fix.sql
-```
-
-לפרוס פונקציה חדשה:
-
-```cmd
-supabase functions deploy daily-manager-summary
-```
-
-אם רוצים סיכום יומי אוטומטי, להגדיר תחילה את סוד התזמון לפי ההוראות הבאות,
-לפתוח את הקובץ, להחליף את `PROJECT_REF` ואת `APP_URL`, ואז להריץ ב-SQL Editor:
-
-```text
-supabase/daily-manager-summary-schedule.sql
-```
-
-## אבטחת פונקציות מתוזמנות
-
-הפונקציות `attendance-reminder`, `daily-manager-summary` ו-`daily-status-summary` אינן סומכות על עצם
-הגישה לכתובת הפונקציה. קריאות מתוזמנות חייבות לשלוח סוד ייעודי, וקריאה ידנית
-לסיכום היומי מותרת רק למשתמש מחובר בעל תפקיד `manager`.
-
-1. ליצור ערך אקראי וחזק של לפחות 32 בתים ולשמור אותו כסוד של Edge Functions:
-
-```cmd
-supabase secrets set CRON_SECRET=YOUR_LONG_RANDOM_SECRET
-```
-
-2. לשמור את אותו ערך ב-Supabase Vault דרך SQL Editor. אין לשמור את הערך עצמו
-   בקוד או בקובץ migration:
-
-```sql
-select vault.create_secret(
-  'YOUR_LONG_RANDOM_SECRET',
-  'maya_cron_secret',
-  'Shared secret for MAYA pg_cron Edge Function calls'
-);
-```
-
-3. לפרוס מחדש את שתי הפונקציות ולהחיל את המיגרציה המאובטחת:
-
-```cmd
-supabase functions deploy attendance-reminder
-supabase functions deploy daily-manager-summary
-supabase functions deploy daily-status-summary
-supabase db push
-```
-
-המיגרציה `20260906160000_secure_edge_function_cron.sql` מחליפה את משימת
-התזכורות הישנה. אם הסוד חסר מ-Vault או מ-Edge Functions, הקריאה נכשלת במכוון
-עם `401` ואינה מפעילה פעולות באמצעות service role.
-
-## עדכון: טלפון איש קשר בשטח
-
-נוסף שדה `טלפון איש קשר בשטח` לכל פרויקט.
-
-מה נוסף:
-
-- בעת יצירת פרויקט אפשר להזין מספר טלפון של איש קשר בשטח.
-- בעריכת פרויקט אפשר לעדכן את המספר.
-- בכרטיס הפרויקט המספר מוצג כלינק לחיץ.
-- במובייל לחיצה על המספר פותחת שיחה דרך `tel:`.
-
-לפני שימוש יש להריץ ב-Supabase SQL Editor את הקובץ:
-
-```text
-supabase/project-contact-phone-fix.sql
-```
-
-הקובץ רק מוסיף עמודה אופציונלית `contact_phone` לטבלת `projects`, ולא מוחק מידע.
-
-## עדכון: יומן עבודה דיגיטלי וחתימות
-
-נוסף יומן עבודה לפרויקטים נבחרים, לפי נוסח טופס קבוצת מאיה:
-
-- מנהל מסמן בעת יצירת פרויקט או בעריכתו שהפרויקט דורש יומן עבודה.
-- מספר יומן נוצר אוטומטית וברצף, החל ממספר 7180.
-- עובד השטח ממלא את פרטי העבודה, סוגי האיתור, שימוש ב-GPR, איתור דלף, הכמויות, השירותים וההערות מהטלפון.
-- נדרשות שתי חתימות על המסך: נציג הלקוח וראש צוות מאיה.
-- יומן חתום נשמר כגרסה סופית בפרויקט, עם המשתמש והתאריך שיצרו אותו.
-- ניתן להפיק לכל יומן PDF במבנה של טופס יומן העבודה, המציג רק שדות ואפשרויות שמולאו או סומנו.
-- מנהל מערכת יכול למחוק יומן עבודה ואת האפשרות להפיק ממנו PDF, לאחר אישור מפורש.
-- כאשר עובד שטח מעדכן פרויקט לסטטוס "הושלם", מייל הסטטוס למנהלים מצרף אוטומטית את יומן העבודה האחרון כ-PDF.
-
-לפני השימוש יש להריץ ב-Supabase SQL Editor את הקובץ:
-
-```text
-supabase/work-diaries-digital-signatures.sql
-```
-
-המיגרציה מוסיפה עמודת הפעלה לפרויקטים, טבלת יומנים, מספור רציף והרשאות גישה. היא אינה מוחקת או משנה יומנים, פרויקטים או מידע קיים.
-
-## עדכון: ריכוז ציוד עובדי שטח
-
-נוסף מסך מנהלים בשם **ציוד עובדי שטח**. המסך מאפשר לייבא קובץ Excel או CSV, לחפש
-עובד או מספר סידורי, לסנן לפי קבוצה ולפתוח את פירוט הציוד של כל עובד.
-
-לפני הייבוא הראשון יש להחיל את המיגרציה:
-
-```text
-supabase/migrations/20260915130000_field_equipment_register.sql
-```
-
-הטבלאות ורשומות הייבוא זמינות למנהלים בלבד באמצעות RLS.
+Vercel builds and deploys automatically from the connected branch.

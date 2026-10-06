@@ -54,7 +54,7 @@ export default function ProjectsPage() {
       setFocusedProjectId(null);
       setLinkedProjectTarget(null);
       setDeepLinkDenied(true);
-      setMessage(t('אין לך הרשאה לצפות בפרויקט זה.'));
+      setMessage(t('אין לך הרשאה לצפות בפרויקט זה.'), 'error');
       setSearchParams(next, { replace: true });
       return;
     }

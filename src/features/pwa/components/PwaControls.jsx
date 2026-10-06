@@ -52,7 +52,7 @@ export default function PwaControls() {
 
   async function installApp() {
     if (installed) {
-      setMessage(t('האפליקציה כבר מותקנת במכשיר הזה.'));
+      setMessage(t('האפליקציה כבר מותקנת במכשיר הזה.'), 'info');
       return;
     }
     if (!installPrompt) {
@@ -61,6 +61,7 @@ export default function PwaControls() {
         isAppleMobile
           ? t('ב-iPhone: פתח את תפריט השיתוף ובחר ׳הוספה למסך הבית׳.')
           : t('פתח את תפריט הדפדפן ובחר ׳התקנת האפליקציה׳ או ׳הוספה למסך הבית׳.'),
+        'info',
       );
       return;
     }
@@ -77,7 +78,7 @@ export default function PwaControls() {
 
   async function enablePush() {
     if (!pushSupported) {
-      setMessage(t('המכשיר או הדפדפן הזה אינם תומכים בהתראות Push.'));
+      setMessage(t('המכשיר או הדפדפן הזה אינם תומכים בהתראות Push.'), 'error');
       return;
     }
 
@@ -85,7 +86,7 @@ export default function PwaControls() {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        setMessage(t('לא ניתנה הרשאה להתראות. אפשר לשנות זאת בהגדרות הדפדפן.'));
+        setMessage(t('לא ניתנה הרשאה להתראות. אפשר לשנות זאת בהגדרות הדפדפן.'), 'error');
         return;
       }
 
@@ -95,7 +96,7 @@ export default function PwaControls() {
       setSubscribed(true);
       setMessage(t('ההתראות הופעלו בהצלחה במכשיר הזה.'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t('הפעלת ההתראות נכשלה.'));
+      setMessage(error instanceof Error ? error.message : t('הפעלת ההתראות נכשלה.'), 'error');
     } finally {
       setBusy(false);
     }
@@ -109,7 +110,7 @@ export default function PwaControls() {
       setSubscribed(false);
       setMessage(t('ההתראות כובו במכשיר הזה.'));
     } catch {
-      setMessage(t('כיבוי ההתראות נכשל. נסה שוב.'));
+      setMessage(t('כיבוי ההתראות נכשל. נסה שוב.'), 'error');
     } finally {
       setBusy(false);
     }

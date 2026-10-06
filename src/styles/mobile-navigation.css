@@ -26,6 +26,8 @@
   /* Let the big start/stop block shrink first so the card fits short screens. */
   .page.attendanceClockShell .attendanceClockAction { min-height: 170px; flex-shrink: 1; }
   .page .sidebar.sidebarCompact, .page .floatingChatButton { display: none; }
+  /* Keep toasts above the bottom nav instead of covering it. */
+  .page .appToast { top: auto; bottom: calc(var(--mobile-nav-height) + 12px); left: 16px; width: min(440px, calc(100vw - 32px)); }
   .page .mobileNotificationBell {
     display: grid; position: fixed; top: calc(10px + env(safe-area-inset-top));
     left: max(12px, env(safe-area-inset-left)); z-index: 75; width: 44px; height: 44px;

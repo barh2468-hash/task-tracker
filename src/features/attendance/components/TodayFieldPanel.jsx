@@ -76,11 +76,11 @@ export default function TodayFieldPanel() {
         appUrl: typeof window !== 'undefined' ? window.location.origin : '',
       });
       if (error) {
-        setMessage(t('שליחת הסיכום נכשלה: {{value0}}', { value0: error.message }));
+        setMessage(t('שליחת הסיכום נכשלה: {{value0}}', { value0: error.message }), 'error');
         return;
       }
       if (!data?.sentTo) {
-        setMessage(t('לא נמצאו מנהלים עם כתובת דוא״ל לקבלת הסיכום.'));
+        setMessage(t('לא נמצאו מנהלים עם כתובת דוא״ל לקבלת הסיכום.'), 'error');
         return;
       }
       setMessage(

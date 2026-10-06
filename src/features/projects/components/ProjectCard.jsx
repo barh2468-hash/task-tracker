@@ -7,6 +7,7 @@ import {
   Camera,
   ChevronDown,
   FileText,
+  LoaderCircle,
   Mail,
   MessageSquareText,
   MoreHorizontal,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../ProjectsContext.jsx';
+import { isResultOk } from '../../../context/messageTone.js';
 import {
   appStatuses,
   FIELD_WORKER_STATUSES,
@@ -46,6 +48,25 @@ const photoCategories = [
   'אישור סיום',
   'אחר',
 ];
+
+function buildEditForm(project) {
+  return {
+    name: project.name,
+    client_name: project.client_name || '',
+    location: project.location,
+    contact_phone: project.contact_phone || '',
+    contact_email: project.contact_email || '',
+    description: project.description || '',
+    additional_notes: project.additional_notes || '',
+    assigned_to: project.assigned_to || '',
+    assigned_workers: (project.project_workers || [])
+      .filter(
+        (assignment) => !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
+      )
+      .map((assignment) => assignment.worker_id),
+    requires_work_diary: Boolean(project.requires_work_diary),
+  };
+}
 
 export default function ProjectCard({ project, focused = false }) {
   useTranslation();
@@ -89,15 +110,19 @@ export default function ProjectCard({ project, focused = false }) {
   const [continuationDialogOpen, setContinuationDialogOpen] = useState(false);
   const [continuationSubmitting, setContinuationSubmitting] = useState(false);
   const [photoCategory, setPhotoCategory] = useState(photoCategories[0]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [reviewFiles, setReviewFiles] = useState([]);
   const [reviewNote, setReviewNote] = useState('');
   const [editing, setEditing] = useState(false);
+  const [editSnapshot, setEditSnapshot] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [activeDetailTab, setActiveDetailTab] = useState('tasks');
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
+  const [editMenuOpen, setEditMenuOpen] = useState(false);
   const [assets, setAssets] = useState({
     project_photos: [],
     project_review_files: [],
@@ -115,45 +140,20 @@ export default function ProjectCard({ project, focused = false }) {
       workerDirectoryById.get(project.assigned_to)?.full_name ||
       t('עובד אחראי')
     : t('לא משויך');
-  const [editProject, setEditProject] = useState({
-    name: project.name,
-    client_name: project.client_name || '',
-    location: project.location,
-    contact_phone: project.contact_phone || '',
-    contact_email: project.contact_email || '',
-    description: project.description || '',
-    additional_notes: project.additional_notes || '',
-    assigned_to: project.assigned_to || '',
-    assigned_workers: (project.project_workers || [])
-      .filter(
-        (assignment) => !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
-      )
-      .map((assignment) => assignment.worker_id),
-    requires_work_diary: Boolean(project.requires_work_diary),
-  });
+  const [editProject, setEditProject] = useState(() => buildEditForm(project));
   // Background polling replaces the project object even when its status is unchanged.
   // Only reset the dropdown when the persisted status itself actually changes.
   useEffect(() => {
     setStatus(statusOptions.includes(project.status) ? project.status : '');
   }, [project.status, statusOptions]);
 
+  // Background polling replaces the project object every few seconds, so only
+  // sync the edit form while it's closed; otherwise a refresh would wipe edits.
   useEffect(() => {
-    setEditProject({
-      name: project.name,
-      client_name: project.client_name || '',
-      location: project.location,
-      contact_phone: project.contact_phone || '',
-      contact_email: project.contact_email || '',
-      description: project.description || '',
-      additional_notes: project.additional_notes || '',
-      assigned_to: project.assigned_to || '',
-      assigned_workers: (project.project_workers || [])
-        .filter(
-          (assignment) => !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
-        )
-        .map((assignment) => assignment.worker_id),
-      requires_work_diary: Boolean(project.requires_work_diary),
-    });
+    if (!editing) setEditProject(buildEditForm(project));
+  }, [editing, project]);
+
+  useEffect(() => {
     setSelectedDrafterId(findAssignedDrafter(project)?.worker_id || '');
   }, [project]);
 
@@ -214,13 +214,29 @@ export default function ProjectCard({ project, focused = false }) {
   const canManageReview = isManager || isDrafter || isDrafterCandidate(profile);
   const canReportContinuation = !project.is_archived && (isManager || isAssignedFieldWorker);
 
+  // A stray tap outside the modal must not throw away unsaved edits.
+  const editDirty = editing && JSON.stringify(editProject) !== editSnapshot;
+
+  async function submitEdit() {
+    if (savingEdit) return;
+    setSavingEdit(true);
+    try {
+      const result = await saveProject(project.id, editProject);
+      if (isResultOk(result)) setEditing(false);
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   const editModal = editing ? (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click-to-close is a mouse convenience; the close button covers keyboard access
     <div
       className="modalBackdrop"
       role="dialog"
       aria-modal="true"
-      onClick={() => setEditing(false)}
+      onClick={() => {
+        if (!editDirty && !savingEdit) setEditing(false);
+      }}
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stops the backdrop's close handler from firing for clicks inside the modal */}
       <div className="editModal" onClick={(e) => e.stopPropagation()}>
@@ -355,45 +371,75 @@ export default function ProjectCard({ project, focused = false }) {
             />
           </label>
         </div>
-        <div className="modalActions">
-          <button
-            onClick={() => {
-              saveProject(project.id, editProject);
-              setEditing(false);
-            }}
-          >
-            {t('שמור שינויים')}
+        <div className="modalActions editModalActions">
+          <button onClick={submitEdit} disabled={savingEdit}>
+            {savingEdit ? t('שומר...') : t('שמור שינויים')}
           </button>
           <button className="ghost" onClick={() => setEditing(false)}>
             {t('ביטול')}
           </button>
-          {project.is_archived ? (
+          {/* Archive and delete are rare, so they live behind a menu instead of full-width buttons. */}
+          <div
+            className="projectMoreActions"
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) setEditMenuOpen(false);
+            }}
+          >
             <button
-              className="ghost"
-              onClick={() => {
-                restoreProject(project);
-                setEditing(false);
-              }}
+              type="button"
+              className="ghost projectMoreActionsButton"
+              aria-haspopup="menu"
+              aria-expanded={editMenuOpen}
+              aria-label={t('פעולות נוספות')}
+              title={t('פעולות נוספות')}
+              onClick={() => setEditMenuOpen((open) => !open)}
             >
-              <RotateCcw size={16} />
-              {t('שחזור מהארכיון')}
+              <MoreHorizontal size={20} />
             </button>
-          ) : (
-            <button
-              className="ghost"
-              onClick={() => {
-                archiveProject(project);
-                setEditing(false);
-              }}
-            >
-              <Archive size={16} />
-              {t('העבר לארכיון')}
-            </button>
-          )}
-          <button className="danger ghost" onClick={() => deleteProject(project)}>
-            <Trash2 size={16} />
-            {t('מחיקת פרויקט')}
-          </button>
+            {editMenuOpen && (
+              <div className="projectMoreActionsMenu" role="menu">
+                {project.is_archived ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setEditMenuOpen(false);
+                      restoreProject(project);
+                      setEditing(false);
+                    }}
+                  >
+                    <RotateCcw size={16} />
+                    {t('שחזור מהארכיון')}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setEditMenuOpen(false);
+                      archiveProject(project);
+                      setEditing(false);
+                    }}
+                  >
+                    <Archive size={16} />
+                    {t('העבר לארכיון')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="danger"
+                  onClick={() => {
+                    setEditMenuOpen(false);
+                    deleteProject(project);
+                  }}
+                >
+                  <Trash2 size={16} />
+                  {t('מחיקת פרויקט')}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -642,6 +688,9 @@ export default function ProjectCard({ project, focused = false }) {
                             role="menuitem"
                             onClick={() => {
                               setMoreActionsOpen(false);
+                              const form = buildEditForm(project);
+                              setEditProject(form);
+                              setEditSnapshot(JSON.stringify(form));
                               setEditing(true);
                             }}
                           >
@@ -914,22 +963,28 @@ export default function ProjectCard({ project, focused = false }) {
                         ))}
                       </select>
                     </label>
-                    <label className="projectPhotoUploadButton">
-                      <Camera size={17} />
-                      <span>{t('העלאת תמונה')}</span>
+                    <label
+                      className={`projectPhotoUploadButton ${uploadingPhoto ? 'uploading' : ''}`}
+                      aria-busy={uploadingPhoto}
+                    >
+                      {uploadingPhoto ? <LoaderCircle className="spinIcon" size={17} /> : <Camera size={17} />}
+                      <span>{uploadingPhoto ? t('מעלה תמונה...') : t('העלאת תמונה')}</span>
                       <input
                         className="photoInput"
                         type="file"
                         accept="image/*"
+                        disabled={uploadingPhoto}
                         onChange={async (e) => {
-                          if (!e.target.files?.[0]) return;
-                          const result = await uploadPhoto(
-                            project.id,
-                            e.target.files[0],
-                            photoCategory,
-                          );
-                          if (!result?.offline) await refreshAssets();
-                          e.target.value = '';
+                          const file = e.target.files?.[0];
+                          if (!file || uploadingPhoto) return;
+                          setUploadingPhoto(true);
+                          try {
+                            const result = await uploadPhoto(project.id, file, photoCategory);
+                            if (!result?.offline) await refreshAssets();
+                          } finally {
+                            setUploadingPhoto(false);
+                            e.target.value = '';
+                          }
                         }}
                       />
                     </label>
@@ -1045,8 +1100,9 @@ export default function ProjectCard({ project, focused = false }) {
                   setTaskTitle={setTaskTitle}
                   taskDescription={taskDescription}
                   setTaskDescription={setTaskDescription}
-                  onAdd={() => {
-                    addProjectTask(project.id, taskTitle, taskDescription);
+                  onAdd={async () => {
+                    const result = await addProjectTask(project.id, taskTitle, taskDescription);
+                    if (!isResultOk(result)) return;
                     setTaskTitle('');
                     setTaskDescription('');
                     setShowTaskForm(false);

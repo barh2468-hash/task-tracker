@@ -8,7 +8,9 @@ import {
   LogOut,
   MessageCircle,
   X,
+  AlertCircle,
   CheckCircle,
+  Info,
 } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useMessage } from '../context/MessageContext.jsx';
@@ -30,7 +32,8 @@ import { useChat } from '../features/chat/ChatContext.jsx';
 export default function DashboardLayout() {
   useTranslation();
   const { profile, session, isManager, isDrafter, logout } = useAuth();
-  const { message, setMessage } = useMessage();
+  const { message, messageTone, setMessage } = useMessage();
+  const ToastIcon = messageTone === 'error' ? AlertCircle : messageTone === 'info' ? Info : CheckCircle;
   const { unreadCount } = useNotifications();
   const { unreadChatCount } = useChat();
   const { language, setLanguage } = useLanguage();
@@ -221,9 +224,13 @@ export default function DashboardLayout() {
           {showHero && <DashboardHero title={tabTitle} subtitle={tabSubtitle} />}
 
           {message && (
-            <div className="appToast" role="status" aria-live="polite">
-              <span className="appToastIcon">
-                <CheckCircle size={18} />
+            <div
+              className={`appToast ${messageTone}`}
+              role={messageTone === 'error' ? 'alert' : 'status'}
+              aria-live={messageTone === 'error' ? 'assertive' : 'polite'}
+            >
+              <span className="appToastIcon" aria-hidden="true">
+                <ToastIcon size={18} />
               </span>
               <p>{message}</p>
               <button

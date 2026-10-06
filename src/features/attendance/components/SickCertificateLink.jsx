@@ -28,7 +28,7 @@ export default function SickCertificateLink({ certificate, compact = false }) {
       else window.location.assign(data.signedUrl);
     } catch (error) {
       popup?.close();
-      setMessage(error instanceof Error ? error.message : String(error));
+      setMessage(error instanceof Error ? error.message : String(error), 'error');
     } finally {
       setLoading(false);
     }

@@ -2,6 +2,7 @@ import { t } from '../language/LanguageContext.jsx';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
+import { resultTone } from '../../context/messageTone.js';
 import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh.js';
 import * as profilesApi from '../../services/api/profiles.js';
 import * as projectsFeatureApi from './api.js';
@@ -30,9 +31,9 @@ export function ProjectsProvider({ children }) {
       if (cached) {
         setProjects(cached);
         if (!navigator.onLine)
-          setMessage(t('אין חיבור. מוצגים נתוני הפרויקטים האחרונים שנשמרו במכשיר.'));
+          setMessage(t('אין חיבור. מוצגים נתוני הפרויקטים האחרונים שנשמרו במכשיר.'), 'info');
       } else {
-        setMessage(error instanceof Error ? error.message : String(error));
+        setMessage(error instanceof Error ? error.message : String(error), 'error');
       }
     } finally {
       setProjectsLoaded(true);
@@ -47,7 +48,7 @@ export function ProjectsProvider({ children }) {
       const cached = await getOfflineData(`workers:${profile?.id}`);
       if (cached) setWorkers(cached);
       else {
-        setMessage(error.message);
+        setMessage(error.message, 'error');
         setWorkers([]);
       }
       return;
@@ -110,7 +111,7 @@ export function ProjectsProvider({ children }) {
 
   async function runMutation(promise, applyOptimistic) {
     const result = await promise;
-    if (result?.message) setMessage(result.message);
+    if (result?.message) setMessage(result.message, resultTone(result));
     if (result?.offline) {
       applyOptimistic?.(result);
       return result;
@@ -121,7 +122,7 @@ export function ProjectsProvider({ children }) {
 
   async function runStatusMutation(project, newStatus, note) {
     const result = await projectsFeatureApi.updateStatus(project, newStatus, note, profile);
-    if (result?.message) setMessage(result.message);
+    if (result?.message) setMessage(result.message, resultTone(result));
     if (result?.optimistic) {
       setProjects((items) =>
         items.map((item) =>

@@ -2,6 +2,7 @@ import { t } from '../language/LanguageContext.jsx';
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
+import { resultTone } from '../../context/messageTone.js';
 import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh.js';
 import * as attendanceFeatureApi from './api.js';
 import { cacheOfflineData, getOfflineData } from '../../services/offlineStore.js';
@@ -30,7 +31,7 @@ export function AttendanceProvider({ children }) {
       const cached = await getOfflineData(`work-sessions:${session?.user?.id}`);
       if (cached) setWorkSessions(cached);
       else {
-        setMessage(error instanceof Error ? error.message : String(error));
+        setMessage(error instanceof Error ? error.message : String(error), 'error');
         setWorkSessions([]);
       }
     }
@@ -140,7 +141,7 @@ export function AttendanceProvider({ children }) {
 
   async function runMutation(promise) {
     const result = await promise;
-    if (result?.message) setMessage(result.message);
+    if (result?.message) setMessage(result.message, resultTone(result));
     return result;
   }
 
@@ -209,7 +210,7 @@ export function AttendanceProvider({ children }) {
   function openAttendanceEndDialog() {
     const openSession = myAttendanceSessions.find((item) => !item.ended_at && !item.is_all_day);
     if (!openSession) {
-      setMessage(t('לא נמצאה משמרת כללית פתוחה.'));
+      setMessage(t('לא נמצאה משמרת כללית פתוחה.'), 'error');
       return;
     }
     setAttendanceEndNote('');

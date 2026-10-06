@@ -403,10 +403,13 @@ export async function startAttendance(
       `כבר קיים להיום דיווח "${attendanceTypeLabel[existingDayStatus.attendance_type]}". להחליף אותו בתחילת ${attendanceTypeLabel[attendanceType]}?`,
     );
     if (!replaceStatus) return null;
-    const { error: deleteError } = await attendanceSessionsApi.deleteAttendanceSession(existingDayStatus.id);
-    if (deleteError) return { message: deleteError.message };
+    if (!navigator.onLine) {
+      return { message: 'כדי להחליף דיווח יומי קיים יש להתחבר לאינטרנט.', success: false };
+    }
   }
 
+  // The old day status is removed only after the new shift is saved, so declining
+  // location or a failed insert never leaves the worker with no report at all.
   const location = await getCurrentLocationWithFallback();
   if (location === false) return { message: 'תחילת יום העבודה בוטלה כי לא התקבל אישור מיקום.' };
 
@@ -467,6 +470,15 @@ export async function startAttendance(
 
   if (error) {
     return { message: error.code === '23505' ? 'כבר קיימת משמרת כללית פתוחה.' : error.message, success: false };
+  }
+  if (existingDayStatus) {
+    const { error: deleteError } = await attendanceSessionsApi.deleteAttendanceSession(existingDayStatus.id);
+    if (deleteError) {
+      return {
+        message: `יום העבודה התחיל, אך הסרת הדיווח הקודם להיום נכשלה: ${deleteError.message}`,
+        success: false,
+      };
+    }
   }
 
   let projectSessionStarted = false;

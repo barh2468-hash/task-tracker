@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../ProjectsContext.jsx';
+import { isResultOk } from '../../../context/messageTone.js';
 import { getStatusClass } from '../../../components/StatusPill.jsx';
 
 export default function OpenTasksPanel({ onOpenProject }) {
@@ -173,8 +174,8 @@ export default function OpenTasksPanel({ onOpenProject }) {
                       className="smallBtn"
                       disabled={!editTitle.trim()}
                       onClick={async () => {
-                        await updateProjectTask(task, project, editTitle, editDescription);
-                        cancelEdit();
+                        const result = await updateProjectTask(task, project, editTitle, editDescription);
+                        if (isResultOk(result)) cancelEdit();
                       }}
                     >
                       <CheckCircle size={16} />

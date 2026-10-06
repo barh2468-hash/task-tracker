@@ -179,6 +179,7 @@ export function AuthProvider({ children }) {
 
   const isManager = profile?.role === 'manager';
   const isDrafter = profile?.role === 'drafter';
+  const isAccounting = profile?.role === 'accounting';
 
   const value = {
     session,
@@ -190,6 +191,7 @@ export function AuthProvider({ children }) {
     setAuthMessage,
     isManager,
     isDrafter,
+    isAccounting,
     login,
     signup,
     logout,

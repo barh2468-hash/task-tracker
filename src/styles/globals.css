@@ -1949,6 +1949,41 @@ body.language-en { direction: ltr; }
   .equipmentCountCell{grid-column:2;grid-row:2}
 }
 
+/* Accounting (הנהלת חשבונות) — layout shell, tabs, and the bits that don't
+   already exist on the equipment feature's classes it otherwise reuses. */
+.accountingLayout{display:flex;flex-direction:column;min-height:100vh;background:#f3f7fb}
+.accountingHeader{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:#fff;border-bottom:1px solid #e1e9ee}
+.accountingHeaderBrand{display:flex;align-items:center;gap:12px}
+.accountingHeaderBrand img{height:38px}
+.accountingHeaderBrand h1{font-size:18px;margin:0}
+.accountingHeaderBrand span{color:#6b7f8f;font-size:13px}
+.accountingTabs{display:flex;gap:8px;padding:0 24px;background:#fff;border-bottom:1px solid #e1e9ee}
+.accountingTab{display:flex;align-items:center;gap:7px;padding:12px 16px;color:#4a6274;text-decoration:none;font-weight:600;font-size:14px;border-bottom:2px solid transparent}
+.accountingTab.active{color:#0b668f;border-bottom-color:#0b668f}
+.accountingContent{flex:1;padding:20px 24px}
+.accountingYearInput{width:100px;min-height:44px;border-radius:13px;border:1px solid #d6e4ee;padding:0 12px}
+.accountingMappingPanel,.accountingDiffPanel,.accountingUnlinkedPanel{margin-bottom:16px;padding:18px}
+.accountingMappingFields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
+.accountingMappingFooter{display:flex;justify-content:flex-end;gap:10px;margin-top:14px}
+.accountingNewRow{background:#f1f9f5}
+.accountingDeltaPositive{color:#0f7a4c;font-weight:600}
+.accountingDeltaNegative{color:#c0392b;font-weight:600}
+.accountingUnlinkedRow small{display:block;color:#8494a1;font-size:12px}
+.accountingPlate{display:flex;align-items:center;gap:6px;font-weight:600}
+.accountingInlineFields{display:flex;gap:8px;flex-wrap:wrap}
+.accountingInlineFields input{min-width:120px}
+.accountingUploadPanel{display:flex;flex-direction:column;gap:14px;padding:18px;margin-bottom:16px}
+.accountingUploadRow{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.accountingUploadRow b{display:block;font-size:14px}
+.accountingUploadRow span{display:block;color:#6b7f8f;font-size:13px;margin-top:2px}
+
+@media(max-width:760px){
+  .accountingHeader{padding:14px 16px}
+  .accountingTabs{padding:0 16px;overflow-x:auto}
+  .accountingContent{padding:14px 16px}
+  .accountingMappingFields{grid-template-columns:1fr}
+}
+
 /* Project notes and shared image previews */
 .projectAdditionalNotes{padding:12px 14px;border:1px solid #dbe7f0;border-radius:12px;background:#fffaf2;color:#52677d;font-size:13px;line-height:1.65}
 .projectAdditionalNotes b{display:block;margin-bottom:4px;color:var(--navy)}

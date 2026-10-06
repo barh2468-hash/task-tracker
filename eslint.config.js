@@ -16,6 +16,7 @@ export default [
       'output',
       'tmp',
       'supabase/functions/**',
+      'scripts',
     ],
   },
   js.configs.recommended,

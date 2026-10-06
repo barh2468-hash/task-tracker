@@ -13,6 +13,7 @@ import ForgotPasswordPage from './routes/ForgotPasswordPage.jsx';
 import ResetPasswordPage from './routes/ResetPasswordPage.jsx';
 import RequireAuth from './routes/RequireAuth.jsx';
 import DashboardLayout from './routes/DashboardLayout.jsx';
+import AccountingLayout from './routes/AccountingLayout.jsx';
 import ProjectsPage from './routes/ProjectsPage.jsx';
 import OverviewPage from './routes/OverviewPage.jsx';
 import PwaBootstrap from './features/pwa/components/PwaBootstrap.jsx';
@@ -37,10 +38,12 @@ const ChatPage = lazy(() => import('./routes/ChatPage.jsx'));
 const AttendancePage = lazy(() => import('./routes/AttendancePage.jsx'));
 const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
 const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
+const AccountingYearEndPage = lazy(() => import('./routes/AccountingYearEndPage.jsx'));
 const ManholeLayoutPage = lazy(() => import('./routes/ManholeLayoutPage.jsx'));
 
 function AppLanding() {
-  const { isDrafter } = useAuth();
+  const { isAccounting, isDrafter } = useAuth();
+  if (isAccounting) return <Navigate to="accounting/year-end" replace />;
   return <Navigate to={isDrafter ? 'projects' : 'attendance'} replace />;
 }
 
@@ -59,6 +62,18 @@ function AppProviders({ children }) {
   );
 }
 
+// Accounting has its own mini layout/routes — it doesn't need the dashboard's
+// projects/attendance/chat/notifications providers.
+function AppRoot() {
+  const { isAccounting } = useAuth();
+  if (isAccounting) return <AccountingLayout />;
+  return (
+    <AppProviders>
+      <DashboardLayout />
+    </AppProviders>
+  );
+}
+
 export default function App() {
   if (!envReady) return <SetupPage />;
 
@@ -72,14 +87,7 @@ export default function App() {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route element={<RequireAuth />}>
-              <Route
-                path="/app"
-                element={
-                  <AppProviders>
-                    <DashboardLayout />
-                  </AppProviders>
-                }
-              >
+              <Route path="/app" element={<AppRoot />}>
                 <Route index element={<AppLanding />} />
                 <Route
                   path="attendance"
@@ -200,6 +208,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<LoadingScreen />}>
                       <RecentStatusChangesPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="accounting/year-end"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <AccountingYearEndPage />
                     </Suspense>
                   }
                 />

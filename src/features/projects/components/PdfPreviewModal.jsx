@@ -3,11 +3,12 @@ import { createPortal } from 'react-dom';
 import { Download, Eye, LoaderCircle, X } from 'lucide-react';
 import { t } from '../../language/LanguageContext.jsx';
 
-export default function PdfPreviewModal({ url, fileName, onClose }) {
+export default function PdfPreviewModal({ url, fileName, isImage = false, onClose }) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (!url) return undefined;
+    setLoaded(false);
     const previousOverflow = document.body.style.overflow;
     const closeOnEscape = (event) => {
       if (event.key === 'Escape') onClose();
@@ -28,18 +29,18 @@ export default function PdfPreviewModal({ url, fileName, onClose }) {
         className="pdfPreviewDialog"
         role="dialog"
         aria-modal="true"
-        aria-label={`${t('תצוגה מקדימה של PDF')}: ${fileName}`}
+        aria-label={`${t('תצוגה מקדימה של הקובץ')}: ${fileName}`}
       >
         <header className="pdfPreviewHeader">
           <div>
-            <span className="projectDocumentsEyebrow">{t('תצוגה מקדימה של PDF')}</span>
+            <span className="projectDocumentsEyebrow">{t('תצוגה מקדימה של הקובץ')}</span>
             <h3>
               <Eye size={20} />
               <span title={fileName}>{fileName}</span>
             </h3>
           </div>
           <div className="pdfPreviewActions">
-            <a href={url} download={fileName} title={t('הורדת PDF')}>
+            <a href={url} download={fileName} title={t('הורדת הקובץ')}>
               <Download size={17} />
               <span>{t('הורדה')}</span>
             </a>
@@ -57,14 +58,24 @@ export default function PdfPreviewModal({ url, fileName, onClose }) {
           {!loaded && (
             <div className="pdfPreviewLoading" role="status">
               <LoaderCircle size={28} />
-              <span>{t('טוען את מסמך ה־PDF...')}</span>
+              <span>{t('טוען את הקובץ...')}</span>
             </div>
           )}
-          <iframe
-            src={url}
-            title={`${t('תצוגה מקדימה של PDF')}: ${fileName}`}
-            onLoad={() => setLoaded(true)}
-          />
+          {isImage ? (
+            <img
+              className="filePreviewImage"
+              src={url}
+              alt={fileName}
+              onLoad={() => setLoaded(true)}
+              onError={() => setLoaded(true)}
+            />
+          ) : (
+            <iframe
+              src={url}
+              title={`${t('תצוגה מקדימה של הקובץ')}: ${fileName}`}
+              onLoad={() => setLoaded(true)}
+            />
+          )}
         </div>
       </section>
     </div>,

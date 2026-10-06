@@ -9,10 +9,13 @@ import { AttendanceProvider } from './features/attendance/AttendanceContext.jsx'
 import { ChatProvider } from './features/chat/ChatContext.jsx';
 import SetupPage from './routes/SetupPage.jsx';
 import LoginPage, { LoadingScreen } from './routes/LoginPage.jsx';
+import ForgotPasswordPage from './routes/ForgotPasswordPage.jsx';
+import ResetPasswordPage from './routes/ResetPasswordPage.jsx';
 import RequireAuth from './routes/RequireAuth.jsx';
 import DashboardLayout from './routes/DashboardLayout.jsx';
 import AccountingLayout from './routes/AccountingLayout.jsx';
 import ProjectsPage from './routes/ProjectsPage.jsx';
+import OverviewPage from './routes/OverviewPage.jsx';
 import PwaBootstrap from './features/pwa/components/PwaBootstrap.jsx';
 import OfflineSync from './features/offline/OfflineSync.jsx';
 import { LanguageProvider } from './features/language/LanguageContext.jsx';
@@ -36,6 +39,7 @@ const AttendancePage = lazy(() => import('./routes/AttendancePage.jsx'));
 const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
 const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
 const AccountingYearEndPage = lazy(() => import('./routes/AccountingYearEndPage.jsx'));
+const ManholeLayoutPage = lazy(() => import('./routes/ManholeLayoutPage.jsx'));
 
 function AppLanding() {
   const { isAccounting, isDrafter } = useAuth();
@@ -80,6 +84,8 @@ export default function App() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route element={<RequireAuth />}>
               <Route path="/app" element={<AppRoot />}>
                 <Route index element={<AppLanding />} />
@@ -92,6 +98,15 @@ export default function App() {
                   }
                 />
                 <Route path="projects" element={<ProjectsPage />} />
+                <Route path="overview" element={<OverviewPage />} />
+                <Route
+                  path="manhole-layout"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <ManholeLayoutPage />
+                    </Suspense>
+                  }
+                />
                 <Route
                   path="today"
                   element={

@@ -12,6 +12,19 @@ export function getHistory() {
     .limit(100);
 }
 
+export function getProjectHistory(projectId, { since, offset = 0, limit = 10 } = {}) {
+  let query = supabase
+    .from('status_history')
+    .select('*, profiles:changed_by(full_name)', { count: 'exact' })
+    .eq('project_id', projectId);
+
+  if (since) query = query.gte('created_at', since);
+
+  return query
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+}
+
 export function getStatusChangesBetween(startIso, endIso, targetStatuses) {
   let query = supabase
     .from('status_history')

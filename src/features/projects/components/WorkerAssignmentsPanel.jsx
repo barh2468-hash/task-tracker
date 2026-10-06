@@ -123,6 +123,7 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
               </div>
               <span className="assignmentCount">
                 {assignedProjects.length}
+                {' '}
                 {t('פרויקטים')}
               </span>
             </header>
@@ -148,12 +149,6 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
                       <span>
                         {project.progress}
                         {t('% התקדמות')}
-                      </span>
-                      <span>
-                        {t('יעד:')}
-                        {project.due_date
-                          ? new Date(project.due_date).toLocaleDateString('he-IL')
-                          : t('לא הוגדר')}
                       </span>
                       {project.is_archived && <span className="archiveBadge">{t('בארכיון')}</span>}
                     </div>

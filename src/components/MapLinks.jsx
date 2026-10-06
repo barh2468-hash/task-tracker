@@ -9,12 +9,14 @@ export default function MapLinks({ startLinks, endLinks }) {
       {startLinks.slice(0, 3).map((link, i) => (
         <a key={`s-${link}`} href={link} target="_blank" rel="noreferrer">
           {t('התחלה')}
+          {' '}
           {i + 1}
         </a>
       ))}
       {endLinks.slice(0, 3).map((link, i) => (
         <a key={`e-${link}`} href={link} target="_blank" rel="noreferrer">
           {t('סיום')}
+          {' '}
           {i + 1}
         </a>
       ))}

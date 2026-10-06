@@ -1,14 +1,35 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
 import { useEffect, useState } from 'react';
-import { Eye, FileText, Trash2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { CheckCircle2, Eye, FileText, Trash2, X } from 'lucide-react';
 import { createSignedUrl } from '../../../services/api/storage.js';
 import PdfPreviewModal from './PdfPreviewModal.jsx';
 
-export default function ReviewFilesPanel({ files, canDelete, onDelete }) {
+export default function ReviewFilesPanel({
+  files,
+  canDelete,
+  onDelete,
+  canApprove,
+  onApprove,
+  approvalDescription = 'להעביר את סטטוס הפרויקט ל"עבר לבקרה"?',
+}) {
   useTranslation();
   const [urls, setUrls] = useState({});
   const [previewFile, setPreviewFile] = useState(null);
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [approving, setApproving] = useState(false);
+
+  async function confirmApprove() {
+    if (approving) return;
+    setApproving(true);
+    try {
+      await onApprove();
+      setApproveDialogOpen(false);
+    } finally {
+      setApproving(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -37,7 +58,19 @@ export default function ReviewFilesPanel({ files, canDelete, onDelete }) {
             <FileText size={19} /> {t('קבצי הגהה')}
           </h3>
         </div>
-        <span className="projectDocumentsCount">{files.length}</span>
+        <div className="projectDocumentsHeaderActions">
+          <span className="projectDocumentsCount">{files.length}</span>
+          {canApprove && (
+            <button
+              type="button"
+              className="projectDocumentUpload reviewApproveButton"
+              onClick={() => setApproveDialogOpen(true)}
+            >
+              <CheckCircle2 size={16} />
+              {t('אישור הגהה')}
+            </button>
+          )}
+        </div>
       </header>
       <div className="projectDocumentsList">
         {files.map((file) => (
@@ -91,6 +124,59 @@ export default function ReviewFilesPanel({ files, canDelete, onDelete }) {
         fileName={previewFile?.fileName || t('קובץ PDF')}
         onClose={() => setPreviewFile(null)}
       />
+      {approveDialogOpen &&
+        createPortal(
+          // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click-to-close is a pointer convenience; the dialog has a keyboard-accessible close button
+          <div
+            className="modalBackdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="review-approve-title"
+            onClick={() => !approving && setApproveDialogOpen(false)}
+          >
+            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- prevent backdrop dismissal for clicks inside the dialog */}
+            <div
+              className="statusNoteModal reviewApproveDialog"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="statusNoteHeader">
+                <div>
+                  <h3 id="review-approve-title">{t('אישור הגהה')}</h3>
+                  <p className="muted">{t(approvalDescription)}</p>
+                </div>
+                <button
+                  type="button"
+                  className="ghost iconBtn"
+                  disabled={approving}
+                  onClick={() => setApproveDialogOpen(false)}
+                  aria-label={t('סגור')}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="reviewApproveDialogActions">
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={approving}
+                  onClick={() => setApproveDialogOpen(false)}
+                >
+                  {t('ביטול')}
+                </button>
+                <button
+                  type="button"
+                  className="reviewApproveButton"
+                  disabled={approving}
+                  onClick={confirmApprove}
+                >
+                  <CheckCircle2 size={16} />
+                  {approving ? t('מעדכן...') : t('אישור')}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

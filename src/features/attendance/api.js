@@ -181,10 +181,18 @@ function isSickLeaveFeatureUnavailable(error) {
   );
 }
 
-async function saveSickLeaveReport({ user, profile, attendanceSessions, sickLeave }) {
+// Sick leave and vacation both store their optional certificate in the
+// sick_leave_certificates table/bucket; only the wording differs.
+const LEAVE_TEXT = {
+  sick: { noun: 'מחלה', report: 'דיווח המחלה', certificate: 'אישור מחלה' },
+  vacation: { noun: 'חופש', report: 'דיווח החופש', certificate: 'אישור חופשה' },
+};
+
+async function saveLeaveReport({ user, profile, attendanceSessions, leaveType, sickLeave }) {
+  const text = LEAVE_TEXT[leaveType];
   if (!navigator.onLine) {
     return {
-      message: 'נדרש חיבור לאינטרנט לשמירת דיווח מחלה ואישור מצורף.',
+      message: `נדרש חיבור לאינטרנט לשמירת דיווח ${text.noun} ואישור מצורף.`,
       success: false,
     };
   }
@@ -194,7 +202,7 @@ async function saveSickLeaveReport({ user, profile, attendanceSessions, sickLeav
   const dates = inclusiveDateKeys(fromDate, toDate);
   if (!dates.length) return { message: 'טווח התאריכים אינו תקין.', success: false };
   if (dates.length > 92) {
-    return { message: 'ניתן לדווח על עד 92 ימי מחלה בכל פעולה.', success: false };
+    return { message: `ניתן לדווח על עד 92 ימי ${text.noun} בכל פעולה.`, success: false };
   }
 
   const file = sickLeave?.file || null;
@@ -213,7 +221,7 @@ async function saveSickLeaveReport({ user, profile, attendanceSessions, sickLeav
     attendanceSessions.find(
       (item) =>
         item.worker_id === user.id &&
-        item.attendance_type === 'sick' &&
+        item.attendance_type === leaveType &&
         item.is_all_day &&
         dates.includes(item.attendance_date) &&
         item.sick_certificate?.id,
@@ -276,7 +284,7 @@ async function saveSickLeaveReport({ user, profile, attendanceSessions, sickLeav
       worker_id: user.id,
       started_at: reportedAt,
       ended_at: reportedAt,
-      attendance_type: 'sick',
+      attendance_type: leaveType,
       attendance_date: date,
       is_all_day: true,
       sick_leave_certificate_id: certificateId,
@@ -291,7 +299,7 @@ async function saveSickLeaveReport({ user, profile, attendanceSessions, sickLeav
       return {
         message: isSickLeaveFeatureUnavailable(result.error)
           ? 'יש להפעיל את עדכון אישורי המחלה ב-Supabase.'
-          : `האישור נשמר, אך דיווח המחלה לתאריך ${date} נכשל: ${result.error.message}`,
+          : `האישור נשמר, אך ${text.report} לתאריך ${date} נכשל: ${result.error.message}`,
         success: false,
       };
     }
@@ -305,13 +313,13 @@ async function saveSickLeaveReport({ user, profile, attendanceSessions, sickLeav
     const rangeLabel = fromDate === toDate ? fromDate : `${fromDate}–${toDate}`;
     await createManagerNotification(
       'attendance_day_status',
-      'דיווח נוכחות: מחלה',
-      `${profile.full_name} דיווח מחלה לתאריכים ${rangeLabel}.${certificatePayload.file_path ? ' צורף אישור מחלה.' : ' לא צורף אישור מחלה.'}`,
+      `דיווח נוכחות: ${text.noun}`,
+      `${profile.full_name} דיווח ${text.noun} לתאריכים ${rangeLabel}.${certificatePayload.file_path ? ` צורף ${text.certificate}.` : ` לא צורף ${text.certificate}.`}`,
     );
   }
 
   return {
-    message: `דיווח המחלה נשמר עבור ${dates.length === 1 ? 'יום אחד' : `${dates.length} ימים`}${certificatePayload.file_path ? ' עם אישור מחלה.' : ' ללא אישור מצורף.'}`,
+    message: `${text.report} נשמר עבור ${dates.length === 1 ? 'יום אחד' : `${dates.length} ימים`}${certificatePayload.file_path ? ` עם ${text.certificate}.` : ' ללא אישור מצורף.'}`,
     success: true,
   };
 }
@@ -342,8 +350,8 @@ export async function startAttendance(
     (item) => item.worker_id === user.id && item.is_all_day && item.attendance_date === attendanceDate,
   );
 
-  if (attendanceType === 'sick' && sickLeave) {
-    return saveSickLeaveReport({ user, profile, attendanceSessions, sickLeave });
+  if (LEAVE_TEXT[attendanceType] && sickLeave) {
+    return saveLeaveReport({ user, profile, attendanceSessions, leaveType: attendanceType, sickLeave });
   }
 
   if (!option?.timed) {
@@ -395,10 +403,13 @@ export async function startAttendance(
       `כבר קיים להיום דיווח "${attendanceTypeLabel[existingDayStatus.attendance_type]}". להחליף אותו בתחילת ${attendanceTypeLabel[attendanceType]}?`,
     );
     if (!replaceStatus) return null;
-    const { error: deleteError } = await attendanceSessionsApi.deleteAttendanceSession(existingDayStatus.id);
-    if (deleteError) return { message: deleteError.message };
+    if (!navigator.onLine) {
+      return { message: 'כדי להחליף דיווח יומי קיים יש להתחבר לאינטרנט.', success: false };
+    }
   }
 
+  // The old day status is removed only after the new shift is saved, so declining
+  // location or a failed insert never leaves the worker with no report at all.
   const location = await getCurrentLocationWithFallback();
   if (location === false) return { message: 'תחילת יום העבודה בוטלה כי לא התקבל אישור מיקום.' };
 
@@ -459,6 +470,15 @@ export async function startAttendance(
 
   if (error) {
     return { message: error.code === '23505' ? 'כבר קיימת משמרת כללית פתוחה.' : error.message, success: false };
+  }
+  if (existingDayStatus) {
+    const { error: deleteError } = await attendanceSessionsApi.deleteAttendanceSession(existingDayStatus.id);
+    if (deleteError) {
+      return {
+        message: `יום העבודה התחיל, אך הסרת הדיווח הקודם להיום נכשלה: ${deleteError.message}`,
+        success: false,
+      };
+    }
   }
 
   let projectSessionStarted = false;

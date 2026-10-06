@@ -53,7 +53,7 @@ export function ChatProvider({ children }) {
   async function createConversation(memberIds, title) {
     const { data, error } = await chatApi.createChatConversation(memberIds, title);
     if (error) {
-      setMessage(error.message);
+      setMessage(error.message, 'error');
       return null;
     }
     setChatAvailable(true);
@@ -64,7 +64,7 @@ export function ChatProvider({ children }) {
   async function deleteConversation(conversationId) {
     const { error } = await chatApi.deleteChatConversation(conversationId);
     if (error) {
-      setMessage(error.message);
+      setMessage(error.message, 'error');
       return false;
     }
     setConversations((items) => items.filter((item) => item.id !== conversationId));
@@ -88,7 +88,7 @@ export function ChatProvider({ children }) {
       project,
     );
     if (error) {
-      setMessage(error.message);
+      setMessage(error.message, 'error');
       return null;
     }
     await loadConversations();

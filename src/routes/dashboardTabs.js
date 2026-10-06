@@ -2,10 +2,12 @@
 // the sidebar/hero title logic in the original page.tsx switched on a local
 // `tab` variable instead of a URL.
 export function getTabTitle(pathname, searchParams, isManager) {
+  if (pathname === '/app/overview') return 'סקירה כללית';
   if (pathname === '/app/attendance') return 'שעון נוכחות';
   if (pathname === '/app/map') return 'מפה חיה';
   if (pathname === '/app/status-report') return 'דו״ח מצב פרויקטים';
   if (pathname === '/app/equipment') return 'ציוד עובדי שטח';
+  if (pathname === '/app/manhole-layout') return 'פרישת שוחות';
   if (pathname === '/app/recent-status-changes') return 'שינויי סטטוס';
   if (pathname === '/app/assignments') return 'פרויקטים משויכים';
   if (pathname === '/app/tasks') return 'משימות פתוחות';
@@ -34,11 +36,13 @@ export function getTabSubtitle(isManager, isDrafter) {
 
 export function isHeroSuppressed(pathname) {
   return (
+    pathname === '/app/overview' ||
     pathname === '/app/attendance' ||
     pathname === '/app/map' ||
     pathname === '/app/status-report' ||
     pathname === '/app/recent-status-changes' ||
     pathname === '/app/equipment' ||
+    pathname === '/app/manhole-layout' ||
     pathname === '/app/chat'
   );
 }

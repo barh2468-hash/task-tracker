@@ -171,6 +171,7 @@ export default function LiveMapPanel({ onOpenProject }) {
             <b>{t('עובדים על המפה')}</b>
             <span>
               {points.length}
+              {' '}
               {t('מיקומים')}
             </span>
           </div>
@@ -219,6 +220,7 @@ export default function LiveMapPanel({ onOpenProject }) {
               )}
               <small>
                 {t('דווח')}
+                {' '}
                 {new Date(selectedPoint.reportedAt).toLocaleString('he-IL')}
                 {typeof selectedPoint.accuracy === 'number'
                   ? t(' · דיוק כ־{{value0}} מ׳', { value0: Math.round(selectedPoint.accuracy) })

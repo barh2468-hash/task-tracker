@@ -218,12 +218,15 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete }) 
               <div>
                 <b>
                   {t('יומן עבודה')}
+                  {' '}
                   {diary.diary_number}
                 </b>
                 <span>
                   {new Date(diary.form_data.work_date).toLocaleDateString('he-IL')} ·{' '}
                   {diary.form_data.customer_name}
+                  {' '}
                   {t('· נחתם על ידי')}
+                  {' '}
                   {diary.profiles?.full_name || t('משתמש')}
                 </span>
               </div>
@@ -256,21 +259,17 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete }) 
       {formOpen &&
         typeof document !== 'undefined' &&
         createPortal(
-          // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click-to-close is a mouse convenience; the close button covers keyboard access
-          <div
-            className="modalBackdrop workDiaryBackdrop"
-            role="dialog"
-            aria-modal="true"
-            onClick={() => setFormOpen(false)}
-          >
-            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stops the backdrop's close handler from firing for clicks inside the modal */}
-            <div className="workDiaryModal" onClick={(event) => event.stopPropagation()}>
+          // No click-outside-to-close: the diary holds signatures, so only the
+          // explicit close/cancel buttons may discard it.
+          <div className="modalBackdrop workDiaryBackdrop" role="dialog" aria-modal="true">
+            <div className="workDiaryModal">
               <header className="workDiaryModalHeader">
                 <div>
                   <span>{t('קבוצת מאיה')}</span>
                   <h2>{t('יומן עבודה חדש')}</h2>
                   <p>
                     {project.name}
+                    {' '}
                     {t('· המספר יינתן אוטומטית בשמירה')}
                   </p>
                 </div>

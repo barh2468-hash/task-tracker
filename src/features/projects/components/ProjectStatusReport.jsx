@@ -94,6 +94,7 @@ export default function ProjectStatusReport() {
 
             <small>
               {filteredProjects.length}
+              {' '}
               {t('פרויקטים בדוח')}
             </small>
           </span>
@@ -171,8 +172,11 @@ export default function ProjectStatusReport() {
         </select>
         <span className="projectStatusResultCount">
           {t('מציג')}
+          {' '}
           {filteredProjects.length}
+          {' '}
           {t('מתוך')}
+          {' '}
           {projects.length}
         </span>
       </div>

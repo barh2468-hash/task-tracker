@@ -7,10 +7,12 @@ import {
   Camera,
   ChevronDown,
   FileText,
+  LoaderCircle,
   Mail,
   MessageSquareText,
   MoreHorizontal,
   Pencil,
+  PlusCircle,
   Phone,
   RotateCcw,
   Trash2,
@@ -18,8 +20,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../ProjectsContext.jsx';
+import { isResultOk } from '../../../context/messageTone.js';
 import {
   appStatuses,
+  FIELD_WORKER_STATUSES,
   REVIEW_COMPLETED_STATUS,
   REVIEW_STATUS,
 } from '../../../services/supabase.js';
@@ -32,6 +36,9 @@ import TaskPanel from './TaskPanel.jsx';
 import PhotoGallery from '../../photos/components/PhotoGallery.jsx';
 import WorkDiaryPanel from '../../work-diary/components/WorkDiaryPanel.jsx';
 import { findAssignedDrafter, isDrafterCandidate } from '../utils/drafters.js';
+import ContinuationReportDialog from './ContinuationReportDialog.jsx';
+import DrawingBatchesPanel from './DrawingBatchesPanel.jsx';
+import ProjectHistoryPanel from './ProjectHistoryPanel.jsx';
 
 const photoCategories = [
   'תמונת שטח',
@@ -42,6 +49,25 @@ const photoCategories = [
   'אחר',
 ];
 
+function buildEditForm(project) {
+  return {
+    name: project.name,
+    client_name: project.client_name || '',
+    location: project.location,
+    contact_phone: project.contact_phone || '',
+    contact_email: project.contact_email || '',
+    description: project.description || '',
+    additional_notes: project.additional_notes || '',
+    assigned_to: project.assigned_to || '',
+    assigned_workers: (project.project_workers || [])
+      .filter(
+        (assignment) => !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
+      )
+      .map((assignment) => assignment.worker_id),
+    requires_work_diary: Boolean(project.requires_work_diary),
+  };
+}
+
 export default function ProjectCard({ project, focused = false }) {
   useTranslation();
   const { profile, isManager, isDrafter, session } = useAuth();
@@ -49,6 +75,9 @@ export default function ProjectCard({ project, focused = false }) {
     historyItems,
     workers,
     updateStatus,
+    submitContinuationReport,
+    updateDrawingBatchStatus,
+    sendDrawingBatchToReview,
     uploadPhoto,
     deletePhoto,
     uploadProjectDocument,
@@ -68,77 +97,74 @@ export default function ProjectCard({ project, focused = false }) {
   const currentUserId = session?.user?.id;
   const currentUserName = profile?.full_name || '';
 
-  const projectHistory = historyItems.filter((h) => h.project_id === project.id).slice(0, 4);
+  const projectHistory = historyItems.filter((h) => h.project_id === project.id);
+  const projectHistoryPreview = projectHistory.slice(0, 4);
 
-  const [status, setStatus] = useState(project.status);
+  const statusOptions = profile?.role === 'field_worker' ? FIELD_WORKER_STATUSES : appStatuses;
+  const [status, setStatus] = useState(
+    statusOptions.includes(project.status) ? project.status : '',
+  );
   const [statusNote, setStatusNote] = useState('');
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [continuationDialogOpen, setContinuationDialogOpen] = useState(false);
+  const [continuationSubmitting, setContinuationSubmitting] = useState(false);
   const [photoCategory, setPhotoCategory] = useState(photoCategories[0]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
-  const [reviewFile, setReviewFile] = useState(null);
+  const [reviewFiles, setReviewFiles] = useState([]);
   const [reviewNote, setReviewNote] = useState('');
   const [editing, setEditing] = useState(false);
+  const [editSnapshot, setEditSnapshot] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [activeDetailTab, setActiveDetailTab] = useState('tasks');
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
+  const [editMenuOpen, setEditMenuOpen] = useState(false);
   const [assets, setAssets] = useState({
     project_photos: [],
     project_review_files: [],
     project_documents: [],
+    project_drawing_batches: [],
   });
   const [assetsLoading, setAssetsLoading] = useState(false);
   const assignedDrafterId = findAssignedDrafter(project)?.worker_id || '';
   const [selectedDrafterId, setSelectedDrafterId] = useState(assignedDrafterId);
-  const projectLeads = workers.filter((worker) => worker.role !== 'drafter');
   const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
   const drafters = workers.filter(isDrafterCandidate);
-  const [editProject, setEditProject] = useState({
-    name: project.name,
-    client_name: project.client_name || '',
-    location: project.location,
-    contact_phone: project.contact_phone || '',
-    contact_email: project.contact_email || '',
-    description: project.description || '',
-    assigned_to: project.assigned_to || '',
-    assigned_workers: (project.project_workers || [])
-      .filter(
-        (assignment) => !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
-      )
-      .map((assignment) => assignment.worker_id),
-    due_date: project.due_date || '',
-    requires_work_diary: Boolean(project.requires_work_diary),
-  });
+  const workerDirectoryById = new Map(workers.map((worker) => [worker.id, worker]));
+  const responsibleWorkerName = project.assigned_to
+    ? project.profiles?.full_name ||
+      workerDirectoryById.get(project.assigned_to)?.full_name ||
+      t('עובד אחראי')
+    : t('לא משויך');
+  const [editProject, setEditProject] = useState(() => buildEditForm(project));
+  // Background polling replaces the project object even when its status is unchanged.
+  // Only reset the dropdown when the persisted status itself actually changes.
   useEffect(() => {
-    setStatus(project.status);
-    setEditProject({
-      name: project.name,
-      client_name: project.client_name || '',
-      location: project.location,
-      contact_phone: project.contact_phone || '',
-      contact_email: project.contact_email || '',
-      description: project.description || '',
-      assigned_to: project.assigned_to || '',
-      assigned_workers: (project.project_workers || [])
-        .filter(
-          (assignment) => !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
-        )
-        .map((assignment) => assignment.worker_id),
-      due_date: project.due_date || '',
-      requires_work_diary: Boolean(project.requires_work_diary),
-    });
+    setStatus(statusOptions.includes(project.status) ? project.status : '');
+  }, [project.status, statusOptions]);
+
+  // Background polling replaces the project object every few seconds, so only
+  // sync the edit form while it's closed; otherwise a refresh would wipe edits.
+  useEffect(() => {
+    if (!editing) setEditProject(buildEditForm(project));
+  }, [editing, project]);
+
+  useEffect(() => {
     setSelectedDrafterId(findAssignedDrafter(project)?.worker_id || '');
   }, [project]);
 
   // Project objects are replaced by the realtime/polling refresh even when the
-  // project itself did not change. Keep a selected review PDF across those
+  // project itself did not change. Keep selected review PDFs across those
   // refreshes so the native file input and React state cannot drift apart.
   useEffect(() => {
-    setReviewFile(null);
+    setReviewFiles([]);
     setReviewNote('');
     setStatusDialogOpen(false);
+    setContinuationDialogOpen(false);
     setStatusNote('');
     setActiveDetailTab('tasks');
     setMoreActionsOpen(false);
@@ -146,11 +172,11 @@ export default function ProjectCard({ project, focused = false }) {
 
   useEffect(() => {
     if (project.status === 'עבר לשרטוט') return;
-    setReviewFile(null);
+    setReviewFiles([]);
     setReviewNote('');
   }, [project.status]);
   useEffect(() => {
-    if (!editing && !statusDialogOpen) return;
+    if (!editing && !statusDialogOpen && !continuationDialogOpen) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -158,7 +184,7 @@ export default function ProjectCard({ project, focused = false }) {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [editing, statusDialogOpen]);
+  }, [continuationDialogOpen, editing, statusDialogOpen]);
 
   useEffect(() => {
     if (focused) setDetailsOpen(true);
@@ -186,6 +212,21 @@ export default function ProjectCard({ project, focused = false }) {
   const isReviewSent = project.status === REVIEW_STATUS;
   const isReviewCompleted = project.status === REVIEW_COMPLETED_STATUS;
   const canManageReview = isManager || isDrafter || isDrafterCandidate(profile);
+  const canReportContinuation = !project.is_archived && (isManager || isAssignedFieldWorker);
+
+  // A stray tap outside the modal must not throw away unsaved edits.
+  const editDirty = editing && JSON.stringify(editProject) !== editSnapshot;
+
+  async function submitEdit() {
+    if (savingEdit) return;
+    setSavingEdit(true);
+    try {
+      const result = await saveProject(project.id, editProject);
+      if (isResultOk(result)) setEditing(false);
+    } finally {
+      setSavingEdit(false);
+    }
+  }
 
   const editModal = editing ? (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click-to-close is a mouse convenience; the close button covers keyboard access
@@ -193,14 +234,16 @@ export default function ProjectCard({ project, focused = false }) {
       className="modalBackdrop"
       role="dialog"
       aria-modal="true"
-      onClick={() => setEditing(false)}
+      onClick={() => {
+        if (!editDirty && !savingEdit) setEditing(false);
+      }}
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stops the backdrop's close handler from firing for clicks inside the modal */}
       <div className="editModal" onClick={(e) => e.stopPropagation()}>
         <div className="editHeader modalHeader">
           <div>
             <h3>{t('עריכת פרויקט')}</h3>
-            <p className="muted">{t('עדכון פרטי הפרויקט, שיוך עובד ותאריך יעד.')}</p>
+            <p className="muted">{t('עדכון פרטי הפרויקט ושיוך עובדי שטח.')}</p>
           </div>
           <button
             className="ghost smallBtn iconBtn"
@@ -258,14 +301,14 @@ export default function ProjectCard({ project, focused = false }) {
             />
           </label>
           <label>
-            {t('שיוך לאחראי ראשי (מנהל או עובד שטח)')}
+            {t('שיוך לעובד שטח אחראי')}
 
             <select
               value={editProject.assigned_to}
               onChange={(e) => setEditProject({ ...editProject, assigned_to: e.target.value })}
             >
               <option value="">{t('לא משויך')}</option>
-              {projectLeads.map((w) => (
+              {fieldWorkers.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.full_name} - {w.email}
                 </option>
@@ -293,15 +336,6 @@ export default function ProjectCard({ project, focused = false }) {
               ))}
             </div>
           </label>
-          <label>
-            {t('תאריך יעד')}
-
-            <input
-              type="date"
-              value={editProject.due_date}
-              onChange={(e) => setEditProject({ ...editProject, due_date: e.target.value })}
-            />
-          </label>
           <label className="workDiaryProjectToggle wideField">
             <input
               type="checkbox"
@@ -317,54 +351,95 @@ export default function ProjectCard({ project, focused = false }) {
             {t('הפרויקט דורש יומן עבודה וחתימות')}
           </label>
         </div>
-        <label>
-          {t('תיאור')}
+        <div className="formGrid">
+          <label>
+            {t('תיאור')}
 
-          <textarea
-            className="modalTextarea"
-            value={editProject.description}
-            onChange={(e) => setEditProject({ ...editProject, description: e.target.value })}
-          />
-        </label>
-        <div className="modalActions">
-          <button
-            onClick={() => {
-              saveProject(project.id, editProject);
-              setEditing(false);
-            }}
-          >
-            {t('שמור שינויים')}
+            <textarea
+              className="modalTextarea"
+              value={editProject.description}
+              onChange={(e) => setEditProject({ ...editProject, description: e.target.value })}
+            />
+          </label>
+          <label>
+            {t('הערות נוספות')}
+
+            <textarea
+              className="modalTextarea"
+              value={editProject.additional_notes}
+              onChange={(e) => setEditProject({ ...editProject, additional_notes: e.target.value })}
+            />
+          </label>
+        </div>
+        <div className="modalActions editModalActions">
+          <button onClick={submitEdit} disabled={savingEdit}>
+            {savingEdit ? t('שומר...') : t('שמור שינויים')}
           </button>
           <button className="ghost" onClick={() => setEditing(false)}>
             {t('ביטול')}
           </button>
-          {project.is_archived ? (
+          {/* Archive and delete are rare, so they live behind a menu instead of full-width buttons. */}
+          <div
+            className="projectMoreActions"
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) setEditMenuOpen(false);
+            }}
+          >
             <button
-              className="ghost"
-              onClick={() => {
-                restoreProject(project);
-                setEditing(false);
-              }}
+              type="button"
+              className="ghost projectMoreActionsButton"
+              aria-haspopup="menu"
+              aria-expanded={editMenuOpen}
+              aria-label={t('פעולות נוספות')}
+              title={t('פעולות נוספות')}
+              onClick={() => setEditMenuOpen((open) => !open)}
             >
-              <RotateCcw size={16} />
-              {t('שחזור מהארכיון')}
+              <MoreHorizontal size={20} />
             </button>
-          ) : (
-            <button
-              className="ghost"
-              onClick={() => {
-                archiveProject(project);
-                setEditing(false);
-              }}
-            >
-              <Archive size={16} />
-              {t('העבר לארכיון')}
-            </button>
-          )}
-          <button className="danger ghost" onClick={() => deleteProject(project)}>
-            <Trash2 size={16} />
-            {t('מחיקת פרויקט')}
-          </button>
+            {editMenuOpen && (
+              <div className="projectMoreActionsMenu" role="menu">
+                {project.is_archived ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setEditMenuOpen(false);
+                      restoreProject(project);
+                      setEditing(false);
+                    }}
+                  >
+                    <RotateCcw size={16} />
+                    {t('שחזור מהארכיון')}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setEditMenuOpen(false);
+                      archiveProject(project);
+                      setEditing(false);
+                    }}
+                  >
+                    <Archive size={16} />
+                    {t('העבר לארכיון')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="danger"
+                  onClick={() => {
+                    setEditMenuOpen(false);
+                    deleteProject(project);
+                  }}
+                >
+                  <Trash2 size={16} />
+                  {t('מחיקת פרויקט')}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -575,12 +650,6 @@ export default function ProjectCard({ project, focused = false }) {
               {project.progress}
               {t('% התקדמות')}
             </span>
-            <span className="muted" style={{ whiteSpace: 'nowrap', fontWeight: 700 }}>
-              {t('יעד:')}
-              {project.due_date
-                ? new Date(project.due_date).toLocaleDateString('he-IL')
-                : t('לא הוגדר')}
-            </span>
           </div>
         </button>
 
@@ -619,6 +688,9 @@ export default function ProjectCard({ project, focused = false }) {
                             role="menuitem"
                             onClick={() => {
                               setMoreActionsOpen(false);
+                              const form = buildEditForm(project);
+                              setEditProject(form);
+                              setEditSnapshot(JSON.stringify(form));
                               setEditing(true);
                             }}
                           >
@@ -641,7 +713,7 @@ export default function ProjectCard({ project, focused = false }) {
                             role="menuitem"
                             onClick={() => {
                               setMoreActionsOpen(false);
-                              exportProjectPdf({ ...project, ...assets }, projectHistory);
+                              exportProjectPdf({ ...project, ...assets }, projectHistoryPreview);
                             }}
                           >
                             <FileText size={16} /> {t('דוח PDF')}
@@ -666,11 +738,17 @@ export default function ProjectCard({ project, focused = false }) {
                 <p className="projectOverviewDescription">
                   {project.description || t('אין תיאור')}
                 </p>
+                {project.additional_notes && (
+                  <div className="projectAdditionalNotes">
+                    <b>{t('הערות נוספות')}</b>
+                    <p>{project.additional_notes}</p>
+                  </div>
+                )}
 
                 <div className="projectOverviewAssignments">
                   <div>
                     <span>{t('עובד אחראי:')}</span>
-                    <b>{project.profiles?.full_name || t('לא משויך')}</b>
+                    <b>{responsibleWorkerName}</b>
                   </div>
                   {!!project.project_workers?.some(
                     (assignment) =>
@@ -685,7 +763,12 @@ export default function ProjectCard({ project, focused = false }) {
                               !assignment.profiles?.role ||
                               assignment.profiles.role === 'field_worker',
                           )
-                          .map((assignment) => assignment.profiles?.full_name || t('עובד'))
+                          .map(
+                            (assignment) =>
+                              assignment.profiles?.full_name ||
+                              workerDirectoryById.get(assignment.worker_id)?.full_name ||
+                              t('עובד'),
+                          )
                           .join(', ')}
                       </b>
                     </div>
@@ -696,7 +779,9 @@ export default function ProjectCard({ project, focused = false }) {
                       <b>
                         {project.project_workers?.find(
                           (assignment) => assignment.worker_id === assignedDrafterId,
-                        )?.profiles?.full_name || t('שרטט')}
+                        )?.profiles?.full_name ||
+                          workerDirectoryById.get(assignedDrafterId)?.full_name ||
+                          t('שרטט')}
                       </b>
                     </div>
                   )}
@@ -729,12 +814,54 @@ export default function ProjectCard({ project, focused = false }) {
                 </div>
                 <div className="muted projectOverviewUpdated">
                   {t('עודכן:')}
+                  {' '}
                   {new Date(project.updated_at).toLocaleDateString('he-IL')}
                 </div>
               </div>
             </section>
 
+            <ProjectDocumentsPanel
+              documents={assets.project_documents.filter(
+                (document) => document.document_type === 'boundary_sketch',
+              )}
+              canUpload={isManager}
+              canDelete={(document) =>
+                isManager || (isAssignedFieldWorker && document.uploaded_by === currentUserId)
+              }
+              lockedDocumentType="boundary_sketch"
+              title="סקיצת גבול עבודה"
+              compact
+              onUpload={async (file, documentType) => {
+                const result = await uploadProjectDocument(project, file, documentType);
+                if (result?.ok) await refreshAssets();
+                return result;
+              }}
+              onDelete={async (document) => {
+                const result = await deleteProjectDocument(document, project);
+                if (result) await refreshAssets();
+              }}
+            />
+
             <div className="projectOperationsPanel">
+              {canReportContinuation && (
+                <section className="projectOperationCard continuationReportCard">
+                  <header className="projectOperationHeader">
+                    <span className="projectOperationIcon"><PlusCircle size={20} /></span>
+                    <div>
+                      <b>דיווח המשך עבודה</b>
+                      <span>שליחת עבודה נוספת לשרטוט בלי לשנות את סטטוס הפרויקט</span>
+                    </div>
+                  </header>
+                  <button
+                    type="button"
+                    className="smallBtn continuationReportButton"
+                    onClick={() => setContinuationDialogOpen(true)}
+                  >
+                    <PlusCircle size={16} />
+                    דיווח חדש לשרטוט
+                  </button>
+                </section>
+              )}
               <section className="projectOperationCard projectStatusCard">
                 <header className="projectOperationHeader">
                   <span className="projectOperationIcon"><MessageSquareText size={20} /></span>
@@ -747,7 +874,8 @@ export default function ProjectCard({ project, focused = false }) {
                   <label className="projectOperationField">
                     <span>{t('סטטוס חדש')}</span>
                     <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                      {appStatuses.map((s) => (
+                      {!status && <option value="">{t('בחירת סטטוס')}</option>}
+                      {statusOptions.map((s) => (
                         <option key={s} value={s}>
                           {t(s)}
                         </option>
@@ -756,7 +884,7 @@ export default function ProjectCard({ project, focused = false }) {
                   </label>
                   <button
                     className="smallBtn"
-                    disabled={status === project.status}
+                    disabled={!status || status === project.status}
                     onClick={() => setStatusDialogOpen(true)}
                   >
                     <MessageSquareText size={16} />
@@ -769,6 +897,11 @@ export default function ProjectCard({ project, focused = false }) {
             <div className="projectSectionTabs" role="tablist" aria-label={t('פרטי הפרויקט')}>
               {[
                 ['tasks', t('משימות'), (project.project_tasks || []).length],
+                [
+                  'drawing-batches',
+                  'מנות שרטוט',
+                  assets.project_drawing_batches.length,
+                ],
                 [
                   'documents',
                   t('מסמכים'),
@@ -831,22 +964,28 @@ export default function ProjectCard({ project, focused = false }) {
                         ))}
                       </select>
                     </label>
-                    <label className="projectPhotoUploadButton">
-                      <Camera size={17} />
-                      <span>{t('העלאת תמונה')}</span>
+                    <label
+                      className={`projectPhotoUploadButton ${uploadingPhoto ? 'uploading' : ''}`}
+                      aria-busy={uploadingPhoto}
+                    >
+                      {uploadingPhoto ? <LoaderCircle className="spinIcon" size={17} /> : <Camera size={17} />}
+                      <span>{uploadingPhoto ? t('מעלה תמונה...') : t('העלאת תמונה')}</span>
                       <input
                         className="photoInput"
                         type="file"
                         accept="image/*"
+                        disabled={uploadingPhoto}
                         onChange={async (e) => {
-                          if (!e.target.files?.[0]) return;
-                          const result = await uploadPhoto(
-                            project.id,
-                            e.target.files[0],
-                            photoCategory,
-                          );
-                          if (!result?.offline) await refreshAssets();
-                          e.target.value = '';
+                          const file = e.target.files?.[0];
+                          if (!file || uploadingPhoto) return;
+                          setUploadingPhoto(true);
+                          try {
+                            const result = await uploadPhoto(project.id, file, photoCategory);
+                            if (!result?.offline) await refreshAssets();
+                          } finally {
+                            setUploadingPhoto(false);
+                            e.target.value = '';
+                          }
                         }}
                       />
                     </label>
@@ -862,7 +1001,7 @@ export default function ProjectCard({ project, focused = false }) {
                   defaultDocumentType={isAssignedFieldWorker ? 'drawing_source' : 'general'}
                   onUpload={async (file, documentType) => {
                     const result = await uploadProjectDocument(project, file, documentType);
-                    if (result) await refreshAssets();
+                    if (result?.ok) await refreshAssets();
                     return result;
                   }}
                   onDelete={async (document) => {
@@ -879,7 +1018,7 @@ export default function ProjectCard({ project, focused = false }) {
                   />
                 )}
 
-                {isManager && project.status === 'עבר לשרטוט' && (
+                {isManager && !project.is_archived && (
                   <section className="projectSectionPanel drafterAssignmentBox">
                     <div>
                       <b>{t('שיוך הפרויקט לשרטט')}</b>
@@ -902,7 +1041,10 @@ export default function ProjectCard({ project, focused = false }) {
                     </select>
                     <button
                       type="button"
-                      onClick={() => assignProjectDrafter(project, selectedDrafterId)}
+                      onClick={async () => {
+                        await assignProjectDrafter(project, selectedDrafterId);
+                        await refreshAssets();
+                      }}
                       disabled={!drafters.length && !assignedDrafterId}
                     >
                       <Pencil size={16} /> {assignedDrafterId ? t('עדכון שיוך') : t('שיוך לשרטט')}
@@ -911,26 +1053,28 @@ export default function ProjectCard({ project, focused = false }) {
                 )}
 
                 <ReviewFilesPanel
-                  files={assets.project_review_files}
+                  files={assets.project_review_files.filter((file) => !file.drawing_batch_id)}
                   canDelete={canManageReview}
                   onDelete={async (file) => {
                     await deleteProjectReviewFile(file, project.id);
                     await refreshAssets();
                   }}
+                  canApprove={isReviewSent}
+                  onApprove={() => updateStatus(project, REVIEW_COMPLETED_STATUS, '')}
                 />
 
                 {canManageReview && project.status === 'עבר לשרטוט' && (
                   <DrafterReviewBox
-                    reviewFile={reviewFile}
-                    setReviewFile={setReviewFile}
+                    reviewFiles={reviewFiles}
+                    setReviewFiles={setReviewFiles}
                     reviewNote={reviewNote}
                     setReviewNote={setReviewNote}
                     onSend={async () => {
-                      if (!reviewFile) return { ok: false };
-                      const result = await sendProjectToReview(project, reviewFile, reviewNote);
+                      if (!reviewFiles.length) return { ok: false };
+                      const result = await sendProjectToReview(project, reviewFiles, reviewNote);
                       if (result?.ok) {
                         await refreshAssets();
-                        setReviewFile(null);
+                        setReviewFiles([]);
                         setReviewNote('');
                       }
                       return result;
@@ -957,8 +1101,9 @@ export default function ProjectCard({ project, focused = false }) {
                   setTaskTitle={setTaskTitle}
                   taskDescription={taskDescription}
                   setTaskDescription={setTaskDescription}
-                  onAdd={() => {
-                    addProjectTask(project.id, taskTitle, taskDescription);
+                  onAdd={async () => {
+                    const result = await addProjectTask(project.id, taskTitle, taskDescription);
+                    if (!isResultOk(result)) return;
                     setTaskTitle('');
                     setTaskDescription('');
                     setShowTaskForm(false);
@@ -969,44 +1114,75 @@ export default function ProjectCard({ project, focused = false }) {
               </div>
             )}
 
+            {activeDetailTab === 'drawing-batches' && (
+              <DrawingBatchesPanel
+                batches={assets.project_drawing_batches}
+                documents={assets.project_documents}
+                reviewFiles={assets.project_review_files}
+                currentUserId={currentUserId}
+                isManager={isManager}
+                isAssignedFieldWorker={isAssignedFieldWorker}
+                canManageReview={canManageReview}
+                onUpdateStatus={async (drawingBatch, newStatus) => {
+                  const result = await updateDrawingBatchStatus(
+                    project,
+                    drawingBatch,
+                    newStatus,
+                  );
+                  if (result?.ok) await refreshAssets();
+                  return result;
+                }}
+                onSendToReview={async (drawingBatch, files, note) => {
+                  const result = await sendDrawingBatchToReview(
+                    project,
+                    drawingBatch,
+                    files,
+                    note,
+                  );
+                  if (result?.ok) await refreshAssets();
+                  return result;
+                }}
+                onDeleteReviewFile={async (file) => {
+                  await deleteProjectReviewFile(file, project.id);
+                  await refreshAssets();
+                }}
+              />
+            )}
+
             {activeDetailTab === 'updates' && (
-              <section className="projectTabPanel projectHistoryPanel" role="tabpanel">
-                <header className="projectTabPanelHeader">
-                  <b>{t('עדכונים אחרונים')}</b>
-                  <small>
-                    {projectHistory.length === 0
-                      ? t('אין עדכונים')
-                      : t('{{value0}} עדכונים', { value0: projectHistory.length })}
-                  </small>
-                </header>
-                <div className="historyList">
-                  {projectHistory.length === 0 && (
-                    <div className="muted">{t('אין עדכונים עדיין')}</div>
-                  )}
-                  {projectHistory.map((h) => (
-                    <div className="historyItem" key={h.id}>
-                      • {t(h.new_status)}
-                      <br />
-                      <span>
-                        {h.profiles?.full_name || t('משתמש')} ·{' '}
-                        {new Date(h.created_at).toLocaleString('he-IL')}
-                      </span>
-                      {h.note && (
-                        <>
-                          <br />
-                          <span>{h.note}</span>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
+              <ProjectHistoryPanel
+                projectId={project.id}
+                fallbackItems={projectHistory}
+                refreshKey={historyItems[0]?.id || ''}
+              />
             )}
           </div>
         )}
       </article>
       {editModal && createPortal(editModal, document.body)}
       {statusModal && createPortal(statusModal, document.body)}
+      {continuationDialogOpen &&
+        createPortal(
+          <ContinuationReportDialog
+            project={project}
+            submitting={continuationSubmitting}
+            onClose={() => setContinuationDialogOpen(false)}
+            onSubmit={async (report) => {
+              setContinuationSubmitting(true);
+              try {
+                const result = await submitContinuationReport(project, report);
+                if (result?.ok) {
+                  await refreshAssets();
+                  setContinuationDialogOpen(false);
+                  setActiveDetailTab('drawing-batches');
+                }
+              } finally {
+                setContinuationSubmitting(false);
+              }
+            }}
+          />,
+          document.body,
+        )}
     </>
   );
 }

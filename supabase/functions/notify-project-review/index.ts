@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { sendEmail } from '../_shared/smtp.ts';
 
 type Payload = {
   projectId: string;
@@ -8,6 +9,7 @@ type Payload = {
   contactPhone?: string | null;
   pdfFileName?: string | null;
   pdfFilePath?: string | null;
+  pdfFiles?: Array<{ name: string; path: string }> | null;
   note?: string | null;
   changedByName?: string | null;
   changedByEmail?: string | null;
@@ -48,11 +50,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const fromEmail = Deno.env.get('FROM_EMAIL') || 'MAYA Tasks <onboarding@resend.dev>';
-
     if (!supabaseUrl || !anonKey || !serviceRoleKey) throw new Error('Missing Supabase Edge Function secrets');
-    if (!resendApiKey) throw new Error('Missing RESEND_API_KEY secret');
 
     const authHeader = req.headers.get('Authorization') || '';
     const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
@@ -119,13 +117,31 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'no_recipient_emails' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    let pdfUrl = '';
-    if (payload.pdfFilePath) {
+    const reviewFiles = payload.pdfFiles?.length
+      ? payload.pdfFiles.filter((file) => file?.name && file?.path)
+      : payload.pdfFileName && payload.pdfFilePath
+        ? [{ name: payload.pdfFileName, path: payload.pdfFilePath }]
+        : [];
+    const reviewFileLinks: Array<{ name: string; url: string }> = [];
+    for (const file of reviewFiles) {
       const { data: signed } = await adminClient.storage
         .from('project-review-files')
-        .createSignedUrl(payload.pdfFilePath, 60 * 60 * 24 * 7);
-      pdfUrl = signed?.signedUrl || '';
+        .createSignedUrl(file.path, 60 * 60 * 24 * 7);
+      reviewFileLinks.push({ name: file.name, url: signed?.signedUrl || '' });
     }
+
+    const htmlFileLinks = reviewFileLinks.length
+      ? `<div><b>קובצי PDF:</b><ul>${reviewFileLinks
+          .map(
+            (file) =>
+              `<li>${
+                file.url
+                  ? `<a href="${escapeHtml(file.url)}" style="color:#0b5fff">${escapeHtml(file.name)}</a>`
+                  : escapeHtml(file.name)
+              }</li>`,
+          )
+          .join('')}</ul></div>`
+      : '';
 
     const subject = `נשלח להגהה: ${payload.projectName}`;
     const changedBy = payload.changedByName || requester.full_name || 'שרטט';
@@ -137,8 +153,7 @@ Deno.serve(async (req) => {
         <p><b>לקוח:</b> ${escapeHtml(payload.clientName || project.client_name || 'לא צוין')}</p>
         <p><b>מיקום:</b> ${escapeHtml(payload.location || project.location || 'לא צוין')}</p>
         ${payload.contactPhone || project.contact_phone ? `<p><b>טלפון איש קשר:</b> ${escapeHtml(payload.contactPhone || project.contact_phone)}</p>` : ''}
-        ${payload.pdfFileName ? `<p><b>PDF:</b> ${escapeHtml(payload.pdfFileName)}</p>` : ''}
-        ${pdfUrl ? `<p><a href="${escapeHtml(pdfUrl)}" style="color:#0b5fff">פתיחת קובץ ההגהה</a></p>` : ''}
+        ${htmlFileLinks}
         ${payload.note ? `<p><b>הערה:</b> ${escapeHtml(payload.note)}</p>` : ''}
         ${payload.appUrl ? `<p><a href="${escapeHtml(payload.appUrl)}" style="color:#0b5fff">פתיחת המערכת</a></p>` : ''}
       </div>`;
@@ -149,27 +164,12 @@ Deno.serve(async (req) => {
       `לקוח: ${payload.clientName || project.client_name || 'לא צוין'}`,
       `מיקום: ${payload.location || project.location || 'לא צוין'}`,
       `הועבר על ידי: ${changedBy}`,
-      payload.pdfFileName ? `PDF: ${payload.pdfFileName}` : '',
-      pdfUrl ? `קובץ הגהה: ${pdfUrl}` : '',
+      ...reviewFileLinks.map((file) => `PDF: ${file.name}${file.url ? ` — ${file.url}` : ''}`),
       payload.note ? `הערה: ${payload.note}` : '',
       payload.appUrl ? `מערכת: ${payload.appUrl}` : ''
     ].filter(Boolean).join('\n');
 
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ from: fromEmail, to: recipients, subject, html, text })
-    });
-
-    if (!resendResponse.ok) {
-      const details = await resendResponse.text();
-      throw new Error(`Resend error: ${details}`);
-    }
-
-    const result = await resendResponse.json();
+    const result = await sendEmail({ to: recipients, subject, html, text });
     return new Response(JSON.stringify({ ok: true, sentTo: recipients.length, recipients, result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

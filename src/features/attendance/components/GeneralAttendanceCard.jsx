@@ -81,6 +81,7 @@ export default function GeneralAttendanceCard() {
             <strong className="generalAttendanceTime">{t(formatDuration(openMinutes))}</strong>
             <span>
               {t('התחלה:')}
+              {' '}
               {new Date(openSession.started_at).toLocaleString('he-IL')}
             </span>
             <LocationLine

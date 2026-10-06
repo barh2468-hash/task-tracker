@@ -3,27 +3,14 @@ import { t } from '../features/language/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Archive,
   Bell,
-  ChevronLeft,
-  ChevronRight,
-  ClipboardList,
-  Clock,
-  Download,
-  FilePlus2,
-  FileText,
-  FolderKanban,
-  History,
-  Activity,
-  HardHat,
   Languages,
   LogOut,
-  MapPin,
   MessageCircle,
   X,
-  AlertTriangle,
-  Users,
+  AlertCircle,
   CheckCircle,
+  Info,
 } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useMessage } from '../context/MessageContext.jsx';
@@ -33,18 +20,20 @@ import { roleLabel } from '../services/supabase.js';
 import { getTabTitle, getTabSubtitle, isHeroSuppressed } from './dashboardTabs.js';
 import { projectDeepLinkPath } from '../utils/navigation.js';
 import DashboardHero from '../components/DashboardHero.jsx';
-import StatsGrid from '../components/StatsGrid.jsx';
 import NotificationsPopover from '../features/notifications/components/NotificationsPopover.jsx';
-import PwaControls from '../features/pwa/components/PwaControls.jsx';
+import DashboardNavigation from '../components/DashboardNavigation.jsx';
+import MobileNavigation from '../components/MobileNavigation.jsx';
 import AttendanceEndDialog from '../features/attendance/components/AttendanceEndDialog.jsx';
 import ProjectWorkEndDialog from '../features/attendance/components/ProjectWorkEndDialog.jsx';
+import ProjectWorkspaceNavigation from '../features/projects/components/ProjectWorkspaceNavigation.jsx';
 import { useLanguage } from '../features/language/LanguageContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
 
 export default function DashboardLayout() {
   useTranslation();
   const { profile, session, isManager, isDrafter, logout } = useAuth();
-  const { message, setMessage } = useMessage();
+  const { message, messageTone, setMessage } = useMessage();
+  const ToastIcon = messageTone === 'error' ? AlertCircle : messageTone === 'info' ? Info : CheckCircle;
   const { unreadCount } = useNotifications();
   const { unreadChatCount } = useChat();
   const { language, setLanguage } = useLanguage();
@@ -54,72 +43,21 @@ export default function DashboardLayout() {
   const [searchParams] = useSearchParams();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsPopoverPosition, setNotificationsPopoverPosition] = useState(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileMenuDragProgress, setMobileMenuDragProgress] = useState(null);
   const notificationBellRef = useRef(null);
-  const sidebarRef = useRef(null);
-  const pageSwipeRef = useRef(null);
-  const suppressPageClickRef = useRef(false);
-
-  useEffect(() => {
-    if (!mobileMenuOpen) return;
-    const resetMenuScroll = window.requestAnimationFrame(() => {
-      sidebarRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    });
-    const closeOnEscape = (event) => {
-      if (event.key === 'Escape') closeMobileMenu();
-    };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => {
-      window.cancelAnimationFrame(resetMenuScroll);
-      window.removeEventListener('keydown', closeOnEscape);
-    };
-  }, [mobileMenuOpen]);
-
-  useEffect(() => {
-    const menuVisible = mobileMenuOpen || mobileMenuDragProgress !== null;
-    if (!menuVisible) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    const previousOverscrollBehavior = document.body.style.overscrollBehavior;
-    document.body.style.overflow = 'hidden';
-    document.body.style.overscrollBehavior = 'none';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.overscrollBehavior = previousOverscrollBehavior;
-    };
-  }, [mobileMenuDragProgress, mobileMenuOpen]);
-
-  useEffect(() => {
-    const restoreInterruptedDrag = () => {
-      const start = pageSwipeRef.current;
-      if (!start?.dragging) return;
-      pageSwipeRef.current = null;
-      setMobileMenuOpen(start.initialProgress === 1);
-      setMobileMenuDragProgress(null);
-    };
-    const restoreHiddenDrag = () => {
-      if (document.visibilityState === 'hidden') restoreInterruptedDrag();
-    };
-
-    window.addEventListener('blur', restoreInterruptedDrag);
-    document.addEventListener('visibilitychange', restoreHiddenDrag);
-    return () => {
-      window.removeEventListener('blur', restoreInterruptedDrag);
-      document.removeEventListener('visibilitychange', restoreHiddenDrag);
-    };
-  }, []);
+  const mobileNotificationBellRef = useRef(null);
+  const notificationsPopoverRef = useRef(null);
 
   useEffect(() => {
     if (!notificationsOpen) return;
 
     const updatePopoverPosition = () => {
-      const bellRect = notificationBellRef.current?.getBoundingClientRect();
+      const isMobile = window.innerWidth <= 1180;
+      const bellRect = (isMobile ? mobileNotificationBellRef : notificationBellRef).current?.getBoundingClientRect();
       if (!bellRect) return;
 
-      const viewportPadding = window.innerWidth <= 760 ? 12 : 14;
+      const viewportPadding = isMobile ? 12 : 14;
       const width = Math.min(380, window.innerWidth - viewportPadding * 2);
-      const preferredLeft = language === 'en' ? bellRect.right - width : bellRect.left;
+      const preferredLeft = !isMobile && language === 'en' ? bellRect.right - width : bellRect.left;
       const left = Math.max(
         viewportPadding,
         Math.min(preferredLeft, window.innerWidth - width - viewportPadding),
@@ -132,18 +70,33 @@ export default function DashboardLayout() {
       });
     };
 
+    const closeOnOutsidePress = (event) => {
+      if (notificationsPopoverRef.current?.contains(event.target) ||
+          notificationBellRef.current?.contains(event.target) ||
+          mobileNotificationBellRef.current?.contains(event.target)) return;
+      setNotificationsOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key !== 'Escape') return;
+      setNotificationsOpen(false);
+      (window.innerWidth <= 1180 ? mobileNotificationBellRef : notificationBellRef).current?.focus();
+    };
+
     updatePopoverPosition();
     window.addEventListener('resize', updatePopoverPosition);
     window.addEventListener('scroll', updatePopoverPosition, true);
+    document.addEventListener('pointerdown', closeOnOutsidePress);
+    document.addEventListener('keydown', closeOnEscape);
     return () => {
       window.removeEventListener('resize', updatePopoverPosition);
       window.removeEventListener('scroll', updatePopoverPosition, true);
+      document.removeEventListener('pointerdown', closeOnOutsidePress);
+      document.removeEventListener('keydown', closeOnEscape);
     };
   }, [language, notificationsOpen]);
 
   function openTab(path) {
     navigate(path);
-    closeMobileMenu();
   }
 
   function toggleChat() {
@@ -161,170 +114,23 @@ export default function DashboardLayout() {
         },
       });
     }
-    closeMobileMenu();
   }
 
-  function closeMobileMenu() {
-    pageSwipeRef.current = null;
-    setMobileMenuDragProgress(null);
-    setMobileMenuOpen(false);
-  }
-
-  function openMobileMenu() {
-    pageSwipeRef.current = null;
-    setMobileMenuDragProgress(null);
-    setMobileMenuOpen(true);
-    setNotificationsOpen(false);
-  }
-
-  function getMobileDrawerWidth() {
-    return (
-      sidebarRef.current?.getBoundingClientRect().width ||
-      Math.min(310, document.documentElement.clientWidth * 0.86)
-    );
-  }
-
-  function beginMobileMenuDrag(clientX, clientY, eventTarget, pointerId) {
-    if (window.innerWidth > 760) return;
-    const target = eventTarget instanceof Element ? eventTarget : null;
-    const gestureSurface = mobileMenuOpen
-      ? target?.closest('.sidebar, .mobileMenuBackdrop')
-      : target?.closest('.mobileMenuHandle');
-    if (!gestureSurface) {
-      pageSwipeRef.current = null;
-      return;
-    }
-
-    const interactiveAncestor = target?.closest(
-      'input, textarea, select, [contenteditable="true"], .leaflet-container, canvas, button, a',
-    );
-    const isGestureControl =
-      interactiveAncestor?.classList.contains('mobileMenuHandle') ||
-      interactiveAncestor?.classList.contains('mobileMenuBackdrop');
-    if (interactiveAncestor && !isGestureControl) {
-      pageSwipeRef.current = null;
-      return;
-    }
-
-    pageSwipeRef.current = {
-      x: clientX,
-      y: clientY,
-      startedAt: Date.now(),
-      initialProgress: mobileMenuOpen ? 1 : 0,
-      lastX: clientX,
-      pointerId,
-      dragging: false,
-    };
-  }
-
-  function updateMobileMenuDrag(clientX, clientY, event) {
-    const start = pageSwipeRef.current;
-    if (!start || (start.pointerId !== undefined && start.pointerId !== event.pointerId)) return;
-
-    const deltaX = clientX - start.x;
-    const deltaY = clientY - start.y;
-    start.lastX = clientX;
-    if (!start.dragging) {
-      if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) return;
-      if (Math.abs(deltaY) >= Math.abs(deltaX)) {
-        pageSwipeRef.current = null;
-        return;
-      }
-      start.dragging = true;
-      if (typeof event.pointerId === 'number') {
-        try {
-          event.currentTarget.setPointerCapture?.(event.pointerId);
-        } catch {
-          cancelPageSwipe(event);
-          return;
-        }
-      }
-    }
-
-    const isRtl = language === 'he';
-    const drawerWidth = getMobileDrawerWidth();
-    const openingDistance = deltaX * (isRtl ? -1 : 1);
-    const progress = Math.max(0, Math.min(1, start.initialProgress + openingDistance / drawerWidth));
-    if (event.cancelable) event.preventDefault();
-    setMobileMenuDragProgress(progress);
-  }
-
-  function finishMobileMenuDrag(clientX, pointerId) {
-    const start = pageSwipeRef.current;
-    if (start?.pointerId !== undefined && start.pointerId !== pointerId) return;
-    pageSwipeRef.current = null;
-    if (!start?.dragging) return;
-
-    const isRtl = language === 'he';
-    const endX = Number.isFinite(clientX) ? clientX : start.lastX;
-    const deltaX = endX - start.x;
-    const openingDistance = deltaX * (isRtl ? -1 : 1);
-    const drawerWidth = getMobileDrawerWidth();
-    const progress = Math.max(
-      0,
-      Math.min(1, start.initialProgress + openingDistance / drawerWidth),
-    );
-    const quickSwipe = Date.now() - start.startedAt < 300;
-    const shouldOpen = quickSwipe
-      ? openingDistance > 42 || (openingDistance >= -42 && progress >= 0.5)
-      : progress >= 0.5;
-
-    suppressPageClickRef.current = true;
-    window.setTimeout(() => {
-      suppressPageClickRef.current = false;
-    }, 450);
-    if (shouldOpen) setNotificationsOpen(false);
-    setMobileMenuOpen(shouldOpen);
-    setMobileMenuDragProgress(null);
-  }
-
-  function startPagePointerSwipe(event) {
-    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
-    beginMobileMenuDrag(event.clientX, event.clientY, event.target, event.pointerId);
-  }
-
-  function movePagePointerSwipe(event) {
-    updateMobileMenuDrag(event.clientX, event.clientY, event);
-  }
-
-  function finishPagePointerSwipe(event) {
-    finishMobileMenuDrag(event.clientX, event.pointerId);
-  }
-
-  function cancelPageSwipe(event) {
-    const start = pageSwipeRef.current;
-    if (start?.pointerId !== undefined && start.pointerId !== event?.pointerId) return;
-    pageSwipeRef.current = null;
-    if (!start?.dragging) return;
-    setMobileMenuOpen(start.initialProgress === 1);
-    setMobileMenuDragProgress(null);
-  }
-
-  function suppressClickAfterPageSwipe(event) {
-    if (!suppressPageClickRef.current) return;
-    suppressPageClickRef.current = false;
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
-  const projectsFilter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
-  const isProjectsRoute = location.pathname === '/app/projects';
+  const isProjectWorkspace =
+    location.pathname === '/app/projects' ||
+    location.pathname.startsWith('/app/projects/') ||
+    location.pathname === '/app/assignments';
   const navActive = (path) => location.pathname === path;
 
   const tabTitle = getTabTitle(location.pathname, searchParams, isManager);
   const tabSubtitle = getTabSubtitle(isManager, isDrafter);
-  const showHeroAndStats = !isHeroSuppressed(location.pathname);
+  const showHero = !isHeroSuppressed(location.pathname);
 
   return (
     <main
       className={`page${location.pathname === '/app/chat' ? ' chatPage' : ''}${
         location.pathname === '/app/attendance' ? ' attendanceClockShell' : ''
       }`}
-      onPointerDownCapture={startPagePointerSwipe}
-      onPointerMoveCapture={movePagePointerSwipe}
-      onPointerUpCapture={finishPagePointerSwipe}
-      onPointerCancelCapture={cancelPageSwipe}
-      onClickCapture={suppressClickAfterPageSwipe}
     >
       <header className="topbar">
         <div className="brand">
@@ -353,6 +159,8 @@ export default function DashboardLayout() {
               className={`notificationBell ${notificationsOpen ? 'active' : ''}`}
               onClick={() => setNotificationsOpen((open) => !open)}
               title={t('התראות')}
+              aria-expanded={notificationsOpen}
+              aria-controls="notifications-popover"
             >
               <Bell size={18} />
               {unreadCount > 0 && <span>{unreadCount}</span>}
@@ -370,8 +178,22 @@ export default function DashboardLayout() {
         </div>
       </header>
 
+      <button
+        ref={mobileNotificationBellRef}
+        type="button"
+        className={`notificationBell mobileNotificationBell${notificationsOpen || navActive('/app/notifications') ? ' active' : ''}`}
+        aria-label={unreadCount > 0 ? `${t('התראות')} (${unreadCount})` : t('התראות')}
+        aria-expanded={notificationsOpen}
+        aria-controls="notifications-popover"
+        onClick={() => setNotificationsOpen((open) => !open)}
+      >
+        <Bell size={21} aria-hidden="true" />
+        {unreadCount > 0 && <span aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+      </button>
+
       {notificationsOpen && (
         <NotificationsPopover
+          containerRef={notificationsPopoverRef}
           position={notificationsPopoverPosition}
           onClose={() => setNotificationsOpen(false)}
           onOpenFullPage={() => {
@@ -385,262 +207,30 @@ export default function DashboardLayout() {
         />
       )}
 
-      {!mobileMenuOpen && (
-        <button
-          className="mobileMenuHandle"
-          onClick={openMobileMenu}
-          aria-label={t('פתיחת תפריט')}
-          aria-controls="main-navigation"
-          aria-expanded="false"
-          title={t('פתיחת תפריט')}
-        >
-          {language === 'he' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-        </button>
-      )}
-
       <section className="container layout">
-        {(mobileMenuOpen || mobileMenuDragProgress !== null) && (
-          <button
-            className="mobileMenuBackdrop"
-            aria-label={t('סגירת תפריט')}
-            onClick={closeMobileMenu}
-            style={
-              mobileMenuDragProgress === null
-                ? undefined
-                : {
-                    opacity: mobileMenuDragProgress,
-                    transition: 'none',
-                  }
-            }
+        <aside id="main-navigation" className="sidebar sidebarCompact" aria-label={t('תפריט ראשי')}>
+          <DashboardNavigation
+            role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
+            isManager={isManager}
+            isDrafter={isDrafter}
+            pathname={location.pathname}
+            isProjectWorkspace={isProjectWorkspace}
+            stats={stats}
+            unreadCount={unreadCount}
+            onOpenTab={openTab}
           />
-        )}
-        <aside
-          ref={sidebarRef}
-          id="main-navigation"
-          className={`sidebar ${mobileMenuOpen ? 'mobileOpen' : ''} ${
-            mobileMenuDragProgress === null ? '' : 'mobileDragging'
-          }`}
-          aria-label={t('תפריט ראשי')}
-          style={
-            mobileMenuDragProgress === null
-              ? undefined
-              : {
-                  opacity: 1,
-                  visibility: 'visible',
-                  transform: `translate3d(${(language === 'he' ? 1 : -1) * (1 - mobileMenuDragProgress) * 105}%, 0, 0)`,
-                }
-          }
-        >
-          <div className="mobileMenuHeader">
-            <div>
-              <b>{t('תפריט ראשי')}</b>
-              <small>{profile ? t(roleLabel[profile.role]) : t('משתמש')}</small>
-            </div>
-            <button
-              className="mobileMenuClose"
-              aria-label={t('סגירת תפריט')}
-              onClick={closeMobileMenu}
-            >
-              <X size={19} />
-            </button>
-          </div>
-          <div className="logoBox">
-            <img src="/logo.png" alt={t('לוגו')} />
-            <b>
-              {t('תשתיות')}
-
-              <br />
-              {t('מתקדמות')}
-            </b>
-          </div>
-          <PwaControls />
-          <div className="navSectionLabel">
-            <span>{t('כלים לעובד')}</span>
-          </div>
-          {!isDrafter && (
-            <button
-              className={`navBtn ${navActive('/app/attendance') ? 'active' : ''}`}
-              onClick={() => openTab('/app/attendance')}
-            >
-              <span>{t('שעון נוכחות')}</span>
-              <Clock size={18} />
-            </button>
-          )}
-          <div className="navSectionLabel">
-            <span>{t('עבודה')}</span>
-          </div>
-          <button
-            className={`navBtn ${isProjectsRoute && projectsFilter === 'mine' ? 'active' : ''}`}
-            onClick={() => openTab('/app/projects?filter=mine')}
-          >
-            <span>{t('הפרויקטים שלי')}</span>
-            <FolderKanban size={18} />
-          </button>
-          {isManager && (
-            <button
-              className={`navBtn ${isProjectsRoute && projectsFilter === 'all' ? 'active' : ''}`}
-              onClick={() => openTab('/app/projects?filter=all')}
-            >
-              <span>{t('כל הפרויקטים')}</span>
-              <Users size={18} />
-            </button>
-          )}
-          {!isDrafter && (
-            <button
-              className={`navBtn ${navActive('/app/tasks') ? 'active' : ''}`}
-              onClick={() => openTab('/app/tasks')}
-            >
-              <span className="navBtnLabel">
-                <span>{t('משימות פתוחות')}</span>
-                <span className="navCountBadge">{stats.openTasks}</span>
-              </span>
-              <ClipboardList size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/assignments') ? 'active' : ''}`}
-              onClick={() => openTab('/app/assignments')}
-            >
-              <span>{t('פרויקטים משויכים')}</span>
-              <FolderKanban size={18} />
-            </button>
-          )}
-          {!isDrafter && (
-            <div className="navSectionLabel">
-              <span>{t('שטח')}</span>
-            </div>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/today') ? 'active' : ''}`}
-              onClick={() => openTab('/app/today')}
-            >
-              <span>{t('היום בשטח')}</span>
-              <Clock size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/map') ? 'active' : ''}`}
-              onClick={() => openTab('/app/map')}
-            >
-              <span>{t('מפה חיה')}</span>
-              <MapPin size={18} />
-            </button>
-          )}
-          {!isDrafter && (
-            <button
-              className={`navBtn ${navActive('/app/exceptions') ? 'active' : ''}`}
-              onClick={() => openTab('/app/exceptions')}
-            >
-              <span className="navBtnLabel">
-                <span>{t('דוח חריגות')}</span>
-                <span className="navCountBadge">{stats.exceptions}</span>
-              </span>
-              <AlertTriangle size={18} />
-            </button>
-          )}
-          <div className="navSectionLabel">
-            <span>{t('ניהול ומידע')}</span>
-          </div>
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/status-report') ? 'active' : ''}`}
-              onClick={() => openTab('/app/status-report')}
-            >
-              <span>{t('דו״ח מצב פרויקטים')}</span>
-              <FileText size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/equipment') ? 'active' : ''}`}
-              onClick={() => openTab('/app/equipment')}
-            >
-              <span>{t('ציוד עובדי שטח')}</span>
-              <HardHat size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/recent-status-changes') ? 'active' : ''}`}
-              onClick={() => openTab('/app/recent-status-changes')}
-            >
-              <span>{t('שינויי סטטוס')}</span>
-              <Activity size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${isProjectsRoute && projectsFilter === 'unassigned' ? 'active' : ''}`}
-              onClick={() => openTab('/app/projects?filter=unassigned')}
-            >
-              <span className="navBtnLabel">
-                <span>{t('ללא שיוך')}</span>
-                <span className="navCountBadge">{stats.unassigned}</span>
-              </span>
-              <FolderKanban size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${isProjectsRoute && projectsFilter === 'archive' ? 'active' : ''}`}
-              onClick={() => openTab('/app/projects?filter=archive')}
-            >
-              <span className="navBtnLabel">
-                <span>{t('ארכיון')}</span>
-                <span className="navCountBadge">{stats.archived}</span>
-              </span>
-              <Archive size={18} />
-            </button>
-          )}
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/projects/new') ? 'active' : ''}`}
-              onClick={() => openTab('/app/projects/new')}
-            >
-              <span>{t('הוספת פרויקט')}</span>
-              <FilePlus2 size={18} />
-            </button>
-          )}
-          <button
-            className={`navBtn ${navActive('/app/history') ? 'active' : ''}`}
-            onClick={() => openTab('/app/history')}
-          >
-            <span>{t('היסטוריית שינויים')}</span>
-            <History size={18} />
-          </button>
-          <button
-            className={`navBtn ${navActive('/app/notifications') ? 'active' : ''}`}
-            onClick={() => openTab('/app/notifications')}
-          >
-            <span className="navBtnLabel">
-              <span>{t('התראות')}</span>
-              {unreadCount > 0 && <span className="navCountBadge">{unreadCount}</span>}
-            </span>
-            <Bell size={18} />
-          </button>
-          {isManager && (
-            <button
-              className={`navBtn ${navActive('/app/report') ? 'active' : ''}`}
-              onClick={() => openTab('/app/report')}
-            >
-              <span>{t('דוח שעות עובדים')}</span>
-              <Download size={18} />
-            </button>
-          )}
         </aside>
-
         <section className="mainContent">
-          {showHeroAndStats && <DashboardHero title={tabTitle} subtitle={tabSubtitle} />}
-
-          {showHeroAndStats && <StatsGrid />}
+          {showHero && <DashboardHero title={tabTitle} subtitle={tabSubtitle} />}
 
           {message && (
-            <div className="appToast" role="status" aria-live="polite">
-              <span className="appToastIcon">
-                <CheckCircle size={18} />
+            <div
+              className={`appToast ${messageTone}`}
+              role={messageTone === 'error' ? 'alert' : 'status'}
+              aria-live={messageTone === 'error' ? 'assertive' : 'polite'}
+            >
+              <span className="appToastIcon" aria-hidden="true">
+                <ToastIcon size={18} />
               </span>
               <p>{message}</p>
               <button
@@ -653,6 +243,7 @@ export default function DashboardLayout() {
             </div>
           )}
 
+          {isProjectWorkspace && <ProjectWorkspaceNavigation stats={stats} />}
           <Outlet />
         </section>
       </section>
@@ -675,6 +266,24 @@ export default function DashboardLayout() {
         )}
       </button>
 
+      <MobileNavigation
+        role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
+        displayName={profile?.full_name || session?.user?.email}
+        isManager={isManager}
+        isDrafter={isDrafter}
+        pathname={location.pathname}
+        isProjectWorkspace={isProjectWorkspace}
+        stats={stats}
+        unreadChatCount={unreadChatCount}
+        onLogout={logout}
+        onOpenMore={() => setNotificationsOpen(false)}
+        onOpenTab={(path) => {
+          setNotificationsOpen(false);
+          if (path === '/app/chat' && location.pathname !== '/app/chat') {
+            navigate(path, { state: { chatReturnTo: `${location.pathname}${location.search}${location.hash}` } });
+          } else openTab(path);
+        }}
+      />
       <AttendanceEndDialog />
       <ProjectWorkEndDialog />
     </main>

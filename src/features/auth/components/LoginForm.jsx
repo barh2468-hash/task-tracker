@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../useAuth.js';
 
 export default function LoginForm() {
@@ -65,6 +66,9 @@ export default function LoginForm() {
           >
             {authBusy ? t('מתחבר…') : t('כניסה למערכת')}
           </button>
+          <Link className="authTextLink" to="/forgot-password">
+            {t('שכחתי סיסמה')}
+          </Link>
           {authMessage && <p className="muted">{authMessage}</p>}
         </form>
       </section>

@@ -5,10 +5,12 @@ import * as projectTasksApi from '../../services/api/projectTasks.js';
 import * as projectPhotosApi from '../../services/api/projectPhotos.js';
 import * as projectDocumentsApi from '../../services/api/projectDocuments.js';
 import * as projectReviewFilesApi from '../../services/api/projectReviewFiles.js';
+import * as drawingBatchesApi from '../../services/api/drawingBatches.js';
 import * as statusHistoryApi from '../../services/api/statusHistory.js';
 import * as storageApi from '../../services/api/storage.js';
 import * as edgeFunctions from '../../services/api/edgeFunctions.js';
 import {
+  FIELD_WORKER_STATUSES,
   statusProgress,
   REVIEW_COMPLETED_STATUS,
   REVIEW_STATUS,
@@ -16,6 +18,12 @@ import {
 import { createManagerNotification, createUserNotification } from '../notifications/api.js';
 import { enqueueOfflineAction } from '../../services/offlineStore.js';
 import { findAssignedDrafter, isDrafterCandidate } from './utils/drafters.js';
+import {
+  documentTypeAllowsImages,
+  isPdfFile,
+  isSupportedImageFile,
+  MAX_PROJECT_FILE_SIZE,
+} from './utils/projectFiles.js';
 
 // ---- Loading ----------------------------------------------------------
 
@@ -29,11 +37,10 @@ export async function getProjects(profile) {
       new Set((drafterAssignments || []).map((row) => row.project_id).filter(Boolean)),
     );
     if (!drafterProjectIds.length) return [];
-    const { data, error } = await projectsApi.getProjectsByIdsAndStatuses(drafterProjectIds, [
-      'עבר לשרטוט',
-      REVIEW_STATUS,
-      REVIEW_COMPLETED_STATUS,
-    ]);
+    // Drawing batches have their own lifecycle, so a drafter must keep seeing an
+    // assigned project even while the project-level status remains in field work
+    // or an earlier batch is already in review.
+    const { data, error } = await projectsApi.getProjectsByIds(drafterProjectIds);
     if (error) throw error;
     return data || [];
   }
@@ -57,6 +64,19 @@ export async function getHistory() {
   const { data, error } = await statusHistoryApi.getHistory();
   if (error) throw error;
   return data || [];
+}
+
+export async function getProjectHistory(projectId, options) {
+  const { data, error, count } = await statusHistoryApi.getProjectHistory(projectId, options);
+  if (error) throw error;
+
+  const items = data || [];
+  const total = count || 0;
+  return {
+    items,
+    total,
+    hasMore: (options?.offset || 0) + items.length < total,
+  };
 }
 
 export function getProjectAssets(projectId) {
@@ -98,7 +118,6 @@ export async function sendProjectAssignmentEmail(workerId, project, assignedByNa
     location: project.location || null,
     contactPhone: project.contact_phone || null,
     description: project.description || null,
-    dueDate: project.due_date || null,
     assignedByName: assignedByName || 'מנהל מערכת',
     appUrl: typeof window !== 'undefined' ? window.location.origin : undefined,
   });
@@ -150,6 +169,17 @@ export async function updateStatus(project, newStatus, note, profile) {
   if (newStatus === project.status) {
     return { message: 'יש לבחור סטטוס שונה מהסטטוס הנוכחי.', ok: false };
   }
+  const isReviewApproval = project.status === REVIEW_STATUS && newStatus === REVIEW_COMPLETED_STATUS;
+  if (
+    profile?.role === 'field_worker' &&
+    !FIELD_WORKER_STATUSES.includes(newStatus) &&
+    !isReviewApproval
+  ) {
+    return {
+      message: 'עובד שטח יכול לעדכן סטטוס רק לעבודה בשטח או לעבר לשרטוט.',
+      ok: false,
+    };
+  }
   const cleanNote = String(note || '').trim();
 
   const nextProgress = statusProgress[newStatus] ?? project.progress;
@@ -187,6 +217,122 @@ export async function updateStatus(project, newStatus, note, profile) {
     message: `הסטטוס של ${project.name} עודכן ל: ${newStatus}`,
     ok: true,
     optimistic: { status: newStatus, progress: nextProgress },
+  };
+}
+
+const continuationTypeLabels = {
+  addition: 'תוספת לעבודה שכבר דווחה',
+  correction: 'תיקון למידע שכבר נשלח',
+  new_phase: 'שלב חדש ונפרד בפרויקט',
+};
+
+const continuationReviewImpactLabels = {
+  no_change: 'תוספת נפרדת — ההגהה הקיימת יכולה להמשיך',
+  changes_review: 'משפיע על השרטוט שבהגהה — נדרש עדכון',
+  unsure: 'נדרשת החלטה של אחראי השרטוט',
+};
+
+export async function submitContinuationReport(project, report, profile) {
+  const user = await authApi.getCurrentUser();
+  if (!user || !project?.id || !profile) return { message: '', ok: false };
+
+  const assignedFieldWorker =
+    project.assigned_to === user.id ||
+    (project.project_workers || []).some((assignment) => assignment.worker_id === user.id);
+  if (profile.role !== 'manager' && !(profile.role === 'field_worker' && assignedFieldWorker)) {
+    return { message: 'אין לך הרשאה לדווח המשך עבודה בפרויקט הזה.', ok: false };
+  }
+  if (!navigator.onLine) {
+    return {
+      message: 'נדרש חיבור לאינטרנט כדי לשלוח דיווח המשך עבודה לשרטוט.',
+      ok: false,
+    };
+  }
+
+  const summary = String(report?.summary || '').trim();
+  const workDate = String(report?.workDate || '').trim();
+  const updateType = continuationTypeLabels[report?.updateType];
+  const reviewImpact = continuationReviewImpactLabels[report?.reviewImpact];
+  if (summary.length < 5) {
+    return { message: 'יש לתאר בקצרה מה בוצע ומה צריך להעביר לשרטוט.', ok: false };
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(workDate) || !updateType || !reviewImpact) {
+    return { message: 'חלק מפרטי הדיווח אינם תקינים. יש לבדוק את השדות ולנסות שוב.', ok: false };
+  }
+
+  const assignedDrafterId = findAssignedDrafter(project)?.worker_id || null;
+  const { data: drawingBatch, error } = await drawingBatchesApi.insertDrawingBatch({
+    project_id: project.id,
+    work_date: workDate,
+    update_type: report.updateType,
+    review_impact: report.reviewImpact,
+    summary,
+    status: 'pending_drafting',
+    created_by: user.id,
+    assigned_drafter: assignedDrafterId,
+    source_project_status: project.status,
+  });
+  if (error) return { message: `יצירת מנת השרטוט נכשלה: ${error.message}`, ok: false };
+
+  const formattedDate = new Date(`${workDate}T12:00:00`).toLocaleDateString('he-IL');
+  const attachments = Array.from(report?.attachments || []);
+  const attachmentResults = [];
+  for (const file of attachments) {
+    attachmentResults.push(
+      await uploadProjectDocument(project, file, profile, 'drawing_source', {
+        drawingBatchId: drawingBatch.id,
+        suppressNotifications: true,
+      }),
+    );
+  }
+  const failedAttachments = attachmentResults.filter((result) => !result?.ok).length;
+
+  await statusHistoryApi.insertStatusHistory({
+    project_id: project.id,
+    old_status: null,
+    new_status: 'נוצרה מנת שרטוט',
+    changed_by: user.id,
+    note: `מנה ${drawingBatch.batch_number} · ${formattedDate} · ${updateType} · ${reviewImpact} · ${summary}`,
+  });
+
+  const requiresReviewUpdate = report.reviewImpact === 'changes_review';
+  const notificationTitle = requiresReviewUpdate
+    ? `מנת שרטוט ${drawingBatch.batch_number} משפיעה על ההגהה: ${project.name}`
+    : `מנת שרטוט ${drawingBatch.batch_number} ממתינה: ${project.name}`;
+  const notificationBody =
+    `${profile.full_name} דיווח על המשך עבודה מ-${formattedDate}. ` +
+    `${updateType}. ${reviewImpact}. ${summary}` +
+    `${attachments.length ? ` צורפו ${attachments.length - failedAttachments} קבצים.` : ''}`;
+
+  const effectiveDrafterId = drawingBatch.assigned_drafter;
+  const recipients =
+    effectiveDrafterId && effectiveDrafterId !== user.id ? [effectiveDrafterId] : [];
+  await Promise.all([
+    createManagerNotification(
+      requiresReviewUpdate ? 'continuation_review_update' : 'continuation_report',
+      notificationTitle,
+      notificationBody,
+      project.id,
+    ),
+    ...recipients.map((drafterId) =>
+      createUserNotification(
+        drafterId,
+        requiresReviewUpdate ? 'continuation_review_update' : 'continuation_report',
+        notificationTitle,
+        notificationBody,
+        project.id,
+      ),
+    ),
+  ]);
+
+  return {
+    message: failedAttachments
+      ? `מנת שרטוט ${drawingBatch.batch_number} נוצרה, אך ${failedAttachments} קבצים לא הועלו.`
+      : recipients.length
+        ? `מנת שרטוט ${drawingBatch.batch_number} נוצרה ונשלחה למנהל ולשרטט.`
+        : `מנת שרטוט ${drawingBatch.batch_number} נוצרה ונשלחה למנהל. עדיין לא משויך שרטט לפרויקט.`,
+    ok: true,
+    drawingBatch,
   };
 }
 
@@ -266,8 +412,6 @@ export async function deletePhoto(photo, project, profile) {
 
 // ---- Shared project PDF documents ---------------------------------------
 
-const MAX_PROJECT_DOCUMENT_SIZE = 20 * 1024 * 1024;
-
 function isAssignedFieldWorker(project, profile, userId) {
   return (
     profile?.role === 'field_worker' &&
@@ -276,52 +420,67 @@ function isAssignedFieldWorker(project, profile, userId) {
   );
 }
 
-export async function uploadProjectDocument(project, file, profile, documentType = 'general') {
+export async function uploadProjectDocument(
+  project,
+  file,
+  profile,
+  documentType = 'general',
+  options = {},
+) {
   const user = await authApi.getCurrentUser();
   if (!user || !project?.id || !file || !profile) return { message: '' };
 
   const canUpload = profile.role === 'manager' || isAssignedFieldWorker(project, profile, user.id);
   if (!canUpload) return { message: 'אין לך הרשאה להעלות מסמכים לפרויקט הזה.' };
-  if (!navigator.onLine) return { message: 'נדרש חיבור לאינטרנט כדי להעלות מסמך PDF.' };
+  if (!navigator.onLine) return { message: 'נדרש חיבור לאינטרנט כדי להעלות קובץ.' };
 
-  const isPdfName = file.name.toLowerCase().endsWith('.pdf');
-  const isPdfType = !file.type || file.type === 'application/pdf';
-  if (!isPdfName || !isPdfType) return { message: 'אפשר להעלות קובצי PDF בלבד.' };
-  if (!file.size) return { message: 'קובץ ה־PDF ריק ולא ניתן להעלות אותו.' };
-  if (file.size > MAX_PROJECT_DOCUMENT_SIZE) {
-    return { message: 'קובץ ה־PDF גדול מדי. הגודל המרבי הוא 20MB.' };
+  const pdfFile = isPdfFile(file);
+  const imageFile = isSupportedImageFile(file);
+  const allowsImages = documentTypeAllowsImages(documentType);
+  if (!pdfFile && !(allowsImages && imageFile)) {
+    return {
+      message: allowsImages
+        ? 'אפשר להעלות PDF או תמונה בפורמט JPG, PNG, WEBP או HEIC.'
+        : 'אפשר להעלות קובץ PDF בלבד.',
+    };
+  }
+  if (!file.size) return { message: 'הקובץ ריק ולא ניתן להעלות אותו.' };
+  if (file.size > MAX_PROJECT_FILE_SIZE) {
+    return { message: 'הקובץ גדול מדי. הגודל המרבי הוא 20MB.' };
   }
 
   const path = `${project.id}/${user.id}/${Date.now()}-${storageApi.safeFileName(file.name)}`;
   const { error: uploadError } = await storageApi.uploadFile('project-documents', path, file, {
     upsert: false,
-    contentType: 'application/pdf',
+    contentType: file.type || (pdfFile ? 'application/pdf' : undefined),
     cacheControl: '3600',
   });
-  if (uploadError) return { message: `העלאת ה־PDF נכשלה: ${uploadError.message}` };
+  if (uploadError) return { message: `העלאת הקובץ נכשלה: ${uploadError.message}` };
 
   const { error: insertError } = await projectDocumentsApi.insertProjectDocument({
     project_id: project.id,
+    drawing_batch_id: options.drawingBatchId || null,
     uploaded_by: user.id,
     file_path: path,
     file_name: file.name,
     file_size: file.size,
+    mime_type: file.type || (pdfFile ? 'application/pdf' : null),
     document_type: documentType,
   });
   if (insertError) {
     await storageApi.removeFiles('project-documents', [path]);
-    return { message: `שמירת מסמך ה־PDF בפרויקט נכשלה: ${insertError.message}` };
+    return { message: `שמירת הקובץ בפרויקט נכשלה: ${insertError.message}` };
   }
 
   await statusHistoryApi.insertStatusHistory({
     project_id: project.id,
     old_status: null,
-    new_status: 'הועלה מסמך PDF',
+    new_status: 'הועלה מסמך',
     changed_by: user.id,
     note: `${documentType === 'boundary_sketch' ? 'סקיצת גבול עבודה' : documentType === 'drawing_correction' ? 'תיקוני שרטוט' : documentType === 'drawing_source' ? 'חומר לשרטוט' : 'מסמך כללי'}: ${file.name}`,
   });
 
-  if (profile.role === 'field_worker') {
+  if (profile.role === 'field_worker' && !options.suppressNotifications) {
     const documentPurpose =
       documentType === 'drawing_correction' ? 'תיקוני שרטוט' : 'חומר לשרטוט';
     await createManagerNotification(
@@ -343,7 +502,7 @@ export async function uploadProjectDocument(project, file, profile, documentType
     }
   }
 
-  return { message: 'מסמך ה־PDF הועלה ונשמר בפרויקט.', ok: true };
+  return { message: 'הקובץ הועלה ונשמר בפרויקט.', ok: true };
 }
 
 export async function deleteProjectDocument(projectDocument, project, profile) {
@@ -355,15 +514,15 @@ export async function deleteProjectDocument(projectDocument, project, profile) {
   const canDelete =
     profile.role === 'manager' ||
     (projectDocument.uploaded_by === user.id && isAssignedFieldWorker(project, profile, user.id));
-  if (!canDelete) return { message: 'אין לך הרשאה למחוק את מסמך ה־PDF הזה.' };
+  if (!canDelete) return { message: 'אין לך הרשאה למחוק את הקובץ הזה.' };
 
-  const ok = window.confirm(`למחוק את מסמך ה־PDF "${projectDocument.file_name}"?`);
+  const ok = window.confirm(`למחוק את הקובץ "${projectDocument.file_name}"?`);
   if (!ok) return null;
 
   const { error: storageError } = await storageApi.removeFiles('project-documents', [
     projectDocument.file_path,
   ]);
-  if (storageError) return { message: `מחיקת ה־PDF מהאחסון נכשלה: ${storageError.message}` };
+  if (storageError) return { message: `מחיקת הקובץ מהאחסון נכשלה: ${storageError.message}` };
 
   const { error: deleteError } = await projectDocumentsApi.deleteProjectDocument(
     projectDocument.id,
@@ -375,12 +534,12 @@ export async function deleteProjectDocument(projectDocument, project, profile) {
   await statusHistoryApi.insertStatusHistory({
     project_id: project.id,
     old_status: null,
-    new_status: 'נמחק מסמך PDF',
+    new_status: 'נמחק מסמך',
     changed_by: user.id,
     note: projectDocument.file_name,
   });
 
-  return { message: 'מסמך ה־PDF נמחק מהפרויקט.' };
+  return { message: 'הקובץ נמחק מהפרויקט.' };
 }
 
 // ---- Drafter / review workflow --------------------------------------------
@@ -405,6 +564,11 @@ export async function assignProjectDrafter(project, drafterId, profile, workers)
       );
       if (deleteError) return { message: `הסרת שיוך השרטט נכשלה: ${deleteError.message}` };
     }
+    const { error: batchUnassignmentError } =
+      await drawingBatchesApi.assignDrafterToActiveBatches(project.id, null);
+    if (batchUnassignmentError) {
+      console.warn('Active drawing batch unassignment failed:', batchUnassignmentError.message);
+    }
     return { message: `שיוך השרטט הוסר מהפרויקט ${project.name}` };
   }
 
@@ -423,6 +587,12 @@ export async function assignProjectDrafter(project, drafterId, profile, workers)
       otherDrafterIds,
     );
     if (deleteError) return { message: `השרטט החדש שויך, אך ניקוי השיוך הקודם נכשל: ${deleteError.message}` };
+  }
+
+  const { error: batchAssignmentError } =
+    await drawingBatchesApi.assignDrafterToActiveBatches(project.id, drafterId);
+  if (batchAssignmentError) {
+    console.warn('Pending drawing batch assignment failed:', batchAssignmentError.message);
   }
 
   await statusHistoryApi.insertStatusHistory({
@@ -448,7 +618,7 @@ export async function assignProjectDrafter(project, drafterId, profile, workers)
   };
 }
 
-export async function sendProjectToReview(project, file, note, profile) {
+export async function sendProjectToReview(project, selectedFiles, note, profile) {
   const user = await authApi.getCurrentUser();
   if (!user || !profile) return { message: '', ok: false };
   if (profile.role !== 'manager' && !isDrafterCandidate(profile)) {
@@ -457,32 +627,56 @@ export async function sendProjectToReview(project, file, note, profile) {
   if (project.status !== 'עבר לשרטוט') {
     return { message: 'אפשר לשלוח להגהה רק פרויקט שנמצא בסטטוס עבר לשרטוט.', ok: false };
   }
-  if (!file) return { message: 'יש לבחור קובץ PDF לפני שליחה להגהה.', ok: false };
-  if (!navigator.onLine) return { message: 'נדרש חיבור לאינטרנט כדי לשלוח PDF להגהה.', ok: false };
-  const isPdfName = file.name.toLowerCase().endsWith('.pdf');
-  const isPdfType = !file.type || file.type === 'application/pdf';
-  if (!isPdfName || !isPdfType) return { message: 'אפשר להעלות להגהה קובץ PDF בלבד.', ok: false };
-  if (!file.size) return { message: 'קובץ ה־PDF ריק ולא ניתן להעלות אותו.', ok: false };
-  if (file.size > MAX_PROJECT_DOCUMENT_SIZE) {
-    return { message: 'קובץ ה־PDF גדול מדי. הגודל המרבי הוא 20MB.', ok: false };
+  const files = Array.from(Array.isArray(selectedFiles) ? selectedFiles : selectedFiles ? [selectedFiles] : []);
+  if (!files.length) return { message: 'יש לבחור לפחות קובץ PDF אחד לפני שליחה להגהה.', ok: false };
+  if (!navigator.onLine) return { message: 'נדרש חיבור לאינטרנט כדי לשלוח קובצי PDF להגהה.', ok: false };
+
+  for (const file of files) {
+    const isPdfName = file.name.toLowerCase().endsWith('.pdf');
+    const isPdfType = !file.type || file.type === 'application/pdf';
+    if (!isPdfName || !isPdfType) {
+      return { message: `הקובץ "${file.name}" אינו PDF. אפשר להעלות להגהה קובצי PDF בלבד.`, ok: false };
+    }
+    if (!file.size) {
+      return { message: `הקובץ "${file.name}" ריק ולא ניתן להעלות אותו.`, ok: false };
+    }
+    if (file.size > MAX_PROJECT_FILE_SIZE) {
+      return { message: `הקובץ "${file.name}" גדול מדי. הגודל המרבי לכל קובץ הוא 20MB.`, ok: false };
+    }
   }
 
-  const path = `${project.id}/${user.id}/${Date.now()}-${storageApi.safeFileName(file.name)}`;
-  const { error: uploadError } = await storageApi.uploadFile('project-review-files', path, file, {
-    upsert: false,
-    contentType: 'application/pdf',
-  });
-  if (uploadError) return { message: `העלאת קובץ ההגהה נכשלה: ${uploadError.message}`, ok: false };
+  const uploadStamp = Date.now();
+  const uploads = files.map((file, index) => ({
+    file,
+    path: `${project.id}/${user.id}/${uploadStamp}-${index}-${storageApi.safeFileName(file.name)}`,
+  }));
+  const uploadResults = await Promise.all(
+    uploads.map(async ({ file, path }) => {
+      const { error } = await storageApi.uploadFile('project-review-files', path, file, {
+        upsert: false,
+        contentType: 'application/pdf',
+      });
+      return { path, error };
+    }),
+  );
+  const uploadedPaths = uploadResults.filter(({ error }) => !error).map(({ path }) => path);
+  const failedUpload = uploadResults.find(({ error }) => error);
+  if (failedUpload) {
+    if (uploadedPaths.length) await storageApi.removeFiles('project-review-files', uploadedPaths);
+    return { message: `העלאת קובצי ההגהה נכשלה: ${failedUpload.error.message}`, ok: false };
+  }
 
-  const { data: insertedFile, error: fileError } = await projectReviewFilesApi.insertProjectReviewFile({
-    project_id: project.id,
-    uploaded_by: user.id,
-    file_path: path,
-    file_name: file.name,
-  });
+  const { data: insertedFiles, error: fileError } = await projectReviewFilesApi.insertProjectReviewFiles(
+    uploads.map(({ file, path }) => ({
+      project_id: project.id,
+      uploaded_by: user.id,
+      file_path: path,
+      file_name: file.name,
+    })),
+  );
   if (fileError) {
-    await storageApi.removeFiles('project-review-files', [path]);
-    return { message: `שמירת קובץ ההגהה נכשלה: ${fileError.message}`, ok: false };
+    await storageApi.removeFiles('project-review-files', uploadedPaths);
+    return { message: `שמירת קובצי ההגהה נכשלה: ${fileError.message}`, ok: false };
   }
 
   const { error: projectError } = await projectsApi.updateProject(project.id, {
@@ -490,27 +684,33 @@ export async function sendProjectToReview(project, file, note, profile) {
     progress: 85,
   });
   if (projectError) {
-    if (insertedFile?.id) await projectReviewFilesApi.deleteProjectReviewFile(insertedFile.id);
-    await storageApi.removeFiles('project-review-files', [path]);
+    const insertedFileIds = (insertedFiles || []).map(({ id }) => id).filter(Boolean);
+    if (insertedFileIds.length) await projectReviewFilesApi.deleteProjectReviewFiles(insertedFileIds);
+    await storageApi.removeFiles('project-review-files', uploadedPaths);
     return { message: `עדכון הפרויקט לסטטוס הגהה נכשל: ${projectError.message}`, ok: false };
   }
 
   const cleanNote = String(note || '').trim();
+  const fileNames = files.map(({ name }) => name);
+  const fileDescription =
+    files.length === 1 ? `PDF: ${fileNames[0]}` : `${files.length} קובצי PDF: ${fileNames.join(', ')}`;
   await statusHistoryApi.insertStatusHistory({
     project_id: project.id,
     old_status: project.status,
     new_status: REVIEW_STATUS,
     changed_by: user.id,
-    note: `נשלח להגהה על ידי ${profile.full_name}. PDF: ${file.name}${cleanNote ? ` · הערה: ${cleanNote}` : ''}`,
+    note: `נשלח להגהה על ידי ${profile.full_name}. ${fileDescription}${cleanNote ? ` · הערה: ${cleanNote}` : ''}`,
   });
 
+  const notificationFileDescription =
+    files.length === 1 ? 'וצירף PDF לבדיקה.' : `וצירף ${files.length} קובצי PDF לבדיקה.`;
   const workerIds = getProjectFieldWorkerIds(project);
   for (const workerId of workerIds) {
     await createUserNotification(
       workerId,
       'project_review_sent',
       `נשלח להגהה: ${project.name}`,
-      `השרטט ${profile.full_name} שלח את הפרויקט להגהה וצירף PDF לבדיקה.${cleanNote ? ` הערה: ${cleanNote}` : ''}`,
+      `השרטט ${profile.full_name} שלח את הפרויקט להגהה ${notificationFileDescription}${cleanNote ? ` הערה: ${cleanNote}` : ''}`,
       project.id,
     );
   }
@@ -522,7 +722,7 @@ export async function sendProjectToReview(project, file, note, profile) {
       drafterId,
       'project_review_sent',
       `נשלח להגהה: ${project.name}`,
-      `${profile.full_name} שלח את הפרויקט להגהה וצירף PDF לבדיקה.${cleanNote ? ` הערה: ${cleanNote}` : ''}`,
+      `${profile.full_name} שלח את הפרויקט להגהה ${notificationFileDescription}${cleanNote ? ` הערה: ${cleanNote}` : ''}`,
       project.id,
     );
   }
@@ -533,8 +733,9 @@ export async function sendProjectToReview(project, file, note, profile) {
     clientName: project.client_name,
     location: project.location,
     contactPhone: project.contact_phone || null,
-    pdfFileName: file.name,
-    pdfFilePath: path,
+    pdfFileName: files[0].name,
+    pdfFilePath: uploads[0].path,
+    pdfFiles: uploads.map(({ file, path }) => ({ name: file.name, path })),
     note: cleanNote,
     changedByName: profile.full_name,
     changedByEmail: profile.email,
@@ -549,7 +750,187 @@ export async function sendProjectToReview(project, file, note, profile) {
     };
   }
 
-  return { message: 'הפרויקט נשלח להגהה, ה-PDF נשמר ונשלחו התראות ומיילים.', ok: true };
+  return {
+    message:
+      files.length === 1
+        ? 'הפרויקט נשלח להגהה, ה-PDF נשמר ונשלחו התראות ומיילים.'
+        : `הפרויקט נשלח להגהה, ${files.length} קובצי PDF נשמרו ונשלחו התראות ומיילים.`,
+    ok: true,
+  };
+}
+
+const drawingBatchStatusLabels = {
+  pending_drafting: 'ממתינה לשרטוט',
+  in_drafting: 'בשרטוט',
+  sent_to_review: 'נשלחה להגהה',
+  approved: 'אושרה',
+  cancelled: 'בוטלה',
+};
+
+export async function updateDrawingBatchStatus(project, drawingBatch, newStatus, profile) {
+  const user = await authApi.getCurrentUser();
+  if (!user || !profile || !project?.id || !drawingBatch?.id) {
+    return { message: '', ok: false };
+  }
+  if (!drawingBatchStatusLabels[newStatus] || newStatus === drawingBatch.status) {
+    return { message: 'יש לבחור סטטוס תקין ושונה מהסטטוס הנוכחי.', ok: false };
+  }
+  if (!navigator.onLine) {
+    return { message: 'נדרש חיבור לאינטרנט כדי לעדכן מנת שרטוט.', ok: false };
+  }
+
+  const { data: updatedBatch, error } = await drawingBatchesApi.updateDrawingBatch(
+    drawingBatch.id,
+    { status: newStatus },
+  );
+  if (error) return { message: `עדכון מנת השרטוט נכשל: ${error.message}`, ok: false };
+
+  await statusHistoryApi.insertStatusHistory({
+    project_id: project.id,
+    old_status: null,
+    new_status: 'עודכן סטטוס מנת שרטוט',
+    changed_by: user.id,
+    note: `מנה ${drawingBatch.batch_number}: ${drawingBatchStatusLabels[drawingBatch.status]} → ${drawingBatchStatusLabels[newStatus]}`,
+  });
+
+  if (newStatus === 'sent_to_review') {
+    const title = `מנת שרטוט ${drawingBatch.batch_number} נשלחה להגהה: ${project.name}`;
+    const body = `${profile.full_name} שלח את מנת השרטוט להגהה.`;
+    const fieldWorkerIds = getProjectFieldWorkerIds(project).filter((workerId) => workerId !== user.id);
+    await Promise.all([
+      createManagerNotification('drawing_batch_review', title, body, project.id),
+      ...fieldWorkerIds.map((workerId) =>
+        createUserNotification(workerId, 'drawing_batch_review', title, body, project.id),
+      ),
+    ]);
+  } else if (newStatus === 'approved' && drawingBatch.assigned_drafter) {
+    await createUserNotification(
+      drawingBatch.assigned_drafter,
+      'drawing_batch_approved',
+      `מנת שרטוט ${drawingBatch.batch_number} אושרה: ${project.name}`,
+      `${profile.full_name} אישר את מנת השרטוט.`,
+      project.id,
+    );
+  } else if (newStatus === 'in_drafting') {
+    await createManagerNotification(
+      'drawing_batch_started',
+      `החל שרטוט מנה ${drawingBatch.batch_number}: ${project.name}`,
+      `${profile.full_name} התחיל לטפל במנת השרטוט.`,
+      project.id,
+    );
+  }
+
+  return {
+    message: `מנת שרטוט ${drawingBatch.batch_number} עודכנה ל„${drawingBatchStatusLabels[newStatus]}”.`,
+    ok: true,
+    drawingBatch: updatedBatch,
+  };
+}
+
+export async function sendDrawingBatchToReview(
+  project,
+  drawingBatch,
+  selectedFiles,
+  note,
+  profile,
+) {
+  const user = await authApi.getCurrentUser();
+  if (!user || !profile || !drawingBatch?.id) return { message: '', ok: false };
+  if (profile.role !== 'manager' && !isDrafterCandidate(profile)) {
+    return { message: 'רק שרטט או מנהל יכולים לשלוח מנת שרטוט להגהה.', ok: false };
+  }
+  if (
+    profile.role !== 'manager' &&
+    drawingBatch.assigned_drafter &&
+    drawingBatch.assigned_drafter !== user.id
+  ) {
+    return { message: 'מנת השרטוט משויכת לשרטט אחר.', ok: false };
+  }
+
+  const files = Array.from(
+    Array.isArray(selectedFiles) ? selectedFiles : selectedFiles ? [selectedFiles] : [],
+  );
+  if (!files.length) {
+    return { message: 'יש לבחור לפחות קובץ PDF אחד לפני שליחה להגהה.', ok: false };
+  }
+  if (!navigator.onLine) {
+    return { message: 'נדרש חיבור לאינטרנט כדי לשלוח קובצי PDF להגהה.', ok: false };
+  }
+  for (const file of files) {
+    if (!isPdfFile(file)) {
+      return { message: `הקובץ "${file.name}" אינו PDF.`, ok: false };
+    }
+    if (!file.size || file.size > MAX_PROJECT_FILE_SIZE) {
+      return { message: `הקובץ "${file.name}" ריק או גדול מ-20MB.`, ok: false };
+    }
+  }
+
+  const uploadStamp = Date.now();
+  const uploads = files.map((file, index) => ({
+    file,
+    path: `${project.id}/${user.id}/${drawingBatch.id}/${uploadStamp}-${index}-${storageApi.safeFileName(file.name)}`,
+  }));
+  const uploadResults = await Promise.all(
+    uploads.map(async ({ file, path }) => {
+      const { error } = await storageApi.uploadFile('project-review-files', path, file, {
+        upsert: false,
+        contentType: 'application/pdf',
+      });
+      return { path, error };
+    }),
+  );
+  const uploadedPaths = uploadResults.filter(({ error }) => !error).map(({ path }) => path);
+  const failedUpload = uploadResults.find(({ error }) => error);
+  if (failedUpload) {
+    if (uploadedPaths.length) await storageApi.removeFiles('project-review-files', uploadedPaths);
+    return { message: `העלאת קובצי ההגהה נכשלה: ${failedUpload.error.message}`, ok: false };
+  }
+
+  const { data: insertedFiles, error: fileError } =
+    await projectReviewFilesApi.insertProjectReviewFiles(
+      uploads.map(({ file, path }) => ({
+        project_id: project.id,
+        drawing_batch_id: drawingBatch.id,
+        uploaded_by: user.id,
+        file_path: path,
+        file_name: file.name,
+      })),
+    );
+  if (fileError) {
+    await storageApi.removeFiles('project-review-files', uploadedPaths);
+    return { message: `שמירת קובצי ההגהה נכשלה: ${fileError.message}`, ok: false };
+  }
+
+  const statusResult = await updateDrawingBatchStatus(
+    project,
+    drawingBatch,
+    'sent_to_review',
+    profile,
+  );
+  if (!statusResult.ok) {
+    const insertedFileIds = (insertedFiles || []).map(({ id }) => id).filter(Boolean);
+    if (insertedFileIds.length) {
+      await projectReviewFilesApi.deleteProjectReviewFiles(insertedFileIds);
+    }
+    await storageApi.removeFiles('project-review-files', uploadedPaths);
+    return statusResult;
+  }
+
+  const cleanNote = String(note || '').trim();
+  if (cleanNote) {
+    await statusHistoryApi.insertStatusHistory({
+      project_id: project.id,
+      old_status: null,
+      new_status: 'הערה למנת שרטוט',
+      changed_by: user.id,
+      note: `מנה ${drawingBatch.batch_number}: ${cleanNote}`,
+    });
+  }
+
+  return {
+    message: `מנת שרטוט ${drawingBatch.batch_number} נשלחה להגהה עם ${files.length} קובצי PDF.`,
+    ok: true,
+  };
 }
 
 export async function deleteProjectReviewFile(file, projectId, profile) {
@@ -597,8 +978,8 @@ export async function createProject(newProject, profile) {
     contact_phone: newProject.contact_phone || null,
     contact_email: newProject.contact_email || null,
     description: newProject.description || null,
+    additional_notes: newProject.additional_notes || null,
     assigned_to: newProject.assigned_to || null,
-    due_date: newProject.due_date || null,
     created_by: user.id,
     status: 'בעבודה בשטח',
     progress: 25,
@@ -690,8 +1071,8 @@ export async function saveProject(projectId, changes, profile, originalProject) 
     contact_phone: changes.contact_phone || null,
     contact_email: changes.contact_email || null,
     description: changes.description || null,
+    additional_notes: changes.additional_notes || null,
     assigned_to: nextAssignedTo,
-    due_date: changes.due_date || null,
     requires_work_diary: Boolean(changes.requires_work_diary),
   });
   if (error) return { message: error.message };
@@ -730,7 +1111,6 @@ export async function saveProject(projectId, changes, profile, originalProject) 
     location: changes.location || originalProject?.location || null,
     contact_phone: changes.contact_phone || originalProject?.contact_phone || null,
     description: changes.description || originalProject?.description || null,
-    due_date: changes.due_date || originalProject?.due_date || null,
   };
 
   for (const workerId of addedExtraWorkers) {

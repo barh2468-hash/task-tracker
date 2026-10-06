@@ -28,7 +28,7 @@ export default function SickCertificateLink({ certificate, compact = false }) {
       else window.location.assign(data.signedUrl);
     } catch (error) {
       popup?.close();
-      setMessage(error instanceof Error ? error.message : String(error));
+      setMessage(error instanceof Error ? error.message : String(error), 'error');
     } finally {
       setLoading(false);
     }
@@ -40,10 +40,10 @@ export default function SickCertificateLink({ certificate, compact = false }) {
       className={`sickCertificateLink ${compact ? 'compact' : ''}`}
       onClick={openCertificate}
       disabled={loading}
-      title={certificate.original_name || t('צפייה באישור מחלה')}
+      title={certificate.original_name || t('צפייה באישור')}
     >
       <FileCheck2 size={compact ? 15 : 18} />
-      <span>{loading ? t('פותח...') : certificate.original_name || t('צפייה באישור מחלה')}</span>
+      <span>{loading ? t('פותח...') : certificate.original_name || t('צפייה באישור')}</span>
       <ExternalLink size={compact ? 13 : 15} />
     </button>
   );

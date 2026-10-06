@@ -8,6 +8,7 @@ import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useMessage } from '../context/MessageContext.jsx';
 import { appStatuses } from '../services/supabase.js';
 import ProjectCard from '../features/projects/components/ProjectCard.jsx';
+import { getProjectPage } from '../features/projects/utils/projectPage.js';
 
 const PROJECT_BATCH_SIZE = 20;
 const LOAD_MORE_DELAY_MS = 650;
@@ -22,6 +23,7 @@ export default function ProjectsPage() {
   const [visibleLimit, setVisibleLimit] = useState(PROJECT_BATCH_SIZE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [focusedProjectId, setFocusedProjectId] = useState(null);
+  const [linkedProjectTarget, setLinkedProjectTarget] = useState(null);
   const [deepLinkDenied, setDeepLinkDenied] = useState(false);
   const loadMoreRef = useRef(null);
   const loadMoreTimerRef = useRef(null);
@@ -30,6 +32,13 @@ export default function ProjectsPage() {
   const statusFilter = searchParams.get('status') || '';
   const listViewKey = `${query}\u0000${filter}\u0000${statusFilter}`;
   const previousListViewKeyRef = useRef(listViewKey);
+
+  function setStatusFilter(nextStatus) {
+    const next = new URLSearchParams(searchParams);
+    if (nextStatus) next.set('status', nextStatus);
+    else next.delete('status');
+    setSearchParams(next);
+  }
 
   // A project reference can arrive from chat, notifications, reports or a push link.
   // Resolve it only after the permitted project list has finished loading.
@@ -43,51 +52,60 @@ export default function ProjectsPage() {
     next.delete('project');
     if (!linkedProject) {
       setFocusedProjectId(null);
+      setLinkedProjectTarget(null);
       setDeepLinkDenied(true);
-      setMessage(t('אין לך הרשאה לצפות בפרויקט זה.'));
+      setMessage(t('אין לך הרשאה לצפות בפרויקט זה.'), 'error');
       setSearchParams(next, { replace: true });
       return;
     }
 
     setDeepLinkDenied(false);
+    const linkedFilter = linkedProject.is_archived ? 'archive' : isManager ? 'all' : 'mine';
+    setLinkedProjectTarget({ id: projectId, filter: linkedFilter });
     setFocusedProjectId(projectId);
-    next.set('filter', linkedProject.is_archived ? 'archive' : isManager ? 'all' : 'mine');
+    setQuery('');
+    // Cancel a pending load-more batch before replacing the list's target.
+    window.clearTimeout(loadMoreTimerRef.current);
+    loadMoreTimerRef.current = null;
+    setIsLoadingMore(false);
+    setVisibleLimit(PROJECT_BATCH_SIZE);
+    next.set('filter', linkedFilter);
     next.delete('status');
     setSearchParams(next, { replace: true });
-    const linkedIndex = projects.findIndex((p) => p.id === projectId);
-    if (linkedIndex >= 0) setVisibleLimit((limit) => Math.max(limit, linkedIndex + 1));
   }, [isManager, projects, projectsLoaded, searchParams, setMessage, setSearchParams]);
 
-  function setStatusFilter(nextStatus) {
-    const next = new URLSearchParams(searchParams);
-    if (nextStatus) next.set('status', nextStatus);
-    else next.delete('status');
-    setSearchParams(next);
-  }
-
-  const visibleProjects = projects.filter((p) => {
-    const text =
-      `${p.name} ${p.location} ${p.contact_phone || ''} ${p.contact_email || ''} ${p.client_name || ''} ${p.description || ''}`.toLowerCase();
-    const okQuery = !query || text.includes(query.toLowerCase());
-    const okStatus = !statusFilter || p.status === statusFilter;
+  const categoryProjects = projects.filter((p) => {
     const okArchive = filter === 'archive' ? !!p.is_archived : !p.is_archived;
     const okTab =
       filter === 'unassigned'
         ? !p.assigned_to
         : filter !== 'mine' || !isManager || p.assigned_to === session?.user?.id;
-    return okQuery && okStatus && okArchive && okTab;
+    return okArchive && okTab;
   });
-  const pagedProjects = visibleProjects.slice(0, visibleLimit);
+  const visibleProjects = categoryProjects.filter((p) => {
+    const text =
+      `${p.name} ${p.location} ${p.contact_phone || ''} ${p.contact_email || ''} ${p.client_name || ''} ${p.description || ''} ${p.additional_notes || ''}`.toLowerCase();
+    const okQuery = !query || text.includes(query.toLowerCase());
+    const okStatus = !statusFilter || p.status === statusFilter;
+    return okQuery && okStatus;
+  });
+  // Keep the target in place after its temporary focus highlight expires.
+  // Search and other list filters still take precedence over this ordering.
+  const linkedProjectId = !query && !statusFilter && filter === linkedProjectTarget?.filter
+    ? linkedProjectTarget.id
+    : null;
+  const pagedProjects = getProjectPage(visibleProjects, visibleLimit, linkedProjectId);
   const hasMoreProjects = visibleLimit < visibleProjects.length;
 
   useEffect(() => {
     if (!focusedProjectId) return;
     const projectElement = document.getElementById(`project-${focusedProjectId}`);
     if (!projectElement) return;
-    window.requestAnimationFrame(() => {
-      projectElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const frame = window.requestAnimationFrame(() => {
+      projectElement.scrollIntoView({ behavior: 'auto', block: 'start' });
     });
-  }, [focusedProjectId, pagedProjects.length]);
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusedProjectId]);
 
   useEffect(() => {
     if (!focusedProjectId) return undefined;
@@ -116,9 +134,7 @@ export default function ProjectsPage() {
 
         setIsLoadingMore(true);
         loadMoreTimerRef.current = window.setTimeout(() => {
-          setVisibleLimit((limit) =>
-            Math.min(limit + PROJECT_BATCH_SIZE, visibleProjects.length),
-          );
+          setVisibleLimit((limit) => Math.min(limit + PROJECT_BATCH_SIZE, visibleProjects.length));
           setIsLoadingMore(false);
           loadMoreTimerRef.current = null;
         }, LOAD_MORE_DELAY_MS);
@@ -143,45 +159,28 @@ export default function ProjectsPage() {
       ? t('פרויקטים ללא שיוך')
       : filter === 'archive'
         ? t('ארכיון פרויקטים')
-        : filter === 'mine' && !isManager
+        : filter === 'mine'
           ? t('הפרויקטים שלי')
           : t('כל הפרויקטים');
+  const listLoading = !projectsLoaded && !projects.length;
+  const countLabel = listLoading
+    ? t('טוען...')
+    : query || statusFilter
+      ? t(
+          categoryProjects.length === 1
+            ? '{{count}} מתוך פרויקט אחד'
+            : '{{count}} מתוך {{total}} פרויקטים',
+          {
+            count: visibleProjects.length,
+            total: categoryProjects.length,
+          },
+        )
+      : visibleProjects.length === 1
+        ? t('פרויקט אחד')
+        : t('{{count}} פרויקטים', { count: visibleProjects.length });
 
   return (
     <section className="card">
-      <div className="toolbar">
-        <div style={{ minWidth: 260, flex: 1 }}>
-          <label htmlFor="project-search" className="visuallyHidden">
-            {t('חיפוש פרויקטים')}
-          </label>
-          <input
-            id="project-search"
-            placeholder={t('חיפוש לפי שם, לקוח או מיקום...')}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-        <label htmlFor="project-status-filter" className="visuallyHidden">
-          {t('סינון לפי סטטוס')}
-        </label>
-        <select
-          id="project-status-filter"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          style={{ maxWidth: 220 }}
-        >
-          <option value="">{t('כל הסטטוסים')}</option>
-          {appStatuses.map((s) => (
-            <option key={s} value={s}>
-              {t(s)}
-            </option>
-          ))}
-        </select>
-        <button className="ghost">
-          <Search size={16} />
-          {t('סינון')}
-        </button>
-      </div>
       {deepLinkDenied && (
         <div className="projectDeepLinkNotice" role="alert">
           <ShieldAlert size={22} />
@@ -189,16 +188,53 @@ export default function ProjectsPage() {
             <b>{t('אין לך הרשאה לצפות בפרויקט זה')}</b>
             <span>{t('הפרויקט אינו משויך אליך ולכן פרטיו אינם זמינים עבורך.')}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setDeepLinkDenied(false)}
-            aria-label={t('סגירה')}
-          >
+          <button type="button" onClick={() => setDeepLinkDenied(false)} aria-label={t('סגירה')}>
             ×
           </button>
         </div>
       )}
-      <h2>{heading}</h2>
+      <header className="projectListHeader">
+        <div className="projectListHeading">
+          <h2>{heading}</h2>
+          <span
+            className={listLoading || query || statusFilter || !isManager ? 'projectListCount' : 'visuallyHidden'}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {countLabel}
+          </span>
+        </div>
+        <div className="projectListFilters">
+          <div className="projectListSearch">
+            <label htmlFor="project-search" className="visuallyHidden">
+              {t('חיפוש פרויקטים')}
+            </label>
+            <Search size={18} aria-hidden="true" />
+            <input
+              id="project-search"
+              placeholder={t('חיפוש לפי שם, לקוח או מיקום...')}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <label htmlFor="project-status-filter" className="visuallyHidden">
+            {t('סינון לפי סטטוס')}
+          </label>
+          <select
+            id="project-status-filter"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+          >
+            <option value="">{t('כל הסטטוסים')}</option>
+            {appStatuses.map((status) => (
+              <option key={status} value={status}>
+                {t(status)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </header>
       <div className="projects" aria-busy={isLoadingMore}>
         {visibleProjects.length === 0 && (
           <div className="empty">{t('אין פרויקטים להצגה כרגע')}</div>
@@ -209,10 +245,7 @@ export default function ProjectsPage() {
             id={`project-${project.id}`}
             className={project.id === focusedProjectId ? 'projectDeepLinkTarget' : ''}
           >
-            <ProjectCard
-              project={project}
-              focused={project.id === focusedProjectId}
-            />
+            <ProjectCard project={project} focused={project.id === focusedProjectId} />
           </div>
         ))}
         {hasMoreProjects && (

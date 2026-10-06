@@ -233,7 +233,7 @@ export default function WorkReportPanel() {
                     )}
                   </td>
                   <td>
-                    {item.attendance_type === 'sick' ? (
+                    {['sick', 'vacation'].includes(item.attendance_type) ? (
                       <SickCertificateLink certificate={item.sick_certificate} compact />
                     ) : (
                       '-'
@@ -293,6 +293,7 @@ export default function WorkReportPanel() {
                   <br />
                   <span className="muted">
                     {formatHoursDecimal(row.totalMinutes)}
+                    {' '}
                     {t('שעות')}
                   </span>
                 </td>

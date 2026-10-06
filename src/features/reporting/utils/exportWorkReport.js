@@ -209,7 +209,7 @@ function addAttendanceSheet(workbook, attendance, context) {
       minutes === null ? null : minutes / 60, status,
       item.is_all_day || !startLink ? '-' : { text: 'פתיחה במפה', hyperlink: startLink },
       item.is_all_day || !endLink ? '-' : { text: 'פתיחה במפה', hyperlink: endLink },
-      item.attendance_type === 'sick'
+      ['sick', 'vacation'].includes(item.attendance_type)
         ? item.sick_certificate?.file_path
           ? item.sick_certificate.original_name || 'צורף אישור'
           : 'לא צורף'
@@ -404,7 +404,7 @@ export async function exportWorkReport({ workSessions, attendanceSessions, worke
       return (!fromDate || date >= fromDate) && (!toDate || date <= toDate);
     });
   if (!filteredSessions.length && !filteredAttendance.length) {
-    setMessage(workerId === 'all' ? 'אין נתוני שעות לייצוא בטווח התאריכים שנבחר.' : 'אין נתוני שעות לעובד שנבחר בטווח התאריכים.');
+    setMessage(workerId === 'all' ? 'אין נתוני שעות לייצוא בטווח התאריכים שנבחר.' : 'אין נתוני שעות לעובד שנבחר בטווח התאריכים.', 'info');
     return;
   }
   try {
@@ -428,6 +428,6 @@ export async function exportWorkReport({ workSessions, attendanceSessions, worke
     setMessage('קובץ Excel מעוצב יוצא בהצלחה.');
   } catch (error) {
     console.error('Failed to export work report workbook', error);
-    setMessage('לא ניתן היה לייצא את קובץ ה-Excel. נסו שוב.');
+    setMessage('לא ניתן היה לייצא את קובץ ה-Excel. נסו שוב.', 'error');
   }
 }

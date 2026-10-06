@@ -2,6 +2,7 @@ import { t } from '../language/LanguageContext.jsx';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
+import { resultTone } from '../../context/messageTone.js';
 import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh.js';
 import * as profilesApi from '../../services/api/profiles.js';
 import * as projectsFeatureApi from './api.js';
@@ -30,9 +31,9 @@ export function ProjectsProvider({ children }) {
       if (cached) {
         setProjects(cached);
         if (!navigator.onLine)
-          setMessage(t('אין חיבור. מוצגים נתוני הפרויקטים האחרונים שנשמרו במכשיר.'));
+          setMessage(t('אין חיבור. מוצגים נתוני הפרויקטים האחרונים שנשמרו במכשיר.'), 'info');
       } else {
-        setMessage(error instanceof Error ? error.message : String(error));
+        setMessage(error instanceof Error ? error.message : String(error), 'error');
       }
     } finally {
       setProjectsLoaded(true);
@@ -47,7 +48,7 @@ export function ProjectsProvider({ children }) {
       const cached = await getOfflineData(`workers:${profile?.id}`);
       if (cached) setWorkers(cached);
       else {
-        setMessage(error.message);
+        setMessage(error.message, 'error');
         setWorkers([]);
       }
       return;
@@ -92,6 +93,8 @@ export function ProjectsProvider({ children }) {
       'project_workers',
       'project_review_files',
       'project_documents',
+      'project_drawing_batches',
+      'project_drawing_batch_events',
       'work_sessions',
       'profiles',
     ],
@@ -108,7 +111,7 @@ export function ProjectsProvider({ children }) {
 
   async function runMutation(promise, applyOptimistic) {
     const result = await promise;
-    if (result?.message) setMessage(result.message);
+    if (result?.message) setMessage(result.message, resultTone(result));
     if (result?.offline) {
       applyOptimistic?.(result);
       return result;
@@ -119,7 +122,7 @@ export function ProjectsProvider({ children }) {
 
   async function runStatusMutation(project, newStatus, note) {
     const result = await projectsFeatureApi.updateStatus(project, newStatus, note, profile);
-    if (result?.message) setMessage(result.message);
+    if (result?.message) setMessage(result.message, resultTone(result));
     if (result?.optimistic) {
       setProjects((items) =>
         items.map((item) =>
@@ -141,6 +144,7 @@ export function ProjectsProvider({ children }) {
     loadProjects,
     loadWorkers,
     loadHistory,
+    loadProjectHistory: projectsFeatureApi.getProjectHistory,
     loadProjectAssets: projectsFeatureApi.getProjectAssets,
     createProject: (newProject) =>
       runMutation(projectsFeatureApi.createProject(newProject, profile)),
@@ -154,6 +158,27 @@ export function ProjectsProvider({ children }) {
     archiveProject: (project) => runMutation(projectsFeatureApi.archiveProject(project, profile)),
     restoreProject: (project) => runMutation(projectsFeatureApi.restoreProject(project, profile)),
     updateStatus: runStatusMutation,
+    submitContinuationReport: (project, report) =>
+      runMutation(projectsFeatureApi.submitContinuationReport(project, report, profile)),
+    updateDrawingBatchStatus: (project, drawingBatch, newStatus) =>
+      runMutation(
+        projectsFeatureApi.updateDrawingBatchStatus(
+          project,
+          drawingBatch,
+          newStatus,
+          profile,
+        ),
+      ),
+    sendDrawingBatchToReview: (project, drawingBatch, files, note) =>
+      runMutation(
+        projectsFeatureApi.sendDrawingBatchToReview(
+          project,
+          drawingBatch,
+          files,
+          note,
+          profile,
+        ),
+      ),
     uploadPhoto: (projectId, file, category) =>
       runMutation(projectsFeatureApi.uploadPhoto(projectId, file, category)),
     deletePhoto: (photo, project) =>
@@ -164,8 +189,8 @@ export function ProjectsProvider({ children }) {
       runMutation(projectsFeatureApi.deleteProjectDocument(projectDocument, project, profile)),
     assignProjectDrafter: (project, drafterId) =>
       runMutation(projectsFeatureApi.assignProjectDrafter(project, drafterId, profile, workers)),
-    sendProjectToReview: (project, file, note) =>
-      runMutation(projectsFeatureApi.sendProjectToReview(project, file, note, profile)),
+    sendProjectToReview: (project, files, note) =>
+      runMutation(projectsFeatureApi.sendProjectToReview(project, files, note, profile)),
     deleteProjectReviewFile: (file, projectId) =>
       runMutation(projectsFeatureApi.deleteProjectReviewFile(file, projectId, profile)),
     addProjectTask: (projectId, title, description) => {

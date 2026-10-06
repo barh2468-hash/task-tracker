@@ -163,8 +163,18 @@
   .mobileMoreSheet .sidebarDisclosure:focus-visible,
   .mobileMoreSheet .pwaControlButton:focus-visible { outline: 2px solid #9bd8ff; outline-offset: -2px; }
 
-  .page.chatPage { padding-bottom: var(--mobile-nav-height); }
-  .page.chatPage > .container { margin-top: calc(64px + env(safe-area-inset-top)); padding-bottom: 8px; }
+  /* Chat fills the viewport above the bottom nav on phones and tablets; only the panes scroll. */
+  .page.chatPage {
+    height: 100dvh; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+    padding-bottom: var(--mobile-nav-height);
+  }
+  .page.chatPage > .container {
+    width: 100%; flex: 1 1 auto; min-height: 0; overflow: hidden;
+    margin: calc(64px + env(safe-area-inset-top)) auto 0; padding-bottom: 8px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .page.chatPage .mainContent { height: 100%; min-height: 0; overflow: hidden; }
+  .page.chatPage .chatShell { height: 100%; min-height: 0; }
   .page.chatPage .chatMessageForm { padding-left: 14px; padding-bottom: 12px; }
 }
 

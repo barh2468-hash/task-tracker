@@ -1199,6 +1199,7 @@ body.language-en { direction: ltr; }
 .attendanceClockPage:before,.attendanceClockPage:after{content:"";position:absolute;z-index:-1;border:1px solid rgba(255,255,255,.08);border-radius:50%;pointer-events:none}
 .attendanceClockPage:before{width:380px;height:380px;top:-230px;right:-130px}
 .attendanceClockPage:after{width:280px;height:280px;bottom:-190px;left:-70px}
+.attendanceClockPulse.done{background:#9bd8ff;box-shadow:0 0 0 5px rgba(155,216,255,.14)}
 .attendanceClockIntro{text-align:center}
 .attendanceClockIntro h1{margin:9px 0 6px;color:#fff;font-size:clamp(26px,3vw,40px);letter-spacing:-.8px}
 .attendanceClockIntro p{margin:0;color:rgba(226,241,250,.76);font-size:14px;font-weight:800}

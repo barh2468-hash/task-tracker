@@ -169,11 +169,14 @@ export default function AttendancePage() {
       : leaveCopy
         ? t(leaveCopy.action)
         : t('שמירת דיווח יומי');
+  const dayFinished = !openSession && !dayStatus && Boolean(lastSession?.ended_at);
   const statusLabel = openSession
     ? t('יום העבודה פעיל')
     : dayStatus
       ? t('דיווח יומי נשמר')
-      : t('עדיין לא התחלת היום');
+      : dayFinished
+        ? t('יום העבודה הסתיים')
+        : t('עדיין לא התחלת היום');
 
   function runPrimaryAction() {
     if (openSession) openAttendanceEndDialog();
@@ -209,7 +212,7 @@ export default function AttendancePage() {
       <section className={`attendanceClockPage ${openSession ? 'isRunning' : ''}`}>
       <header className="attendanceClockIntro">
         <span className="attendanceClockEyebrow">
-          <span className="attendanceClockPulse" />
+          <span className={`attendanceClockPulse ${dayFinished ? 'done' : ''}`} />
           {statusLabel}
         </span>
         <h1>

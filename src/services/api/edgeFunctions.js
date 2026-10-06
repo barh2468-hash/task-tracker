@@ -27,3 +27,27 @@ export function notifyTaskDone(body) {
 export function dailyManagerSummary(body) {
   return invoke('daily-manager-summary', body);
 }
+
+export function updateUserEmail(body) {
+  return invoke('admin-update-user-email', body);
+}
+
+export function updateManagedUser(body) {
+  return invoke('admin-update-user-email', { action: 'update-user', ...body });
+}
+
+export function listManagedUsers() {
+  return invoke('admin-update-user-email', { action: 'list-users' });
+}
+
+export function inviteManagedUser(body) {
+  return invoke('admin-update-user-email', { action: 'invite-user', ...body });
+}
+
+export function sendManagedUserPasswordReset(body) {
+  return invoke('admin-update-user-email', { action: 'send-password-reset', ...body });
+}
+
+export function setManagedUserStatus(body) {
+  return invoke('admin-update-user-email', { action: 'set-user-status', ...body });
+}

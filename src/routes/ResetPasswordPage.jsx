@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import * as authApi from '../features/auth/api.js';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useAuth } from '../features/auth/useAuth.js';
@@ -9,12 +9,12 @@ import { LoadingScreen } from './LoginPage.jsx';
 
 export default function ResetPasswordPage() {
   useTranslation();
+  const navigate = useNavigate();
   const { session, authLoading } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [updated, setUpdated] = useState(false);
   const [message, setMessage] = useState('');
 
   if (authLoading) return <LoadingScreen />;
@@ -37,9 +37,19 @@ export default function ResetPasswordPage() {
     try {
       const { error } = await authApi.updatePassword(password);
       if (error) throw error;
-      setUpdated(true);
-      setPassword('');
-      setConfirmation('');
+
+      const { error: signOutError } = await authApi.signOut({ scope: 'global' });
+      if (signOutError) {
+        setMessage(
+          t('הסיסמה עודכנה, אך לא ניתן היה לנתק את ההתחברות. צא מהמערכת ידנית והתחבר מחדש.'),
+        );
+        return;
+      }
+
+      navigate('/login', {
+        replace: true,
+        state: { passwordReset: true },
+      });
     } catch {
       setMessage(t('לא ניתן לעדכן את הסיסמה. בקש קישור איפוס חדש ונסה שוב.'));
     } finally {
@@ -74,15 +84,7 @@ export default function ResetPasswordPage() {
       <section className="card">
         <img src="/logo.png" alt={t('לוגו')} />
         <h1>{t('בחירת סיסמה חדשה')}</h1>
-        {updated ? (
-          <div className="form authResult" aria-live="polite">
-            <p className="authMessage success">{t('הסיסמה עודכנה בהצלחה.')}</p>
-            <Link className="authPrimaryLink" to="/app">
-              {t('המשך למערכת')}
-            </Link>
-          </div>
-        ) : (
-          <form className="form" style={{ marginTop: 22 }} onSubmit={handleSubmit}>
+        <form className="form" style={{ marginTop: 22 }} onSubmit={handleSubmit}>
             <p className="muted">{t('בחר סיסמה חדשה שאינה משמשת אותך בשירותים אחרים.')}</p>
             <label>
               {t('סיסמה חדשה')}
@@ -131,8 +133,7 @@ export default function ResetPasswordPage() {
                 {message}
               </p>
             )}
-          </form>
-        )}
+        </form>
       </section>
     </main>
   );

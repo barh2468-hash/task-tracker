@@ -18,6 +18,7 @@ export function getTabTitle(pathname, searchParams, isManager) {
   if (pathname === '/app/report') return 'דוח שעות עובדים';
   if (pathname === '/app/notifications') return 'התראות';
   if (pathname === '/app/chat') return 'צ׳אט פנימי';
+  if (pathname === '/app/users') return 'ניהול משתמשים';
   if (pathname === '/app/projects') {
     const filter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
     if (filter === 'all') return 'כל הפרויקטים';

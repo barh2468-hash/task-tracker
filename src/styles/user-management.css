@@ -1,0 +1,298 @@
+.userManagementPage { display: grid; gap: 18px; text-align: start; }
+.userManagementIntro {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card);
+}
+.userManagementIntro > div { min-width: 0; }
+.userManagementIntroIcon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  background: #e9f2ff;
+  color: #174f91;
+}
+.userManagementIntro h2 { margin: 0 0 4px; }
+.userManagementIntro p { margin: 0; color: var(--muted); line-height: 1.55; }
+.userManagementToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.userManagementSearch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 520px;
+  width: 100%;
+  justify-self: start;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--muted);
+}
+.userManagementSearch input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.userManagementSearch input:focus { outline: 0; }
+.userManagementInviteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding-inline: 14px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.userManagementInvitePanel {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid #9bbce2;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #f7fbff, var(--card));
+  box-shadow: 0 10px 30px #123f760d;
+}
+.userManagementInviteHeading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.userManagementInviteHeading > span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  background: #e9f2ff;
+  color: #174f91;
+}
+.userManagementInviteHeading h3 { margin: 0 0 3px; }
+.userManagementInviteHeading p { margin: 0; color: var(--muted); }
+.userManagementInviteFields {
+  display: grid;
+  grid-template-columns: minmax(180px, .9fr) minmax(240px, 1.2fr) minmax(170px, .7fr);
+  gap: 14px;
+}
+.userManagementInviteFields label,
+.userManagementRoleEditor {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: start;
+}
+.userManagementInviteFields input,
+.userManagementInviteFields select,
+.userManagementRoleEditor select { width: 100%; }
+.userManagementInviteFields input[dir='ltr'] { text-align: left; }
+.userManagementInviteActions {
+  display: flex;
+  justify-content: end;
+  gap: 8px;
+}
+.userManagementInviteActions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+.userManagementError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid #efb3ac;
+  border-radius: 12px;
+  background: #fff4f2;
+  color: #9c2f24;
+}
+.userManagementState {
+  padding: 32px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  color: var(--muted);
+  text-align: center;
+}
+.userManagementList { display: grid; gap: 12px; }
+.userManagementCard {
+  display: grid;
+  grid-template-columns: minmax(160px, .72fr) minmax(220px, 1.05fr) minmax(145px, .58fr) auto;
+  grid-template-areas: "identity email role actions";
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+}
+.userManagementCard.editing {
+  padding-block: 12px;
+  border-color: #9bbce2;
+  box-shadow: 0 8px 24px #123f7610;
+}
+.userManagementIdentity {
+  grid-area: identity;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  align-self: center;
+  min-width: 0;
+  text-align: start;
+}
+.userManagementIdentity > span {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: #f1f5fa;
+  color: #315a87;
+}
+.userManagementIdentity strong { display: block; overflow: hidden; text-overflow: ellipsis; }
+.userManagementIdentityMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+.userManagementStatus,
+.userManagementSelfBadge {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #f1f5fa;
+  color: #60758c;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.userManagementStatus.active { background: #eaf7ef; color: #247046; }
+.userManagementStatus.inactive { background: #f3f4f6; color: #667085; }
+.userManagementStatus.invited { background: #fff5df; color: #8b5d19; }
+.userManagementSelfBadge {
+  background: #e9f2ff;
+  color: #315a87;
+}
+.userManagementEmail,
+.userManagementEmailSummary { grid-area: email; display: grid; gap: 6px; min-width: 0; text-align: start; }
+.userManagementEmail > span,
+.userManagementEmailSummary > span { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.userManagementEmail input {
+  width: 100%;
+  min-height: 36px;
+  height: 36px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  direction: ltr;
+  text-align: left;
+}
+.userManagementEmailSummary bdi {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html[dir='rtl'] .userManagementEmailSummary bdi { justify-self: stretch; text-align: right; }
+html[dir='ltr'] .userManagementEmailSummary bdi { justify-self: stretch; text-align: left; }
+.userManagementRoleEditor,
+.userManagementRoleSummary { grid-area: role; min-width: 0; }
+.userManagementCard.editing .userManagementEmail,
+.userManagementCard.editing .userManagementRoleEditor { gap: 4px; }
+.userManagementRoleEditor select {
+  min-height: 36px;
+  height: 36px;
+  padding-block: 5px;
+  border-radius: 9px;
+  font-size: 13px;
+}
+.userManagementRoleSummary {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  text-align: start;
+}
+.userManagementRoleSummary > span { color: var(--muted); font-size: 13px; }
+.userManagementRoleSummary > strong {
+  max-width: 100%;
+  padding: 5px 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf4fc;
+  color: #315a87;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.userManagementRoleEditor small { color: #8b5d19; line-height: 1.35; }
+.userManagementRowActions,
+.userManagementEditActions {
+  grid-area: actions;
+  display: flex;
+  justify-self: end;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 6px;
+}
+.userManagementRowActions button,
+.userManagementEditActions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 6px 9px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.userManagementEditButton { color: #174f91; }
+.userManagementResetButton { color: #385773; }
+.userManagementStatusButton.deactivate { color: #8a4a43; }
+.userManagementStatusButton.activate { color: #247046; }
+@media (max-width: 760px) {
+  .userManagementToolbar { align-items: stretch; flex-direction: column; }
+  .userManagementSearch { max-width: none; }
+  .userManagementInviteFields { grid-template-columns: 1fr; }
+  .userManagementInviteActions button { flex: 1; }
+  .userManagementCard,
+  html[dir='rtl'] .userManagementCard {
+    grid-template-columns: 1fr;
+    grid-template-areas: "identity" "email" "role" "actions";
+    align-items: stretch;
+  }
+  .userManagementRowActions button,
+  .userManagementEditActions button { flex: 1; width: 100%; }
+  .userManagementRowActions,
+  .userManagementEditActions { width: 100%; justify-self: stretch; }
+}

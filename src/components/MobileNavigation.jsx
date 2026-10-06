@@ -60,7 +60,7 @@ function AttendanceNavTimer({ startedAt }) {
 }
 
 export default function MobileNavigation({
-  role, displayName, isManager, isDrafter, pathname, isProjectWorkspace, stats,
+  role, displayName, isManager, isAdmin, isDrafter, pathname, isProjectWorkspace, stats,
   unreadChatCount, onOpenTab, onOpenMore, onLogout,
 }) {
   useTranslation();
@@ -191,6 +191,7 @@ export default function MobileNavigation({
             secondaryOnly
             role={role}
             isManager={isManager}
+            isAdmin={isAdmin}
             isDrafter={isDrafter}
             pathname={pathname}
             isProjectWorkspace={isProjectWorkspace}

@@ -31,7 +31,7 @@ import { useChat } from '../features/chat/ChatContext.jsx';
 
 export default function DashboardLayout() {
   useTranslation();
-  const { profile, session, isManager, isDrafter, logout } = useAuth();
+  const { profile, session, isManager, isAdmin, isDrafter, logout } = useAuth();
   const { message, messageTone, setMessage } = useMessage();
   const ToastIcon = messageTone === 'error' ? AlertCircle : messageTone === 'info' ? Info : CheckCircle;
   const { unreadCount } = useNotifications();
@@ -212,6 +212,7 @@ export default function DashboardLayout() {
           <DashboardNavigation
             role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
             isManager={isManager}
+            isAdmin={isAdmin}
             isDrafter={isDrafter}
             pathname={location.pathname}
             isProjectWorkspace={isProjectWorkspace}
@@ -270,6 +271,7 @@ export default function DashboardLayout() {
         role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
         displayName={profile?.full_name || session?.user?.email}
         isManager={isManager}
+        isAdmin={isAdmin}
         isDrafter={isDrafter}
         pathname={location.pathname}
         isProjectWorkspace={isProjectWorkspace}

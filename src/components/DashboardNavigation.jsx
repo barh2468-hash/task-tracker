@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Activity, AlertTriangle, Bell, ChartNoAxesCombined, ChevronDown, ClipboardList,
   Clock, Download, FileText, FolderKanban, HardHat, History, LayoutDashboard,
-  Layers, MapPin, Wrench,
+  Layers, MapPin, ShieldCheck, Wrench,
 } from 'lucide-react';
 import { t } from '../features/language/LanguageContext.jsx';
 import AppPreferences from './AppPreferences.jsx';
@@ -24,7 +24,7 @@ function NavigationItem({ label, icon: Icon, active, count, onClick }) {
 }
 
 export default function DashboardNavigation({
-  role, isManager, isDrafter, pathname, isProjectWorkspace, stats, unreadCount,
+  role, isManager, isAdmin, isDrafter, pathname, isProjectWorkspace, stats, unreadCount,
   onOpenTab, secondaryOnly = false,
 }) {
   useTranslation();
@@ -82,6 +82,13 @@ export default function DashboardNavigation({
             {item('/app/today', 'היום בשטח', HardHat)}
             {item('/app/map', 'מפה חיה', MapPin)}
             {item('/app/equipment', 'ציוד עובדי שטח', Wrench)}
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="sidebarNavGroup">
+            <h2 className="sidebarGroupLabel">{t('ניהול מערכת')}</h2>
+            {item('/app/users', 'ניהול משתמשים', ShieldCheck)}
           </div>
         )}
 

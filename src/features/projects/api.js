@@ -24,6 +24,7 @@ import {
   isSupportedImageFile,
   MAX_PROJECT_FILE_SIZE,
 } from './utils/projectFiles.js';
+import { isManagerRole } from '../../utils/roles.js';
 
 // ---- Loading ----------------------------------------------------------
 
@@ -45,7 +46,7 @@ export async function getProjects(profile) {
     return data || [];
   }
 
-  if (profile.role !== 'manager') {
+  if (!isManagerRole(profile.role)) {
     const { data: extraAssignments } = await projectsApi.getProjectIdsForWorker(user.id);
     const extraIds = Array.from(new Set((extraAssignments || []).map((row) => row.project_id).filter(Boolean)));
     const filters = [`assigned_to.eq.${user.id}`];
@@ -204,7 +205,7 @@ export async function updateStatus(project, newStatus, note, profile) {
   });
   if (historyError) return { message: historyError.message, ok: false };
 
-  if (profile?.role === 'field_worker' || profile?.role === 'manager') {
+  if (profile?.role === 'field_worker' || isManagerRole(profile?.role)) {
     void sendStatusChangeNotifications(project, newStatus, cleanNote, profile).catch((notificationError) => {
       console.warn(
         'Status change notifications failed:',
@@ -239,7 +240,7 @@ export async function submitContinuationReport(project, report, profile) {
   const assignedFieldWorker =
     project.assigned_to === user.id ||
     (project.project_workers || []).some((assignment) => assignment.worker_id === user.id);
-  if (profile.role !== 'manager' && !(profile.role === 'field_worker' && assignedFieldWorker)) {
+  if (!isManagerRole(profile.role) && !(profile.role === 'field_worker' && assignedFieldWorker)) {
     return { message: 'אין לך הרשאה לדווח המשך עבודה בפרויקט הזה.', ok: false };
   }
   if (!navigator.onLine) {
@@ -377,7 +378,7 @@ export async function deletePhoto(photo, project, profile) {
     profile.role === 'field_worker' &&
     (project.assigned_to === user.id ||
       (project.project_workers || []).some((assignment) => assignment.worker_id === user.id));
-  if (profile.role !== 'manager' && !isAssignedFieldWorker) {
+  if (!isManagerRole(profile.role) && !isAssignedFieldWorker) {
     return { message: 'אין הרשאה למחוק תמונות מהפרויקט הזה.' };
   }
 
@@ -430,7 +431,7 @@ export async function uploadProjectDocument(
   const user = await authApi.getCurrentUser();
   if (!user || !project?.id || !file || !profile) return { message: '' };
 
-  const canUpload = profile.role === 'manager' || isAssignedFieldWorker(project, profile, user.id);
+  const canUpload = isManagerRole(profile.role) || isAssignedFieldWorker(project, profile, user.id);
   if (!canUpload) return { message: 'אין לך הרשאה להעלות מסמכים לפרויקט הזה.' };
   if (!navigator.onLine) return { message: 'נדרש חיבור לאינטרנט כדי להעלות קובץ.' };
 
@@ -512,7 +513,7 @@ export async function deleteProjectDocument(projectDocument, project, profile) {
   }
 
   const canDelete =
-    profile.role === 'manager' ||
+    isManagerRole(profile.role) ||
     (projectDocument.uploaded_by === user.id && isAssignedFieldWorker(project, profile, user.id));
   if (!canDelete) return { message: 'אין לך הרשאה למחוק את הקובץ הזה.' };
 
@@ -545,7 +546,7 @@ export async function deleteProjectDocument(projectDocument, project, profile) {
 // ---- Drafter / review workflow --------------------------------------------
 
 export async function assignProjectDrafter(project, drafterId, profile, workers) {
-  if (profile?.role !== 'manager') return { message: '' };
+  if (!isManagerRole(profile?.role)) return { message: '' };
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '' };
 
@@ -621,7 +622,7 @@ export async function assignProjectDrafter(project, drafterId, profile, workers)
 export async function sendProjectToReview(project, selectedFiles, note, profile) {
   const user = await authApi.getCurrentUser();
   if (!user || !profile) return { message: '', ok: false };
-  if (profile.role !== 'manager' && !isDrafterCandidate(profile)) {
+  if (!isManagerRole(profile.role) && !isDrafterCandidate(profile)) {
     return { message: 'רק שרטט או מנהל יכולים לשלוח פרויקט להגהה.', ok: false };
   }
   if (project.status !== 'עבר לשרטוט') {
@@ -836,11 +837,11 @@ export async function sendDrawingBatchToReview(
 ) {
   const user = await authApi.getCurrentUser();
   if (!user || !profile || !drawingBatch?.id) return { message: '', ok: false };
-  if (profile.role !== 'manager' && !isDrafterCandidate(profile)) {
+  if (!isManagerRole(profile.role) && !isDrafterCandidate(profile)) {
     return { message: 'רק שרטט או מנהל יכולים לשלוח מנת שרטוט להגהה.', ok: false };
   }
   if (
-    profile.role !== 'manager' &&
+    !isManagerRole(profile.role) &&
     drawingBatch.assigned_drafter &&
     drawingBatch.assigned_drafter !== user.id
   ) {
@@ -936,7 +937,7 @@ export async function sendDrawingBatchToReview(
 export async function deleteProjectReviewFile(file, projectId, profile) {
   const user = await authApi.getCurrentUser();
   if (!user || !profile) return { message: '' };
-  if (profile.role !== 'manager' && !isDrafterCandidate(profile)) {
+  if (!isManagerRole(profile.role) && !isDrafterCandidate(profile)) {
     return { message: 'רק מנהל או שרטט יכולים למחוק קובץ PDF של הגהה.' };
   }
 
@@ -966,7 +967,7 @@ export async function deleteProjectReviewFile(file, projectId, profile) {
 
 export async function createProject(newProject, profile) {
   const user = await authApi.getCurrentUser();
-  if (!user || profile?.role !== 'manager') return { message: '' };
+  if (!user || !isManagerRole(profile?.role)) return { message: '' };
   if (!newProject.name || !newProject.location) {
     return { message: 'חובה למלא שם פרויקט ומיקום. שיוך לעובד אפשר לבצע גם בהמשך.' };
   }
@@ -1059,7 +1060,7 @@ export async function createProject(newProject, profile) {
 }
 
 export async function saveProject(projectId, changes, profile, originalProject) {
-  if (profile?.role !== 'manager') return { message: '' };
+  if (!isManagerRole(profile?.role)) return { message: '' };
 
   const previousAssignedTo = originalProject?.assigned_to || null;
   const nextAssignedTo = changes.assigned_to || null;
@@ -1147,7 +1148,7 @@ export async function saveProject(projectId, changes, profile, originalProject) 
 }
 
 export async function deleteProject(project, profile) {
-  if (profile?.role !== 'manager') return null;
+  if (!isManagerRole(profile?.role)) return null;
   const ok = window.confirm(`למחוק את הפרויקט "${project.name}"? פעולה זו תמחק גם היסטוריה ותמונות שמקושרות אליו.`);
   if (!ok) return null;
 
@@ -1157,7 +1158,7 @@ export async function deleteProject(project, profile) {
 }
 
 export async function archiveProject(project, profile) {
-  if (profile?.role !== 'manager') return null;
+  if (!isManagerRole(profile?.role)) return null;
   const ok = window.confirm(
     `להעביר את הפרויקט "${project.name}" לארכיון? הפרויקט לא יופיע ברשימת הפרויקטים הפעילים, אבל כל הנתונים יישמרו.`,
   );
@@ -1183,7 +1184,7 @@ export async function archiveProject(project, profile) {
 }
 
 export async function restoreProject(project, profile) {
-  if (profile?.role !== 'manager') return { message: '' };
+  if (!isManagerRole(profile?.role)) return { message: '' };
 
   const { error } = await projectsApi.updateProject(project.id, { is_archived: false, archived_at: null });
   if (error) return { message: error.message };
@@ -1210,7 +1211,7 @@ export async function addProjectTask(projectId, title, description, profile, pro
     profile.role === 'field_worker' &&
     (project?.assigned_to === user.id ||
       (project?.project_workers || []).some((assignment) => assignment.worker_id === user.id));
-  if (profile.role !== 'manager' && !isAssignedFieldWorker) {
+  if (!isManagerRole(profile.role) && !isAssignedFieldWorker) {
     return { message: 'אפשר להוסיף משימה רק בפרויקט שמשויך אליך.' };
   }
   const cleanTitle = title.trim();
@@ -1326,7 +1327,7 @@ export async function toggleProjectTask(task, project, profile, isManager) {
 }
 
 export async function updateProjectTask(task, project, title, description, profile) {
-  if (profile?.role !== 'manager') return { message: '' };
+  if (!isManagerRole(profile?.role)) return { message: '' };
   const cleanTitle = title.trim();
   if (!cleanTitle) return { message: 'יש למלא כותרת למשימה.' };
 
@@ -1351,7 +1352,7 @@ export async function updateProjectTask(task, project, title, description, profi
 }
 
 export async function deleteProjectTask(task, profile) {
-  if (profile?.role !== 'manager') return null;
+  if (!isManagerRole(profile?.role)) return null;
   const ok = window.confirm(`למחוק את המשימה "${task.title}"?`);
   if (!ok) return null;
 

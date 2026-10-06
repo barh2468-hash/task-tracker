@@ -33,6 +33,6 @@ export function signUp(email, password, fullName) {
   });
 }
 
-export function signOut() {
-  return supabase.auth.signOut();
+export function signOut(options) {
+  return supabase.auth.signOut(options);
 }

@@ -31,7 +31,7 @@ as $$
     select 1
     from public.profiles
     where id = auth.uid()
-      and role = 'manager'
+      and role in ('manager', 'admin')
   );
 $$;
 
@@ -69,7 +69,7 @@ begin
   insert into public.notifications (recipient_id, type, title, body, project_id, task_id, created_by)
   select id, coalesce(p_type, 'general'), p_title, p_body, p_project_id, p_task_id, auth.uid()
   from public.profiles
-  where role = 'manager';
+  where role in ('manager', 'admin');
 
   get diagnostics inserted_count = row_count;
   return inserted_count;

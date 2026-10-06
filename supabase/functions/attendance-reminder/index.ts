@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     if (!missingWorkers.length) return new Response(JSON.stringify({ ok: true, phase: phase.type, missing: 0 }), { headers });
 
     const { data: managers, error: managersError } = phase.target === 'manager'
-      ? await db.from('profiles').select('id').eq('role', 'manager')
+      ? await db.from('profiles').select('id').in('role', ['manager', 'admin'])
       : { data: [], error: null };
     if (managersError) throw managersError;
 

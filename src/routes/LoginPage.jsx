@@ -1,16 +1,17 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../features/language/LanguageContext.jsx';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../features/auth/useAuth.js';
 import LoginForm from '../features/auth/components/LoginForm.jsx';
 
 export default function LoginPage() {
   useTranslation();
+  const location = useLocation();
   const { session, authLoading, profileLoading } = useAuth();
 
   if (authLoading || profileLoading) return <LoadingScreen />;
   if (session) return <Navigate to="/app" replace />;
-  return <LoginForm />;
+  return <LoginForm passwordReset={Boolean(location.state?.passwordReset)} />;
 }
 
 export function LoadingScreen() {

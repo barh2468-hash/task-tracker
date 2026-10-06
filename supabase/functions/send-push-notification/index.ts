@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       const { data: managers, error: managerError } = await adminClient
         .from('profiles')
         .select('id')
-        .eq('role', 'manager');
+        .in('role', ['manager', 'admin']);
       if (managerError) throw managerError;
       const managerIds = (managers || []).map((manager) => manager.id);
       if (!managerIds.length) return Response.json({ ok: true, sent: 0 }, { headers: corsHeaders });

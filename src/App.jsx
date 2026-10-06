@@ -40,6 +40,7 @@ const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
 const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
 const AccountingYearEndPage = lazy(() => import('./routes/AccountingYearEndPage.jsx'));
 const ManholeLayoutPage = lazy(() => import('./routes/ManholeLayoutPage.jsx'));
+const UserManagementPage = lazy(() => import('./routes/UserManagementPage.jsx'));
 
 function AppLanding() {
   const { isAccounting, isDrafter } = useAuth();
@@ -216,6 +217,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<LoadingScreen />}>
                       <AccountingYearEndPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="users"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <UserManagementPage />
                     </Suspense>
                   }
                 />

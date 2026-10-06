@@ -63,7 +63,7 @@ async function requireManagerOrCron(req: Request, supabaseUrl: string, anonKey: 
     .eq('id', userData.user.id)
     .maybeSingle();
   if (profileError) throw profileError;
-  if (profile?.role !== 'manager') throw new HttpError(403, 'Manager access required');
+  if (!['manager', 'admin'].includes(profile?.role || '')) throw new HttpError(403, 'Manager access required');
 }
 
 function escapeHtml(value: unknown) {
@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
       supabase
         .from('profiles')
         .select('id,email,full_name,role')
-        .in('role', ['manager', 'field_worker']),
+        .in('role', ['admin', 'manager', 'field_worker']),
       supabase
         .from('work_sessions')
         .select(
@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
     }
 
     const profiles = profilesResult.data || [];
-    const managers = profiles.filter((profile: any) => profile.role === 'manager' && profile.email);
+    const managers = profiles.filter((profile: any) => ['manager', 'admin'].includes(profile.role) && profile.email);
     const workers = profiles.filter((profile: any) => profile.role === 'field_worker');
     const sessions = sessionsResult.data || [];
     const attendance = attendanceResult.data || [];

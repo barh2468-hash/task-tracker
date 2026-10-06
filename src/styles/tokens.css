@@ -1,0 +1,56 @@
+/*
+  Design tokens.
+  Brand colours (--navy*, --blue*, --orange*, --green, --red, --purple) are defined
+  in globals.css and are intentionally NOT redefined here. This file only adds
+  neutrals, spacing, radius, elevation and typography.
+*/
+:root {
+  /* Neutrals */
+  --gray-0: #ffffff;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-500: #64748b;
+  --gray-700: #334155;
+  --gray-900: #10213f;
+
+  --surface: var(--gray-0);
+  --surface-muted: var(--gray-50);
+  --border: var(--gray-200);
+  --border-strong: var(--gray-300);
+  --text-primary: var(--gray-900);
+  --text-secondary: var(--gray-500);
+
+  /* Spacing (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Radius */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* Elevation – soft only */
+  --elev-1: 0 1px 2px rgba(16, 33, 63, 0.05);
+  --elev-2: 0 2px 8px rgba(16, 33, 63, 0.06);
+  --elev-3: 0 8px 24px rgba(16, 33, 63, 0.08);
+
+  /* Typography */
+  --font-sans: 'Heebo', 'Segoe UI', Arial, Helvetica, sans-serif;
+  --fs-page: 24px;
+  --fs-section: 18px;
+  --fs-card: 16px;
+  --fs-body: 14px;
+  --fs-small: 13px;
+  --fs-label: 12px;
+
+  --content-max: 1280px;
+  --focus-ring: 0 0 0 3px rgba(37, 143, 196, 0.22);
+}

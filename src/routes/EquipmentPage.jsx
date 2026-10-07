@@ -74,6 +74,70 @@ function formatEquipmentValue(value) {
     : t('לא קריא במקור');
 }
 
+function getRecordHealth(record) {
+  const issues = [];
+  const cells = record.cells || [];
+  const hasUnreadableDetails = record.source_name_unreadable || cells.some(isUnreadableEquipmentText);
+
+  if (hasUnreadableDetails) issues.push('פרטים לא קריאים');
+  if (getDeviceValues(record).length === 0) issues.push('ללא מזהה ציוד');
+  if ((record.checked_item_count || 0) === 0) issues.push('ללא ציוד אישי');
+
+  if (!issues.length) return { tone: 'complete', label: 'כרטיס מלא', issues };
+  if (hasUnreadableDetails || issues.length > 1) {
+    return { tone: 'attention', label: 'דורש בדיקה', issues };
+  }
+  return { tone: 'partial', label: 'חסר מידע', issues };
+}
+
+function buildEquipmentInventory(records, headers) {
+  const inventory = [];
+
+  for (const index of EQUIPMENT_CHECKLIST_COLUMNS) {
+    if (!headers[index]) continue;
+    const assignments = records
+      .map((record) => ({
+        worker: record.worker_name,
+        section: record.section_name,
+        quantity: getEquipmentQuantity(record.cells?.[index]),
+      }))
+      .filter((assignment) => assignment.quantity > 0);
+    const quantity = assignments.reduce((total, assignment) => total + assignment.quantity, 0);
+    if (quantity > 0) {
+      inventory.push({
+        key: `checklist-${index}`,
+        label: headers[index],
+        type: 'checklist',
+        quantity,
+        assignments,
+      });
+    }
+  }
+
+  for (const index of DEVICE_COLUMNS) {
+    if (!headers[index]) continue;
+    const assignments = records
+      .map((record) => ({
+        worker: record.worker_name,
+        section: record.section_name,
+        value: record.cells?.[index],
+        quantity: 1,
+      }))
+      .filter(({ value }) => value && !/^v$/i.test(value) && value !== '-' && !isUnreadableEquipmentText(value));
+    if (assignments.length) {
+      inventory.push({
+        key: `device-${index}`,
+        label: headers[index],
+        type: 'device',
+        quantity: assignments.length,
+        assignments,
+      });
+    }
+  }
+
+  return inventory.sort((left, right) => right.quantity - left.quantity || left.label.localeCompare(right.label, 'he'));
+}
+
 function EquipmentMetric({ icon: Icon, value, label, tone }) {
   return (
     <div className={`equipmentMetric ${tone || ''}`}>
@@ -84,6 +148,99 @@ function EquipmentMetric({ icon: Icon, value, label, tone }) {
         <strong>{value}</strong>
         <span>{t(label)}</span>
       </div>
+    </div>
+  );
+}
+
+function EquipmentStatusBadge({ health }) {
+  return (
+    <span className={`equipmentStatusBadge ${health.tone}`}>
+      {health.tone === 'complete' ? <CheckCircle size={12} /> : <AlertTriangle size={12} />}
+      {t(health.label)}
+    </span>
+  );
+}
+
+function EquipmentAttentionPanel({ records, onEdit, onShowAll }) {
+  if (!records.length) return null;
+  const preview = records.slice(0, 4);
+
+  return (
+    <section className="equipmentAttentionPanel" aria-labelledby="equipment-attention-title">
+      <div className="equipmentAttentionHeading">
+        <span className="equipmentAttentionIcon"><AlertTriangle size={20} /></span>
+        <div>
+          <span className="equipmentEyebrow">{t('מוקד טיפול')}</span>
+          <h3 id="equipment-attention-title">{t('כרטיסים שדורשים השלמת מידע')}</h3>
+          <p>{t('מזהים כרטיסים ללא מזהה ציוד, ללא ציוד אישי או עם פרטים שאינם קריאים.')}</p>
+        </div>
+        <strong>{records.length}</strong>
+      </div>
+      <div className="equipmentAttentionGrid">
+        {preview.map((record) => {
+          const health = getRecordHealth(record);
+          return (
+            <article className="equipmentAttentionCard" key={record.id || record.source_row_number}>
+              <div className="equipmentAttentionPerson">
+                <span>{record.worker_name?.[0] || '#'}</span>
+                <div>
+                  <b>{record.worker_name}</b>
+                  <small>{record.section_name}</small>
+                </div>
+              </div>
+              <div className="equipmentIssueList">
+                {health.issues.map((issue) => <span key={issue}>{t(issue)}</span>)}
+              </div>
+              <button type="button" onClick={() => onEdit(record)}>
+                <Pencil size={14} /> {t('בדיקה ועריכה')}
+              </button>
+            </article>
+          );
+        })}
+      </div>
+      {records.length > preview.length && (
+        <button type="button" className="equipmentAttentionAll" onClick={onShowAll}>
+          {t('לכל החריגות')} <span>{records.length}</span>
+        </button>
+      )}
+    </section>
+  );
+}
+
+function EquipmentInventory({ items }) {
+  return (
+    <div className="equipmentInventoryGrid">
+      {items.map((item) => (
+        <article className="equipmentInventoryCard" key={item.key}>
+          <div className="equipmentInventoryCardTop">
+            <span className={`equipmentInventoryIcon ${item.type}`}>
+              {item.type === 'device' ? <Wrench size={19} /> : <Package size={19} />}
+            </span>
+            <div>
+              <span>{t(item.type === 'device' ? 'מכשיר ומזהה' : 'אביזר וכלי עבודה')}</span>
+              <h4>{item.label}</h4>
+            </div>
+            <strong>{item.quantity}</strong>
+          </div>
+          <div className="equipmentInventoryStats">
+            <span>{t('עובדים מחזיקים')} <b>{item.assignments.length}</b></span>
+            <span>{t('סה״כ יחידות')} <b>{item.quantity}</b></span>
+          </div>
+          <div className="equipmentInventoryOwners">
+            {item.assignments.slice(0, 4).map((assignment, index) => (
+              <span key={`${assignment.worker}-${assignment.value || index}`}>
+                <b>{assignment.worker}</b>
+                {assignment.value
+                  ? <code dir="ltr">{assignment.value}</code>
+                  : <small>{assignment.quantity} {t('יח׳')}</small>}
+              </span>
+            ))}
+            {item.assignments.length > 4 && (
+              <em>+{item.assignments.length - 4}</em>
+            )}
+          </div>
+        </article>
+      ))}
     </div>
   );
 }
@@ -297,6 +454,7 @@ export default function EquipmentPage() {
   const [schemaMissing, setSchemaMissing] = useState(false);
   const [query, setQuery] = useState('');
   const [section, setSection] = useState('all');
+  const [activeView, setActiveView] = useState('workers');
   const [expandedId, setExpandedId] = useState(null);
   const [editor, setEditor] = useState(null);
   const [editorError, setEditorError] = useState('');
@@ -345,16 +503,50 @@ export default function EquipmentPage() {
     [records],
   );
 
+  const headers = useMemo(() => equipmentImport?.display_headers || [], [equipmentImport]);
+
+  const sectionRecords = useMemo(
+    () => records.filter((record) => section === 'all' || record.section_name === section),
+    [records, section],
+  );
+
   const filteredRecords = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
-    return records.filter((record) => {
-      if (section !== 'all' && record.section_name !== section) return false;
+    return sectionRecords.filter((record) => {
       if (!normalizedQuery) return true;
       return [record.worker_name, record.section_name, ...(record.cells || [])]
         .filter(Boolean)
         .some((value) => String(value).toLocaleLowerCase().includes(normalizedQuery));
     });
-  }, [query, records, section]);
+  }, [query, sectionRecords]);
+
+  const attentionRecords = useMemo(
+    () => sectionRecords.filter((record) => getRecordHealth(record).issues.length > 0),
+    [sectionRecords],
+  );
+
+  const filteredAttentionRecords = useMemo(() => {
+    const visibleIds = new Set(filteredRecords.map((record) => record.id || record.source_row_number));
+    return attentionRecords.filter((record) => visibleIds.has(record.id || record.source_row_number));
+  }, [attentionRecords, filteredRecords]);
+
+  const equipmentInventory = useMemo(
+    () => buildEquipmentInventory(sectionRecords, headers),
+    [headers, sectionRecords],
+  );
+
+  const filteredInventory = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    if (!normalizedQuery) return equipmentInventory;
+    return equipmentInventory.filter((item) =>
+      [
+        item.label,
+        ...item.assignments.flatMap((assignment) => [assignment.worker, assignment.section, assignment.value]),
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLocaleLowerCase().includes(normalizedQuery)),
+    );
+  }, [equipmentInventory, query]);
 
   const recordsWithDevices = useMemo(
     () => records.filter((record) => getDeviceValues(record).length > 0).length,
@@ -387,6 +579,7 @@ export default function EquipmentPage() {
       setRecords(snapshot.records);
       setSection('all');
       setQuery('');
+      setActiveView('workers');
       setExpandedId(null);
       setMessage(t('ריכוז הציוד יובא בהצלחה.'));
     } catch (importError) {
@@ -498,7 +691,13 @@ export default function EquipmentPage() {
 
   if (!isManager) return <Navigate to="/app" replace />;
 
-  const headers = equipmentImport?.display_headers || [];
+  const visibleRecords = activeView === 'attention' ? filteredAttentionRecords : filteredRecords;
+  const visibleCount = activeView === 'inventory' ? filteredInventory.length : visibleRecords.length;
+  const totalCount = activeView === 'inventory'
+    ? equipmentInventory.length
+    : activeView === 'attention'
+      ? attentionRecords.length
+      : records.length;
 
   return (
     <div className="equipmentPage">
@@ -586,6 +785,16 @@ export default function EquipmentPage() {
         />
       </section>
 
+      <EquipmentAttentionPanel
+        records={records.filter((record) => getRecordHealth(record).issues.length > 0)}
+        onEdit={openRecordEditor}
+        onShowAll={() => {
+          setActiveView('attention');
+          setQuery('');
+          setSection('all');
+        }}
+      />
+
       <section className="card equipmentRegister">
         <div className="equipmentRegisterHeader">
           <div>
@@ -600,9 +809,39 @@ export default function EquipmentPage() {
           <div className="equipmentRegisterMeta">
             <span className="equipmentEditHint"><Pencil size={13} /> {t('ניתן לעריכה')}</span>
             <span className="equipmentResultCount">
-              {t('מציג')} {filteredRecords.length} {t('מתוך')} {records.length}
+              {t('מציג')} {visibleCount} {t('מתוך')} {totalCount}
             </span>
           </div>
+        </div>
+
+        <div className="equipmentViewTabs" role="tablist" aria-label={t('תצוגת ריכוז ציוד')}>
+          <button
+            type="button"
+            className={activeView === 'workers' ? 'active' : ''}
+            onClick={() => setActiveView('workers')}
+            role="tab"
+            aria-selected={activeView === 'workers'}
+          >
+            <UserRound size={16} /> {t('לפי עובדים')} <span>{records.length}</span>
+          </button>
+          <button
+            type="button"
+            className={activeView === 'inventory' ? 'active' : ''}
+            onClick={() => setActiveView('inventory')}
+            role="tab"
+            aria-selected={activeView === 'inventory'}
+          >
+            <Package size={16} /> {t('לפי ציוד')} <span>{equipmentInventory.length}</span>
+          </button>
+          <button
+            type="button"
+            className={activeView === 'attention' ? 'active attention' : 'attention'}
+            onClick={() => setActiveView('attention')}
+            role="tab"
+            aria-selected={activeView === 'attention'}
+          >
+            <AlertTriangle size={16} /> {t('דורש טיפול')} <span>{attentionRecords.length}</span>
+          </button>
         </div>
 
         <div className="equipmentFilters">
@@ -613,7 +852,9 @@ export default function EquipmentPage() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder={t('שם עובד, דגם או מספר סידורי...')}
+                placeholder={t(activeView === 'inventory'
+                  ? 'פריט ציוד, עובד או מספר סידורי...'
+                  : 'שם עובד, דגם או מספר סידורי...')}
               />
             </div>
           </label>
@@ -648,12 +889,18 @@ export default function EquipmentPage() {
               <Upload size={17} /> {t('בחירת קובץ Excel או CSV')}
             </button>
           </div>
-        ) : filteredRecords.length === 0 ? (
+        ) : visibleCount === 0 ? (
           <div className="equipmentEmptyState">
-            <Search size={38} />
-            <b>{t('לא נמצאו רשומות מתאימות')}</b>
+            {activeView === 'attention' ? <CheckCircle size={38} /> : <Search size={38} />}
+            <b>{t(activeView === 'inventory'
+              ? 'לא נמצאו פריטי ציוד מתאימים'
+              : activeView === 'attention'
+                ? 'אין כרטיסים שדורשים טיפול'
+                : 'לא נמצאו רשומות מתאימות')}</b>
             <span>{t('נסו לשנות את החיפוש או את סינון הקבוצה.')}</span>
           </div>
+        ) : activeView === 'inventory' ? (
+          <EquipmentInventory items={filteredInventory} />
         ) : (
           <div className="equipmentTableWrap">
             <table className="equipmentTable">
@@ -666,10 +913,11 @@ export default function EquipmentPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredRecords.map((record) => {
+                {visibleRecords.map((record) => {
                   const recordKey = record.id || record.source_row_number;
                   const expanded = expandedId === recordKey;
                   const completion = Math.min(100, Math.round(((record.checked_item_count || 0) / EQUIPMENT_CHECKLIST_COLUMNS.length) * 100));
+                  const health = getRecordHealth(record);
                   return (
                     <tr className={expanded ? 'expanded' : ''} key={recordKey}>
                       <td colSpan={4}>
@@ -685,6 +933,7 @@ export default function EquipmentPage() {
                               <span>
                                 <b>{record.worker_name}</b>
                                 {record.source_name_unreadable && <small>{t('שם לא קריא')}</small>}
+                                <EquipmentStatusBadge health={health} />
                               </span>
                             </span>
                             <span className="equipmentSectionCell"><span />{record.section_name}</span>

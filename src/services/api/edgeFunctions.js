@@ -8,6 +8,10 @@ export function sendPushNotification(body) {
   return invoke('send-push-notification', body);
 }
 
+export function analyzeVehicleDocument(body) {
+  return invoke('analyze-vehicle-document', body);
+}
+
 export function notifyStatusChange(body) {
   return invoke('notify-status-change', body);
 }

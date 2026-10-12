@@ -21,3 +21,11 @@ verify_jwt = false
 
 [functions.send-field-project-updates]
 verify_jwt = false
+
+# Called by a signed-in manager; the function checks the role itself.
+[functions.analyze-vehicle-document]
+verify_jwt = true
+
+# Scheduled by pg_cron; authenticates with x-cron-secret.
+[functions.vehicle-alerts]
+verify_jwt = false

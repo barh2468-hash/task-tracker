@@ -29,3 +29,12 @@ test('saved-list filters combine project, worker and manhole search', () => {
   assert.deepEqual(filterSavedLayouts(rows, { projectId, workerId: userId, search: 'בזק' }), [rows[0]]);
   assert.equal(filterSavedLayouts(rows, { projectId, search: '04' }).length, 0);
 });
+test('new measurements survive saved source validation, while invalid values are rejected', () => {
+  const source = {
+    version: 1, photos: [], draft: { projectId: '11111111-1111-4111-8111-111111111111', num: '03', date: '2026-10-12', shaft: [], cover: [], groups: [{ wall: '1', rows: '1', cols: '1', u: '0.3', v: '0.4', measureFrom: 'end', cables: ['2'] }], northAngle: '90', faceWidths: { 1: '1.5', 2: '' } },
+  };
+  assert.equal(validateLayoutSource(source), source);
+  assert.throws(() => validateLayoutSource({ ...source, draft: { ...source.draft, northAngle: '360' } }));
+  assert.throws(() => validateLayoutSource({ ...source, draft: { ...source.draft, faceWidths: { 1: '-1' } } }));
+  assert.throws(() => validateLayoutSource({ ...source, draft: { ...source.draft, groups: [{ ...source.draft.groups[0], measureFrom: 'unknown' }] } }));
+});

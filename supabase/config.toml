@@ -18,3 +18,6 @@ verify_jwt = false
 # authenticated and manager-authorized inside the function.
 [functions.daily-status-summary]
 verify_jwt = false
+
+[functions.send-field-project-updates]
+verify_jwt = false

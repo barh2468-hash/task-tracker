@@ -123,3 +123,5 @@ button:focus-visible{outline:3px solid #258fc43b;outline-offset:3px}
 }
 @media(max-width:380px){.mobileEditorToggleState::before{display:none}.mobileEditorToggle{padding-inline:12px;gap:10px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+#faceWidths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+#faceWidths:empty { display: none; }

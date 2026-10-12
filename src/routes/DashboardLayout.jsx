@@ -25,6 +25,7 @@ import DashboardNavigation from '../components/DashboardNavigation.jsx';
 import MobileNavigation from '../components/MobileNavigation.jsx';
 import AttendanceEndDialog from '../features/attendance/components/AttendanceEndDialog.jsx';
 import ProjectWorkEndDialog from '../features/attendance/components/ProjectWorkEndDialog.jsx';
+import ExitWorkDiary from '../features/attendance/components/ExitWorkDiary.jsx';
 import ProjectWorkspaceNavigation from '../features/projects/components/ProjectWorkspaceNavigation.jsx';
 import { useLanguage } from '../features/language/LanguageContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
@@ -288,6 +289,7 @@ export default function DashboardLayout() {
       />
       <AttendanceEndDialog />
       <ProjectWorkEndDialog />
+      <ExitWorkDiary />
     </main>
   );
 }

@@ -132,6 +132,9 @@ export async function sendProjectAssignmentEmail(workerId, project, assignedByNa
 // ---- Status / photos -----------------------------------------------------
 
 async function sendStatusChangeNotifications(project, newStatus, cleanNote, profile) {
+  if (isManagerRole(profile?.role)) {
+    void edgeFunctions.sendFieldProjectUpdates({ appUrl: window.location.origin }).catch((error) => console.warn('Field update delivery deferred:', error));
+  }
   const notificationBody =
     `${profile.full_name} עדכן סטטוס בפרויקט ${project.name}: ${project.status} → ${newStatus}.` +
     `${cleanNote ? ` הערה: ${cleanNote}` : ''}`;
@@ -611,6 +614,7 @@ export async function assignProjectDrafter(project, drafterId, profile, workers)
     project.id,
   );
   const emailSent = await sendProjectAssignmentEmail(drafterId, project, profile.full_name);
+  void edgeFunctions.sendFieldProjectUpdates({ appUrl: window.location.origin }).catch((error) => console.warn('Field update delivery deferred:', error));
 
   return {
     message: emailSent
@@ -1090,16 +1094,23 @@ export async function saveProject(projectId, changes, profile, originalProject) 
   const addedExtraWorkers = Array.from(nextExtraWorkers).filter((id) => !previousExtraWorkers.has(id));
   const nextProjectAssignments = Array.from(new Set([...Array.from(nextExtraWorkers), ...preservedDrafterIds]));
 
-  await projectWorkersApi.deleteProjectWorkersByProject(projectId);
-  if (nextProjectAssignments.length) {
+  const previousAssignmentIds = (originalProject?.project_workers || []).map((assignment) => assignment.worker_id);
+  const removedAssignmentIds = previousAssignmentIds.filter((id) => !nextProjectAssignments.includes(id));
+  const addedAssignmentIds = nextProjectAssignments.filter((id) => !previousAssignmentIds.includes(id));
+  if (removedAssignmentIds.length) {
+    const { error: removeError } = await projectWorkersApi.deleteProjectWorkersByProjectAndWorkers(projectId, removedAssignmentIds);
+    if (removeError) return { message: `פרטי הפרויקט נשמרו, אך עדכון הצוות נכשל: ${removeError.message}` };
+  }
+  if (addedAssignmentIds.length) {
     const user = await authApi.getCurrentUser();
-    await projectWorkersApi.insertProjectWorkers(
-      nextProjectAssignments.map((workerId) => ({
+    const { error: assignmentError } = await projectWorkersApi.insertProjectWorkers(
+      addedAssignmentIds.map((workerId) => ({
         project_id: projectId,
         worker_id: workerId,
         assigned_by: user?.id || null,
       })),
     );
+    if (assignmentError) return { message: `פרטי הפרויקט נשמרו, אך עדכון הצוות נכשל: ${assignmentError.message}` };
   }
 
   let assignmentEmailSent = true;

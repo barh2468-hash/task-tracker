@@ -1,0 +1,25 @@
+.personalPage h2,.personalPage h3{margin-bottom:12px}.personalFilters{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:20px 0}.personalFilters label{display:grid;gap:6px}.personalSummary{display:flex;gap:24px;flex-wrap:wrap;padding:16px;background:var(--surface-soft,#edf5fa);border-radius:12px;margin-bottom:20px}.personalEntry{display:flex;justify-content:space-between;gap:16px;align-items:center;border:1px solid var(--border,#dae4ed);border-radius:12px;padding:16px;margin:12px 0}.personalEntry p{margin:7px 0}.personalPage .tableWrap{overflow:auto}.personalPage table{width:100%;border-collapse:collapse}.personalPage th,.personalPage td{padding:12px;text-align:start;border-bottom:1px solid var(--border,#dae4ed)}.personalNoteForm{display:grid;gap:12px;margin:20px 0}.personalNoteForm label{display:grid;gap:6px}.personalNoteText{white-space:pre-wrap;overflow-wrap:anywhere}.personalNoteActions{display:flex;gap:8px;flex-wrap:wrap}@media(max-width:600px){.personalEntry{align-items:stretch;flex-direction:column}.personalFilters label{flex:1;min-width:130px}}
+.crewEditBackdrop { overflow: hidden; }
+.crewEditModal {
+  display: flex;
+  flex-direction: column;
+  max-height: min(780px, calc(100dvh - 36px));
+  min-height: 0;
+}
+.crewEditModal .attendanceEndHeader {
+  display: block;
+  flex-shrink: 0;
+}
+.crewEditModal .attendanceEndBody {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.crewEditModal .attendanceEndActions { flex-shrink: 0; }
+@media (max-width: 680px) {
+  .crewEditModal { max-height: calc(100dvh - 20px); }
+}
+.personalReportActions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.personalReportActions button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+@media (max-width: 600px) { .personalReportActions button { flex: 1 1 140px; } }

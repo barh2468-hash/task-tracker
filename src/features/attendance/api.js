@@ -92,7 +92,7 @@ export async function startWork(project, profile) {
   return { message: `נרשמה שעת התחלה עבור ${project.name}${location ? ' כולל מיקום' : ''}` };
 }
 
-export async function endWork(project, profile, { endNote = '', crewMembers = [] } = {}) {
+export async function endWork(project, profile, { endNote = '', crewMembers = [], dailyDraftingReady = false } = {}) {
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '', success: false };
 
@@ -121,6 +121,7 @@ export async function endWork(project, profile, { endNote = '', crewMembers = []
     ended_accuracy: location?.accuracy ?? null,
     end_note: endNote.trim() || null,
     crew_members: normalizedCrew,
+    ...(dailyDraftingReady ? { daily_drafting_ready: true } : {}),
   };
   if (!navigator.onLine) {
     await enqueueOfflineAction('work_end', {
@@ -531,7 +532,7 @@ export async function startAttendance(
 
 export async function finishAttendance(
   endNote,
-  { profile, attendanceSessions, workSessions = [], crewMembers = [] },
+  { profile, attendanceSessions, workSessions = [], crewMembers = [], dailyDraftingReady = false },
 ) {
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '', success: false };
@@ -566,7 +567,7 @@ export async function finishAttendance(
     ended_accuracy: location?.accuracy ?? null,
     end_note: endNote.trim() || null,
   };
-  const workEndChanges = { ...endChanges, crew_members: normalizedCrew };
+  const workEndChanges = { ...endChanges, crew_members: normalizedCrew, ...(dailyDraftingReady ? { daily_drafting_ready: true } : {}) };
   if (!navigator.onLine) {
     await enqueueOfflineAction('attendance_end', { sessionId: openSession.id, changes: endChanges });
     if (linkedWorkSession) {
@@ -590,6 +591,7 @@ export async function finishAttendance(
       offlineChanges: endChanges,
       sessionId: openSession.id,
       linkedWorkSessionId: linkedWorkSession?.id || null,
+      projectSessionClosed: Boolean(linkedWorkSession),
       linkedWorkOfflineChanges: linkedWorkSession ? workEndChanges : null,
     };
   }
@@ -641,6 +643,7 @@ export async function finishAttendance(
         ? `${attendanceTypeLabel[openSession.attendance_type]} והעבודה בפרויקט הסתיימו. משך המשמרת: ${formatDuration(minutes)}.${crewText ? ` צוות: ${crewText}.` : ''}`
         : `${attendanceTypeLabel[openSession.attendance_type]} הסתיים. משך המשמרת: ${formatDuration(minutes)}.`,
     linkedWorkSessionId: linkedWorkSession?.id || null,
+    projectSessionClosed: Boolean(linkedWorkSession && !projectEndError),
     success: true,
   };
 }

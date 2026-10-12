@@ -74,6 +74,9 @@ export default function DashboardNavigation({
         <div className="sidebarNavGroup">
           <h2 className="sidebarGroupLabel">{t('כלי עבודה')}</h2>
           {item('/app/manhole-layout', 'פרישת שוחות', Layers)}
+          {!isDrafter && item('/app/my-attendance', 'דוח הנוכחות שלי', Clock)}
+          {!isDrafter && item('/app/my-notes', 'ההערות שלי', FileText)}
+          {!isManager && !isDrafter && item('/app/projects?filter=archive', 'הארכיון שלי', FolderKanban)}
         </div>
 
         {isManager && (

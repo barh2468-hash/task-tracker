@@ -12,6 +12,10 @@ export function notifyStatusChange(body) {
   return invoke('notify-status-change', body);
 }
 
+export function sendFieldProjectUpdates(body) {
+  return invoke('send-field-project-updates', body);
+}
+
 export function notifyProjectAssigned(body) {
   return invoke('notify-project-assigned', body);
 }

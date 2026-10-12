@@ -25,10 +25,13 @@ export default function AttendanceEndDialog() {
     attendanceBusy: busy,
     setAttendanceEndDialogOpen,
     finishAttendance,
+    openWorkDiary,
   } = useAttendance();
   const [selectedWorkerIds, setSelectedWorkerIds] = useState([]);
   const [selectedHelpers, setSelectedHelpers] = useState([]);
   const [markReadyForDrafting, setMarkReadyForDrafting] = useState(false);
+  const [dailyDraftingReady, setDailyDraftingReady] = useState(false);
+  const [showDiary, setShowDiary] = useState(true);
 
   const openSession = sessions.find((item) => !item.ended_at && !item.is_all_day) || null;
   const linkedWorkSession = openSession
@@ -59,6 +62,8 @@ export default function AttendanceEndDialog() {
     setSelectedWorkerIds([]);
     setSelectedHelpers([]);
     setMarkReadyForDrafting(false);
+    setDailyDraftingReady(false);
+    setShowDiary(true);
   }, [attendanceEndDialogOpen, openSession?.id]);
 
   if (!attendanceEndDialogOpen || typeof document === 'undefined' || !openSession) return null;
@@ -78,10 +83,11 @@ export default function AttendanceEndDialog() {
       .filter((worker) => selectedWorkerIds.includes(worker.id))
       .map((worker) => ({ id: worker.id, name: worker.full_name, source: 'system' }));
     const helperCrew = selectedHelpers.map((name) => ({ id: null, name, source: 'helper' }));
-    const result = await finishAttendance(note, [...systemCrew, ...helperCrew]);
-    if (result?.success && markReadyForDrafting && canMarkReadyForDrafting) {
+    const result = await finishAttendance(note, [...systemCrew, ...helperCrew], dailyDraftingReady);
+    if (result?.success && result.projectSessionClosed && markReadyForDrafting && canMarkReadyForDrafting) {
       void updateStatus(linkedProject, DRAFTING_STATUS, t('סומן כניתן להתחיל לשרטט בסיום העבודה בשטח.'));
     }
+    if (result?.success && result.projectSessionClosed && showDiary && linkedProject?.requires_work_diary) openWorkDiary(linkedProject);
   }
 
   return createPortal(
@@ -184,13 +190,15 @@ export default function AttendanceEndDialog() {
               : t('בעת האישור נבקש את מיקום הסיום ונשמור אותו בדיווח.')}
           </p>
         </div>
+        {linkedProject && <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="attendance-daily-drafting-ready" aria-label="ניתן לשרטט את מה שעשיתי היום"><input id="attendance-daily-drafting-ready" type="checkbox" checked={dailyDraftingReady} disabled={busy || markReadyForDrafting} onChange={(event) => setDailyDraftingReady(event.target.checked)} /><span><strong>ניתן לשרטט את מה שעשיתי היום</strong><small>תיווצר מנת שרטוט ותישלח התראה למנהלים. סטטוס הפרויקט נשמר.</small></span></label></div>}
+        {linkedProject?.requires_work_diary && <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="attendance-exit-work-diary" aria-label="פתיחת יומן עבודה ביציאה מהפרויקט"><input id="attendance-exit-work-diary" type="checkbox" checked={showDiary} disabled={busy} onChange={(event) => setShowDiary(event.target.checked)} /><span><strong>פתיחת יומן עבודה ביציאה מהפרויקט</strong><small>יומן העבודה ייפתח לאחר שמירת הסיום.</small></span></label></div>}
         {canMarkReadyForDrafting && (
           <div className="attendanceEndPinned">
             <label className="draftingReadyToggle">
               <input
                 type="checkbox"
                 checked={markReadyForDrafting}
-                disabled={busy}
+                disabled={busy || dailyDraftingReady}
                 onChange={(event) => setMarkReadyForDrafting(event.target.checked)}
               />
               <CheckCircle2 size={18} aria-hidden="true" />

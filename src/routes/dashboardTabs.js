@@ -4,6 +4,8 @@
 export function getTabTitle(pathname, searchParams, isManager) {
   if (pathname === '/app/overview') return 'סקירה כללית';
   if (pathname === '/app/attendance') return 'שעון נוכחות';
+  if (pathname === '/app/my-attendance') return 'דוח הנוכחות שלי';
+  if (pathname === '/app/my-notes') return 'ההערות שלי';
   if (pathname === '/app/map') return 'מפה חיה';
   if (pathname === '/app/status-report') return 'דו״ח מצב פרויקטים';
   if (pathname === '/app/equipment') return 'ציוד עובדי שטח';

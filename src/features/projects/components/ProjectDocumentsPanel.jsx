@@ -45,6 +45,8 @@ export default function ProjectDocumentsPanel({
   useTranslation();
   const [links, setLinks] = useState({});
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
+  const [uploadError, setUploadError] = useState('');
   const [uploadOpen, setUploadOpen] = useState(false);
   const [documentType, setDocumentType] = useState(lockedDocumentType || defaultDocumentType);
   const [previewDocument, setPreviewDocument] = useState(null);
@@ -93,15 +95,25 @@ export default function ProjectDocumentsPanel({
 
   async function handleUpload(event) {
     const input = event.currentTarget;
-    const file = input.files?.[0];
-    if (!file || uploading) return;
+    const files = Array.from(input.files || []);
+    if (!files.length || uploading) return;
 
     setUploading(true);
+    setUploadError('');
     try {
-      const result = await onUpload(file, lockedDocumentType || documentType);
-      if (result?.ok) setUploadOpen(false);
+      const failures = [];
+      for (const [index, file] of files.entries()) {
+        setUploadProgress(`${index + 1}/${files.length}`);
+        try {
+          const result = await onUpload(file, lockedDocumentType || documentType);
+          if (!result?.ok) failures.push(`${file.name}: ${result?.message || 'ההעלאה נכשלה'}`);
+        } catch (error) { failures.push(`${file.name}: ${error.message}`); }
+      }
+      if (failures.length) setUploadError(failures.join(' · '));
+      else setUploadOpen(false);
     } finally {
       setUploading(false);
+      setUploadProgress('');
       input.value = '';
     }
   }
@@ -259,6 +271,8 @@ export default function ProjectDocumentsPanel({
                   </select>
                 </label>
               )}
+              {uploadError && <p role="alert">{uploadError}</p>}
+              {uploading && <p role="status">מעלה קבצים {uploadProgress}</p>}
               <label className={`filePickerControl documentFilePicker ${uploading ? 'uploading' : ''}`}>
                 {uploading ? <LoaderCircle size={19} /> : <Upload size={19} />}
                 <span>
@@ -270,6 +284,7 @@ export default function ProjectDocumentsPanel({
                 </span>
                 <input
                   type="file"
+                  multiple
                   accept={allowsImages ? PDF_OR_IMAGE_ACCEPT : PDF_ACCEPT}
                   disabled={uploading}
                   onChange={handleUpload}

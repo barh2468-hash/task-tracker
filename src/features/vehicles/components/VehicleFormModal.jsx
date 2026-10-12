@@ -26,8 +26,8 @@ const EMPTY = {
   notes: '',
 };
 
-function toForm(vehicle) {
-  if (!vehicle) return EMPTY;
+function toForm(vehicle, defaultStatus) {
+  if (!vehicle) return defaultStatus ? { ...EMPTY, status: defaultStatus } : EMPTY;
   const form = { ...EMPTY };
   for (const key of Object.keys(EMPTY)) form[key] = vehicle[key] ?? EMPTY[key];
   return form;
@@ -54,8 +54,8 @@ function Options({ values }) {
   ));
 }
 
-export default function VehicleFormModal({ vehicle, onSave, onClose }) {
-  const [form, setForm] = useState(() => toForm(vehicle));
+export default function VehicleFormModal({ vehicle, defaultStatus, onSave, onClose }) {
+  const [form, setForm] = useState(() => toForm(vehicle, defaultStatus));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const set = (key) => (event) =>

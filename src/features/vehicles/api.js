@@ -1,4 +1,11 @@
 import {
+  decidePendingQuote,
+  deleteQuote,
+  getAllAssignments,
+  getPendingQuotes,
+  getVehicleFines,
+  getVehicleQuotes,
+  insertQuote,
   deleteFine,
   getFines,
   insertFine,
@@ -38,6 +45,7 @@ import { createSignedUrl, removeFiles, safeFileName, uploadFile } from '../../se
 import { analyzeVehicleDocument } from '../../services/api/edgeFunctions.js';
 import { ALLOWED_DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, VEHICLE_BUCKET } from './constants.js';
 import { currentMonthString } from './utils/vehicleStatus.js';
+import { createManagerNotification, createUserNotification } from '../notifications/api.js';
 
 function unwrap(result) {
   if (result.error) throw result.error;
@@ -68,28 +76,94 @@ export async function linkVehicleDrivers(links) {
 export async function loadFleetOverview() {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 1);
-  const [vehicles, policies, inspections, tolls, readings, drivers] = await Promise.all([
+  const [vehicles, policies, inspections, tolls, readings, drivers, pendingQuotes] = await Promise.all([
     getVehicles().then(unwrap),
     getAllInsurancePolicies().then(unwrap),
     getAllInspections().then(unwrap),
     getAllTollSubscriptions().then(unwrap),
     getAllOdometerReadings(currentMonthString(sixMonthsAgo)).then(unwrap),
     loadDriverCandidates(),
+    // Quotes arrive with their own migration; the register works without it.
+    getPendingQuotes().then((result) => result.data || []),
   ]);
-  return { vehicles, policies, inspections, tolls, readings, drivers };
+  return { vehicles, policies, inspections, tolls, readings, drivers, pendingQuotes };
 }
 
 export async function loadVehicleDetail(vehicleId) {
   const vehicle = unwrap(await getVehicle(vehicleId));
   if (!vehicle) return null;
-  const [policies, inspections, tolls, readings, documents] = await Promise.all([
+  const [policies, inspections, tolls, readings, documents, quotes] = await Promise.all([
     getInsurancePolicies(vehicleId).then(unwrap),
     getInspections(vehicleId).then(unwrap),
     getTollSubscriptions(vehicleId).then(unwrap),
     getOdometerReadings(vehicleId).then(unwrap),
     getVehicleDocuments(vehicleId).then(unwrap),
+    getVehicleQuotes(vehicleId).then((result) => result.data || []),
   ]);
-  return { vehicle, policies, inspections, tolls, readings, documents };
+  return { vehicle, policies, inspections, tolls, readings, documents, quotes };
+}
+
+// ---- insurance quotes (a manager approves; first decision wins)
+/** Uploads/records a quote, moves an expected vehicle to "awaiting insurance" and tells the managers. */
+export async function submitInsuranceQuote(vehicle, payload, scan, user) {
+  let documentId = null;
+  if (scan) {
+    documentId = unwrap(await insertVehicleDocument({
+      vehicle_id: vehicle.id, doc_type: 'insurance_quote', file_path: scan.path, original_name: scan.name,
+      mime_type: scan.mime, size_bytes: scan.size, uploaded_by: user.id,
+    })).id;
+  }
+  const quote = unwrap(await insertQuote({
+    ...payload, vehicle_id: vehicle.id, document_id: documentId, requested_by: user.id, requested_by_name: user.name || '',
+  }));
+  if (vehicle.status === 'expected') unwrap(await updateVehicle(vehicle.id, { status: 'awaiting_insurance' }));
+  await createManagerNotification(
+    'vehicle_quote',
+    `הצעת ביטוח לרכב ${vehicle.plate_number} ממתינה לאישור`,
+    `${user.name || 'משתמש'} העלה/תה הצעה${payload.premium_ils ? ` בסך ${payload.premium_ils} ₪` : ''}${payload.agent ? ` מ${payload.agent}` : ''}.`,
+  );
+  return quote;
+}
+
+/** Returns the decided quote, or null when another manager decided it first. */
+export async function decideInsuranceQuote(quote, vehicle, { status, note }, user) {
+  const decided = unwrap(await decidePendingQuote(quote.id, {
+    status, decision_note: note || '', decided_by: user.id, decided_by_name: user.name || '', decided_at: new Date().toISOString(),
+  }));
+  if (!decided) return null;
+  if (quote.requested_by && quote.requested_by !== user.id) {
+    await createUserNotification(
+      quote.requested_by,
+      'vehicle_quote',
+      `הצעת הביטוח לרכב ${vehicle.plate_number} ${status === 'approved' ? 'אושרה' : 'נדחתה'}`,
+      `${user.name || 'מנהל'}${note ? `: ${note}` : ''}`,
+    );
+  }
+  return decided;
+}
+
+export async function removeInsuranceQuote(quoteId) {
+  unwrap(await deleteQuote(quoteId));
+}
+
+// ---- exports
+/** Everything the whole-fleet workbook needs (all history, not just the overview window). */
+export async function loadFleetExportData() {
+  const [vehicles, policies, inspections, tolls, readings, fines, assignments] = await Promise.all([
+    getVehicles().then(unwrap),
+    getAllInsurancePolicies().then(unwrap),
+    getAllInspections().then(unwrap),
+    getAllTollSubscriptions().then(unwrap),
+    getAllOdometerReadings('2000-01-01').then(unwrap),
+    getFines().then((result) => result.data || []),
+    getAllAssignments().then((result) => result.data || []),
+  ]);
+  return { vehicles, policies, inspections, tolls, readings, fines, assignments };
+}
+
+export async function loadVehicleFines(vehicleId) {
+  const result = await getVehicleFines(vehicleId);
+  return result.data || [];
 }
 
 // ---- assignments

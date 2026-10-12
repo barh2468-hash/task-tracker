@@ -47,7 +47,7 @@ function latestValidTo(rows) {
  * Collapses the child tables into the per-vehicle summary the list and the
  * alerts dashboard render. Retired vehicles raise no alerts.
  */
-export function buildVehicleSummaries({ vehicles, policies, inspections, readings, now = new Date() }) {
+export function buildVehicleSummaries({ vehicles, policies, inspections, readings, pendingQuotes = [], now = new Date() }) {
   const group = (rows) => {
     const map = new Map();
     for (const row of rows || []) {
@@ -60,6 +60,7 @@ export function buildVehicleSummaries({ vehicles, policies, inspections, reading
   const inspectionsBy = group(inspections);
   const readingsBy = group(readings);
   const month = currentMonthString(now);
+  const quoteVehicles = new Set(pendingQuotes.map((quote) => quote.vehicle_id));
 
   return (vehicles || []).map((vehicle) => {
     const insuranceValidTo = latestValidTo(policiesBy.get(vehicle.id));
@@ -78,8 +79,17 @@ export function buildVehicleSummaries({ vehicles, policies, inspections, reading
       inspectionLevel: active && vehicle.kind !== 'trailer' ? expiryLevel(inspectionValidTo, now) : 'ok',
       leaseLevel: active && vehicle.lease_end ? expiryLevel(vehicle.lease_end, now) : 'ok',
       odometerMissing: needsOdometer && !odometerReportedThisMonth,
+      hasPendingQuote: quoteVehicles.has(vehicle.id),
     };
   });
+}
+
+/** Statuses a vehicle passes through before it is handed over and in use. */
+export const PRE_ACTIVE_STATUSES = ['expected', 'awaiting_insurance', 'awaiting_handover'];
+
+/** True when some policy is still valid today (an approved quote alone is not enough to hand a vehicle over). */
+export function hasActivePolicy(policies, now = new Date()) {
+  return (policies || []).some((policy) => policy.valid_to && daysUntil(policy.valid_to, now) >= 0);
 }
 
 const isUrgent = (level) => level === 'expired' || level === 'soon';

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Car, ClipboardList, Gauge, Plus, ShieldAlert, Upload, UserCheck, Users, Receipt } from 'lucide-react';
+import { AlertTriangle, Car, ClipboardList, FileSpreadsheet, FileCheck2, Gauge, Plus, ShieldAlert, Upload, UserCheck, Users, Receipt } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useMessage } from '../context/MessageContext.jsx';
 import { t } from '../features/language/LanguageContext.jsx';
@@ -11,7 +11,7 @@ import Card from '../components/ui/Card.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import LoadingState from '../components/ui/LoadingState.jsx';
 import Stat from '../components/Stat.jsx';
-import { createVehicle, importVehicles, isSchemaMissing, linkVehicleDrivers, loadFleetOverview } from '../features/vehicles/api.js';
+import { createVehicle, importVehicles, isSchemaMissing, linkVehicleDrivers, loadFleetExportData, loadFleetOverview } from '../features/vehicles/api.js';
 import {
   HOLDER_TYPES, OWNERSHIP_TYPES, TOLL_SHORT_LABELS, VEHICLE_KINDS, VEHICLE_STATUSES,
 } from '../features/vehicles/constants.js';
@@ -20,6 +20,7 @@ import {
 } from '../features/vehicles/utils/vehicleStatus.js';
 import ExpiryPill from '../features/vehicles/components/ExpiryPill.jsx';
 import VehicleFormModal from '../features/vehicles/components/VehicleFormModal.jsx';
+import { exportFleetWorkbook } from '../features/vehicles/utils/exportVehicles.js';
 import VehicleImportModal from '../features/vehicles/components/VehicleImportModal.jsx';
 import DriverMatchModal from '../features/vehicles/components/DriverMatchModal.jsx';
 
@@ -27,6 +28,7 @@ const FOCUS_FILTERS = {
   attention: hasAlert,
   missing: hasMissingData,
   odometer: (summary) => summary.odometerMissing,
+  quotes: (summary) => summary.hasPendingQuote,
 };
 
 export default function VehiclesPage() {
@@ -76,6 +78,7 @@ export default function VehiclesPage() {
       attention: active.filter(FOCUS_FILTERS.attention).length,
       missing: active.filter(FOCUS_FILTERS.missing).length,
       odometer: active.filter(FOCUS_FILTERS.odometer).length,
+      quotes: active.filter(FOCUS_FILTERS.quotes).length,
     };
   }, [summaries]);
 
@@ -102,6 +105,15 @@ export default function VehiclesPage() {
           a.vehicle.plate_number.localeCompare(b.vehicle.plate_number, 'he', { numeric: true }),
       );
   }, [summaries, search, statusFilter, focus]);
+
+  async function handleExport() {
+    try {
+      await exportFleetWorkbook(await loadFleetExportData());
+      setMessage(t('הקובץ נוצר.'));
+    } catch (exportError) {
+      setMessage(exportError?.message || t('הייצוא נכשל.'), 'error');
+    }
+  }
 
   async function handleCreate(payload) {
     await createVehicle(payload, userId);
@@ -143,6 +155,9 @@ export default function VehiclesPage() {
             <Link to="/app/vehicles/fines" className="secondary smallBtn">
               <Receipt size={16} /> {t('דוחות')}
             </Link>
+            <Button variant="secondary" onClick={handleExport}>
+              <FileSpreadsheet size={16} /> {t('ייצוא לאקסל')}
+            </Button>
             {isManager && (
             <>
               {unlinkedDrivers > 0 && (
@@ -184,6 +199,15 @@ export default function VehiclesPage() {
           active={focus === 'missing'}
           onClick={() => toggleFocus('missing')}
         />
+        {counts.quotes > 0 && (
+          <Stat
+            icon={<FileCheck2 size={22} />}
+            number={counts.quotes}
+            label="הצעות ביטוח לאישור"
+            active={focus === 'quotes'}
+            onClick={() => toggleFocus('quotes')}
+          />
+        )}
         <Stat
           icon={<Gauge size={22} />}
           number={counts.odometer}
@@ -290,7 +314,7 @@ export default function VehiclesPage() {
         </Card>
       )}
 
-      {dialog === 'new' && <VehicleFormModal onSave={handleCreate} onClose={() => setDialog(null)} />}
+      {dialog === 'new' && <VehicleFormModal defaultStatus="expected" onSave={handleCreate} onClose={() => setDialog(null)} />}
       {dialog === 'drivers' && (
         <DriverMatchModal
           vehicles={data.vehicles}

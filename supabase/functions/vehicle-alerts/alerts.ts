@@ -20,6 +20,7 @@ type Vehicle = {
   status: string;
   driver_id: string | null;
   lease_end: string | null;
+  expected_arrival: string | null;
 };
 
 export type AlertInput = {
@@ -32,6 +33,7 @@ export type AlertInput = {
   openAssignments: { vehicle_id: string; driver_id: string | null; driver_name: string }[];
   recipientIds: string[];
   nameById: Record<string, string>;
+  pendingQuotes: { id: string; vehicle_id: string; created_at: string }[];
   unpaidFines: {
     id: string;
     vehicle_id: string;
@@ -47,6 +49,8 @@ const EXPIRY_MILESTONES = [60, 30, 14, 7, 0];
 const LEASE_MILESTONES = [90, 60, 30, 14, 7, 0];
 const ODOMETER_ESCALATION_DAY = 4;
 const FINE_MILESTONES = [7, 3, 0];
+const ARRIVAL_MILESTONES = [14, 7, 3, 1, 0];
+const QUOTE_OVERDUE_DAYS = 2;
 const ACTIVE = ['in_use', 'in_service'];
 
 export function daysBetween(from: string, to: string) {
@@ -144,6 +148,34 @@ export function buildAlerts(input: AlertInput): Alert[] {
         });
       }
     }
+  }
+
+  // A vehicle that is about to arrive (or is late) with no valid policy yet.
+  for (const vehicle of vehicles) {
+    if (!['expected', 'awaiting_insurance'].includes(vehicle.status) || !vehicle.expected_arrival) continue;
+    const insuredUntil = insurance.get(vehicle.id);
+    if (insuredUntil && daysBetween(today, insuredUntil) >= 0) continue;
+    const left = daysBetween(today, vehicle.expected_arrival);
+    if (!isMilestone(left, ARRIVAL_MILESTONES)) continue;
+    push(recipientIds, {
+      type: 'vehicle_arrival_no_insurance',
+      title: `רכב ${vehicle.plate_number} ${left < 0 ? 'היה אמור להגיע' : 'מגיע'} ${expiryPhrase(left)} ללא ביטוח`,
+      body: `${vehicle.make_model} · הגעה צפויה ${formatDate(vehicle.expected_arrival)}. יש להשלים הצעה, אישור ופוליסה.`,
+      url: `/app/vehicles/${vehicle.id}`,
+      period: 'day',
+    });
+  }
+
+  // Insurance quotes waiting too long for a decision.
+  const stale = input.pendingQuotes.filter((quote) => daysBetween(quote.created_at.slice(0, 10), today) >= QUOTE_OVERDUE_DAYS);
+  if (stale.length) {
+    push(recipientIds, {
+      type: 'vehicle_quote_pending',
+      title: 'הצעות ביטוח ממתינות לאישור',
+      body: `${stale.length} הצעות ממתינות להחלטה מעל ${QUOTE_OVERDUE_DAYS} ימים`,
+      url: '/app/vehicles',
+      period: 'day',
+    });
   }
 
   // Weekly digest of data that was never entered (so 30 vehicles with no

@@ -41,6 +41,32 @@ export function getVehicleAssignments(vehicleId) {
     .order('started_at', { ascending: false });
 }
 
+// ---- insurance quotes
+export function getVehicleQuotes(vehicleId) {
+  return supabase.from('vehicle_insurance_quotes').select('*').eq('vehicle_id', vehicleId).order('created_at', { ascending: false });
+}
+
+export function getPendingQuotes() {
+  return supabase.from('vehicle_insurance_quotes').select('id, vehicle_id, created_at').eq('status', 'pending');
+}
+
+export function insertQuote(payload) {
+  return supabase.from('vehicle_insurance_quotes').insert(payload).select('*').single();
+}
+
+/** Decides only a still-pending quote, so the first decision wins. Resolves null data if someone was faster. */
+export function decidePendingQuote(quoteId, payload) {
+  return supabase.from('vehicle_insurance_quotes').update(payload).eq('id', quoteId).eq('status', 'pending').select('*').maybeSingle();
+}
+
+export function deleteQuote(quoteId) {
+  return supabase.from('vehicle_insurance_quotes').delete().eq('id', quoteId);
+}
+
+export function getAllAssignments() {
+  return supabase.from('vehicle_assignments').select('*').order('started_at', { ascending: false });
+}
+
 // ---- fines
 const FINE_SELECT =
   '*, vehicle:vehicles!vehicle_id(plate_number, make_model), document:vehicle_documents!document_id(file_path)';

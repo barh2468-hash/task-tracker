@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, ArrowRight, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, FileArchive, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useMessage } from '../context/MessageContext.jsx';
 import { t } from '../features/language/LanguageContext.jsx';
@@ -10,11 +10,16 @@ import Button from '../components/ui/Button.jsx';
 import Card from '../components/ui/Card.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 import LoadingState from '../components/ui/LoadingState.jsx';
-import { loadVehicleAssignments, loadVehicleDetail, removeVehicle, saveVehicle } from '../features/vehicles/api.js';
+import {
+  loadVehicleAssignments, loadVehicleDetail, loadVehicleFines, removeVehicle, saveVehicle,
+} from '../features/vehicles/api.js';
 import {
   HOLDER_TYPES, OWNERSHIP_TYPES, VEHICLE_KINDS, VEHICLE_STATUSES, KINDS_WITHOUT_ODOMETER,
 } from '../features/vehicles/constants.js';
-import { expiryLevel, formatDate } from '../features/vehicles/utils/vehicleStatus.js';
+import { expiryLevel, formatDate, hasActivePolicy, PRE_ACTIVE_STATUSES } from '../features/vehicles/utils/vehicleStatus.js';
+import { exportVehicleZip } from '../features/vehicles/utils/exportVehicles.js';
+import LifecycleCard from '../features/vehicles/components/LifecycleCard.jsx';
+import QuotesPanel from '../features/vehicles/components/QuotesPanel.jsx';
 import ExpiryPill from '../features/vehicles/components/ExpiryPill.jsx';
 import VehicleFormModal from '../features/vehicles/components/VehicleFormModal.jsx';
 import {
@@ -34,14 +39,16 @@ export default function VehicleDetailPage() {
   useTranslation();
   const { vehicleId } = useParams();
   const navigate = useNavigate();
-  const { session, isManager } = useAuth();
+  const { session, profile, isManager } = useAuth();
   const { setMessage } = useMessage();
   const [detail, setDetail] = useState(undefined);
   const [assignments, setAssignments] = useState([]);
   const [error, setError] = useState('');
   const [tab, setTab] = useState('overview');
   const [editing, setEditing] = useState(false);
+  const [exporting, setExporting] = useState('');
   const userId = session?.user?.id;
+  const user = { id: userId, name: profile?.full_name || '' };
 
   const load = useCallback(async () => {
     try {
@@ -62,11 +69,12 @@ export default function VehicleDetailPage() {
   if (detail === undefined) return <LoadingState label={t('טוען רכב...')} />;
   if (detail === null) return <EmptyState icon={AlertTriangle} title={t('הרכב לא נמצא')} />;
 
-  const { vehicle, policies, inspections, tolls, readings, documents } = detail;
+  const { vehicle, policies, inspections, tolls, readings, documents, quotes } = detail;
   const hasOdometer = !KINDS_WITHOUT_ODOMETER.includes(vehicle.kind);
   const tabs = [
     ['overview', t('סקירה')],
     ['insurance', t('ביטוח')],
+    ['quotes', `${t('הצעות ביטוח')}${quotes.some((quote) => quote.status === 'pending') ? ' •' : ''}`],
     ['inspections', t('טסט')],
     ['assignments', t('שיוכים')],
     ...(hasOdometer ? [['tolls', t('מנויים')], ['odometer', t('ק"מ')]] : []),
@@ -74,7 +82,40 @@ export default function VehicleDetailPage() {
   ];
   const panelProps = { vehicle, canEdit: isManager, userId, onChanged: load };
 
+  // A vehicle still being onboarded cannot be handed over or put in use without a valid policy.
+  function assertCanActivate(nextStatus) {
+    const activating = nextStatus === 'awaiting_handover' || nextStatus === 'in_use';
+    if (activating && PRE_ACTIVE_STATUSES.includes(vehicle.status) && !hasActivePolicy(policies)) {
+      throw new Error(t('אי אפשר להעביר את הרכב למסירה / שימוש לפני שיש פוליסה בתוקף.'));
+    }
+  }
+
+  async function handleSetStatus(status) {
+    try {
+      assertCanActivate(status);
+      await saveVehicle(vehicle.id, { status });
+      setMessage(t('הסטטוס עודכן.'));
+      await load();
+    } catch (statusError) {
+      setMessage(statusError?.message || t('העדכון נכשל.'), 'error');
+    }
+  }
+
+  async function handleExportZip() {
+    setExporting(t('מכין קובץ...'));
+    try {
+      const fines = await loadVehicleFines(vehicle.id);
+      const result = await exportVehicleZip(detail, { assignments, fines }, (done, total) => setExporting(`${t('מוריד מסמכים')} ${done}/${total}`));
+      setMessage(result.errors ? `${t('הקובץ נוצר. מסמכים שלא הורדו:')} ${result.errors}` : t('הקובץ נוצר.'), result.errors ? 'info' : 'success');
+    } catch (exportError) {
+      setMessage(exportError?.message || t('הייצוא נכשל.'), 'error');
+    } finally {
+      setExporting('');
+    }
+  }
+
   async function handleSave(payload) {
+    assertCanActivate(payload.status);
     await saveVehicle(vehicle.id, payload);
     setEditing(false);
     setMessage(t('הרכב עודכן.'));
@@ -103,6 +144,9 @@ export default function VehicleDetailPage() {
         actions={
           <>
             <Link to="/app/vehicles" className="secondary smallBtn"><ArrowRight size={15} /> {t('לרשימה')}</Link>
+            <Button variant="secondary" disabled={Boolean(exporting)} onClick={handleExportZip}>
+              <FileArchive size={15} /> {exporting || t('ייצוא מסמכים (ZIP)')}
+            </Button>
             {isManager && (
               <>
                 <Button variant="secondary" onClick={() => setEditing(true)}><Pencil size={15} /> {t('עריכה')}</Button>
@@ -126,6 +170,16 @@ export default function VehicleDetailPage() {
         ))}
       </nav>
 
+      {tab === 'overview' && PRE_ACTIVE_STATUSES.includes(vehicle.status) && (
+        <LifecycleCard
+          vehicle={vehicle}
+          quotes={quotes}
+          policies={policies}
+          canEdit={isManager}
+          onSetStatus={handleSetStatus}
+          onOpenTab={setTab}
+        />
+      )}
       {tab === 'overview' && (
         <Card>
           <div className="formGrid">
@@ -166,6 +220,7 @@ export default function VehicleDetailPage() {
         </Card>
       )}
       {tab === 'insurance' && <InsurancePanel {...panelProps} policies={policies} />}
+      {tab === 'quotes' && <QuotesPanel {...panelProps} quotes={quotes} documents={documents} user={user} />}
       {tab === 'inspections' && <InspectionsPanel {...panelProps} inspections={inspections} />}
       {tab === 'tolls' && <TollsPanel {...panelProps} tolls={tolls} />}
       {tab === 'odometer' && <OdometerPanel {...panelProps} readings={readings} />}

@@ -56,14 +56,15 @@ Deno.serve(async (req) => {
     }
 
     const monthStart = `${local.date.slice(0, 7)}-01`;
-    const [vehicles, policies, inspections, readings, assignments, people, fines] = await Promise.all([
-      db.from('vehicles').select('id,plate_number,make_model,kind,status,driver_id,lease_end').neq('status', 'retired'),
+    const [vehicles, policies, inspections, readings, assignments, people, fines, quotes] = await Promise.all([
+      db.from('vehicles').select('id,plate_number,make_model,kind,status,driver_id,lease_end,expected_arrival').neq('status', 'retired'),
       db.from('vehicle_insurance_policies').select('vehicle_id,valid_to'),
       db.from('vehicle_inspections').select('vehicle_id,valid_to'),
       db.from('vehicle_odometer_readings').select('vehicle_id').eq('reading_month', monthStart),
       db.from('vehicle_assignments').select('vehicle_id,driver_id,driver_name').is('ended_at', null),
       db.from('profiles').select('id,full_name,role'),
       db.from('vehicle_fines').select('id,vehicle_id,driver_id,fine_number,amount_ils,due_date,status').in('status', ['new', 'forwarded']),
+      db.from('vehicle_insurance_quotes').select('id,vehicle_id,created_at').eq('status', 'pending'),
     ]);
     for (const result of [vehicles, policies, inspections, readings, assignments, people, fines]) {
       if (result.error) throw result.error;
@@ -80,6 +81,8 @@ Deno.serve(async (req) => {
       openAssignments: assignments.data || [],
       recipientIds: profiles.filter((profile) => ['manager', 'admin'].includes(profile.role)).map((profile) => profile.id),
       nameById: Object.fromEntries(profiles.map((profile) => [profile.id, profile.full_name])),
+      // Quotes arrive with their own migration: a missing table must not stop the other alerts.
+      pendingQuotes: quotes.error ? [] : quotes.data || [],
       unpaidFines: fines.data || [],
     });
     if (!alerts.length) return new Response(JSON.stringify({ ok: true, created: 0 }), { headers });

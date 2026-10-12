@@ -1,5 +1,5 @@
--- Vehicle fleet, phase 2 (fleet-side only): who holds which vehicle and when.
--- Read and written by the fleet role (managers read). Nothing here is exposed
+-- Vehicle fleet, phase 2 (management-side only): who holds which vehicle and when.
+-- Read and written by managers. Nothing here is exposed
 -- to workers; the worker-facing flow (my vehicle, receive / swap / return
 -- forms) is built separately.
 

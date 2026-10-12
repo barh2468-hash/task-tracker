@@ -1,17 +1,17 @@
--- Vehicle fleet management, phase 1: 'fleet' role (UI label "מזכיר רכבים"),
--- vehicle register, documents, insurance policies, inspections (טסט), toll
--- subscriptions and monthly odometer readings.
+-- Vehicle fleet management, phase 1: vehicle register, documents, insurance
+-- policies, inspections (טסט), toll subscriptions and monthly odometer readings.
 --
--- Access: the fleet role reads and writes everything. Managers (management)
--- read everything. Every other role — field workers, drafters, accounting —
--- has no access to these tables or to the private storage bucket.
+-- Access: managers read and write everything. Every other role — field
+-- workers, drafters, accounting — has no access to these tables or to the
+-- private storage bucket. (The helper names is_fleet() / can_view_fleet() are
+-- kept; both simply mean "is a manager".)
 
 alter table public.profiles
   drop constraint if exists profiles_role_check;
 
 alter table public.profiles
   add constraint profiles_role_check
-  check (role in ('manager', 'field_worker', 'drafter', 'accounting', 'fleet', 'admin'));
+  check (role in ('manager', 'field_worker', 'drafter', 'accounting', 'admin'));
 -- 'admin' is not used by the app code but already exists on a production
 -- profile row, so the constraint has to keep accepting it.
 
@@ -25,7 +25,7 @@ as $$
     select 1
     from public.profiles
     where id = auth.uid()
-      and role = 'fleet'
+      and role = 'manager'
   );
 $$;
 grant execute on function public.is_fleet() to authenticated;
@@ -36,7 +36,7 @@ language sql
 security definer
 set search_path = public
 as $$
-  select public.is_fleet() or public.is_manager();
+  select public.is_manager();
 $$;
 grant execute on function public.can_view_fleet() to authenticated;
 

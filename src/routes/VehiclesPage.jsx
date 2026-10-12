@@ -31,7 +31,7 @@ const FOCUS_FILTERS = {
 
 export default function VehiclesPage() {
   useTranslation();
-  const { session, isFleet } = useAuth();
+  const { session, isManager } = useAuth();
   const { setMessage } = useMessage();
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState('');
@@ -137,13 +137,13 @@ export default function VehiclesPage() {
     <>
       <PageHeader
         title={t('רכבי חברה')}
-        subtitle={isFleet ? t('ניהול הצי, ביטוחים, טסטים ומסמכים') : t('צפייה בצי הרכבים')}
+        subtitle={t('ניהול הצי, ביטוחים, טסטים ומסמכים')}
         actions={
           <>
             <Link to="/app/vehicles/fines" className="secondary smallBtn">
               <Receipt size={16} /> {t('דוחות')}
             </Link>
-            {isFleet && (
+            {isManager && (
             <>
               {unlinkedDrivers > 0 && (
                 <Button variant="secondary" onClick={() => setDialog('drivers')}>
@@ -214,7 +214,7 @@ export default function VehiclesPage() {
         <EmptyState
           icon={Car}
           title={data.vehicles.length ? t('אין רכבים התואמים לסינון') : t('עדיין אין רכבים במערכת')}
-          description={isFleet && !data.vehicles.length ? t('אפשר להוסיף רכב או לייבא את הטבלה הקיימת.') : undefined}
+          description={isManager && !data.vehicles.length ? t('אפשר להוסיף רכב או לייבא את הטבלה הקיימת.') : undefined}
         />
       ) : (
         <Card className="equipmentTableWrap">

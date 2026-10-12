@@ -1,5 +1,5 @@
--- Vehicle fines (דוחות): register and holder-at-time lookup. Fleet-side only:
--- the secretary owns the data, workers have no access (a worker-facing view is
+-- Vehicle fines (דוחות): register and holder-at-time lookup. Management-side
+-- only: managers own the data, workers have no access (a worker-facing view is
 -- built separately). Workers pay the amount the authority shows, so no
 -- interest is computed here: a newer scan records the new amount in
 -- amount_history.

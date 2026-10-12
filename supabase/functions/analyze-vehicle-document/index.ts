@@ -3,10 +3,10 @@ import { Buffer } from 'node:buffer';
 
 // Reads a scanned/photographed vehicle document (traffic fine, insurance
 // policy, test/registration certificate) with a Claude vision model and
-// returns structured fields. Nothing is saved here: the fleet secretary
+// returns structured fields. Nothing is saved here: the manager
 // reviews and corrects the result in the app before it is stored.
 //
-// Only the fleet role may call it. The file is read through the caller's own
+// Only managers may call it. The file is read through the caller's own
 // session, so storage RLS applies. The API key is an Edge Function secret
 // (ANTHROPIC_API_KEY) and never reaches the browser.
 
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     if (userError || !userData.user) return json({ ok: false, error: 'unauthorized' }, 401);
 
     const { data: profile } = await userClient.from('profiles').select('role').eq('id', userData.user.id).maybeSingle();
-    if (profile?.role !== 'fleet') return json({ ok: false, error: 'forbidden' }, 403);
+    if (profile?.role !== 'manager') return json({ ok: false, error: 'forbidden' }, 403);
 
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!apiKey) return json({ ok: false, error: 'ai_not_configured' });

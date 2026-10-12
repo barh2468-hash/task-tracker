@@ -30,7 +30,7 @@ export type AlertInput = {
   inspections: { vehicle_id: string; valid_to: string }[];
   readingsThisMonth: { vehicle_id: string }[];
   openAssignments: { vehicle_id: string; driver_id: string | null; driver_name: string }[];
-  fleetIds: string[];
+  recipientIds: string[];
   nameById: Record<string, string>;
   unpaidFines: {
     id: string;
@@ -83,7 +83,7 @@ function expiryPhrase(daysLeft: number) {
 
 export function buildAlerts(input: AlertInput): Alert[] {
   const alerts: Alert[] = [];
-  const { today, vehicles, fleetIds } = input;
+  const { today, vehicles, recipientIds } = input;
   const holderByVehicle = new Map<string, { id: string | null; name: string }>();
   const open = new Map(input.openAssignments.map((a) => [a.vehicle_id, a]));
   for (const vehicle of vehicles) {
@@ -108,7 +108,7 @@ export function buildAlerts(input: AlertInput): Alert[] {
     if (insuranceEnd) {
       const left = daysBetween(today, insuranceEnd);
       if (isMilestone(left, EXPIRY_MILESTONES)) {
-        push(fleetIds, {
+        push(recipientIds, {
           type: 'vehicle_insurance_expiry',
           title: `ביטוח ${plate} פג ${expiryPhrase(left)}`,
           body: `${detail} · בתוקף עד ${formatDate(insuranceEnd)}`,
@@ -122,7 +122,7 @@ export function buildAlerts(input: AlertInput): Alert[] {
     if (inspectionEnd && vehicle.kind !== 'trailer') {
       const left = daysBetween(today, inspectionEnd);
       if (isMilestone(left, EXPIRY_MILESTONES)) {
-        push(fleetIds, {
+        push(recipientIds, {
           type: 'vehicle_inspection_expiry',
           title: `טסט ${plate} פג ${expiryPhrase(left)}`,
           body: `${detail} · בתוקף עד ${formatDate(inspectionEnd)}`,
@@ -135,7 +135,7 @@ export function buildAlerts(input: AlertInput): Alert[] {
     if (vehicle.lease_end) {
       const left = daysBetween(today, vehicle.lease_end);
       if (left >= 0 && LEASE_MILESTONES.includes(left)) {
-        push(fleetIds, {
+        push(recipientIds, {
           type: 'vehicle_lease_end',
           title: `חוזה ליסינג ${plate} מסתיים ${expiryPhrase(left)}`,
           body: `${detail} · סיום חוזה ${formatDate(vehicle.lease_end)}`,
@@ -155,7 +155,7 @@ export function buildAlerts(input: AlertInput): Alert[] {
     const sample = (list: Vehicle[]) =>
       list.slice(0, 8).map((vehicle) => vehicle.plate_number).join(', ') + (list.length > 8 ? ` ועוד ${list.length - 8}` : '');
     if (noInsurance.length) {
-      push(fleetIds, {
+      push(recipientIds, {
         type: 'vehicle_missing_data',
         title: `${noInsurance.length} רכבים ללא ביטוח במערכת`,
         body: sample(noInsurance),
@@ -164,7 +164,7 @@ export function buildAlerts(input: AlertInput): Alert[] {
       });
     }
     if (noInspection.length) {
-      push(fleetIds, {
+      push(recipientIds, {
         type: 'vehicle_missing_data',
         title: `${noInspection.length} רכבים ללא טסט במערכת`,
         body: sample(noInspection),
@@ -186,7 +186,7 @@ export function buildAlerts(input: AlertInput): Alert[] {
       const name = holderByVehicle.get(vehicle.id)?.name;
       return `${vehicle.plate_number} (${name || 'ללא נהג מקושר'})`;
     });
-    push(fleetIds, {
+    push(recipientIds, {
       type: 'vehicle_odometer_escalation',
       title: 'דיווח ק"מ חודשי חסר',
       body: `${needReading.length} רכבים טרם דווחו: ${lines.join(', ')}${needReading.length > 10 ? ' ...' : ''}`,
@@ -204,7 +204,7 @@ export function buildAlerts(input: AlertInput): Alert[] {
     if (!isMilestone(left, FINE_MILESTONES)) continue;
     const plate = plateById.get(fine.vehicle_id) || '';
     const label = fine.fine_number ? `דוח ${fine.fine_number}` : 'דוח';
-    push(fleetIds, {
+    push(recipientIds, {
       type: 'vehicle_fine_due',
       title: `${label} (${plate}) ${left < 0 ? 'באיחור' : 'לתשלום'} ${left < 0 ? `של ${-left} ימים` : expiryPhrase(left)}`,
       body: `סכום לתשלום: ${fine.amount_ils} ₪ · עד ${formatDate(fine.due_date)}`,

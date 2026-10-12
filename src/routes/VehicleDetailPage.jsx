@@ -34,7 +34,7 @@ export default function VehicleDetailPage() {
   useTranslation();
   const { vehicleId } = useParams();
   const navigate = useNavigate();
-  const { session, isFleet } = useAuth();
+  const { session, isManager } = useAuth();
   const { setMessage } = useMessage();
   const [detail, setDetail] = useState(undefined);
   const [assignments, setAssignments] = useState([]);
@@ -72,7 +72,7 @@ export default function VehicleDetailPage() {
     ...(hasOdometer ? [['tolls', t('מנויים')], ['odometer', t('ק"מ')]] : []),
     ['documents', `${t('מסמכים')} (${documents.length})`],
   ];
-  const panelProps = { vehicle, canEdit: isFleet, userId, onChanged: load };
+  const panelProps = { vehicle, canEdit: isManager, userId, onChanged: load };
 
   async function handleSave(payload) {
     await saveVehicle(vehicle.id, payload);
@@ -103,7 +103,7 @@ export default function VehicleDetailPage() {
         actions={
           <>
             <Link to="/app/vehicles" className="secondary smallBtn"><ArrowRight size={15} /> {t('לרשימה')}</Link>
-            {isFleet && (
+            {isManager && (
               <>
                 <Button variant="secondary" onClick={() => setEditing(true)}><Pencil size={15} /> {t('עריכה')}</Button>
                 <Button variant="ghost" className="danger" onClick={handleDelete}><Trash2 size={15} /> {t('מחיקה')}</Button>

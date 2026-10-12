@@ -14,7 +14,6 @@ import ResetPasswordPage from './routes/ResetPasswordPage.jsx';
 import RequireAuth from './routes/RequireAuth.jsx';
 import DashboardLayout from './routes/DashboardLayout.jsx';
 import AccountingLayout from './routes/AccountingLayout.jsx';
-import FleetLayout from './routes/FleetLayout.jsx';
 import ProjectsPage from './routes/ProjectsPage.jsx';
 import OverviewPage from './routes/OverviewPage.jsx';
 import PwaBootstrap from './features/pwa/components/PwaBootstrap.jsx';
@@ -45,17 +44,16 @@ const VehiclesPage = lazy(() => import('./routes/VehiclesPage.jsx'));
 const VehicleDetailPage = lazy(() => import('./routes/VehicleDetailPage.jsx'));
 const VehicleFinesPage = lazy(() => import('./routes/VehicleFinesPage.jsx'));
 
-// Vehicle data is visible to the fleet secretary (read/write) and managers (read).
-function RequireFleetAccess({ children }) {
-  const { isFleet, isManager } = useAuth();
-  if (!isFleet && !isManager) return <Navigate to="/app" replace />;
+// Vehicle management belongs to the manager role.
+function RequireVehicleAccess({ children }) {
+  const { isManager } = useAuth();
+  if (!isManager) return <Navigate to="/app" replace />;
   return children;
 }
 
 function AppLanding() {
-  const { isAccounting, isFleet, isDrafter } = useAuth();
+  const { isAccounting, isDrafter } = useAuth();
   if (isAccounting) return <Navigate to="accounting/year-end" replace />;
-  if (isFleet) return <Navigate to="vehicles" replace />;
   return <Navigate to={isDrafter ? 'projects' : 'attendance'} replace />;
 }
 
@@ -74,12 +72,11 @@ function AppProviders({ children }) {
   );
 }
 
-// Accounting and fleet each have their own mini layout/routes — they don't
-// need the dashboard's projects/attendance/chat/notifications providers.
+// Accounting has its own mini layout/routes — it doesn't need the dashboard's
+// projects/attendance/chat/notifications providers.
 function AppRoot() {
-  const { isAccounting, isFleet } = useAuth();
+  const { isAccounting } = useAuth();
   if (isAccounting) return <AccountingLayout />;
-  if (isFleet) return <FleetLayout />;
   return (
     <AppProviders>
       <DashboardLayout />
@@ -227,31 +224,31 @@ export default function App() {
                 <Route
                   path="vehicles"
                   element={
-                    <RequireFleetAccess>
+                    <RequireVehicleAccess>
                       <Suspense fallback={<LoadingScreen />}>
                         <VehiclesPage />
                       </Suspense>
-                    </RequireFleetAccess>
+                    </RequireVehicleAccess>
                   }
                 />
                 <Route
                   path="vehicles/fines"
                   element={
-                    <RequireFleetAccess>
+                    <RequireVehicleAccess>
                       <Suspense fallback={<LoadingScreen />}>
                         <VehicleFinesPage />
                       </Suspense>
-                    </RequireFleetAccess>
+                    </RequireVehicleAccess>
                   }
                 />
                 <Route
                   path="vehicles/:vehicleId"
                   element={
-                    <RequireFleetAccess>
+                    <RequireVehicleAccess>
                       <Suspense fallback={<LoadingScreen />}>
                         <VehicleDetailPage />
                       </Suspense>
-                    </RequireFleetAccess>
+                    </RequireVehicleAccess>
                   }
                 />
                 <Route

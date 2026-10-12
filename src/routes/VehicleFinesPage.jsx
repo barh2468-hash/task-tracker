@@ -125,7 +125,7 @@ function FineDetailModal({ fine, canEdit, onAction, onClose }) {
 
 export default function VehicleFinesPage() {
   useTranslation();
-  const { session, isFleet } = useAuth();
+  const { session, isManager } = useAuth();
   const { setMessage } = useMessage();
   const [fines, setFines] = useState(null);
   const [vehicles, setVehicles] = useState([]);
@@ -192,7 +192,7 @@ export default function VehicleFinesPage() {
         actions={
           <>
             <Link to="/app/vehicles" className="secondary smallBtn"><ArrowRight size={15} /> {t('לרשימת הרכבים')}</Link>
-            {isFleet && <Button onClick={() => setDialog('new')}><Plus size={16} /> {t('דוח חדש')}</Button>}
+            {isManager && <Button onClick={() => setDialog('new')}><Plus size={16} /> {t('דוח חדש')}</Button>}
           </>
         }
       />
@@ -205,7 +205,7 @@ export default function VehicleFinesPage() {
       </div>
 
       {visible.length === 0 ? (
-        <EmptyState icon={Receipt} title={t('אין דוחות להצגה')} description={isFleet ? t('אפשר להעלות סריקה והמערכת תמלא את הפרטים.') : undefined} />
+        <EmptyState icon={Receipt} title={t('אין דוחות להצגה')} description={isManager ? t('אפשר להעלות סריקה והמערכת תמלא את הפרטים.') : undefined} />
       ) : (
         <Card className="equipmentTableWrap">
           <table className="equipmentTable">
@@ -241,7 +241,7 @@ export default function VehicleFinesPage() {
       {selected && (
         <FineDetailModal
           fine={selected}
-          canEdit={isFleet}
+          canEdit={isManager}
           onAction={(action, value) => handleAction(selected, action, value)}
           onClose={() => setSelected(null)}
         />

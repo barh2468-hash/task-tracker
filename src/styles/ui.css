@@ -214,6 +214,11 @@ th.num {
   font-weight: 600;
   box-shadow: none;
 }
+.pill.neutral {
+  background: var(--gray-100);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
 
 /* ---------- Empty / loading ---------- */
 .empty {

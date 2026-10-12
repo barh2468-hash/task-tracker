@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Activity, AlertTriangle, Bell, ChartNoAxesCombined, ChevronDown, ClipboardList,
   Clock, Download, FileText, FolderKanban, HardHat, History, LayoutDashboard,
-  Layers, MapPin, Wrench,
+  Layers, MapPin, Car, Wrench,
 } from 'lucide-react';
 import { t } from '../features/language/LanguageContext.jsx';
 import AppPreferences from './AppPreferences.jsx';
@@ -82,6 +82,7 @@ export default function DashboardNavigation({
             {item('/app/today', 'היום בשטח', HardHat)}
             {item('/app/map', 'מפה חיה', MapPin)}
             {item('/app/equipment', 'ציוד עובדי שטח', Wrench)}
+            {item('/app/vehicles', 'רכבי חברה', Car)}
           </div>
         )}
 

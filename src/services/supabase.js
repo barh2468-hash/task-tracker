@@ -76,4 +76,5 @@ export const roleLabel = {
   field_worker: 'עובד שטח',
   drafter: 'שרטט',
   accounting: 'הנהלת חשבונות',
+  fleet: 'מזכיר רכבים',
 };

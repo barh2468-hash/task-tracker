@@ -42,6 +42,7 @@ export function isHeroSuppressed(pathname) {
     pathname === '/app/status-report' ||
     pathname === '/app/recent-status-changes' ||
     pathname === '/app/equipment' ||
+    pathname.startsWith('/app/vehicles') ||
     pathname === '/app/manhole-layout' ||
     pathname === '/app/chat'
   );

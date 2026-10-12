@@ -17,8 +17,8 @@ export function signUp(email, password, fullName) {
   return authApi.signUp(email, password, fullName);
 }
 
-export function signOut() {
-  return authApi.signOut();
+export function signOut(options) {
+  return authApi.signOut(options);
 }
 
 export function getSession() {

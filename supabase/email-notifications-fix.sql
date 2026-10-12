@@ -1,6 +1,6 @@
 -- Email notification support for status changes by field workers.
 -- Run once in Supabase SQL Editor.
--- No new role is added. Existing roles remain: manager / field_worker.
+-- Manager-level access also includes the administrator role.
 
 create or replace function public.is_manager()
 returns boolean
@@ -12,7 +12,7 @@ as $$
     select 1
     from public.profiles
     where id = auth.uid()
-      and role = 'manager'
+      and role in ('manager', 'admin')
   );
 $$;
 
@@ -36,4 +36,4 @@ end $$;
 
 alter table public.profiles
 add constraint profiles_role_check
-check (role in ('manager', 'field_worker'));
+check (role in ('admin', 'manager', 'field_worker', 'drafter', 'accounting'));

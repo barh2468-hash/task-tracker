@@ -20,6 +20,7 @@ export function AttendanceProvider({ children }) {
   const [attendanceEndNote, setAttendanceEndNote] = useState('');
   const [projectWorkEndTarget, setProjectWorkEndTarget] = useState(null);
   const [projectWorkEndBusy, setProjectWorkEndBusy] = useState(false);
+  const [workDiaryTarget, setWorkDiaryTarget] = useState(null);
   const lastReconciledDateRef = useRef(null);
 
   async function loadWorkSessions() {
@@ -160,12 +161,12 @@ export function AttendanceProvider({ children }) {
     if (!projectWorkEndBusy) setProjectWorkEndTarget(null);
   }
 
-  async function endWork({ endNote, crewMembers }) {
+  async function endWork({ endNote, crewMembers, dailyDraftingReady = false }) {
     if (!projectWorkEndTarget || projectWorkEndBusy) return null;
     setProjectWorkEndBusy(true);
     try {
       const result = await runMutation(
-        attendanceFeatureApi.endWork(projectWorkEndTarget, profile, { endNote, crewMembers }),
+        attendanceFeatureApi.endWork(projectWorkEndTarget, profile, { endNote, crewMembers, dailyDraftingReady }),
       );
       if (result?.offlineChanges) {
         setWorkSessions((items) =>
@@ -217,7 +218,7 @@ export function AttendanceProvider({ children }) {
     setAttendanceEndDialogOpen(true);
   }
 
-  async function finishAttendance(endNote, crewMembers = []) {
+  async function finishAttendance(endNote, crewMembers = [], dailyDraftingReady = false) {
     if (attendanceBusy) return null;
     setAttendanceBusy(true);
     try {
@@ -227,6 +228,7 @@ export function AttendanceProvider({ children }) {
           attendanceSessions,
           workSessions,
           crewMembers,
+          dailyDraftingReady,
         }),
       );
       if (result?.offlineChanges) {
@@ -266,6 +268,10 @@ export function AttendanceProvider({ children }) {
   );
 
   const value = {
+    workDiaryTarget,
+    openWorkDiary: setWorkDiaryTarget,
+    closeWorkDiary: () => setWorkDiaryTarget(null),
+    loadWorkSessions,
     workSessions,
     attendanceSessions,
     attendanceAvailable,

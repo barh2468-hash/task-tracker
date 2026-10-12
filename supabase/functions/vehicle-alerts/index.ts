@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       inspections: inspections.data || [],
       readingsThisMonth: readings.data || [],
       openAssignments: assignments.data || [],
-      recipientIds: profiles.filter((profile) => profile.role === 'manager').map((profile) => profile.id),
+      recipientIds: profiles.filter((profile) => ['manager', 'admin'].includes(profile.role)).map((profile) => profile.id),
       nameById: Object.fromEntries(profiles.map((profile) => [profile.id, profile.full_name])),
       unpaidFines: fines.data || [],
     });

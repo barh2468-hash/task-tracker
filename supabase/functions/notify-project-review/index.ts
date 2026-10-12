@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
     if (requesterError) throw requesterError;
     if (!requester) throw new Error('Missing requester profile');
-    const requesterIsManager = requester.role === 'manager';
+    const requesterIsManager = ['manager', 'admin'].includes(requester.role);
     const requesterIsDrafter = isDrafterCandidate(requester);
     if (!requesterIsManager && !requesterIsDrafter) {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'requester_is_not_manager_or_drafter' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
     const { data: managers, error: managersError } = await adminClient
       .from('profiles')
       .select('id,email,full_name,role')
-      .eq('role', 'manager');
+      .in('role', ['manager', 'admin']);
     if (managersError) throw managersError;
 
     let assignedRecipients: Array<{ id: string; email: string | null; full_name: string | null; role: string }> = [];

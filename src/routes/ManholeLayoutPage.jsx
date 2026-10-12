@@ -32,6 +32,7 @@ export default function ManholeLayoutPage() {
   const [previewZoomed, setPreviewZoomed] = useState(false);
   const [previewMode, setPreviewMode] = useState('editor');
   const [mobileEditing, setMobileEditing] = useState(false);
+  const [mobileViewing, setMobileViewing] = useState(false);
   const [activeTab, setActiveTab] = useState('editor');
   const [layouts, setLayouts] = useState([]);
   const [layoutsLoading, setLayoutsLoading] = useState(true);
@@ -49,6 +50,13 @@ export default function ManholeLayoutPage() {
     () => getSheetProjectOptions(projects, userId, profile?.role),
     [projects, userId, profile?.role],
   );
+
+  useEffect(() => {
+    if (!mobileViewing) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [mobileViewing]);
 
   const loadLayouts = useCallback(async () => {
     const request = ++layoutsRequestRef.current;
@@ -150,7 +158,7 @@ export default function ManholeLayoutPage() {
     const viewport = window.visualViewport;
     let raf = 0;
     let previous = '';
-    let editing = false;
+    let pinned = false;
     function updateViewport() {
       window.cancelAnimationFrame(raf);
       raf = window.requestAnimationFrame(() => {
@@ -158,7 +166,7 @@ export default function ManholeLayoutPage() {
         const viewportTop = viewport?.offsetTop || 0;
         let viewportBottom = viewportTop + (viewport?.height || window.innerHeight);
         const navigation = document.querySelector('.mobileBottomNav')?.getBoundingClientRect();
-        if (!editing && navigation?.height > 0 && navigation.top >= viewportTop) viewportBottom = Math.min(viewportBottom, navigation.top);
+        if (!pinned && navigation?.height > 0 && navigation.top >= viewportTop) viewportBottom = Math.min(viewportBottom, navigation.top);
         frame.style.setProperty('--mobile-editor-top', `${viewportTop}px`);
         frame.style.setProperty('--mobile-editor-height', `${Math.max(1, viewportBottom - viewportTop)}px`);
         const bounds = frame.getBoundingClientRect();
@@ -174,9 +182,12 @@ export default function ManholeLayoutPage() {
     function editorReady(event) {
       if (event.source !== frame?.contentWindow || event.origin !== 'null' || event.data?.type !== 'maya-sheets-editor-focus') return;
       const nextEditing = event.data.editing === true;
-      if (nextEditing && !editing) frame.parentElement.style.setProperty('--editor-placeholder-height', `${frame.getBoundingClientRect().height}px`);
-      editing = nextEditing;
-      setMobileEditing(editing);
+      const nextViewing = event.data.viewing === true;
+      const nextPinned = nextEditing || nextViewing;
+      if (nextPinned && !pinned) frame.parentElement.style.setProperty('--editor-placeholder-height', `${frame.getBoundingClientRect().height}px`);
+      pinned = nextPinned;
+      setMobileEditing(nextEditing);
+      setMobileViewing(nextViewing);
       previous = '';
       updateViewport();
     }
@@ -242,7 +253,7 @@ export default function ManholeLayoutPage() {
   }, [previewOpen, previewMode]);
 
   return (
-    <section className="manholeLayoutPage" aria-labelledby="manhole-layout-title" data-mobile-editing={mobileEditing || undefined}>
+    <section className="manholeLayoutPage" aria-labelledby="manhole-layout-title" data-mobile-editing={mobileEditing || undefined} data-mobile-viewing={mobileViewing || undefined}>
       <header className="manholeLayoutHeader">
         <div className="manholeLayoutHeading">
           <span className="manholeLayoutIcon"><Layers size={27} aria-hidden="true" /></span>

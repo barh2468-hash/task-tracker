@@ -5,7 +5,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../useAuth.js';
 
-export default function LoginForm() {
+export default function LoginForm({ passwordReset = false }) {
   useTranslation();
   const { login, authMessage, authBusy } = useAuth();
   const [email, setEmail] = useState('');
@@ -26,6 +26,11 @@ export default function LoginForm() {
             login(email, password);
           }}
         >
+          {passwordReset && (
+            <p className="authMessage success" role="status">
+              {t('הסיסמה עודכנה בהצלחה. כעת ניתן להתחבר באמצעות הסיסמה החדשה.')}
+            </p>
+          )}
           <label>
             {t('מייל ארגוני')}
 

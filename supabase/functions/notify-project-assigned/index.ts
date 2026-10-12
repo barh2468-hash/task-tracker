@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
 
     if (requesterError) throw requesterError;
     if (!requester) throw new Error('Missing requester profile');
-    if (requester.role !== 'manager') {
+    if (!['manager', 'admin'].includes(requester.role)) {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'requester_is_not_manager' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

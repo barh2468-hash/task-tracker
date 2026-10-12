@@ -61,7 +61,7 @@
   .manholeLayoutIcon{width:34px;height:34px;flex-basis:34px;border-radius:10px}
   .manholePreviewShortcut{padding:9px 12px;font-size:12px;bottom:calc(var(--mobile-nav-height,78px) + 12px)}
   .manholePreviewShortcut{display:none}
-  .manholeLayoutPage[data-mobile-editing="true"] .manholeEditorPanel::after{content:"";display:block;height:var(--editor-placeholder-height,550px)}
-  .manholeLayoutPage[data-mobile-editing="true"] .manholeLayoutFrame{position:fixed;top:var(--mobile-editor-top,0px);left:0;right:0;width:100%;height:var(--mobile-editor-height,100dvh);min-height:0;border:0;border-radius:0;z-index:100;box-shadow:none}
-  .page:has(.manholeLayoutPage[data-mobile-editing="true"]) .mobileBottomNav,.page:has(.manholeLayoutPage[data-mobile-editing="true"]) .mobileNotificationBell{visibility:hidden;pointer-events:none}
+  .manholeLayoutPage:is([data-mobile-editing="true"],[data-mobile-viewing="true"]) .manholeEditorPanel::after{content:"";display:block;height:var(--editor-placeholder-height,550px)}
+  .manholeLayoutPage:is([data-mobile-editing="true"],[data-mobile-viewing="true"]) .manholeLayoutFrame{position:fixed;top:var(--mobile-editor-top,0px);left:0;right:0;width:100%;height:var(--mobile-editor-height,100dvh);min-height:0;border:0;border-radius:0;z-index:100;box-shadow:none}
+  .page:has(.manholeLayoutPage:is([data-mobile-editing="true"],[data-mobile-viewing="true"])) .mobileBottomNav,.page:has(.manholeLayoutPage:is([data-mobile-editing="true"],[data-mobile-viewing="true"])) .mobileNotificationBell{visibility:hidden;pointer-events:none}
 }

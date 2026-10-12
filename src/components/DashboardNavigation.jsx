@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Activity, AlertTriangle, Bell, ChartNoAxesCombined, ChevronDown, ClipboardList,
   Clock, Download, FileText, FolderKanban, HardHat, History, LayoutDashboard,
-  Layers, MapPin, Car, Wrench,
+  Layers, MapPin, Car, ShieldCheck, Wrench,
 } from 'lucide-react';
 import { t } from '../features/language/LanguageContext.jsx';
 import AppPreferences from './AppPreferences.jsx';
@@ -24,7 +24,7 @@ function NavigationItem({ label, icon: Icon, active, count, onClick }) {
 }
 
 export default function DashboardNavigation({
-  role, isManager, isDrafter, pathname, isProjectWorkspace, stats, unreadCount,
+  role, isManager, isAdmin, isDrafter, pathname, isProjectWorkspace, stats, unreadCount,
   onOpenTab, secondaryOnly = false,
 }) {
   useTranslation();
@@ -74,6 +74,9 @@ export default function DashboardNavigation({
         <div className="sidebarNavGroup">
           <h2 className="sidebarGroupLabel">{t('כלי עבודה')}</h2>
           {item('/app/manhole-layout', 'פרישת שוחות', Layers)}
+          {!isDrafter && item('/app/my-attendance', 'דוח הנוכחות שלי', Clock)}
+          {!isDrafter && item('/app/my-notes', 'ההערות שלי', FileText)}
+          {!isManager && !isDrafter && item('/app/projects?filter=archive', 'הארכיון שלי', FolderKanban)}
         </div>
 
         {isManager && (
@@ -83,6 +86,13 @@ export default function DashboardNavigation({
             {item('/app/map', 'מפה חיה', MapPin)}
             {item('/app/equipment', 'ציוד עובדי שטח', Wrench)}
             {item('/app/vehicles', 'רכבי חברה', Car)}
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="sidebarNavGroup">
+            <h2 className="sidebarGroupLabel">{t('ניהול מערכת')}</h2>
+            {item('/app/users', 'ניהול משתמשים', ShieldCheck)}
           </div>
         )}
 

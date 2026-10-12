@@ -3,6 +3,9 @@ project_id = "qopsdkmzvncamjrxjwni"
 [functions.send-manhole-layouts]
 verify_jwt = true
 
+[functions.admin-update-user-email]
+verify_jwt = true
+
 [functions.attendance-reminder]
 verify_jwt = false
 
@@ -16,7 +19,10 @@ verify_jwt = false
 [functions.daily-status-summary]
 verify_jwt = false
 
-# Called by the signed-in fleet secretary; the function checks the role itself.
+[functions.send-field-project-updates]
+verify_jwt = false
+
+# Called by a signed-in manager; the function checks the role itself.
 [functions.analyze-vehicle-document]
 verify_jwt = true
 

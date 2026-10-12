@@ -60,10 +60,10 @@ function emptyDiary(project, teamLeadName) {
   };
 }
 
-export default function WorkDiaryPanel({ project, currentUserName, canDelete }) {
+export default function WorkDiaryPanel({ project, currentUserName, canDelete, canCreate = true, autoOpen = false, onClose }) {
   useTranslation();
   const [diaries, setDiaries] = useState([]);
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(autoOpen);
   const [form, setForm] = useState(() => emptyDiary(project, currentUserName));
   const [customerSignature, setCustomerSignature] = useState('');
   const [teamLeadSignature, setTeamLeadSignature] = useState('');
@@ -158,6 +158,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete }) 
     }
     setDiaries((current) => [data, ...current]);
     setFormOpen(false);
+    onClose?.();
     setMessage(t('יומן עבודה מספר {{value0}} נשמר ונחתם.', { value0: data.diary_number }));
   }
 
@@ -183,7 +184,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete }) 
   }
 
   return (
-    <section className="projectSectionPanel workDiaryPanel">
+    <section className="projectSectionPanel workDiaryPanel" hidden={autoOpen}>
       <header className="workDiaryPanelHeader">
         <div>
           <span className="workDiaryEyebrow">{t('יומן עבודה דיגיטלי')}</span>
@@ -193,7 +194,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete }) 
           </h3>
           <p>{t('מילוי בשטח, חתימת מזמין העבודה וראש צוות מאיה והפקת PDF.')}</p>
         </div>
-        <button
+        {canCreate && <button
           type="button"
           className="smallBtn workDiaryAdd"
           onClick={(event) => {
@@ -204,7 +205,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete }) 
         >
           <PlusCircle size={17} />
           {t('יומן עבודה חדש')}
-        </button>
+        </button>}
       </header>
 
       {message && <div className="workDiaryMessage">{message}</div>}
@@ -277,7 +278,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete }) 
                   type="button"
                   className="ghost iconBtn"
                   aria-label={t('סגירה')}
-                  onClick={() => setFormOpen(false)}
+                  onClick={() => { setFormOpen(false); onClose?.(); }}
                 >
                   <X size={19} />
                 </button>
@@ -522,7 +523,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete }) 
                 <button type="button" onClick={saveDiary} disabled={saving}>
                   <PenLine size={17} /> {saving ? t('שומר...') : t('שמירה וסגירת היומן')}
                 </button>
-                <button type="button" className="ghost" onClick={() => setFormOpen(false)}>
+                <button type="button" className="ghost" onClick={() => { setFormOpen(false); onClose?.(); }}>
                   {t('ביטול')}
                 </button>
               </footer>

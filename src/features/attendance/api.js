@@ -9,6 +9,7 @@ import { getCurrentLocationWithFallback } from '../../hooks/useGeolocation.js';
 import { formatDuration, formatLocation, durationMinutes, toLocalDateKey } from '../../utils/format.js';
 import { enqueueOfflineAction } from '../../services/offlineStore.js';
 import { attendanceTypeLabel, attendanceTypeOptions } from './constants.js';
+import { isManagerRole } from '../../utils/roles.js';
 
 export { attendanceTypeLabel, attendanceTypeOptions } from './constants.js';
 
@@ -79,7 +80,7 @@ export async function startWork(project, profile) {
     note: `שעת התחלה: ${startedAt.toLocaleString('he-IL')}${locationText}`,
   });
 
-  if (profile?.role === 'field_worker' || profile?.role === 'manager') {
+  if (profile?.role === 'field_worker' || isManagerRole(profile?.role)) {
     await createManagerNotification(
       'work_started',
       `התחלת עבודה: ${project.name}`,
@@ -91,7 +92,7 @@ export async function startWork(project, profile) {
   return { message: `נרשמה שעת התחלה עבור ${project.name}${location ? ' כולל מיקום' : ''}` };
 }
 
-export async function endWork(project, profile, { endNote = '', crewMembers = [] } = {}) {
+export async function endWork(project, profile, { endNote = '', crewMembers = [], dailyDraftingReady = false } = {}) {
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '', success: false };
 
@@ -120,6 +121,7 @@ export async function endWork(project, profile, { endNote = '', crewMembers = []
     ended_accuracy: location?.accuracy ?? null,
     end_note: endNote.trim() || null,
     crew_members: normalizedCrew,
+    ...(dailyDraftingReady ? { daily_drafting_ready: true } : {}),
   };
   if (!navigator.onLine) {
     await enqueueOfflineAction('work_end', {
@@ -142,7 +144,7 @@ export async function endWork(project, profile, { endNote = '', crewMembers = []
     note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}${locationText}${crewText ? ` · צוות: ${crewText}` : ''}${endNote.trim() ? ` · הערת סיום: ${endNote.trim()}` : ''}`,
   });
 
-  if (profile?.role === 'field_worker' || profile?.role === 'manager') {
+  if (profile?.role === 'field_worker' || isManagerRole(profile?.role)) {
     await createManagerNotification(
       'work_ended',
       `סיום עבודה: ${project.name}`,
@@ -309,7 +311,7 @@ async function saveLeaveReport({ user, profile, attendanceSessions, leaveType, s
     await storageApi.removeFiles(SICK_CERTIFICATE_BUCKET, [existingCertificate.file_path]);
   }
 
-  if (profile?.role === 'field_worker' || profile?.role === 'manager') {
+  if (profile?.role === 'field_worker' || isManagerRole(profile?.role)) {
     const rangeLabel = fromDate === toDate ? fromDate : `${fromDate}–${toDate}`;
     await createManagerNotification(
       'attendance_day_status',
@@ -376,7 +378,7 @@ export async function startAttendance(
 
     if (result.error) return { message: result.error.message };
 
-    if (profile?.role === 'field_worker' || profile?.role === 'manager') {
+    if (profile?.role === 'field_worker' || isManagerRole(profile?.role)) {
       await createManagerNotification(
         'attendance_day_status',
         `דיווח נוכחות: ${attendanceTypeLabel[attendanceType]}`,
@@ -498,7 +500,7 @@ export async function startAttendance(
         changed_by: user.id,
         note: `שעת התחלה: ${startedAt.toLocaleString('he-IL')}${locationText}`,
       });
-      if (profile?.role === 'field_worker' || profile?.role === 'manager') {
+      if (profile?.role === 'field_worker' || isManagerRole(profile?.role)) {
         await createManagerNotification(
           'work_started',
           `התחלת עבודה: ${project.name}`,
@@ -509,7 +511,7 @@ export async function startAttendance(
     }
   }
 
-  if (profile?.role === 'field_worker' || profile?.role === 'manager') {
+  if (profile?.role === 'field_worker' || isManagerRole(profile?.role)) {
     await createManagerNotification(
       'attendance_started',
       `תחילת ${attendanceTypeLabel[attendanceType]}`,
@@ -530,7 +532,7 @@ export async function startAttendance(
 
 export async function finishAttendance(
   endNote,
-  { profile, attendanceSessions, workSessions = [], crewMembers = [] },
+  { profile, attendanceSessions, workSessions = [], crewMembers = [], dailyDraftingReady = false },
 ) {
   const user = await authApi.getCurrentUser();
   if (!user) return { message: '', success: false };
@@ -565,7 +567,7 @@ export async function finishAttendance(
     ended_accuracy: location?.accuracy ?? null,
     end_note: endNote.trim() || null,
   };
-  const workEndChanges = { ...endChanges, crew_members: normalizedCrew };
+  const workEndChanges = { ...endChanges, crew_members: normalizedCrew, ...(dailyDraftingReady ? { daily_drafting_ready: true } : {}) };
   if (!navigator.onLine) {
     await enqueueOfflineAction('attendance_end', { sessionId: openSession.id, changes: endChanges });
     if (linkedWorkSession) {
@@ -589,6 +591,7 @@ export async function finishAttendance(
       offlineChanges: endChanges,
       sessionId: openSession.id,
       linkedWorkSessionId: linkedWorkSession?.id || null,
+      projectSessionClosed: Boolean(linkedWorkSession),
       linkedWorkOfflineChanges: linkedWorkSession ? workEndChanges : null,
     };
   }
@@ -614,7 +617,7 @@ export async function finishAttendance(
         changed_by: user.id,
         note: `שעת סיום: ${endedAt.toLocaleString('he-IL')} · זמן עבודה: ${formatDuration(minutes)}${locationText}${crewText ? ` · צוות: ${crewText}` : ''}${endNote.trim() ? ` · הערת סיום: ${endNote.trim()}` : ''}`,
       });
-      if (profile?.role === 'field_worker' || profile?.role === 'manager') {
+      if (profile?.role === 'field_worker' || isManagerRole(profile?.role)) {
         await createManagerNotification(
           'work_ended',
           `סיום עבודה: ${projectName}`,
@@ -625,7 +628,7 @@ export async function finishAttendance(
     }
   }
 
-  if (profile?.role === 'field_worker' || profile?.role === 'manager') {
+  if (profile?.role === 'field_worker' || isManagerRole(profile?.role)) {
     await createManagerNotification(
       'attendance_ended',
       `סיום ${attendanceTypeLabel[openSession.attendance_type]}`,
@@ -640,6 +643,7 @@ export async function finishAttendance(
         ? `${attendanceTypeLabel[openSession.attendance_type]} והעבודה בפרויקט הסתיימו. משך המשמרת: ${formatDuration(minutes)}.${crewText ? ` צוות: ${crewText}.` : ''}`
         : `${attendanceTypeLabel[openSession.attendance_type]} הסתיים. משך המשמרת: ${formatDuration(minutes)}.`,
     linkedWorkSessionId: linkedWorkSession?.id || null,
+    projectSessionClosed: Boolean(linkedWorkSession && !projectEndError),
     success: true,
   };
 }

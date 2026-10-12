@@ -12,18 +12,19 @@ export default function ProjectWorkspaceNavigation({ stats }) {
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
 
-  if (!isManager) return null;
-
-  const filter = searchParams.get('filter') || 'all';
+  const filter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
   const myProjectCount = projects.filter(
     (project) => !project.is_archived && project.assigned_to === session?.user?.id,
   ).length;
-  const views = [
+  const views = isManager ? [
     { filter: 'all', label: 'כל הפרויקטים', count: stats.total },
     { filter: 'mine', label: 'הפרויקטים שלי', count: myProjectCount },
     { filter: 'unassigned', label: 'ללא שיוך', count: stats.unassigned },
     { filter: 'archive', label: 'ארכיון', count: stats.archived },
     { path: '/app/assignments', label: 'לפי עובד' },
+  ] : [
+    { filter: 'mine', label: 'הפרויקטים שלי', count: projects.filter((project) => !project.is_archived).length },
+    { filter: 'archive', label: 'הארכיון שלי', count: projects.filter((project) => project.is_archived).length },
   ];
 
   return (
@@ -49,14 +50,14 @@ export default function ProjectWorkspaceNavigation({ stats }) {
           );
         })}
       </nav>
-      <Link
+      {isManager && <Link
         to="/app/projects/new"
         className="projectCreateLink"
         aria-current={pathname === '/app/projects/new' ? 'page' : undefined}
       >
         <Plus size={17} aria-hidden="true" />
         {t('פרויקט חדש')}
-      </Link>
+      </Link>}
     </div>
   );
 }

@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     const { data: managers, error: managersError } = await adminClient
       .from('profiles')
       .select('email,full_name')
-      .eq('role', 'manager')
+      .in('role', ['manager', 'admin'])
       .not('email', 'is', null);
 
     if (managersError) throw managersError;

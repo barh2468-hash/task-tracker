@@ -213,6 +213,7 @@ export default function ProjectCard({ project, focused = false }) {
   const isReviewCompleted = project.status === REVIEW_COMPLETED_STATUS;
   const canManageReview = isManager || isDrafter || isDrafterCandidate(profile);
   const canReportContinuation = !project.is_archived && (isManager || isAssignedFieldWorker);
+  const canEditFieldData = isManager || (isAssignedFieldWorker && !project.is_archived);
 
   // A stray tap outside the modal must not throw away unsaved edits.
   const editDirty = editing && JSON.stringify(editProject) !== editSnapshot;
@@ -826,7 +827,7 @@ export default function ProjectCard({ project, focused = false }) {
               )}
               canUpload={isManager}
               canDelete={(document) =>
-                isManager || (isAssignedFieldWorker && document.uploaded_by === currentUserId)
+                isManager || (canEditFieldData && document.uploaded_by === currentUserId)
               }
               lockedDocumentType="boundary_sketch"
               title="סקיצת גבול עבודה"
@@ -862,7 +863,7 @@ export default function ProjectCard({ project, focused = false }) {
                   </button>
                 </section>
               )}
-              <section className="projectOperationCard projectStatusCard">
+              {(!project.is_archived || isManager) && <section className="projectOperationCard projectStatusCard">
                 <header className="projectOperationHeader">
                   <span className="projectOperationIcon"><MessageSquareText size={20} /></span>
                   <div>
@@ -891,7 +892,7 @@ export default function ProjectCard({ project, focused = false }) {
                     {t('המשך להערה ועדכון')}
                   </button>
                 </div>
-              </section>
+              </section>}
             </div>
 
             <div className="projectSectionTabs" role="tablist" aria-label={t('פרטי הפרויקט')}>
@@ -940,7 +941,7 @@ export default function ProjectCard({ project, focused = false }) {
 
                   <PhotoGallery
                     photos={assets.project_photos}
-                    canDelete={isManager || isAssignedFieldWorker}
+                    canDelete={canEditFieldData}
                     onDelete={async (photo) => {
                       await deletePhoto(photo, project);
                       await refreshAssets();
@@ -949,7 +950,7 @@ export default function ProjectCard({ project, focused = false }) {
 
                   {assetsLoading && <span className="muted">{t('טוען תמונות וקבצים...')}</span>}
 
-                  <div className="photoUploadBox">
+                  {canEditFieldData && <div className="photoUploadBox">
                     <label className="projectOperationField">
                       <span>{t('סוג תמונה')}</span>
                       <select
@@ -989,14 +990,14 @@ export default function ProjectCard({ project, focused = false }) {
                         }}
                       />
                     </label>
-                  </div>
+                  </div>}
                 </section>
 
                 <ProjectDocumentsPanel
                   documents={assets.project_documents}
-                  canUpload={isManager || isAssignedFieldWorker}
+                  canUpload={canEditFieldData}
                   canDelete={(document) =>
-                    isManager || (isAssignedFieldWorker && document.uploaded_by === currentUserId)
+                    isManager || (canEditFieldData && document.uploaded_by === currentUserId)
                   }
                   defaultDocumentType={isAssignedFieldWorker ? 'drawing_source' : 'general'}
                   onUpload={async (file, documentType) => {
@@ -1015,6 +1016,7 @@ export default function ProjectCard({ project, focused = false }) {
                     project={project}
                     currentUserName={currentUserName}
                     canDelete={isManager}
+                    canCreate={isManager || !project.is_archived}
                   />
                 )}
 
@@ -1089,11 +1091,11 @@ export default function ProjectCard({ project, focused = false }) {
                 <TaskPanel
                   tasks={project.project_tasks || []}
                   isManager={isManager}
-                  canAddTasks={isManager || isAssignedFieldWorker}
+                  canAddTasks={canEditFieldData}
                   canCompleteTasks={
                     isManager ||
-                    project.assigned_to === currentUserId ||
-                    !!project.project_workers?.some((w) => w.worker_id === currentUserId)
+                    (!project.is_archived && (project.assigned_to === currentUserId ||
+                    !!project.project_workers?.some((w) => w.worker_id === currentUserId)))
                   }
                   showTaskForm={showTaskForm}
                   setShowTaskForm={setShowTaskForm}

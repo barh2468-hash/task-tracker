@@ -3,6 +3,7 @@ import { createContext, useEffect, useRef, useState } from 'react';
 import { envReady } from '../../services/supabase.js';
 import { translateAuthError } from '../../utils/authErrors.js';
 import * as authFeatureApi from './api.js';
+import { isAdminRole, isManagerRole } from '../../utils/roles.js';
 
 export const AuthContext = createContext(null);
 
@@ -177,7 +178,8 @@ export function AuthProvider({ children }) {
     setProfile(null);
   }
 
-  const isManager = profile?.role === 'manager';
+  const isManager = isManagerRole(profile?.role);
+  const isAdmin = isAdminRole(profile?.role);
   const isDrafter = profile?.role === 'drafter';
   const isAccounting = profile?.role === 'accounting';
 
@@ -190,6 +192,7 @@ export function AuthProvider({ children }) {
     authMessage,
     setAuthMessage,
     isManager,
+    isAdmin,
     isDrafter,
     isAccounting,
     login,

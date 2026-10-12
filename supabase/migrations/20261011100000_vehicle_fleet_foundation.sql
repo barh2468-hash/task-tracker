@@ -12,21 +12,16 @@ alter table public.profiles
 alter table public.profiles
   add constraint profiles_role_check
   check (role in ('manager', 'field_worker', 'drafter', 'accounting', 'admin'));
--- 'admin' is not used by the app code but already exists on a production
--- profile row, so the constraint has to keep accepting it.
+-- Same role set as 20261006084201_add_admin_role.sql (admin counts as a manager).
 
 create or replace function public.is_fleet()
 returns boolean
 language sql
+stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
-  select exists (
-    select 1
-    from public.profiles
-    where id = auth.uid()
-      and role = 'manager'
-  );
+  select public.is_manager();
 $$;
 grant execute on function public.is_fleet() to authenticated;
 

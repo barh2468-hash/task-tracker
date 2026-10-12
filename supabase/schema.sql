@@ -7,7 +7,7 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text unique,
   full_name text not null,
-  role text not null default 'field_worker' check (role in ('manager','field_worker')),
+  role text not null default 'field_worker' check (role in ('admin','manager','field_worker','drafter','accounting')),
   created_at timestamptz default now()
 );
 
@@ -76,7 +76,7 @@ as $$
     select 1
     from public.profiles
     where id = auth.uid()
-      and role = 'manager'
+      and role in ('manager', 'admin')
   );
 $$;
 
@@ -101,7 +101,11 @@ for select using (
 );
 
 create policy "profiles insert own" on public.profiles
-for insert with check (id = auth.uid());
+for insert with check (
+  id = auth.uid()
+  and role = 'field_worker'
+  and lower(email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+);
 
 create policy "profiles update own" on public.profiles
 for update using (id = auth.uid());
@@ -178,6 +182,6 @@ begin
 end $$;
 
 -- After the first manager logs in, run this with their email:
--- update public.profiles set role = 'manager', full_name = 'שם המנהל' where email = 'manager@company.com';
+-- update public.profiles set role = 'admin', full_name = 'שם המנהל הראשי' where email = 'admin@company.com';
 
 -- To define a team lead, run:

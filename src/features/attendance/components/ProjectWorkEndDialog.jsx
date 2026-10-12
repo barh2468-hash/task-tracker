@@ -17,10 +17,13 @@ export default function ProjectWorkEndDialog() {
     projectWorkEndBusy: busy,
     closeProjectWorkEndDialog,
     endWork,
+    openWorkDiary,
   } = useAttendance();
   const [note, setNote] = useState('');
   const [selectedWorkerIds, setSelectedWorkerIds] = useState([]);
   const [selectedHelpers, setSelectedHelpers] = useState([]);
+  const [dailyDraftingReady, setDailyDraftingReady] = useState(false);
+  const [showDiary, setShowDiary] = useState(true);
 
   const availableWorkers = useMemo(
     () =>
@@ -38,6 +41,8 @@ export default function ProjectWorkEndDialog() {
     setNote('');
     setSelectedWorkerIds([]);
     setSelectedHelpers([]);
+    setDailyDraftingReady(false);
+    setShowDiary(true);
   }, [project?.id]);
 
   if (!project || !openSession || typeof document === 'undefined') return null;
@@ -53,7 +58,8 @@ export default function ProjectWorkEndDialog() {
       .filter((worker) => selectedWorkerIds.includes(worker.id))
       .map((worker) => ({ id: worker.id, name: worker.full_name, source: 'system' }));
     const helperCrew = selectedHelpers.map((name) => ({ id: null, name, source: 'helper' }));
-    await endWork({ endNote: note, crewMembers: [...systemCrew, ...helperCrew] });
+    const result = await endWork({ endNote: note, crewMembers: [...systemCrew, ...helperCrew], dailyDraftingReady });
+    if (result?.success && project.requires_work_diary && showDiary) openWorkDiary(project);
   }
 
   return createPortal(
@@ -163,6 +169,8 @@ export default function ProjectWorkEndDialog() {
           </p>
         </div>
 
+        <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="project-daily-drafting-ready" aria-label="ניתן לשרטט את מה שעשיתי היום"><input id="project-daily-drafting-ready" type="checkbox" checked={dailyDraftingReady} disabled={busy} onChange={(event) => setDailyDraftingReady(event.target.checked)} /><span><strong>ניתן לשרטט את מה שעשיתי היום</strong><small>התראה למנהלים ומנת שרטוט, ללא שינוי סטטוס הפרויקט.</small></span></label></div>
+        {project.requires_work_diary && <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="project-exit-work-diary" aria-label="פתיחת יומן עבודה ביציאה מהפרויקט"><input id="project-exit-work-diary" type="checkbox" checked={showDiary} disabled={busy} onChange={(event) => setShowDiary(event.target.checked)} /><span><strong>פתיחת יומן עבודה ביציאה מהפרויקט</strong></span></label></div>}
         <div className="attendanceEndActions">
           <button
             type="button"

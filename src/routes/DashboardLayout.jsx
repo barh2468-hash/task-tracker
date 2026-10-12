@@ -25,13 +25,14 @@ import DashboardNavigation from '../components/DashboardNavigation.jsx';
 import MobileNavigation from '../components/MobileNavigation.jsx';
 import AttendanceEndDialog from '../features/attendance/components/AttendanceEndDialog.jsx';
 import ProjectWorkEndDialog from '../features/attendance/components/ProjectWorkEndDialog.jsx';
+import ExitWorkDiary from '../features/attendance/components/ExitWorkDiary.jsx';
 import ProjectWorkspaceNavigation from '../features/projects/components/ProjectWorkspaceNavigation.jsx';
 import { useLanguage } from '../features/language/LanguageContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
 
 export default function DashboardLayout() {
   useTranslation();
-  const { profile, session, isManager, isDrafter, logout } = useAuth();
+  const { profile, session, isManager, isAdmin, isDrafter, logout } = useAuth();
   const { message, messageTone, setMessage } = useMessage();
   const ToastIcon = messageTone === 'error' ? AlertCircle : messageTone === 'info' ? Info : CheckCircle;
   const { unreadCount } = useNotifications();
@@ -212,6 +213,7 @@ export default function DashboardLayout() {
           <DashboardNavigation
             role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
             isManager={isManager}
+            isAdmin={isAdmin}
             isDrafter={isDrafter}
             pathname={location.pathname}
             isProjectWorkspace={isProjectWorkspace}
@@ -270,6 +272,7 @@ export default function DashboardLayout() {
         role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
         displayName={profile?.full_name || session?.user?.email}
         isManager={isManager}
+        isAdmin={isAdmin}
         isDrafter={isDrafter}
         pathname={location.pathname}
         isProjectWorkspace={isProjectWorkspace}
@@ -286,6 +289,7 @@ export default function DashboardLayout() {
       />
       <AttendanceEndDialog />
       <ProjectWorkEndDialog />
+      <ExitWorkDiary />
     </main>
   );
 }

@@ -59,7 +59,7 @@ async function requireManagerOrCron(req: Request, supabaseUrl: string, anonKey: 
     .eq('id', userData.user.id)
     .maybeSingle();
   if (profileError) throw profileError;
-  if (profile?.role !== 'manager') throw new HttpError(403, 'Manager access required');
+  if (!['manager', 'admin'].includes(profile?.role || '')) throw new HttpError(403, 'Manager access required');
 }
 
 function escapeHtml(value: unknown) {
@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
 
     const [{ data: managers, error: managersError }, { data: history, error: historyError }] =
       await Promise.all([
-        supabase.from('profiles').select('email').eq('role', 'manager').not('email', 'is', null),
+        supabase.from('profiles').select('email').in('role', ['manager', 'admin']).not('email', 'is', null),
         supabase
           .from('status_history')
           .select(

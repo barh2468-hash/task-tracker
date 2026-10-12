@@ -36,6 +36,8 @@ const ExceptionsPage = lazy(() => import('./routes/ExceptionsPage.jsx'));
 const WorkReportPage = lazy(() => import('./routes/WorkReportPage.jsx'));
 const ChatPage = lazy(() => import('./routes/ChatPage.jsx'));
 const AttendancePage = lazy(() => import('./routes/AttendancePage.jsx'));
+const PersonalAttendancePage = lazy(() => import('./routes/PersonalAttendancePage.jsx'));
+const PersonalNotesPage = lazy(() => import('./routes/PersonalNotesPage.jsx'));
 const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
 const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
 const AccountingYearEndPage = lazy(() => import('./routes/AccountingYearEndPage.jsx'));
@@ -50,6 +52,7 @@ function RequireVehicleAccess({ children }) {
   if (!isManager) return <Navigate to="/app" replace />;
   return children;
 }
+const UserManagementPage = lazy(() => import('./routes/UserManagementPage.jsx'));
 
 function AppLanding() {
   const { isAccounting, isDrafter } = useAuth();
@@ -108,6 +111,8 @@ export default function App() {
                   }
                 />
                 <Route path="projects" element={<ProjectsPage />} />
+                <Route path="my-attendance" element={<Suspense fallback={<LoadingScreen />}><PersonalAttendancePage /></Suspense>} />
+                <Route path="my-notes" element={<Suspense fallback={<LoadingScreen />}><PersonalNotesPage /></Suspense>} />
                 <Route path="overview" element={<OverviewPage />} />
                 <Route
                   path="manhole-layout"
@@ -256,6 +261,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<LoadingScreen />}>
                       <AccountingYearEndPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="users"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <UserManagementPage />
                     </Suspense>
                   }
                 />

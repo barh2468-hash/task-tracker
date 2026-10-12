@@ -97,8 +97,8 @@ Deno.serve(async (req) => {
     if (changerError) throw changerError;
     if (!changer) throw new Error('Missing changer profile');
 
-    // Field workers and managers trigger manager email notifications.
-    if (!['field_worker', 'manager'].includes(changer.role)) {
+    // Field workers, managers, and administrators trigger management email notifications.
+    if (!['field_worker', 'manager', 'admin'].includes(changer.role)) {
       return new Response(
         JSON.stringify({ ok: true, skipped: true, reason: 'changed_by_role_is_not_supported' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
     const { data: managers, error: managersError } = await adminClient
       .from('profiles')
       .select('email,full_name')
-      .eq('role', 'manager')
+      .in('role', ['manager', 'admin'])
       .not('email', 'is', null);
 
     if (managersError) throw managersError;

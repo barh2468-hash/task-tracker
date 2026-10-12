@@ -11,7 +11,7 @@ export function validateLayoutSource(source) {
   if (draft.groups.length > 100 || draft.shaft.length > 10 || draft.cover.length > 10) throw new Error('נתוני הפרישה גדולים מדי.');
   for (const [key, value] of Object.entries(draft)) {
     if (['__proto__', 'prototype', 'constructor'].includes(key)) throw new Error('נתוני הפרישה אינם תקינים.');
-    if (!['groups', 'shaft', 'cover', 'walls'].includes(key) && (typeof value !== 'string' || value.length > 5000)) throw new Error('נתוני הפרישה אינם תקינים.');
+    if (!['groups', 'shaft', 'cover', 'walls', 'faceWidths'].includes(key) && (typeof value !== 'string' || value.length > 5000)) throw new Error('נתוני הפרישה אינם תקינים.');
   }
   if (draft.walls && (typeof draft.walls !== 'object' || Array.isArray(draft.walls) || Object.entries(draft.walls).some(([key, values]) =>
     ['__proto__', 'prototype', 'constructor'].includes(key) || !Array.isArray(values) || values.length > 30 || values.some(value => typeof value !== 'string' || value.length > 30)
@@ -19,11 +19,14 @@ export function validateLayoutSource(source) {
   for (const group of draft.groups) {
     if (!group || typeof group !== 'object' || Array.isArray(group) || !Array.isArray(group.cables) || group.cables.length > 192) throw new Error('נתוני הקנים אינם תקינים.');
     for (const [key, value] of Object.entries(group)) {
-      if (!['wall', 'rows', 'cols', 'u', 'v', 'cables'].includes(key)) throw new Error('נתוני הקנים אינם תקינים.');
+      if (!['wall', 'rows', 'cols', 'u', 'v', 'cables', 'measureFrom'].includes(key)) throw new Error('נתוני הקנים אינם תקינים.');
       if (key !== 'cables' && typeof value !== 'string') throw new Error('נתוני הקנים אינם תקינים.');
     }
+    if (group.measureFrom && !['start', 'end'].includes(group.measureFrom)) throw new Error('קיר הייחוס אינו תקין.');
     if (group.cables.some(value => value !== null && (typeof value !== 'string' || value.length > 40))) throw new Error('נתוני הקנים אינם תקינים.');
   }
+  if (draft.northAngle && (!Number.isFinite(Number(draft.northAngle)) || Number(draft.northAngle) < 0 || Number(draft.northAngle) >= 360)) throw new Error('זווית הצפון צריכה להיות בין 0 ל־359 מעלות.');
+  if (draft.faceWidths && (typeof draft.faceWidths !== 'object' || Array.isArray(draft.faceWidths) || Object.entries(draft.faceWidths).some(([key, value]) => !/^[1-9]\d?$/.test(key) || typeof value !== 'string' || value.length > 30 || (value !== '' && (!Number.isFinite(Number(value)) || Number(value) <= 0))))) throw new Error('רוחב הפאות אינו תקין.');
   if (draft.shaft.some(value => typeof value !== 'string') || draft.cover.some(value => typeof value !== 'string')) throw new Error('נתוני הפרישה אינם תקינים.');
   if (!Array.isArray(source.photos) || source.photos.length > 30 || source.photos.some(photo =>
     !photo || typeof photo.src !== 'string' || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(photo.src) ||

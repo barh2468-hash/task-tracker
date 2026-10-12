@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     if (userError || !userData.user) return json({ ok: false, error: 'unauthorized' }, 401);
 
     const { data: profile } = await userClient.from('profiles').select('role').eq('id', userData.user.id).maybeSingle();
-    if (profile?.role !== 'manager') return json({ ok: false, error: 'forbidden' }, 403);
+    if (!['manager', 'admin'].includes(profile?.role)) return json({ ok: false, error: 'forbidden' }, 403);
 
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!apiKey) return json({ ok: false, error: 'ai_not_configured' });

@@ -6,6 +6,7 @@ import { FileUp, LoaderCircle } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../ProjectsContext.jsx';
 import { PDF_OR_IMAGE_ACCEPT } from '../utils/projectFiles.js';
+import { isAdminRole } from '../../../utils/roles.js';
 
 const emptyProject = {
   name: '',
@@ -30,6 +31,9 @@ export default function NewProjectForm() {
   const [creating, setCreating] = useState(false);
 
   const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
+  const projectResponsibles = workers.filter(
+    (worker) => worker.role === 'field_worker' || isAdminRole(worker.role),
+  );
 
   async function handleCreate() {
     if (creating) return;
@@ -99,16 +103,16 @@ export default function NewProjectForm() {
           />
         </label>
         <label>
-          {t('שיוך לעובד שטח אחראי, אופציונלי')}
+          {t('שיוך לאחראי ראשי (מנהל או עובד שטח)')}
 
           <select
             value={project.assigned_to}
             onChange={(e) => setProject({ ...project, assigned_to: e.target.value })}
           >
             <option value="">{t('ללא שיוך כרגע')}</option>
-            {fieldWorkers.map((w) => (
+            {projectResponsibles.map((w) => (
               <option key={w.id} value={w.id}>
-                {w.full_name} - {w.email}
+                {w.full_name} - {w.email}{isAdminRole(w.role) ? ` (${t('מנהל ראשי')})` : ''}
               </option>
             ))}
           </select>

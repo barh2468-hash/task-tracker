@@ -40,6 +40,7 @@ import ContinuationReportDialog from './ContinuationReportDialog.jsx';
 import DrawingBatchesPanel from './DrawingBatchesPanel.jsx';
 import ProjectHistoryPanel from './ProjectHistoryPanel.jsx';
 import ProjectSectionTabs from './ProjectSectionTabs.jsx';
+import { isAdminRole } from '../../../utils/roles.js';
 
 const photoCategories = [
   'תמונת שטח',
@@ -134,6 +135,9 @@ export default function ProjectCard({ project, focused = false }) {
   const assignedDrafterId = findAssignedDrafter(project)?.worker_id || '';
   const [selectedDrafterId, setSelectedDrafterId] = useState(assignedDrafterId);
   const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
+  const projectResponsibles = workers.filter(
+    (worker) => worker.role === 'field_worker' || isAdminRole(worker.role),
+  );
   const drafters = workers.filter(isDrafterCandidate);
   const workerDirectoryById = new Map(workers.map((worker) => [worker.id, worker]));
   const responsibleWorkerName = project.assigned_to
@@ -303,16 +307,16 @@ export default function ProjectCard({ project, focused = false }) {
             />
           </label>
           <label>
-            {t('שיוך לעובד שטח אחראי')}
+            {t('שיוך לאחראי ראשי (מנהל או עובד שטח)')}
 
             <select
               value={editProject.assigned_to}
               onChange={(e) => setEditProject({ ...editProject, assigned_to: e.target.value })}
             >
               <option value="">{t('לא משויך')}</option>
-              {fieldWorkers.map((w) => (
+              {projectResponsibles.map((w) => (
                 <option key={w.id} value={w.id}>
-                  {w.full_name} - {w.email}
+                  {w.full_name} - {w.email}{isAdminRole(w.role) ? ` (${t('מנהל ראשי')})` : ''}
                 </option>
               ))}
             </select>

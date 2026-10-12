@@ -5,6 +5,7 @@ import { FolderKanban } from 'lucide-react';
 import { useProjects } from '../ProjectsContext.jsx';
 import { appStatuses } from '../../../services/supabase.js';
 import StatusPill from '../../../components/StatusPill.jsx';
+import { isAdminRole } from '../../../utils/roles.js';
 
 export default function WorkerAssignmentsPanel({ onOpenProject }) {
   useTranslation();
@@ -14,8 +15,12 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
   const [includeArchived, setIncludeArchived] = useState(false);
   const normalizedSearch = search.trim().toLowerCase();
   const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
+  const projectResponsibles = workers.filter(
+    (worker) => worker.role === 'field_worker' ||
+      (isAdminRole(worker.role) && projects.some((project) => project.assigned_to === worker.id)),
+  );
 
-  const workerRows = fieldWorkers
+  const workerRows = projectResponsibles
     .map((worker) => {
       const workerMatches =
         !normalizedSearch ||
@@ -119,6 +124,7 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
               <div className="avatar">{worker.full_name?.[0] || t('ע')}</div>
               <div>
                 <h3>{worker.full_name}</h3>
+                {isAdminRole(worker.role) && <span>{t('מנהל ראשי')}</span>}
                 <p>{worker.email || t('ללא כתובת מייל')}</p>
               </div>
               <span className="assignmentCount">

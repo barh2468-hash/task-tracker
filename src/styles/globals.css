@@ -1785,7 +1785,13 @@ body.language-en { direction: ltr; }
 .projectMoreActionsMenu button:hover{background:#eef6fb;transform:none;box-shadow:none}
 .projectMoreActionsMenu button.danger{background:#fff1f2!important;color:#b4232f}
 .projectExpandedBody>.projectOperationsPanel{background:transparent;box-shadow:none}
-.projectSectionTabs{grid-column:1/-1;padding:5px;display:flex;gap:5px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;border:1px solid #d9e6ef;border-radius:16px;background:#eef4f8}
+.projectSectionTabsWrapper{grid-column:1/-1;position:relative;min-width:0}
+.projectSectionTabs{padding:5px;display:flex;gap:5px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;border:1px solid #d9e6ef;border-radius:16px;background:#eef4f8}
+.projectSectionTabsWrapper>.projectTabsScrollArrow{position:absolute;top:7px;z-index:1;width:32px;min-width:32px;min-height:40px;padding:0;display:grid;place-items:center;border:1px solid #c5dce9;border-radius:11px;background:#fff;color:#17698f;box-shadow:0 2px 8px rgba(7,30,65,.16)}
+.projectSectionTabsWrapper>.projectTabsScrollArrow:hover{background:#e4f1f7;transform:none}
+.projectSectionTabsWrapper>.projectTabsScrollArrow:focus-visible{outline:2px solid #17698f;outline-offset:2px}
+.projectTabsScrollLeft{left:3px}
+.projectTabsScrollRight{right:3px}
 .projectSectionTabs button{min-width:128px;min-height:43px;padding:8px 12px;display:flex;flex:1 0 128px;align-items:center;justify-content:center;gap:8px;border-radius:12px;background:transparent;color:#52677d;box-shadow:none;font-size:13px;white-space:nowrap}
 .projectSectionTabs button:hover{background:rgba(255,255,255,.72);color:var(--navy);transform:none;box-shadow:none}
 .projectSectionTabs button.active{background:#fff;color:var(--navy);box-shadow:0 5px 14px rgba(7,30,65,.09)}

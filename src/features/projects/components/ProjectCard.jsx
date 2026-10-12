@@ -39,6 +39,7 @@ import { findAssignedDrafter, isDrafterCandidate } from '../utils/drafters.js';
 import ContinuationReportDialog from './ContinuationReportDialog.jsx';
 import DrawingBatchesPanel from './DrawingBatchesPanel.jsx';
 import ProjectHistoryPanel from './ProjectHistoryPanel.jsx';
+import ProjectSectionTabs from './ProjectSectionTabs.jsx';
 
 const photoCategories = [
   'תמונת שטח',
@@ -895,20 +896,20 @@ export default function ProjectCard({ project, focused = false }) {
               </section>}
             </div>
 
-            <div className="projectSectionTabs" role="tablist" aria-label={t('פרטי הפרויקט')}>
+            <ProjectSectionTabs>
               {[
                 ['tasks', t('משימות'), (project.project_tasks || []).length],
-                [
-                  'drawing-batches',
-                  'מנות שרטוט',
-                  assets.project_drawing_batches.length,
-                ],
                 [
                   'documents',
                   t('מסמכים'),
                   assets.project_photos.length +
                     assets.project_documents.length +
                     assets.project_review_files.length,
+                ],
+                [
+                  'drawing-batches',
+                  'מנות שרטוט',
+                  assets.project_drawing_batches.length,
                 ],
                 ['updates', t('עדכונים'), projectHistory.length],
               ].map(([tab, label, count]) => (
@@ -924,7 +925,7 @@ export default function ProjectCard({ project, focused = false }) {
                   <small>{count}</small>
                 </button>
               ))}
-            </div>
+            </ProjectSectionTabs>
 
             {activeDetailTab === 'documents' && (
               <div className="projectTabPanel projectDocumentsTab" role="tabpanel">

@@ -15,6 +15,7 @@ import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../ProjectsContext.jsx';
 import { isResultOk } from '../../../context/messageTone.js';
 import { getStatusClass } from '../../../components/StatusPill.jsx';
+import { getProjectTeamAssignments } from '../utils/assignments.js';
 
 export default function OpenTasksPanel({ onOpenProject }) {
   useTranslation();
@@ -105,11 +106,7 @@ export default function OpenTasksPanel({ onOpenProject }) {
             new Set(
               [
                 project.profiles?.full_name,
-                ...(project.project_workers || [])
-                  .filter(
-                    (assignment) =>
-                      !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
-                  )
+                ...getProjectTeamAssignments(project)
                   .map((assignment) => assignment.profiles?.full_name),
               ].filter(Boolean),
             ),

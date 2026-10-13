@@ -3,9 +3,10 @@ import { t } from '../../language/LanguageContext.jsx';
 import { useState } from 'react';
 import { FolderKanban } from 'lucide-react';
 import { useProjects } from '../ProjectsContext.jsx';
-import { appStatuses } from '../../../services/supabase.js';
+import { appStatuses, roleLabel } from '../../../services/supabase.js';
 import StatusPill from '../../../components/StatusPill.jsx';
-import { isAdminRole } from '../../../utils/roles.js';
+import { isManagerRole } from '../../../utils/roles.js';
+import { isProjectAssignedTo } from '../utils/assignments.js';
 
 export default function WorkerAssignmentsPanel({ onOpenProject }) {
   useTranslation();
@@ -17,7 +18,7 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
   const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
   const projectResponsibles = workers.filter(
     (worker) => worker.role === 'field_worker' ||
-      (isAdminRole(worker.role) && projects.some((project) => project.assigned_to === worker.id)),
+      (isManagerRole(worker.role) && projects.some((project) => isProjectAssignedTo(project, worker.id))),
   );
 
   const workerRows = projectResponsibles
@@ -124,7 +125,7 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
               <div className="avatar">{worker.full_name?.[0] || t('ע')}</div>
               <div>
                 <h3>{worker.full_name}</h3>
-                {isAdminRole(worker.role) && <span>{t('מנהל ראשי')}</span>}
+                {isManagerRole(worker.role) && <span>{t(roleLabel[worker.role])}</span>}
                 <p>{worker.email || t('ללא כתובת מייל')}</p>
               </div>
               <span className="assignmentCount">

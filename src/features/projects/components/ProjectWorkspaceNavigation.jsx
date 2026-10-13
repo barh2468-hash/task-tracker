@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { t } from '../../language/LanguageContext.jsx';
 import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../ProjectsContext.jsx';
+import { isProjectAssignedTo } from '../utils/assignments.js';
 
 export default function ProjectWorkspaceNavigation({ stats }) {
   useTranslation();
@@ -14,7 +15,7 @@ export default function ProjectWorkspaceNavigation({ stats }) {
 
   const filter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
   const myProjectCount = projects.filter(
-    (project) => !project.is_archived && project.assigned_to === session?.user?.id,
+    (project) => !project.is_archived && isProjectAssignedTo(project, session?.user?.id),
   ).length;
   const views = isManager ? [
     { filter: 'all', label: 'כל הפרויקטים', count: stats.total },

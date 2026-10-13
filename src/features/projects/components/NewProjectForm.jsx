@@ -6,7 +6,9 @@ import { FileUp, LoaderCircle } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../ProjectsContext.jsx';
 import { PDF_OR_IMAGE_ACCEPT } from '../utils/projectFiles.js';
-import { isAdminRole } from '../../../utils/roles.js';
+import { isManagerRole } from '../../../utils/roles.js';
+import { roleLabel } from '../../../services/supabase.js';
+import { isProjectTeamMember } from '../utils/assignments.js';
 
 const emptyProject = {
   name: '',
@@ -30,10 +32,7 @@ export default function NewProjectForm() {
   const [project, setProject] = useState(emptyProject);
   const [creating, setCreating] = useState(false);
 
-  const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
-  const projectResponsibles = workers.filter(
-    (worker) => worker.role === 'field_worker' || isAdminRole(worker.role),
-  );
+  const projectResponsibles = workers.filter(isProjectTeamMember);
 
   async function handleCreate() {
     if (creating) return;
@@ -112,7 +111,7 @@ export default function NewProjectForm() {
             <option value="">{t('ללא שיוך כרגע')}</option>
             {projectResponsibles.map((w) => (
               <option key={w.id} value={w.id}>
-                {w.full_name} - {w.email}{isAdminRole(w.role) ? ` (${t('מנהל ראשי')})` : ''}
+                {w.full_name} - {w.email}{isManagerRole(w.role) ? ` (${t(roleLabel[w.role])})` : ''}
               </option>
             ))}
           </select>
@@ -121,7 +120,7 @@ export default function NewProjectForm() {
           {t('עובדים נוספים בפרויקט, אופציונלי')}
 
           <div className="workerChecks">
-            {fieldWorkers.map((w) => (
+            {projectResponsibles.map((w) => (
               <label key={w.id} className="checkLine">
                 <input
                   type="checkbox"
@@ -133,7 +132,7 @@ export default function NewProjectForm() {
                     setProject({ ...project, assigned_workers: next });
                   }}
                 />
-                {w.full_name} - {w.email}
+                {w.full_name} - {w.email}{isManagerRole(w.role) ? ` (${t(roleLabel[w.role])})` : ''}
               </label>
             ))}
           </div>

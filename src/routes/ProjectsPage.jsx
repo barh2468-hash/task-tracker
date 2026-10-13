@@ -9,6 +9,7 @@ import { useMessage } from '../context/MessageContext.jsx';
 import { appStatuses } from '../services/supabase.js';
 import ProjectCard from '../features/projects/components/ProjectCard.jsx';
 import { getProjectPage } from '../features/projects/utils/projectPage.js';
+import { isProjectAssignedTo } from '../features/projects/utils/assignments.js';
 
 const PROJECT_BATCH_SIZE = 20;
 const LOAD_MORE_DELAY_MS = 650;
@@ -79,7 +80,7 @@ export default function ProjectsPage() {
     const okTab =
       filter === 'unassigned'
         ? !p.assigned_to
-        : filter !== 'mine' || !isManager || p.assigned_to === session?.user?.id;
+        : filter !== 'mine' || !isManager || isProjectAssignedTo(p, session?.user?.id);
     return okArchive && okTab;
   });
   const visibleProjects = categoryProjects.filter((p) => {

@@ -3,6 +3,9 @@ import { enManholeLayouts, elManholeLayouts } from '../manhole-layout/translatio
 export const heTranslations = {};
 
 export const enTranslations = {
+  'אני': 'You',
+  'קבלו התראות על הודעות גם כשהאפליקציה סגורה.': 'Get message notifications even when the app is closed.',
+  'כדי לקבל התראות ב-iPhone, הוסיפו את האפליקציה למסך הבית, פתחו אותה משם והפעילו התראות.': 'To receive notifications on iPhone, add the app to your Home Screen, open it from there and enable notifications.',
   ...enManholeLayouts,
   'דף השוחה מתעדכן לפי הנתונים שמילאתם.': 'The manhole sheet reflects the details you entered.',
   'תצוגה מקדימה של דף השוחה': 'Manhole sheet preview',
@@ -900,6 +903,9 @@ export const enTranslations = {
 };
 
 const greekTranslations = {
+  'אני': 'Εσείς',
+  'קבלו התראות על הודעות גם כשהאפליקציה סגורה.': 'Λάβετε ειδοποιήσεις μηνυμάτων ακόμα και όταν η εφαρμογή είναι κλειστή.',
+  'כדי לקבל התראות ב-iPhone, הוסיפו את האפליקציה למסך הבית, פתחו אותה משם והפעילו התראות.': 'Για ειδοποιήσεις στο iPhone, προσθέστε την εφαρμογή στην αρχική οθόνη, ανοίξτε την από εκεί και ενεργοποιήστε τις ειδοποιήσεις.',
   ...elManholeLayouts,
   'דף השוחה מתעדכן לפי הנתונים שמילאתם.': 'Το φύλλο φρεατίου ενημερώνεται με τα στοιχεία που συμπληρώσατε.',
   'תצוגה מקדימה של דף השוחה': 'Προεπισκόπηση φύλλου φρεατίου',

@@ -7,9 +7,9 @@ const source = await readFile(new URL('./sw.js', import.meta.url), 'utf8');
 const origin = 'https://maya.example';
 const html = (body) => new Response(body, { headers: { 'content-type': 'text/html' } });
 
-function worker({ revision = 'current', storage = new Map(), fetch = async () => html('current'), installError } = {}) {
+function worker({ revision = 'current', storage = new Map(), fetch = async () => html('current'), installError, navigator = {}, clients = {} } = {}) {
   const handlers = new Map();
-  const calls = { skipped: 0, claimed: 0, precached: [] };
+  const calls = { skipped: 0, claimed: 0, precached: [], notifications: [], opened: [] };
   const key = (request) => new URL(typeof request === 'string' ? request : request.url, origin).href;
   const caches = {
     async open(name) {
@@ -35,19 +35,27 @@ function worker({ revision = 'current', storage = new Map(), fetch = async () =>
       location: { origin },
       addEventListener: (type, handler) => handlers.set(type, handler),
       skipWaiting: async () => { calls.skipped++; },
-      clients: { claim: async () => { calls.claimed++; } },
+      navigator,
+      registration: { showNotification: async (title, options) => { calls.notifications.push({ title, options }); } },
+      clients: {
+        claim: async () => { calls.claimed++; },
+        matchAll: async () => [],
+        openWindow: async (url) => { calls.opened.push(url); },
+        ...clients,
+      },
     },
     caches, fetch, Request, URL, console,
   });
   return {
     calls, storage,
-    async dispatch(type, request) {
+    async dispatch(type, request, details = {}) {
       const pending = [];
       let response;
       handlers.get(type)({
         request,
         waitUntil: (promise) => pending.push(promise),
         respondWith: (promise) => { response = promise; },
+        ...details,
       });
       const result = await response;
       await Promise.all(pending);
@@ -121,5 +129,47 @@ test('server errors and non-HTML responses do not corrupt the offline shell', as
     await app.dispatch('fetch', navigation);
     offline = true;
     assert.equal(await (await app.dispatch('fetch', navigation)).text(), 'current');
+  }
+});
+
+test('a background chat push displays its sender, message, conversation link and capped badge', async () => {
+  const badges = [];
+  const app = worker({ navigator: { setAppBadge: async (count) => badges.push(count) } });
+  await app.dispatch('push', null, { data: { json: () => ({ title: 'Sender', body: 'New message', url: '/app/chat?conversation=room', tag: 'chat-room', badgeCount: 123 }) } });
+  assert.equal(app.calls.notifications[0].title, 'Sender');
+  assert.equal(app.calls.notifications[0].options.body, 'New message');
+  assert.equal(app.calls.notifications[0].options.data.url, '/app/chat?conversation=room');
+  assert.equal(app.calls.notifications[0].options.renotify, true);
+  assert.deepEqual(badges, [99]);
+});
+
+test('unsupported badges do not prevent notifications, and zero clears the badge', async () => {
+  let cleared = 0;
+  const app = worker({ navigator: { clearAppBadge: async () => { cleared++; } } });
+  await app.dispatch('push', null, { data: { json: () => ({ badgeCount: 0 }) } });
+  assert.equal(cleared, 1);
+  assert.equal(app.calls.notifications.length, 1);
+  await worker().dispatch('push', null, { data: { json: () => ({ badgeCount: 2 }) } });
+});
+
+test('notification clicks navigate and focus an existing app window on the specified conversation', async () => {
+  const visited = [];
+  let focused = 0;
+  let closed = 0;
+  const app = worker({ clients: { matchAll: async () => [{ navigate: async (url) => visited.push(url), focus: async () => { focused++; } }] } });
+  await app.dispatch('notificationclick', null, { notification: { data: { url: '/app/chat?conversation=room' }, close: () => { closed++; } } });
+  assert.deepEqual(visited, [`${origin}/app/chat?conversation=room`]);
+  assert.equal(focused, 1);
+  assert.equal(closed, 1);
+  assert.equal(app.calls.opened.length, 0);
+});
+
+test('external links cannot leave the app through a push notification', async () => {
+  for (const url of ['//evil.example', '/\\evil.example', 'https://evil.example']) {
+    const app = worker();
+    await app.dispatch('push', null, { data: { json: () => ({ url }) } });
+    assert.equal(app.calls.notifications[0].options.data.url, '/');
+    await app.dispatch('notificationclick', null, { notification: { data: { url }, close() {} } });
+    assert.deepEqual(app.calls.opened, [`${origin}/`]);
   }
 });

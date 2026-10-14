@@ -3,12 +3,14 @@ import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
 import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh.js';
 import * as chatApi from '../../services/api/chat.js';
+import { useNotifications } from '../notifications/NotificationsContext.jsx';
 
 const ChatContext = createContext(null);
 
 export function ChatProvider({ children }) {
   const { profile } = useAuth();
   const { setMessage } = useMessage();
+  const { unreadCount: unreadNotificationCount } = useNotifications();
   const [conversations, setConversations] = useState([]);
   const [chatAvailable, setChatAvailable] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
@@ -91,13 +93,20 @@ export function ChatProvider({ children }) {
       setMessage(error.message, 'error');
       return null;
     }
+    // Push delivery must never turn a saved message into a failed send or retry.
+    void chatApi
+      .notifyChatMessage(data.id)
+      .then(({ error: pushError }) => {
+        if (pushError) console.warn('Chat push failed:', pushError.message);
+      })
+      .catch((pushError) => console.warn('Chat push failed:', pushError.message));
     await loadConversations();
     return data;
   }
 
-  async function markConversationRead(conversationId) {
+  async function markConversationRead(conversationId, readAt) {
     if (!profile) return;
-    const { error } = await chatApi.markChatConversationRead(conversationId, profile.id);
+    const { error } = await chatApi.markChatConversationRead(conversationId, profile.id, readAt);
     if (error) return;
     setConversations((items) =>
       items.map((item) => (item.id === conversationId ? { ...item, unread_count: 0 } : item)),
@@ -108,6 +117,20 @@ export function ChatProvider({ children }) {
     () => conversations.reduce((total, item) => total + Number(item.unread_count || 0), 0),
     [conversations],
   );
+
+  useEffect(() => {
+    if (!('setAppBadge' in navigator) || !('clearAppBadge' in navigator)) return;
+    const count = unreadChatCount + unreadNotificationCount;
+    const updateBadge = async () => {
+      try {
+        if (profile && count > 0) await navigator.setAppBadge(Math.min(count, 99));
+        else await navigator.clearAppBadge();
+      } catch (error) {
+        console.warn('App badge update failed:', error.message);
+      }
+    };
+    void updateBadge();
+  }, [profile, unreadChatCount, unreadNotificationCount]);
 
   const value = {
     conversations,

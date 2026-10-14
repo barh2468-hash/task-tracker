@@ -3,7 +3,8 @@ import { t } from '../../language/LanguageContext.jsx';
 import { useEffect, useState } from 'react';
 import { BellOff, BellRing, Download } from 'lucide-react';
 import { useMessage } from '../../../context/MessageContext.jsx';
-import { subscribePush, unsubscribePush } from '../api.js';
+import { subscribePush, unsubscribePush, isPushSubscribed } from '../api.js';
+import { useAuth } from '../../auth/useAuth.js';
 
 function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || Boolean(navigator.standalone);
@@ -12,6 +13,7 @@ function isStandalone() {
 export default function PwaControls() {
   useTranslation();
   const { setMessage } = useMessage();
+  const { profile } = useAuth();
   const [installPrompt, setInstallPrompt] = useState(null);
   const [installed, setInstalled] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
@@ -19,6 +21,8 @@ export default function PwaControls() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    setSubscribed(false);
     setInstalled(isStandalone());
     setInstallPrompt(window.__mayaInstallPrompt || null);
     setPushSupported(
@@ -37,18 +41,33 @@ export default function PwaControls() {
     window.addEventListener('maya-install-prompt-ready', onInstallPromptReady);
     window.addEventListener('appinstalled', onInstalled);
 
-    if ('serviceWorker' in navigator) {
+    const refreshSubscription = () => {
+      if (
+        !profile?.id ||
+        !('serviceWorker' in navigator) ||
+        !('PushManager' in window) ||
+        !('Notification' in window)
+      )
+        return;
       navigator.serviceWorker.ready
-        .then((registration) => registration.pushManager.getSubscription())
-        .then((subscription) => setSubscribed(Boolean(subscription)))
-        .catch(() => setSubscribed(false));
-    }
+        .then(isPushSubscribed)
+        .then((enabled) => {
+          if (active) setSubscribed(enabled);
+        })
+        .catch(() => {
+          if (active) setSubscribed(false);
+        });
+    };
+    refreshSubscription();
+    window.addEventListener('maya-push-subscription-changed', refreshSubscription);
 
     return () => {
+      active = false;
       window.removeEventListener('maya-install-prompt-ready', onInstallPromptReady);
       window.removeEventListener('appinstalled', onInstalled);
+      window.removeEventListener('maya-push-subscription-changed', refreshSubscription);
     };
-  }, []);
+  }, [profile?.id]);
 
   async function installApp() {
     if (installed) {
@@ -78,7 +97,17 @@ export default function PwaControls() {
 
   async function enablePush() {
     if (!pushSupported) {
-      setMessage(t('המכשיר או הדפדפן הזה אינם תומכים בהתראות Push.'), 'error');
+      const isAppleMobile =
+        /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      setMessage(
+        isAppleMobile && !isStandalone()
+          ? t(
+              'כדי לקבל התראות ב-iPhone, הוסיפו את האפליקציה למסך הבית, פתחו אותה משם והפעילו התראות.',
+            )
+          : t('המכשיר או הדפדפן הזה אינם תומכים בהתראות Push.'),
+        'info',
+      );
       return;
     }
 
@@ -94,9 +123,10 @@ export default function PwaControls() {
       await subscribePush(registration);
 
       setSubscribed(true);
+      window.dispatchEvent(new Event('maya-push-subscription-changed'));
       setMessage(t('ההתראות הופעלו בהצלחה במכשיר הזה.'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t('הפעלת ההתראות נכשלה.'), 'error');
+      setMessage(error instanceof Error ? t(error.message) : t('הפעלת ההתראות נכשלה.'), 'error');
     } finally {
       setBusy(false);
     }
@@ -108,6 +138,7 @@ export default function PwaControls() {
       const registration = await navigator.serviceWorker.ready;
       await unsubscribePush(registration);
       setSubscribed(false);
+      window.dispatchEvent(new Event('maya-push-subscription-changed'));
       setMessage(t('ההתראות כובו במכשיר הזה.'));
     } catch {
       setMessage(t('כיבוי ההתראות נכשל. נסה שוב.'), 'error');
@@ -125,7 +156,8 @@ export default function PwaControls() {
       <button
         className={`pwaControlButton ${subscribed ? 'enabled' : ''}`}
         onClick={subscribed ? disablePush : enablePush}
-        disabled={busy || !pushSupported}
+        disabled={busy}
+        aria-pressed={subscribed}
       >
         {subscribed ? <BellOff size={16} /> : <BellRing size={16} />}
         <span>{subscribed ? t('כיבוי התראות') : t('הפעלת התראות')}</span>

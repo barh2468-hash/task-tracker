@@ -1,0 +1,147 @@
+.chatShell .chatConversationPane {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+.chatNotificationControls {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: #edf5fa;
+}
+.chatNotificationControls p {
+  margin: 0 0 9px;
+  color: #415a72;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.chatNotificationControls .pwaControls {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.chatNotificationControls .pwaControlButton {
+  width: auto;
+  flex: 1;
+  justify-content: center;
+  padding: 9px 7px;
+  font-size: 11px;
+  border: 1px solid #b9d4e5;
+  background: #fff;
+  color: #164a78;
+  box-shadow: none;
+}
+.chatNotificationControls .pwaControlButton:hover {
+  background: #dcecf7;
+  transform: none;
+}
+.chatNotificationControls .pwaControlButton.enabled {
+  background: #d9efe6;
+  color: #145d45;
+  border-color: #a8d3c1;
+}
+.chatConversationItem.unread {
+  border-color: #bfdae8;
+  background: #e8f4fb;
+}
+.chatConversationItem.unread .chatAvatar {
+  background: #176b93;
+  color: #fff;
+}
+.chatConversationItem.unread .chatConversationPreview small {
+  color: #153b5c;
+  font-weight: 800;
+}
+.chatConversationItem.unread.active {
+  border-color: #176b93;
+}
+.chatRoom .chatMessages {
+  gap: 13px;
+}
+.chatMessageRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  width: 100%;
+  direction: ltr;
+}
+.chatMessageRow.mine {
+  flex-direction: row-reverse;
+}
+.chatMessageAvatar {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--chat-sender-color);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+.chatMessageRow.mine .chatMessageAvatar {
+  background: #164a78;
+}
+.chatMessageRow .chatBubble {
+  min-width: 90px;
+  padding: 11px 14px 8px;
+  border-color: #d2dfe9;
+  border-inline-start: 3px solid var(--chat-sender-color);
+  background: #fff;
+  text-align: start;
+  direction: rtl;
+}
+.chatMessageRow .chatBubble b {
+  color: var(--chat-sender-color);
+  font-size: 12px;
+}
+.chatMessageRow .chatBubble p {
+  font-size: 14px;
+  line-height: 1.65;
+}
+.chatMessageRow .chatBubble.mine {
+  background: #164a78;
+  border-color: #164a78;
+  border-inline-start-width: 1px;
+  box-shadow: 0 5px 14px rgba(7, 30, 65, 0.12);
+}
+.chatMessageRow .chatBubble.mine p,
+.chatMessageRow .chatBubble.mine b {
+  color: #fff;
+}
+.chatMessageRow .chatBubble.mine time {
+  color: #d1e3f2;
+}
+.chatMessageRow .chatBubble time {
+  font-size: 10px;
+}
+.language-en .chatMessageRow .chatBubble {
+  direction: ltr;
+}
+.chatDateSeparator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 9px 0 3px;
+  color: #536a81;
+  font-size: 11px;
+  font-weight: 750;
+}
+.chatDateSeparator::before,
+.chatDateSeparator::after {
+  content: '';
+  width: 42px;
+  height: 1px;
+  background: #cad8e3;
+}
+.chatDateSeparator time {
+  padding: 5px 12px;
+  border: 1px solid #d4e0e9;
+  border-radius: 99px;
+  background: #fff;
+}
+@media (max-width: 760px) {
+  .chatMessageRow .chatBubble {
+    max-width: calc(100% - 52px);
+  }
+}

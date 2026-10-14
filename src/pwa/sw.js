@@ -68,6 +68,16 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+function safeAppPath(value) {
+  try {
+    if (typeof value !== 'string' || !value.startsWith('/')) return '/';
+    const url = new URL(value, self.location.origin);
+    return url.origin === self.location.origin ? `${url.pathname}${url.search}${url.hash}` : '/';
+  } catch {
+    return '/';
+  }
+}
+
 self.addEventListener('push', (event) => {
   let payload = {};
   try {
@@ -86,25 +96,30 @@ self.addEventListener('push', (event) => {
     tag: payload.tag || `maya-${Date.now()}`,
     renotify: Boolean(payload.tag),
     data: {
-      url:
-        typeof payload.url === 'string' && payload.url.startsWith('/') ? payload.url : '/',
+      url: safeAppPath(payload.url),
     },
   };
 
   const badgeCount = Number(payload.badgeCount);
-  const updateBadge = Number.isFinite(badgeCount) && badgeCount > 0 && 'setAppBadge' in self.navigator
-    ? self.navigator.setAppBadge(Math.min(badgeCount, 99))
-    : Promise.resolve();
+  const updateBadge = async () => {
+    if (!Number.isFinite(badgeCount) || badgeCount < 0) return;
+    try {
+      if (badgeCount > 0 && 'setAppBadge' in self.navigator) await self.navigator.setAppBadge(Math.min(badgeCount, 99));
+      else if (badgeCount === 0 && 'clearAppBadge' in self.navigator) await self.navigator.clearAppBadge();
+    } catch (error) {
+      console.warn('App badge update failed:', error);
+    }
+  };
 
   event.waitUntil(Promise.all([
     self.registration.showNotification(title, options),
-    updateBadge,
+    updateBadge(),
   ]));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetPath = event.notification.data?.url || '/';
+  const targetPath = safeAppPath(event.notification.data?.url);
   const targetUrl = new URL(targetPath, self.location.origin).href;
 
   event.waitUntil(

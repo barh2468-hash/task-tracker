@@ -17,11 +17,15 @@
   box-shadow: none;
   font-weight: 400;
 }
-.projectListItem:hover {
-  background: #f7fafc;
-  border-color: #9db9cf;
+.projectsPage .projectListItem:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
   box-shadow: none;
   transform: none;
+  filter: none;
+}
+.projectsPage .projectListItem:hover .projectListOpenIcon {
+  color: var(--navy);
 }
 .projectListItemName {
   min-width: 0;

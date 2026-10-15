@@ -2,10 +2,11 @@
   gap: 10px;
 }
 .projectListItem {
+  --project-list-accent: #7188a3;
   width: 100%;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto 20px;
+  grid-template-columns: minmax(0, 1fr) auto auto 32px;
   gap: 18px;
   align-items: center;
   text-align: start;
@@ -13,19 +14,43 @@
   background: #fff;
   color: var(--navy);
   border: 1px solid #dce5ee;
+  border-inline-start: 3px solid var(--project-list-accent);
   border-radius: 12px;
-  box-shadow: none;
+  box-shadow: 0 2px 6px rgb(11 35 72 / 4%);
   font-weight: 400;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.projectListItem.status-field {
+  --project-list-accent: #e9a23b;
+}
+.projectListItem.status-drafting {
+  --project-list-accent: #9c79d8;
+}
+.projectListItem.status-gpr {
+  --project-list-accent: #3998bb;
+}
+.projectListItem.status-permits {
+  --project-list-accent: #e18a52;
+}
+.projectListItem.status-review {
+  --project-list-accent: #db7592;
+}
+.projectListItem:is(.status-done, .status-review-complete) {
+  --project-list-accent: #48a77e;
 }
 .projectsPage .projectListItem:hover:not(:disabled) {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  box-shadow: none;
+  background: #fff;
+  border-color: #b8cadb;
+  border-inline-start-color: var(--project-list-accent);
+  box-shadow: 0 4px 12px rgb(11 35 72 / 8%);
   transform: none;
   filter: none;
 }
-.projectsPage .projectListItem:hover .projectListOpenIcon {
-  color: var(--navy);
+.projectsPage .projectListItem:is(:hover, :focus-visible) .projectListOpenIcon {
+  color: #fff;
+  background: var(--navy);
 }
 .projectListItemName {
   min-width: 0;
@@ -42,6 +67,19 @@
   color: #60748a;
   font-size: 13px;
 }
+.projectListLocation {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.projectListLocation svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+.projectListLocation bdi {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .projectListItemOwner {
   display: flex;
   gap: 6px;
@@ -55,9 +93,18 @@
   font-weight: 600;
 }
 .projectListOpenIcon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #f0f4f8;
   color: #617a90;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
-[dir='ltr'] .projectListOpenIcon,
+[dir='ltr'] .projectListOpenIcon svg,
 [dir='ltr'] .projectBackButton svg {
   transform: rotate(180deg);
 }
@@ -237,7 +284,7 @@
 .projectOverviewGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px 24px;
+  gap: 20px 32px;
   align-items: start;
 }
 .projectOverviewGrid > * {
@@ -386,6 +433,11 @@
   background: var(--surface-muted);
   border-color: #94a3b8;
 }
+.projectContacts {
+  align-self: stretch;
+  border-inline-start: 1px solid var(--border-strong);
+  padding-inline-start: 24px;
+}
 .projectContacts > p {
   margin: 0 0 12px;
   color: var(--text-secondary);
@@ -511,7 +563,13 @@
   }
   .projectOverviewGrid {
     grid-template-columns: minmax(0, 1fr);
-    gap: 28px;
+    gap: 20px;
+  }
+  .projectContacts {
+    border-inline-start: 0;
+    padding-inline-start: 0;
+    border-block-start: 1px solid var(--border-strong);
+    padding-block-start: 20px;
   }
 }
 @media (max-width: 520px) {
@@ -522,7 +580,7 @@
     padding: 14px;
   }
   .projectListItem {
-    grid-template-columns: minmax(0, 1fr) 18px;
+    grid-template-columns: minmax(0, 1fr) 32px;
     padding: 16px;
   }
   .projectListItemName {

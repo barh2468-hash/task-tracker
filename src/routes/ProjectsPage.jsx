@@ -2,13 +2,13 @@ import { useTranslation } from 'react-i18next';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Search, ShieldAlert, UserRound } from 'lucide-react';
+import { ArrowLeft, MapPin, Search, ShieldAlert, UserRound } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useMessage } from '../context/MessageContext.jsx';
 import { appStatuses } from '../services/supabase.js';
 import ProjectCard from '../features/projects/components/ProjectCard.jsx';
-import StatusPill from '../components/StatusPill.jsx';
+import StatusPill, { getStatusClass } from '../components/StatusPill.jsx';
 import '../features/projects/project-workspace.css';
 import { getProjectPage } from '../features/projects/utils/projectPage.js';
 import { hasProjectAssignment, isProjectAssignedTo } from '../features/projects/utils/assignments.js';
@@ -266,21 +266,28 @@ export default function ProjectsPage() {
             <div key={project.id} id={`project-${project.id}`} className="projectListRow">
               <button
                 type="button"
-                className="projectListItem"
+                className={`projectListItem status-${getStatusClass(project.status)}`}
                 id={`open-project-${project.id}`}
                 onClick={() => openProject(project)}
                 aria-label={t('פתיחת פרויקט {{name}}', { name: project.name })}
               >
                 <span className="projectListItemName">
                   <b dir="auto">{project.name}</b>
-                  <span dir="auto">{project.location}</span>
+                  {project.location && (
+                    <span className="projectListLocation">
+                      <MapPin size={14} aria-hidden="true" />
+                      <bdi>{project.location}</bdi>
+                    </span>
+                  )}
                 </span>
                 <span className="projectListItemOwner">
                   <UserRound size={15} aria-hidden="true" />
                   <bdi>{project.profiles?.full_name || t('לא משויך')}</bdi>
                 </span>
                 <StatusPill status={project.status} />
-                <ArrowLeft className="projectListOpenIcon" size={18} aria-hidden="true" />
+                <span className="projectListOpenIcon" aria-hidden="true">
+                  <ArrowLeft size={18} />
+                </span>
               </button>
             </div>
           ))}

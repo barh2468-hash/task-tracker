@@ -857,11 +857,8 @@ export default function ProjectCard({ project, onBack }) {
                         href={`tel:${project.contact_phone.replace(/[^0-9+]/g, '')}`}
                         title={t('התקשר לאיש קשר בשטח')}
                       >
-                        <Phone size={15} />
-                        <span className="projectContactActionText">
-                          <b>{t('התקשרות')}</b>
-                          <bdi>{project.contact_phone}</bdi>
-                        </span>
+                        <Phone size={15} aria-hidden="true" />
+                        <bdi>{project.contact_phone}</bdi>
                       </a>
                     )}
                     {project.contact_email && (
@@ -870,11 +867,8 @@ export default function ProjectCard({ project, onBack }) {
                         href={`mailto:${project.contact_email}`}
                         title={t('שליחת מייל לאיש קשר בשטח')}
                       >
-                        <Mail size={15} />
-                        <span className="projectContactActionText">
-                          <b>{t('שליחת מייל')}</b>
-                          <bdi>{project.contact_email}</bdi>
-                        </span>
+                        <Mail size={15} aria-hidden="true" />
+                        <bdi>{project.contact_email}</bdi>
                       </a>
                     )}
                     {!project.contact_phone && !project.contact_email && (

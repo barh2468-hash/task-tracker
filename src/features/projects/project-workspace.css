@@ -374,10 +374,11 @@
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
-  padding: 10px 12px;
+  min-height: var(--project-control-height);
+  padding: 8px 12px;
   background: var(--surface);
   color: var(--navy);
   font-weight: 500;
@@ -410,19 +411,11 @@
   display: grid;
   gap: 8px;
 }
-.projectContactActionText {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-.projectContactActionText b {
-  font-size: 13px;
-  font-weight: 600;
-}
 .project.projectWorkspace .phoneLink bdi {
   min-width: 0;
   color: #17618f;
   font-size: 14px;
+  line-height: 20px;
   overflow-wrap: anywhere;
   text-decoration: underline;
   text-underline-offset: 3px;

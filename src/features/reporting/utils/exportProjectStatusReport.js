@@ -1,3 +1,4 @@
+import { t } from '../../language/LanguageContext.jsx';
 import {
   compareProjectsByOrderNumber,
   getProjectOrderNumber,
@@ -185,7 +186,7 @@ export async function createProjectStatusWorkbook(
     row.values = [
       getProjectOrderNumber(project) || '-',
       project.name,
-      project.status || '-',
+      project.status ? t(project.status) : '-',
       project.profiles?.full_name || 'לא משויך',
       project.client_name || '-',
       project.location || '-',

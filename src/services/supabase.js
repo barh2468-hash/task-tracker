@@ -46,10 +46,12 @@ export const supabase = createClient(url || 'https://missing.supabase.co', anon 
 
 export const REVIEW_STATUS = 'נשלח להגהה';
 export const REVIEW_COMPLETED_STATUS = 'עבר לבקרה';
+export const DEFAULT_PROJECT_STATUS = 'ממתין לתיאום';
 
 export const FIELD_WORKER_STATUSES = ['בעבודה בשטח', 'עבר לשרטוט'];
 
 export const statuses = [
+  DEFAULT_PROJECT_STATUS,
   'בעבודה בשטח',
   'נדרש GPR',
   'מחכה להיתרים',
@@ -60,6 +62,7 @@ export const statuses = [
 ];
 
 export const statusProgress = {
+  [DEFAULT_PROJECT_STATUS]: 0,
   'בעבודה בשטח': 25,
   'נדרש GPR': 35,
   'מחכה להיתרים': 10,

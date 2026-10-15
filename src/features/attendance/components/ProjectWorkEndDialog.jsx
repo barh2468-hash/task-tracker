@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { t } from '../../language/LanguageContext.jsx';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Clock, MapPin, Square, Users, X } from 'lucide-react';
@@ -7,9 +8,12 @@ import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useAttendance } from '../AttendanceContext.jsx';
 import { helperNames } from '../crewOptions.js';
+import '../end-dialog.css';
 
 export default function ProjectWorkEndDialog() {
   useTranslation();
+  const { language } = useLanguage();
+  const locale = localeForLanguage(language);
   const { session } = useAuth();
   const { workers } = useProjects();
   const {
@@ -29,8 +33,8 @@ export default function ProjectWorkEndDialog() {
     () =>
       workers
         .filter((worker) => worker.id !== session?.user?.id)
-        .sort((a, b) => a.full_name.localeCompare(b.full_name, 'he')),
-    [workers, session?.user?.id],
+        .sort((a, b) => a.full_name.localeCompare(b.full_name, locale)),
+    [workers, session?.user?.id, locale],
   );
 
   const openSession = project?.work_sessions?.find(
@@ -89,7 +93,7 @@ export default function ProjectWorkEndDialog() {
             <h2 id="project-work-end-title">{project.name}</h2>
             <p>
               {t('התחלה:')}
-              {new Date(openSession.started_at).toLocaleTimeString('he-IL', {
+              {new Date(openSession.started_at).toLocaleTimeString(locale, {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
@@ -169,8 +173,8 @@ export default function ProjectWorkEndDialog() {
           </p>
         </div>
 
-        <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="project-daily-drafting-ready" aria-label="ניתן לשרטט את מה שעשיתי היום"><input id="project-daily-drafting-ready" type="checkbox" checked={dailyDraftingReady} disabled={busy} onChange={(event) => setDailyDraftingReady(event.target.checked)} /><span><strong>ניתן לשרטט את מה שעשיתי היום</strong><small>התראה למנהלים ומנת שרטוט, ללא שינוי סטטוס הפרויקט.</small></span></label></div>
-        {project.requires_work_diary && <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="project-exit-work-diary" aria-label="פתיחת יומן עבודה ביציאה מהפרויקט"><input id="project-exit-work-diary" type="checkbox" checked={showDiary} disabled={busy} onChange={(event) => setShowDiary(event.target.checked)} /><span><strong>פתיחת יומן עבודה ביציאה מהפרויקט</strong></span></label></div>}
+        <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="project-daily-drafting-ready" aria-label={t('ניתן לשרטט את מה שעשיתי היום')}><input id="project-daily-drafting-ready" type="checkbox" checked={dailyDraftingReady} disabled={busy} onChange={(event) => setDailyDraftingReady(event.target.checked)} /><span><strong>{t('ניתן לשרטט את מה שעשיתי היום')}</strong><small>{t('התראה למנהלים ומנת שרטוט, ללא שינוי סטטוס הפרויקט.')}</small></span></label></div>
+        {project.requires_work_diary && <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="project-exit-work-diary" aria-label={t('פתיחת יומן עבודה ביציאה מהפרויקט')}><input id="project-exit-work-diary" type="checkbox" checked={showDiary} disabled={busy} onChange={(event) => setShowDiary(event.target.checked)} /><span><strong>{t('פתיחת יומן עבודה ביציאה מהפרויקט')}</strong></span></label></div>}
         <div className="attendanceEndActions">
           <button
             type="button"

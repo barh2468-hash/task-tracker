@@ -39,6 +39,7 @@ const AttendancePage = lazy(() => import('./routes/AttendancePage.jsx'));
 const PersonalAttendancePage = lazy(() => import('./routes/PersonalAttendancePage.jsx'));
 const PersonalNotesPage = lazy(() => import('./routes/PersonalNotesPage.jsx'));
 const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
+const VehiclesPage = lazy(() => import('./routes/VehiclesPage.jsx'));
 const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
 const AccountingYearEndPage = lazy(() => import('./routes/AccountingYearEndPage.jsx'));
 const ManholeLayoutPage = lazy(() => import('./routes/ManholeLayoutPage.jsx'));
@@ -197,6 +198,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<LoadingScreen />}>
                       <WorkReportPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="vehicles"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <VehiclesPage />
                     </Suspense>
                   }
                 />

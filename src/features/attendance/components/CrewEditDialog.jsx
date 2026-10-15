@@ -3,8 +3,13 @@ import { createPortal } from 'react-dom';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { helperNames } from '../crewOptions.js';
 import { supabase } from '../../../services/supabase.js';
+import { useTranslation } from 'react-i18next';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
 
 export default function CrewEditDialog({ session, onClose, onSaved }) {
+  useTranslation();
+  const { language } = useLanguage();
   const { workers } = useProjects();
   const [crew, setCrew] = useState(session.crew_members || []);
   const [busy, setBusy] = useState(false);
@@ -41,16 +46,16 @@ export default function CrewEditDialog({ session, onClose, onSaved }) {
   }
   return createPortal(<div className="modalBackdrop attendanceEndBackdrop crewEditBackdrop" role="dialog" aria-modal="true" aria-labelledby="crew-edit-title">
     <form className="attendanceEndModal crewEditModal" onSubmit={save}>
-      <div className="attendanceEndHeader"><h2 id="crew-edit-title">עדכון הצוות שעבד איתי</h2></div>
+      <div className="attendanceEndHeader"><h2 id="crew-edit-title">{t('עדכון הצוות שעבד איתי')}</h2></div>
       <div className="attendanceEndBody">
-        <p>{session.projects?.name} · {new Date(session.started_at).toLocaleDateString('he-IL')}</p>
-        <p className="muted">השינוי מעדכן רק את הצוות. שעות העבודה וסגירת היום נשמרות.</p>
-        <fieldset className="crewPicker" disabled={busy}><legend>עובדים ועוזרים</legend><div className="crewOptions">
+        <p>{session.projects?.name} · {new Date(session.started_at).toLocaleDateString(localeForLanguage(language), { timeZone: 'Asia/Jerusalem' })}</p>
+        <p className="muted">{t('השינוי מעדכן רק את הצוות. שעות העבודה וסגירת היום נשמרות.')}</p>
+        <fieldset className="crewPicker" disabled={busy}><legend>{t('עובדים ועוזרים')}</legend><div className="crewOptions">
           {options.map((member) => <label className="crewOption" key={member.id || member.name}><input type="checkbox" checked={crew.some((item) => matches(item, member))} onChange={() => setCrew((current) => current.some((item) => matches(item, member)) ? current.filter((item) => !matches(item, member)) : [...current, member])} /><span>{member.name}</span></label>)}
         </div></fieldset>
-        {error && <p role="alert">שמירת הצוות נכשלה: {error}</p>}
+        {error && <p role="alert">{t('שמירת הצוות נכשלה: {{message}}', { message: error })}</p>}
       </div>
-      <div className="attendanceEndActions"><button type="button" className="ghost" disabled={busy} onClick={onClose}>ביטול</button><button disabled={busy}>{busy ? 'שומר...' : 'שמירת הצוות'}</button></div>
+      <div className="attendanceEndActions"><button type="button" className="ghost" disabled={busy} onClick={onClose}>{t('ביטול')}</button><button disabled={busy}>{busy ? t('שומר...') : t('שמירת הצוות')}</button></div>
     </form>
   </div>, document.body);
 }

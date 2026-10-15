@@ -6,6 +6,11 @@ import { FileUp, LoaderCircle } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../ProjectsContext.jsx';
 import { PDF_OR_IMAGE_ACCEPT } from '../utils/projectFiles.js';
+import { isManagerRole } from '../../../utils/roles.js';
+import { roleLabel } from '../../../services/supabase.js';
+import useFormDraft from '../../drafts/useFormDraft.js';
+import DraftNotice from '../../drafts/DraftNotice.jsx';
+import { isProjectTeamMember } from '../utils/assignments.js';
 
 const emptyProject = {
   name: '',
@@ -24,20 +29,21 @@ const emptyProject = {
 export default function NewProjectForm() {
   useTranslation();
   const { workers, createProject } = useProjects();
-  const { isManager } = useAuth();
+  const { isManager, session } = useAuth();
   const navigate = useNavigate();
-  const [project, setProject] = useState(emptyProject);
+  const draft = useFormDraft({ userId: session?.user?.id, formId: 'new-project', initialValue: emptyProject });
+  const { value: project, setValue: setProject } = draft;
   const [creating, setCreating] = useState(false);
 
-  const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
+  const projectResponsibles = workers.filter(isProjectTeamMember);
 
   async function handleCreate() {
-    if (creating) return;
+    if (creating || !draft.ready) return;
     setCreating(true);
     try {
       const result = await createProject(project);
       if (result?.message?.startsWith('הפרויקט נוצר')) {
-        setProject(emptyProject);
+        await draft.clear();
         navigate(`/app/projects?filter=${isManager ? 'all' : 'mine'}`);
       }
     } finally {
@@ -48,6 +54,8 @@ export default function NewProjectForm() {
   return (
     <section className="card form">
       <h2>{t('הוספת פרויקט חדש')}</h2>
+      <DraftNotice key={session?.user?.id} draft={draft} disabled={creating} />
+      <fieldset className="formDraftFields" disabled={creating || !draft.ready}>
       <div className="formGrid">
         <label>
           {t('שם פרויקט')}
@@ -99,16 +107,16 @@ export default function NewProjectForm() {
           />
         </label>
         <label>
-          {t('שיוך לעובד שטח אחראי, אופציונלי')}
+          {t('שיוך לאחראי ראשי (מנהל או עובד שטח)')}
 
           <select
             value={project.assigned_to}
             onChange={(e) => setProject({ ...project, assigned_to: e.target.value })}
           >
             <option value="">{t('ללא שיוך כרגע')}</option>
-            {fieldWorkers.map((w) => (
+            {projectResponsibles.map((w) => (
               <option key={w.id} value={w.id}>
-                {w.full_name} - {w.email}
+                {w.full_name} - {w.email}{isManagerRole(w.role) ? ` (${t(roleLabel[w.role])})` : ''}
               </option>
             ))}
           </select>
@@ -117,7 +125,7 @@ export default function NewProjectForm() {
           {t('עובדים נוספים בפרויקט, אופציונלי')}
 
           <div className="workerChecks">
-            {fieldWorkers.map((w) => (
+            {projectResponsibles.map((w) => (
               <label key={w.id} className="checkLine">
                 <input
                   type="checkbox"
@@ -129,7 +137,7 @@ export default function NewProjectForm() {
                     setProject({ ...project, assigned_workers: next });
                   }}
                 />
-                {w.full_name} - {w.email}
+                {w.full_name} - {w.email}{isManagerRole(w.role) ? ` (${t(roleLabel[w.role])})` : ''}
               </label>
             ))}
           </div>
@@ -153,6 +161,7 @@ export default function NewProjectForm() {
             </span>
             <input
               type="file"
+              key={project.boundary_sketch?.name || 'empty'}
               accept={PDF_OR_IMAGE_ACCEPT}
               disabled={creating}
               onChange={(event) =>
@@ -180,7 +189,8 @@ export default function NewProjectForm() {
           />
         </label>
       </div>
-      <button onClick={handleCreate} disabled={creating}>
+      </fieldset>
+      <button onClick={handleCreate} disabled={creating || !draft.ready}>
         {creating && <LoaderCircle className="spinIcon" size={17} />}
         {creating ? t('יוצר פרויקט...') : t('צור פרויקט')}
       </button>

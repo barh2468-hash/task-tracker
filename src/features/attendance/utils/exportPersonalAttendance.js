@@ -1,6 +1,8 @@
 import { attendanceTypeLabel } from '../constants.js';
 import { durationMinutes } from '../../../utils/format.js';
 import { personalAttendanceRows, reportDate } from './personalReport.js';
+import { personalWorkflowTranslator } from '../translations.js';
+import { localeForLanguage } from '../../language/locale.js';
 
 const timeParts = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
@@ -12,8 +14,8 @@ function excelTime(value) {
   return (Number(parts.hour) * 3600 + Number(parts.minute) * 60 + Number(parts.second)) / 86400;
 }
 
-function addSheet(workbook, name, title, context, exportedAt, headers, widths, rows, totalHours) {
-  const sheet = workbook.addWorksheet(name, { views: [{ rightToLeft: true, state: 'frozen', ySplit: 6 }] });
+function addSheet(workbook, name, title, context, exportedAt, headers, widths, rows, totalHours, t, language) {
+  const sheet = workbook.addWorksheet(name, { views: [{ rightToLeft: language === 'he', state: 'frozen', ySplit: 6 }] });
   widths.forEach((width, index) => { sheet.getColumn(index + 1).width = width; });
   sheet.mergeCells('A1:G1');
   sheet.getCell('A1').value = title;
@@ -21,9 +23,9 @@ function addSheet(workbook, name, title, context, exportedAt, headers, widths, r
   sheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B2B53' } };
   sheet.getRow(1).height = 34;
   sheet.mergeCells('A2:G2'); sheet.getCell('A2').value = context;
-  sheet.mergeCells('A3:G3'); sheet.getCell('A3').value = `מועד הייצוא: ${exportedAt} · משמרות פתוחות מחושבות עד מועד הייצוא.`;
+  sheet.mergeCells('A3:G3'); sheet.getCell('A3').value = t('מועד הייצוא: {{exportedAt}} · משמרות פתוחות מחושבות עד מועד הייצוא.', { exportedAt });
   sheet.getRow(3).height = 30;
-  sheet.mergeCells('A4:D4'); sheet.getCell('A4').value = 'סה״כ שעות';
+  sheet.mergeCells('A4:D4'); sheet.getCell('A4').value = t('סה״כ שעות');
   sheet.getCell('E4').value = rows.length ? { formula: `SUM(E7:E${rows.length + 6})`, result: totalHours } : 0;
   sheet.getCell('E4').numFmt = '0.00'; sheet.getRow(4).font = { name: 'Arial', bold: true };
   sheet.getRow(6).values = headers;
@@ -41,46 +43,48 @@ function addSheet(workbook, name, title, context, exportedAt, headers, widths, r
     row.getCell(5).numFmt = '0.00';
   }
   if (rows.length) sheet.autoFilter = { from: { row: 6, column: 1 }, to: { row: rows.length + 6, column: 7 } };
-  else sheet.getCell('A7').value = 'אין רישומים בטווח שנבחר';
-  sheet.eachRow((row) => { row.alignment = { horizontal: 'right', vertical: 'middle', wrapText: true }; });
+  else sheet.getCell('A7').value = t('אין רישומים בטווח שנבחר');
+  sheet.eachRow((row) => { row.alignment = { horizontal: language === 'he' ? 'right' : 'left', vertical: 'middle', wrapText: true }; });
   sheet.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '1:6' };
   return sheet;
 }
 
-export async function createPersonalAttendanceWorkbook({ attendance, work, userId, workerName, from, to, now = new Date() }) {
-  if (!userId || !from || !to || from > to) throw new Error('יש לבחור טווח תאריכים תקין.');
+export async function createPersonalAttendanceWorkbook({ attendance, work, userId, workerName, from, to, now = new Date(), language = 'he' }) {
+  const t = personalWorkflowTranslator(language);
+  if (!userId || !from || !to || from > to) throw new Error(t('יש לבחור טווח תאריכים תקין.'));
   const rows = personalAttendanceRows(attendance, userId, from, to, now);
   const projectWork = work.filter((item) => item.worker_id === userId && item.ended_at && reportDate(item.started_at) >= from && reportDate(item.started_at) <= to)
     .sort((a, b) => new Date(a.started_at) - new Date(b.started_at));
-  if (!rows.length && !projectWork.length) throw new Error('אין נתונים לייצוא בטווח שנבחר.');
+  if (!rows.length && !projectWork.length) throw new Error(t('אין נתונים לייצוא בטווח שנבחר.'));
   const module = await import('exceljs');
   const ExcelJS = module.default || module;
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'קבוצת מאיה'; workbook.created = now; workbook.calcProperties.fullCalcOnLoad = true;
+  workbook.creator = t('קבוצת מאיה'); workbook.created = now; workbook.calcProperties.fullCalcOnLoad = true;
   const dateLabel = (key) => key.split('-').reverse().join('/');
-  const context = `${workerName || 'העובד'} · ${dateLabel(from)}–${dateLabel(to)}`;
-  const exportedAt = now.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });
-  addSheet(workbook, 'נוכחות אישית', 'דוח הנוכחות שלי', context, exportedAt,
-    ['תאריך', 'סוג נוכחות', 'כניסה', 'יציאה', 'משך (שעות)', 'מצב', 'הערת סיום'], [16, 24, 13, 13, 17, 16, 55],
-    rows.map((row) => [excelDate(row.date), attendanceTypeLabel[row.attendance_type] || row.attendance_type,
+  const context = `${workerName || t('העובד')} · ${dateLabel(from)}–${dateLabel(to)}`;
+  const exportedAt = now.toLocaleString(localeForLanguage(language), { timeZone: 'Asia/Jerusalem' });
+  addSheet(workbook, t('נוכחות אישית'), t('דוח הנוכחות שלי'), context, exportedAt,
+    ['תאריך', 'סוג נוכחות', 'כניסה', 'יציאה', 'משך (שעות)', 'מצב', 'הערת סיום'].map((label) => t(label)), [16, 24, 13, 13, 17, 16, 55],
+    rows.map((row) => [excelDate(row.date), t(attendanceTypeLabel[row.attendance_type] || row.attendance_type),
       row.is_all_day ? null : excelTime(row.started_at), row.is_all_day ? null : excelTime(row.ended_at),
-      row.is_all_day ? null : row.minutes / 60, row.is_all_day ? 'יום מלא' : row.ended_at ? 'סגור' : 'פתוח', row.end_note || '']),
-    rows.reduce((sum, row) => sum + row.minutes / 60, 0));
-  addSheet(workbook, 'עבודה בפרויקטים', 'רישומי עבודה סגורים בפרויקטים', `${context} · שעות הפרויקט מוצגות בנפרד משעות הנוכחות.`, exportedAt,
-    ['תאריך', 'פרויקט', 'התחלה', 'סיום', 'משך (שעות)', 'עובדים ועוזרים', 'הערת סיום'], [16, 45, 13, 13, 17, 45, 55],
-    projectWork.map((item) => [excelDate(reportDate(item.started_at)), item.projects?.name || 'פרויקט', excelTime(item.started_at), excelTime(item.ended_at),
+      row.is_all_day ? null : row.minutes / 60, row.is_all_day ? t('יום מלא') : row.ended_at ? t('סגור') : t('פתוח'), row.end_note || '']),
+    rows.reduce((sum, row) => sum + row.minutes / 60, 0), t, language);
+  addSheet(workbook, t('עבודה בפרויקטים'), t('רישומי עבודה סגורים בפרויקטים'), t('{{context}} · שעות הפרויקט מוצגות בנפרד משעות הנוכחות.', { context }), exportedAt,
+    ['תאריך', 'פרויקט', 'התחלה', 'סיום', 'משך (שעות)', 'עובדים ועוזרים', 'הערת סיום'].map((label) => t(label)), [16, 45, 13, 13, 17, 45, 55],
+    projectWork.map((item) => [excelDate(reportDate(item.started_at)), item.projects?.name || t('פרויקט'), excelTime(item.started_at), excelTime(item.ended_at),
       durationMinutes(item.started_at, item.ended_at) / 60, (item.crew_members || []).map((member) => member.name).join(', '), item.end_note || '']),
-    projectWork.reduce((sum, item) => sum + durationMinutes(item.started_at, item.ended_at) / 60, 0));
+    projectWork.reduce((sum, item) => sum + durationMinutes(item.started_at, item.ended_at) / 60, 0), t, language);
   return workbook;
 }
 
 export async function downloadPersonalAttendanceWorkbook(options) {
+  const t = personalWorkflowTranslator(options.language);
   const workbook = await createPersonalAttendanceWorkbook(options);
   const buffer = await workbook.xlsx.writeBuffer();
   const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
   const link = document.createElement('a');
-  const workerName = String(options.workerName || 'שלי').replace(/[\\/:*?"<>|]/g, '-').trim().slice(0, 80);
-  link.href = url; link.download = `דוח-נוכחות-${workerName}-${options.from}-עד-${options.to}.xlsx`;
+  const workerName = String(options.workerName || t('שלי')).replace(/[\\/:*?"<>|]/g, '-').trim().slice(0, 80);
+  link.href = url; link.download = `${t('דוח-נוכחות-{{worker}}-{{from}}-עד-{{to}}', { worker: workerName, from: options.from, to: options.to })}.xlsx`;
   document.body.appendChild(link); link.click(); link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

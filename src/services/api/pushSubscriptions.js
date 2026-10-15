@@ -7,3 +7,7 @@ export function upsertPushSubscription(row) {
 export function deletePushSubscriptionByEndpoint(endpoint) {
   return supabase.from('push_subscriptions').delete().eq('endpoint', endpoint);
 }
+
+export function getPushSubscriptionByEndpoint(endpoint) {
+  return supabase.from('push_subscriptions').select('id').eq('endpoint', endpoint).maybeSingle();
+}

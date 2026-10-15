@@ -13,6 +13,12 @@ const DEFAULT_STATUS_THEME: StatusEmailTheme = {
 };
 
 const STATUS_EMAIL_THEMES: Record<string, StatusEmailTheme> = {
+  'ממתין לתיאום': {
+    accent: '#64748b',
+    background: '#f1f5f9',
+    border: '#cbd5e1',
+    text: '#475569',
+  },
   'בעבודה בשטח': DEFAULT_STATUS_THEME,
   'נדרש GPR': {
     accent: '#258fc4',

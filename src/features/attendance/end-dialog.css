@@ -1,0 +1,17 @@
+/* Longer translations must leave room for the fixed options and actions. */
+.attendanceEndModal.projectWorkEndModal {
+  max-height: min(850px, calc(100dvh - 36px));
+  min-height: 0;
+}
+.projectWorkEndModal > .attendanceEndHeader,
+.projectWorkEndModal > .attendanceEndPinned,
+.projectWorkEndModal > .attendanceEndActions { flex-shrink: 0; }
+.projectWorkEndModal > .projectWorkEndBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: start;
+  grid-auto-rows: max-content;
+}
+@media (max-width: 760px) {
+  .attendanceEndModal.projectWorkEndModal { max-height: calc(100dvh - 20px); }
+}

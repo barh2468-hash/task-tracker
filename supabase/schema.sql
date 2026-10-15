@@ -22,8 +22,8 @@ create table if not exists public.projects (
   additional_notes text,
   assigned_to uuid references public.profiles(id),
   created_by uuid references public.profiles(id),
-  status text not null default 'בעבודה בשטח' check (status in ('בעבודה בשטח','עבר לשרטוט','נדרש GPR','מחכה להיתרים','נשלח להגהה','עבר לבקרה','הושלם')),
-  progress int default 25 check (progress >= 0 and progress <= 100),
+  status text not null default 'ממתין לתיאום' check (status in ('ממתין לתיאום','בעבודה בשטח','עבר לשרטוט','נדרש GPR','מחכה להיתרים','נשלח להגהה','עבר לבקרה','הושלם')),
+  progress int default 0 check (progress >= 0 and progress <= 100),
   due_date date,
   created_at timestamptz default now(),
   updated_at timestamptz default now()

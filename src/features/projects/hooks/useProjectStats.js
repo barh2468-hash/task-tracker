@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useProjects } from '../ProjectsContext.jsx';
-import { REVIEW_STATUS } from '../../../services/supabase.js';
+import { DEFAULT_PROJECT_STATUS, REVIEW_STATUS } from '../../../services/supabase.js';
 import { buildProjectExceptions } from '../../reporting/utils/exceptions.js';
 
 export function useProjectStats() {
@@ -12,6 +12,7 @@ export function useProjectStats() {
   const stats = useMemo(
     () => ({
       total: activeProjects.length,
+      coordination: activeProjects.filter((p) => p.status === DEFAULT_PROJECT_STATUS).length,
       field: activeProjects.filter((p) => p.status === 'בעבודה בשטח').length,
       gpr: activeProjects.filter((p) => p.status === 'נדרש GPR').length,
       drafting: activeProjects.filter((p) => p.status === 'עבר לשרטוט').length,

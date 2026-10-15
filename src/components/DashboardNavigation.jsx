@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import {
-  Activity, AlertTriangle, Bell, ChartNoAxesCombined, ChevronDown, ClipboardList,
+  Activity, AlertTriangle, Bell, Car, ChartNoAxesCombined, ChevronDown, ClipboardList,
   Clock, Download, FileText, FolderKanban, HardHat, History, LayoutDashboard,
   Layers, MapPin, ShieldCheck, Wrench,
 } from 'lucide-react';
@@ -85,6 +85,7 @@ export default function DashboardNavigation({
             {item('/app/today', 'היום בשטח', HardHat)}
             {item('/app/map', 'מפה חיה', MapPin)}
             {item('/app/equipment', 'ציוד עובדי שטח', Wrench)}
+            {item('/app/vehicles', 'רכבים', Car)}
           </div>
         )}
 

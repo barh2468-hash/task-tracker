@@ -10,6 +10,7 @@ import * as statusHistoryApi from '../../services/api/statusHistory.js';
 import * as storageApi from '../../services/api/storage.js';
 import * as edgeFunctions from '../../services/api/edgeFunctions.js';
 import {
+  DEFAULT_PROJECT_STATUS,
   FIELD_WORKER_STATUSES,
   statusProgress,
   REVIEW_COMPLETED_STATUS,
@@ -25,6 +26,7 @@ import {
   MAX_PROJECT_FILE_SIZE,
 } from './utils/projectFiles.js';
 import { isManagerRole } from '../../utils/roles.js';
+import { getProjectAssignmentChanges } from './utils/assignments.js';
 
 // ---- Loading ----------------------------------------------------------
 
@@ -986,8 +988,8 @@ export async function createProject(newProject, profile) {
     additional_notes: newProject.additional_notes || null,
     assigned_to: newProject.assigned_to || null,
     created_by: user.id,
-    status: 'בעבודה בשטח',
-    progress: 25,
+    status: DEFAULT_PROJECT_STATUS,
+    progress: statusProgress[DEFAULT_PROJECT_STATUS],
     requires_work_diary: Boolean(newProject.requires_work_diary),
   });
 
@@ -1082,21 +1084,9 @@ export async function saveProject(projectId, changes, profile, originalProject) 
   });
   if (error) return { message: error.message };
 
-  const preservedDrafterIds = (originalProject?.project_workers || [])
-    .filter((assignment) => isDrafterCandidate(assignment.profiles))
-    .map((assignment) => assignment.worker_id);
-  const previousExtraWorkers = new Set(
-    (originalProject?.project_workers || [])
-      .filter((assignment) => !assignment.profiles?.role || assignment.profiles.role === 'field_worker')
-      .map((assignment) => assignment.worker_id),
+  const { addedExtraWorkers, removedAssignmentIds, addedAssignmentIds } = getProjectAssignmentChanges(
+    originalProject, changes.assigned_workers,
   );
-  const nextExtraWorkers = new Set(changes.assigned_workers || []);
-  const addedExtraWorkers = Array.from(nextExtraWorkers).filter((id) => !previousExtraWorkers.has(id));
-  const nextProjectAssignments = Array.from(new Set([...Array.from(nextExtraWorkers), ...preservedDrafterIds]));
-
-  const previousAssignmentIds = (originalProject?.project_workers || []).map((assignment) => assignment.worker_id);
-  const removedAssignmentIds = previousAssignmentIds.filter((id) => !nextProjectAssignments.includes(id));
-  const addedAssignmentIds = nextProjectAssignments.filter((id) => !previousAssignmentIds.includes(id));
   if (removedAssignmentIds.length) {
     const { error: removeError } = await projectWorkersApi.deleteProjectWorkersByProjectAndWorkers(projectId, removedAssignmentIds);
     if (removeError) return { message: `פרטי הפרויקט נשמרו, אך עדכון הצוות נכשל: ${removeError.message}` };

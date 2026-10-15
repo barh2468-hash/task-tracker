@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { t } from '../../language/LanguageContext.jsx';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckCircle2, Clock, MapPin, Square, Users } from 'lucide-react';
@@ -9,11 +10,14 @@ import { useAttendance } from '../AttendanceContext.jsx';
 import { attendanceTypeLabel } from '../api.js';
 import { helperNames } from '../crewOptions.js';
 import { statuses } from '../../../services/supabase.js';
+import '../end-dialog.css';
 
 const DRAFTING_STATUS = 'עבר לשרטוט';
 
 export default function AttendanceEndDialog() {
   useTranslation();
+  const { language } = useLanguage();
+  const locale = localeForLanguage(language);
   const { session } = useAuth();
   const { workers, projects, updateStatus } = useProjects();
   const {
@@ -54,8 +58,8 @@ export default function AttendanceEndDialog() {
     () =>
       workers
         .filter((worker) => worker.id !== session?.user?.id)
-        .sort((left, right) => left.full_name.localeCompare(right.full_name, 'he')),
-    [workers, session?.user?.id],
+        .sort((left, right) => left.full_name.localeCompare(right.full_name, locale)),
+    [workers, session?.user?.id, locale],
   );
 
   useEffect(() => {
@@ -119,7 +123,7 @@ export default function AttendanceEndDialog() {
             </h2>
             <p>
               {t('התחלת ב־')}
-              {new Date(openSession.started_at).toLocaleTimeString('he-IL', {
+              {new Date(openSession.started_at).toLocaleTimeString(locale, {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
@@ -190,8 +194,8 @@ export default function AttendanceEndDialog() {
               : t('בעת האישור נבקש את מיקום הסיום ונשמור אותו בדיווח.')}
           </p>
         </div>
-        {linkedProject && <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="attendance-daily-drafting-ready" aria-label="ניתן לשרטט את מה שעשיתי היום"><input id="attendance-daily-drafting-ready" type="checkbox" checked={dailyDraftingReady} disabled={busy || markReadyForDrafting} onChange={(event) => setDailyDraftingReady(event.target.checked)} /><span><strong>ניתן לשרטט את מה שעשיתי היום</strong><small>תיווצר מנת שרטוט ותישלח התראה למנהלים. סטטוס הפרויקט נשמר.</small></span></label></div>}
-        {linkedProject?.requires_work_diary && <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="attendance-exit-work-diary" aria-label="פתיחת יומן עבודה ביציאה מהפרויקט"><input id="attendance-exit-work-diary" type="checkbox" checked={showDiary} disabled={busy} onChange={(event) => setShowDiary(event.target.checked)} /><span><strong>פתיחת יומן עבודה ביציאה מהפרויקט</strong><small>יומן העבודה ייפתח לאחר שמירת הסיום.</small></span></label></div>}
+        {linkedProject && <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="attendance-daily-drafting-ready" aria-label={t('ניתן לשרטט את מה שעשיתי היום')}><input id="attendance-daily-drafting-ready" type="checkbox" checked={dailyDraftingReady} disabled={busy || markReadyForDrafting} onChange={(event) => setDailyDraftingReady(event.target.checked)} /><span><strong>{t('ניתן לשרטט את מה שעשיתי היום')}</strong><small>{t('תיווצר מנת שרטוט ותישלח התראה למנהלים. סטטוס הפרויקט נשמר.')}</small></span></label></div>}
+        {linkedProject?.requires_work_diary && <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="attendance-exit-work-diary" aria-label={t('פתיחת יומן עבודה ביציאה מהפרויקט')}><input id="attendance-exit-work-diary" type="checkbox" checked={showDiary} disabled={busy} onChange={(event) => setShowDiary(event.target.checked)} /><span><strong>{t('פתיחת יומן עבודה ביציאה מהפרויקט')}</strong><small>{t('יומן העבודה ייפתח לאחר שמירת הסיום.')}</small></span></label></div>}
         {canMarkReadyForDrafting && (
           <div className="attendanceEndPinned">
             <label className="draftingReadyToggle">

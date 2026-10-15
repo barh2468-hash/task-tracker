@@ -161,6 +161,8 @@
   min-width: 0;
   text-align: start;
 }
+.userManagementIdentity.isEditing { align-items: start; }
+.userManagementIdentity > div { min-width: 0; flex: 1; }
 .userManagementIdentity > span {
   display: grid;
   place-items: center;
@@ -172,6 +174,22 @@
   color: #315a87;
 }
 .userManagementIdentity strong { display: block; overflow: hidden; text-overflow: ellipsis; }
+.userManagementNameEditor {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: start;
+}
+.userManagementNameEditor input {
+  width: 100%;
+  min-height: 36px;
+  height: 36px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+}
 .userManagementIdentityMeta {
   display: flex;
   align-items: center;

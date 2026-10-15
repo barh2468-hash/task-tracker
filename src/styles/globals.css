@@ -1399,11 +1399,14 @@ body.language-en { direction: ltr; }
 .navBtnLabel { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; flex:1 1 auto; }
 .navCountBadge { display:inline-grid; place-items:center; flex:0 0 auto; min-width:34px; height:22px; padding:0 6px; border:1px solid rgba(125,216,238,.3); border-radius:999px; background:rgba(37,143,196,.18); color:#a9eaff; box-shadow:inset 0 1px 0 rgba(255,255,255,.1); font-size:11px; font-weight:950; font-variant-numeric:tabular-nums; line-height:1; direction:ltr; }
 .navBtn.active .navCountBadge { border-color:rgba(255,255,255,.3); background:rgba(255,255,255,.18); color:#fff; }
-.floatingChatButton { position:fixed; left:24px; bottom:24px; z-index:65; width:62px; height:62px; padding:0; border:2px solid rgba(255,255,255,.92); border-radius:50%; background:linear-gradient(145deg,#258fc4,#0b3768); color:#fff; box-shadow:0 14px 34px rgba(7,30,65,.3); }
-.floatingChatButton:hover { transform:translateY(-3px); box-shadow:0 18px 40px rgba(7,30,65,.36); }
-.floatingChatButton.active { background:linear-gradient(145deg,#f59e0b,#ef7d32); color:#071e41; }
+.floatingChatButton { position:fixed; left:24px; bottom:24px; z-index:65; width:60px; height:60px; padding:0; border:1px solid #35506f; border-radius:18px; background:var(--navy); color:#fff; box-shadow:0 4px 14px rgba(7,30,65,.18); }
+.floatingChatButton svg { flex-shrink:0; color:#b8d5e6; }
+.floatingChatButton:hover { background:var(--navy3); filter:none; transform:translateY(-1px); box-shadow:0 6px 18px rgba(7,30,65,.22); }
+.floatingChatButton.active { border-color:var(--orange); background:var(--navy3); box-shadow:inset 0 0 0 1px var(--orange),0 4px 14px rgba(7,30,65,.18); }
+.floatingChatButton.active svg { color:var(--orange); }
 .floatingChatButton:focus-visible { outline:3px solid rgba(245,158,11,.42); outline-offset:3px; }
-.floatingChatBadge { position:absolute; top:-7px; right:-7px; min-width:25px; height:25px; padding:0 6px; display:grid; place-items:center; border:2px solid #fff; border-radius:999px; background:#dc2626; color:#fff; box-shadow:0 5px 13px rgba(153,27,27,.35); font-size:11px; font-weight:950; font-variant-numeric:tabular-nums; line-height:1; direction:ltr; }
+.floatingChatBadge { position:absolute; top:-7px; right:-7px; min-width:23px; height:23px; padding:0 6px; display:grid; place-items:center; border:2px solid var(--navy); border-radius:8px; background:var(--orange); color:var(--navy); font-size:11px; font-weight:950; font-variant-numeric:tabular-nums; line-height:1; direction:ltr; }
+@media(prefers-reduced-motion:reduce){.floatingChatButton{transition:none}.floatingChatButton:hover{transform:none}}
 @media(max-width:1180px) and (min-width:761px){
   .chatPage .chatMessageForm{ padding-left:96px; }
 }
@@ -1785,7 +1788,13 @@ body.language-en { direction: ltr; }
 .projectMoreActionsMenu button:hover{background:#eef6fb;transform:none;box-shadow:none}
 .projectMoreActionsMenu button.danger{background:#fff1f2!important;color:#b4232f}
 .projectExpandedBody>.projectOperationsPanel{background:transparent;box-shadow:none}
-.projectSectionTabs{grid-column:1/-1;padding:5px;display:flex;gap:5px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;border:1px solid #d9e6ef;border-radius:16px;background:#eef4f8}
+.projectSectionTabsWrapper{grid-column:1/-1;position:relative;min-width:0}
+.projectSectionTabs{padding:5px;display:flex;gap:5px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;border:1px solid #d9e6ef;border-radius:16px;background:#eef4f8}
+.projectSectionTabsWrapper>.projectTabsScrollArrow{position:absolute;top:7px;z-index:1;width:32px;min-width:32px;min-height:40px;padding:0;display:grid;place-items:center;border:1px solid #c5dce9;border-radius:11px;background:#fff;color:#17698f;box-shadow:0 2px 8px rgba(7,30,65,.16)}
+.projectSectionTabsWrapper>.projectTabsScrollArrow:hover{background:#e4f1f7;transform:none}
+.projectSectionTabsWrapper>.projectTabsScrollArrow:focus-visible{outline:2px solid #17698f;outline-offset:2px}
+.projectTabsScrollLeft{left:3px}
+.projectTabsScrollRight{right:3px}
 .projectSectionTabs button{min-width:128px;min-height:43px;padding:8px 12px;display:flex;flex:1 0 128px;align-items:center;justify-content:center;gap:8px;border-radius:12px;background:transparent;color:#52677d;box-shadow:none;font-size:13px;white-space:nowrap}
 .projectSectionTabs button:hover{background:rgba(255,255,255,.72);color:var(--navy);transform:none;box-shadow:none}
 .projectSectionTabs button.active{background:#fff;color:var(--navy);box-shadow:0 5px 14px rgba(7,30,65,.09)}
@@ -1992,6 +2001,7 @@ body.language-en { direction: ltr; }
 }
 
 /* Project notes and shared image previews */
+.pill.coordination{background:#f1f5f9;color:#475569;white-space:normal}
 .projectAdditionalNotes{padding:12px 14px;border:1px solid #dbe7f0;border-radius:12px;background:#fffaf2;color:#52677d;font-size:13px;line-height:1.65}
 .projectAdditionalNotes b{display:block;margin-bottom:4px;color:var(--navy)}
 .projectAdditionalNotes p{margin:0;white-space:pre-wrap}

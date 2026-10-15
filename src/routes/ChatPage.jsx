@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
   ExternalLink,
@@ -11,8 +11,11 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { t } from '../features/language/LanguageContext.jsx';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { t, useLanguage } from '../features/language/LanguageContext.jsx';
+import { localeForLanguage } from '../features/language/locale.js';
+import PwaControls from '../features/pwa/components/PwaControls.jsx';
+import '../features/chat/chat.css';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
@@ -29,8 +32,20 @@ function initials(name) {
     .join('');
 }
 
+function senderColor(id) {
+  const colors = ['#176b93', '#7c3f91', '#a14b20', '#186d5e', '#4e55a2'];
+  const hash = [...String(id || '')].reduce(
+    (value, character) => (value * 31 + character.charCodeAt(0)) >>> 0,
+    0,
+  );
+  return colors[hash % colors.length];
+}
+
 export default function ChatPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { language } = useLanguage();
+  const locale = localeForLanguage(language);
   const { profile } = useAuth();
   const { projects, workers } = useProjects();
   const {
@@ -43,7 +58,15 @@ export default function ChatPage() {
     sendMessage,
     markConversationRead,
   } = useChat();
-  const [activeConversationId, setActiveConversationId] = useState(null);
+  const activeConversationId = searchParams.get('conversation');
+  function setActiveConversationId(id) {
+    setSearchParams((params) => {
+      const next = new URLSearchParams(params);
+      if (id) next.set('conversation', id);
+      else next.delete('conversation');
+      return next;
+    });
+  }
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
@@ -57,6 +80,8 @@ export default function ChatPage() {
   const [projectSearch, setProjectSearch] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const messagesEndRef = useRef(null);
+  const activeConversationRef = useRef(activeConversationId);
+  activeConversationRef.current = activeConversationId;
 
   const directory = useMemo(
     () => workers.filter((worker) => worker.id !== profile?.id),
@@ -89,18 +114,16 @@ export default function ChatPage() {
       return;
     }
     try {
-      setMessages(await getMessages(activeConversationId));
-      await markConversationRead(activeConversationId);
+      const next = await getMessages(activeConversationId);
+      if (activeConversationRef.current !== activeConversationId) return;
+      setMessages(next);
+      if (document.visibilityState === 'visible' && document.hasFocus() && next.length) {
+        await markConversationRead(activeConversationId, next.at(-1).created_at);
+      }
     } catch (error) {
       console.warn('Messages load failed:', error instanceof Error ? error.message : error);
     }
   }
-
-  useEffect(() => {
-    if (activeConversationId && !conversations.some((item) => item.id === activeConversationId)) {
-      setActiveConversationId(null);
-    }
-  }, [activeConversationId, conversations]);
 
   useEffect(() => {
     setSelectedProjectId(null);
@@ -118,6 +141,7 @@ export default function ChatPage() {
   }, [newChatOpen]);
 
   useEffect(() => {
+    setMessages([]);
     loadActiveMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationId, chatAvailable]);
@@ -179,12 +203,17 @@ export default function ChatPage() {
         : null;
       const sent = await sendMessage(activeConversationId, body, projectReference);
       if (sent) {
-        setMessages((items) => [...items, sent]);
+        if (activeConversationRef.current !== activeConversationId) return;
+        setMessages((items) =>
+          items.some((item) => item.id === sent.id) ? items : [...items, sent],
+        );
         setMessageText('');
         setSelectedProjectId(null);
         setProjectPickerOpen(false);
         setProjectSearch('');
-        await markConversationRead(activeConversationId);
+        if (document.visibilityState === 'visible' && document.hasFocus()) {
+          await markConversationRead(activeConversationId, sent.created_at);
+        }
       }
     } finally {
       setSending(false);
@@ -252,6 +281,11 @@ export default function ChatPage() {
           </button>
         </div>
 
+        <div className="chatNotificationControls">
+          <p>{t('קבלו התראות על הודעות גם כשהאפליקציה סגורה.')}</p>
+          <PwaControls />
+        </div>
+
         <div className="chatConversationList">
           {chatLoading && conversations.length === 0 && (
             <p className="chatHint">{t('טוען שיחות...')}</p>
@@ -270,7 +304,8 @@ export default function ChatPage() {
               <button
                 type="button"
                 key={conversation.id}
-                className={`chatConversationItem ${conversation.id === activeConversationId ? 'active' : ''}`}
+                className={`chatConversationItem ${conversation.id === activeConversationId ? 'active' : ''} ${unread > 0 ? 'unread' : ''}`}
+                aria-current={conversation.id === activeConversationId ? 'true' : undefined}
                 onClick={() => setActiveConversationId(conversation.id)}
               >
                 <span className="chatAvatar">{initials(name)}</span>
@@ -279,7 +314,7 @@ export default function ChatPage() {
                     <b>{name}</b>
                     <time>
                       {conversation.last_message_at
-                        ? new Date(conversation.last_message_at).toLocaleDateString('he-IL', {
+                        ? new Date(conversation.last_message_at).toLocaleDateString(locale, {
                             day: '2-digit',
                             month: '2-digit',
                           })
@@ -348,39 +383,64 @@ export default function ChatPage() {
                   <span>{t('שלחו הודעה ראשונה למשתתפים.')}</span>
                 </div>
               )}
-              {messages.map((message) => {
+              {messages.map((message, index) => {
                 const mine = message.sender_id === profile?.id;
                 const sender = mine ? profile : profilesById.get(message.sender_id);
                 const referencedProject = projectsById.get(message.project_id);
+                const createdAt = new Date(message.created_at);
+                const showDate =
+                  !index ||
+                  createdAt.toDateString() !==
+                    new Date(messages[index - 1].created_at).toDateString();
                 return (
-                  <article key={message.id} className={`chatBubble ${mine ? 'mine' : ''}`}>
-                    {!mine && <b>{sender?.full_name || t('משתמש')}</b>}
-                    <p>{message.body}</p>
-                    {message.project_id && (
-                      <button
-                        type="button"
-                        className="chatProjectReference"
-                        onClick={() =>
-                          navigate(projectDeepLinkPath(message.project_id))
-                        }
-                      >
-                        <FolderKanban size={20} />
-                        <span>
-                          <small>{t('הפניה לפרויקט')}</small>
-                          <strong>
-                            {referencedProject?.name || message.project_label || t('פרויקט')}
-                          </strong>
-                        </span>
-                        <ExternalLink size={15} />
-                      </button>
+                  <Fragment key={message.id}>
+                    {showDate && (
+                      <div className="chatDateSeparator">
+                        <time dateTime={message.created_at}>
+                          {createdAt.toLocaleDateString(locale, {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </time>
+                      </div>
                     )}
-                    <time>
-                      {new Date(message.created_at).toLocaleTimeString('he-IL', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </time>
-                  </article>
+                    <div
+                      className={`chatMessageRow ${mine ? 'mine' : ''}`}
+                      style={{ '--chat-sender-color': senderColor(message.sender_id) }}
+                    >
+                      <span className="chatMessageAvatar" aria-hidden="true">
+                        {initials(sender?.full_name)}
+                      </span>
+                      <article className={`chatBubble ${mine ? 'mine' : ''}`}>
+                        <b>{mine ? t('אני') : sender?.full_name || t('משתמש')}</b>
+                        <p dir="auto">{message.body}</p>
+                        {message.project_id && (
+                          <button
+                            type="button"
+                            className="chatProjectReference"
+                            onClick={() => navigate(projectDeepLinkPath(message.project_id))}
+                          >
+                            <FolderKanban size={20} />
+                            <span>
+                              <small>{t('הפניה לפרויקט')}</small>
+                              <strong>
+                                {referencedProject?.name || message.project_label || t('פרויקט')}
+                              </strong>
+                            </span>
+                            <ExternalLink size={15} />
+                          </button>
+                        )}
+                        <time dateTime={message.created_at}>
+                          {createdAt.toLocaleTimeString(locale, {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </time>
+                      </article>
+                    </div>
+                  </Fragment>
                 );
               })}
               <div ref={messagesEndRef} />

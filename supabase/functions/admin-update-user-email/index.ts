@@ -242,7 +242,12 @@ Deno.serve(async (req) => {
     if (action !== 'update-user') throw new HttpError(400, 'Unsupported admin action');
 
     const email = normalizeEmail(payload.email);
+    const fullNameProvided = typeof payload.fullName === 'string';
+    const fullName = fullNameProvided ? payload.fullName!.trim() : targetProfile.full_name;
     const role = payload.role?.trim() || targetProfile.role;
+    if (fullNameProvided && (!fullName || fullName.length > 120)) {
+      throw new HttpError(400, 'A full name is required');
+    }
     if (!isEmail(email)) throw new HttpError(400, 'A valid email address is required');
     if (!allowedRoles.has(role)) throw new HttpError(400, 'A valid role is required');
     if (userId === authData.user.id && role !== targetProfile.role) {
@@ -253,34 +258,72 @@ Deno.serve(async (req) => {
     if (authUserError || !authUserData.user) throw new HttpError(404, 'Auth user not found');
 
     const oldAuthEmail = authUserData.user.email || '';
+    const oldUserMetadata = authUserData.user.user_metadata || {};
     const oldProfileEmail = targetProfile.email || '';
     const emailChanged = oldAuthEmail.toLocaleLowerCase('en-US') !== email ||
       oldProfileEmail.toLocaleLowerCase('en-US') !== email;
+    const nameChanged = fullNameProvided && (
+      targetProfile.full_name !== fullName || oldUserMetadata.full_name !== fullName
+    );
     const roleChanged = targetProfile.role !== role;
-    if (!emailChanged && !roleChanged) return json({ ok: true, profile: targetProfile });
+    if (!emailChanged && !nameChanged && !roleChanged) {
+      return json({ ok: true, profile: targetProfile });
+    }
 
+    const authUpdates: {
+      email?: string;
+      email_confirm?: boolean;
+      user_metadata?: Record<string, unknown>;
+    } = {};
     if (emailChanged) {
-      const { error: updateAuthError } = await adminClient.auth.admin.updateUserById(userId, {
-        email,
-        email_confirm: true,
-      });
+      authUpdates.email = email;
+      authUpdates.email_confirm = true;
+    }
+    if (nameChanged) {
+      authUpdates.user_metadata = { ...oldUserMetadata, full_name: fullName };
+    }
+
+    if (emailChanged || nameChanged) {
+      const { error: updateAuthError } = await adminClient.auth.admin.updateUserById(
+        userId,
+        authUpdates,
+      );
       if (updateAuthError) throw new HttpError(400, updateAuthError.message);
     }
 
     const { data: updatedProfile, error: updateProfileError } = await adminClient
       .from('profiles')
-      .update({ email, role })
+      .update({
+        email,
+        role,
+        ...(fullNameProvided ? { full_name: fullName } : {}),
+      })
       .eq('id', userId)
       .select('id,email,full_name,role')
       .single();
 
     if (updateProfileError) {
-      if (emailChanged && oldAuthEmail) {
-        const { error: rollbackError } = await adminClient.auth.admin.updateUserById(userId, {
-          email: oldAuthEmail,
-          email_confirm: true,
-        });
-        if (rollbackError) console.error('Auth email rollback failed', rollbackError.message);
+      if ((emailChanged && oldAuthEmail) || nameChanged) {
+        const rollbackUpdates: {
+          email?: string;
+          email_confirm?: boolean;
+          user_metadata?: Record<string, unknown>;
+        } = {};
+        if (emailChanged && oldAuthEmail) {
+          rollbackUpdates.email = oldAuthEmail;
+          rollbackUpdates.email_confirm = true;
+        }
+        if (nameChanged) {
+          rollbackUpdates.user_metadata = {
+            ...oldUserMetadata,
+            full_name: oldUserMetadata.full_name ?? null,
+          };
+        }
+        const { error: rollbackError } = await adminClient.auth.admin.updateUserById(
+          userId,
+          rollbackUpdates,
+        );
+        if (rollbackError) console.error('Auth user rollback failed', rollbackError.message);
       }
       throw new HttpError(500, 'The user profile could not be synchronized');
     }

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjectStats } from '../features/projects/hooks/useProjectStats.js';
-import { REVIEW_STATUS } from '../services/supabase.js';
+import { DEFAULT_PROJECT_STATUS, REVIEW_STATUS } from '../services/supabase.js';
 import Stat from './Stat.jsx';
 
 export default function StatsGrid({ children, loading = false, combineSections = false, combinedPanelProps = {} }) {
@@ -34,7 +34,8 @@ export default function StatsGrid({ children, loading = false, combineSections =
   const statusSection = (
     <section className="statsGroup" aria-labelledby="project-status-stats-heading">
       <h2 id="project-status-stats-heading">{t('סטטוס פרויקטים')}</h2>
-      <div className="grid">
+      <div className="grid" style={{ '--overview-columns': 6 }}>
+        <Stat number={stats.coordination} label={t(DEFAULT_PROJECT_STATUS)} icon={<Clock />} onClick={openStatus(DEFAULT_PROJECT_STATUS)} />
         <Stat number={stats.field} label={t('בעבודה בשטח')} icon={<Clock />} onClick={openStatus('בעבודה בשטח')} />
         <Stat number={stats.gpr} label={t('נדרש GPR')} icon={<Shield />} onClick={openStatus('נדרש GPR')} />
         <Stat number={stats.drafting} label={t('עבר לשרטוט')} icon={<Pencil />} onClick={openStatus('עבר לשרטוט')} />

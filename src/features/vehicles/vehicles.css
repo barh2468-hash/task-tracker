@@ -1,0 +1,62 @@
+.vehiclesPage { display: grid; gap: 20px; }
+.vehiclesPage button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.vehicleMetrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.vehicleMetrics > div { display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: center; padding: 20px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--elev-1); }
+.vehicleMetrics svg { grid-row: span 2; color: var(--blue); }
+.vehicleMetrics strong { font-size: 26px; color: var(--navy); }
+.vehicleMetrics span { font-size: 13px; color: var(--text-secondary); }
+.vehicleRegister { min-width: 0; }
+.vehicleFilters { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.vehicleFilters label, .vehicleEditorField { display: grid; min-width: 0; gap: 6px; }
+.vehicleFilters input, .vehicleFilters select, .vehicleEditorFields input, .vehicleEditorFields textarea { width: 100%; box-sizing: border-box; }
+.vehicleList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.vehicleCard { min-width: 0; padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--elev-1); }
+.vehicleCardHeading { display: flex; align-items: center; gap: 12px; }
+.vehicleCardHeading > div { flex: 1; min-width: 0; }
+.vehicleCardHeading h3 { margin: 0; color: var(--navy); font-size: 20px; }
+.vehicleCardHeading p { margin: 4px 0 0; color: var(--text-secondary); overflow-wrap: anywhere; }
+.vehicleCarIcon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; border-radius: 12px; color: var(--blue); background: var(--gray-100); }
+.vehicleSummary, .vehicleDetails { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.vehicleSummary { margin: 20px 0; }
+.vehicleMileage { display: grid; gap: 6px; margin-top: 12px; }
+.vehicleMileage label { font-size: 12px; color: var(--text-secondary); font-weight: 400; }
+.vehicleMileageControls { display: flex; align-items: center; gap: 6px; }
+.vehicleMileageControls input { width: 100%; min-width: 0; padding: 8px; box-sizing: border-box; }
+.vehicleMileageControls button { flex: 0 0 auto; padding: 8px; }
+.vehicleMileageError { margin: 0; color: #a12b2b; font-size: 12px; }
+.vehicleSummary dt, .vehicleDetails dt { font-size: 12px; color: var(--text-secondary); margin-bottom: 5px; }
+.vehicleSummary dd, .vehicleDetails dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+.vehicleFuelBadge { display: inline-block; padding: 2px 10px; background: var(--gray-100); border-radius: var(--r-pill); }
+.vehicleFuelBadge.active { background: #e6f5ed; color: #1d6541; }
+.vehicleCard details { border-top: 1px solid var(--border); padding-top: 12px; }
+.vehicleCard summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; color: var(--blue); list-style: none; }
+.vehicleCard summary::-webkit-details-marker { display: none; }
+.vehicleCard details[open] summary svg { transform: rotate(180deg); }
+.vehicleDetails { margin-bottom: 0; padding: 14px; border-radius: 12px; background: var(--surface-muted); }
+.vehicleError { padding: 12px 16px; background: #fff2f2; color: #a12b2b; border: 1px solid #f4cece; border-radius: var(--r-md); }
+.vehicleEmpty { padding: 40px 20px; text-align: center; color: var(--text-secondary); background: var(--surface); border-radius: var(--r-lg); }
+.vehicleDialog { width: min(780px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); box-sizing: border-box; margin: auto; padding: 24px; overflow: auto; border: 1px solid var(--border); border-radius: var(--r-lg); color: var(--text-primary); background: var(--surface); box-shadow: var(--elev-3); }
+.vehicleDialog::backdrop { background: rgba(6, 24, 45, .55); }
+.vehicleDialog header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.vehicleDialog h2 { margin: 0; font-size: 22px; }
+.vehicleDialog footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.vehicleHint { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+.vehicleEditorFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.vehicleImportPreview { max-height: 260px; overflow: auto; border: 1px solid var(--border); border-radius: var(--r-md); }
+.vehicleImportPreview > div { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 10px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+@media (max-width: 800px) {
+  .vehicleList { grid-template-columns: 1fr; }
+  .vehicleFilters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vehicleFilters label:first-child { grid-column: 1 / -1; }
+  .vehicleMetrics { gap: 8px; }
+  .vehicleMetrics > div { padding: 12px; column-gap: 8px; }
+  .vehicleMetrics svg { display: none; }
+  .vehicleMetrics strong { font-size: 22px; }
+  .vehicleMetrics span { font-size: 11px; }
+}
+@media (max-width: 480px) {
+  .vehicleEditorFields { grid-template-columns: 1fr; }
+  .vehicleDialog { padding: 18px; }
+  .vehicleCard { padding: 16px; }
+  .vehicleCarIcon { display: none; }
+}

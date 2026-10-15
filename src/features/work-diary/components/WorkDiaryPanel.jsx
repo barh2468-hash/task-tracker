@@ -13,6 +13,9 @@ import { useRealtimeRefresh } from '../../../hooks/useRealtimeRefresh.js';
 import { exportWorkDiaryPdf } from '../utils/exportWorkDiaryPdf.js';
 import { workKinds, leakKinds } from '../utils/helpers.js';
 import SignaturePad from './SignaturePad.jsx';
+import { useAuth } from '../../auth/useAuth.js';
+import useFormDraft from '../../drafts/useFormDraft.js';
+import DraftNotice from '../../drafts/DraftNotice.jsx';
 
 function todayValue() {
   return new Date().toISOString().slice(0, 10);
@@ -62,11 +65,18 @@ function emptyDiary(project, teamLeadName) {
 
 export default function WorkDiaryPanel({ project, currentUserName, canDelete, canCreate = true, autoOpen = false, onClose }) {
   useTranslation();
+  const { session } = useAuth();
   const [diaries, setDiaries] = useState([]);
   const [formOpen, setFormOpen] = useState(autoOpen);
-  const [form, setForm] = useState(() => emptyDiary(project, currentUserName));
-  const [customerSignature, setCustomerSignature] = useState('');
-  const [teamLeadSignature, setTeamLeadSignature] = useState('');
+  const draft = useFormDraft({
+    userId: session?.user?.id,
+    formId: `work-diary:${project.id}`,
+    initialValue: { form: emptyDiary(project, currentUserName), customerSignature: '', teamLeadSignature: '' },
+    enabled: formOpen && canCreate,
+  });
+  const { form, customerSignature, teamLeadSignature } = draft.value;
+  function setCustomerSignature(customerSignature) { draft.setValue((current) => ({ ...current, customerSignature })); }
+  function setTeamLeadSignature(teamLeadSignature) { draft.setValue((current) => ({ ...current, teamLeadSignature })); }
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState('');
@@ -117,18 +127,16 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
   }, [formOpen]);
 
   function update(key, value) {
-    setForm((current) => ({ ...current, [key]: value }));
+    draft.setValue((current) => ({ ...current, form: { ...current.form, [key]: value } }));
   }
 
   function openNewDiary() {
-    setForm(emptyDiary(project, currentUserName));
-    setCustomerSignature('');
-    setTeamLeadSignature('');
     setMessage('');
     setFormOpen(true);
   }
 
   async function saveDiary() {
+    if (saving || !draft.ready) return;
     if (!form.work_date || !form.contact_name || !form.start_time || !form.end_time) {
       setMessage(t('יש למלא תאריך, איש קשר ושעות התחלה וסיום.'));
       return;
@@ -141,25 +149,28 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
       setMessage(t('חובה להשלים את שתי החתימות לפני שמירת היומן.'));
       return;
     }
-    const user = await getCurrentUser();
-    if (!user) return;
     setSaving(true);
-    const { data, error } = await insertWorkDiary({
-      project_id: project.id,
-      created_by: user.id,
-      form_data: form,
-      customer_signature: customerSignature,
-      team_lead_signature: teamLeadSignature,
-    });
-    setSaving(false);
-    if (error) {
+    try {
+      const user = await getCurrentUser();
+      if (!user) return;
+      const { data, error } = await insertWorkDiary({
+        project_id: project.id,
+        created_by: user.id,
+        form_data: form,
+        customer_signature: customerSignature,
+        team_lead_signature: teamLeadSignature,
+      });
+      if (error) throw error;
+      setDiaries((current) => [data, ...current]);
+      await draft.clear();
+      setFormOpen(false);
+      onClose?.();
+      setMessage(t('יומן עבודה מספר {{value0}} נשמר ונחתם.', { value0: data.diary_number }));
+    } catch (error) {
       setMessage(t('שמירת היומן נכשלה: {{value0}}', { value0: error.message }));
-      return;
+    } finally {
+      setSaving(false);
     }
-    setDiaries((current) => [data, ...current]);
-    setFormOpen(false);
-    onClose?.();
-    setMessage(t('יומן עבודה מספר {{value0}} נשמר ונחתם.', { value0: data.diary_number }));
   }
 
   async function deleteDiary(diary) {
@@ -278,6 +289,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
                   type="button"
                   className="ghost iconBtn"
                   aria-label={t('סגירה')}
+                  disabled={saving}
                   onClick={() => { setFormOpen(false); onClose?.(); }}
                 >
                   <X size={19} />
@@ -285,6 +297,8 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
               </header>
 
               <div className="workDiaryForm">
+                <DraftNotice key={`${session?.user?.id}:${project.id}`} draft={draft} disabled={saving} />
+                <fieldset className="formDraftFields" disabled={saving || !draft.ready}>
                 <DiarySection title={t('פרטי היומן והפרויקט')}>
                   <div className="workDiaryGrid three">
                     <DiaryInput
@@ -483,7 +497,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
                         onChange={(value) => update('customer_phone', value)}
                       />
 
-                      <SignaturePad label={t('חתימת נציג הלקוח')} onChange={setCustomerSignature} />
+                      <SignaturePad label={t('חתימת נציג הלקוח')} value={customerSignature} disabled={saving || !draft.ready} onChange={setCustomerSignature} />
                     </div>
                     <div className="signerCard">
                       <h4>{t('ראש צוות מאיה')}</h4>
@@ -503,6 +517,8 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
 
                       <SignaturePad
                         label={t('חתימת ראש צוות מאיה')}
+                        value={teamLeadSignature}
+                        disabled={saving || !draft.ready}
                         onChange={setTeamLeadSignature}
                       />
                     </div>
@@ -516,15 +532,16 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
                     onChange={(value) => update('additional_notes', value)}
                   />
                 </DiarySection>
+                </fieldset>
               </div>
 
               {message && <div className="workDiaryMessage stickyMessage">{message}</div>}
               <footer className="workDiaryActions">
-                <button type="button" onClick={saveDiary} disabled={saving}>
+                <button type="button" onClick={saveDiary} disabled={saving || !draft.ready}>
                   <PenLine size={17} /> {saving ? t('שומר...') : t('שמירה וסגירת היומן')}
                 </button>
-                <button type="button" className="ghost" onClick={() => { setFormOpen(false); onClose?.(); }}>
-                  {t('ביטול')}
+                <button type="button" className="ghost" disabled={saving} onClick={() => { setFormOpen(false); onClose?.(); }}>
+                  {t('סגירה')}
                 </button>
               </footer>
             </div>

@@ -29,6 +29,7 @@ import ExitWorkDiary from '../features/attendance/components/ExitWorkDiary.jsx';
 import ProjectWorkspaceNavigation from '../features/projects/components/ProjectWorkspaceNavigation.jsx';
 import { useLanguage } from '../features/language/LanguageContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
+import { localeForLanguage } from '../features/language/locale.js';
 
 export default function DashboardLayout() {
   useTranslation();
@@ -251,19 +252,23 @@ export default function DashboardLayout() {
       </section>
 
       <button
+        type="button"
         className={`floatingChatButton ${navActive('/app/chat') ? 'active' : ''}`}
         onClick={toggleChat}
+        aria-pressed={navActive('/app/chat')}
         aria-label={
           unreadChatCount > 0
-            ? t('צ׳אט פנימי, {{value0}} הודעות חדשות', { value0: unreadChatCount })
+            ? t('צ׳אט פנימי, {{value0}} הודעות חדשות', {
+                value0: unreadChatCount.toLocaleString(localeForLanguage(language)),
+              })
             : t('צ׳אט פנימי')
         }
         title={t('צ׳אט פנימי')}
       >
-        <MessageCircle size={28} aria-hidden="true" />
+        <MessageCircle size={27} aria-hidden="true" />
         {unreadChatCount > 0 && (
           <span className="floatingChatBadge" aria-hidden="true">
-            {unreadChatCount > 99 ? '99+' : unreadChatCount}
+            {unreadChatCount > 99 ? '99+' : unreadChatCount.toLocaleString(localeForLanguage(language))}
           </span>
         )}
       </button>

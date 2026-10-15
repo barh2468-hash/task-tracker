@@ -26,6 +26,7 @@ import {
   FIELD_WORKER_STATUSES,
   REVIEW_COMPLETED_STATUS,
   REVIEW_STATUS,
+  roleLabel,
 } from '../../../services/supabase.js';
 import StatusPill, { getStatusClass } from '../../../components/StatusPill.jsx';
 import { exportProjectPdf } from '../utils/exportProjectPdf.js';
@@ -39,6 +40,9 @@ import { findAssignedDrafter, isDrafterCandidate } from '../utils/drafters.js';
 import ContinuationReportDialog from './ContinuationReportDialog.jsx';
 import DrawingBatchesPanel from './DrawingBatchesPanel.jsx';
 import ProjectHistoryPanel from './ProjectHistoryPanel.jsx';
+import ProjectSectionTabs from './ProjectSectionTabs.jsx';
+import { isManagerRole } from '../../../utils/roles.js';
+import { getProjectTeamAssignments, isProjectTeamMember } from '../utils/assignments.js';
 
 const photoCategories = [
   'תמונת שטח',
@@ -59,10 +63,7 @@ function buildEditForm(project) {
     description: project.description || '',
     additional_notes: project.additional_notes || '',
     assigned_to: project.assigned_to || '',
-    assigned_workers: (project.project_workers || [])
-      .filter(
-        (assignment) => !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
-      )
+    assigned_workers: getProjectTeamAssignments(project)
       .map((assignment) => assignment.worker_id),
     requires_work_diary: Boolean(project.requires_work_diary),
   };
@@ -132,7 +133,8 @@ export default function ProjectCard({ project, focused = false }) {
   const [assetsLoading, setAssetsLoading] = useState(false);
   const assignedDrafterId = findAssignedDrafter(project)?.worker_id || '';
   const [selectedDrafterId, setSelectedDrafterId] = useState(assignedDrafterId);
-  const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
+  const projectResponsibles = workers.filter(isProjectTeamMember);
+  const teamAssignments = getProjectTeamAssignments(project);
   const drafters = workers.filter(isDrafterCandidate);
   const workerDirectoryById = new Map(workers.map((worker) => [worker.id, worker]));
   const responsibleWorkerName = project.assigned_to
@@ -302,16 +304,16 @@ export default function ProjectCard({ project, focused = false }) {
             />
           </label>
           <label>
-            {t('שיוך לעובד שטח אחראי')}
+            {t('שיוך לאחראי ראשי (מנהל או עובד שטח)')}
 
             <select
               value={editProject.assigned_to}
               onChange={(e) => setEditProject({ ...editProject, assigned_to: e.target.value })}
             >
               <option value="">{t('לא משויך')}</option>
-              {fieldWorkers.map((w) => (
+              {projectResponsibles.map((w) => (
                 <option key={w.id} value={w.id}>
-                  {w.full_name} - {w.email}
+                  {w.full_name} - {w.email}{isManagerRole(w.role) ? ` (${t(roleLabel[w.role])})` : ''}
                 </option>
               ))}
             </select>
@@ -320,7 +322,7 @@ export default function ProjectCard({ project, focused = false }) {
             {t('עובדים נוספים בפרויקט')}
 
             <div className="workerChecks compactChecks">
-              {fieldWorkers.map((w) => (
+              {projectResponsibles.map((w) => (
                 <label key={w.id} className="checkLine">
                   <input
                     type="checkbox"
@@ -332,7 +334,7 @@ export default function ProjectCard({ project, focused = false }) {
                       setEditProject({ ...editProject, assigned_workers: next });
                     }}
                   />
-                  {w.full_name} - {w.email}
+                  {w.full_name} - {w.email}{isManagerRole(w.role) ? ` (${t(roleLabel[w.role])})` : ''}
                 </label>
               ))}
             </div>
@@ -751,19 +753,11 @@ export default function ProjectCard({ project, focused = false }) {
                     <span>{t('עובד אחראי:')}</span>
                     <b>{responsibleWorkerName}</b>
                   </div>
-                  {!!project.project_workers?.some(
-                    (assignment) =>
-                      !assignment.profiles?.role || assignment.profiles.role === 'field_worker',
-                  ) && (
+                  {teamAssignments.length > 0 && (
                     <div>
                       <span>{t('עובדים נוספים:')}</span>
                       <b>
-                        {project.project_workers
-                          .filter(
-                            (assignment) =>
-                              !assignment.profiles?.role ||
-                              assignment.profiles.role === 'field_worker',
-                          )
+                        {teamAssignments
                           .map(
                             (assignment) =>
                               assignment.profiles?.full_name ||
@@ -895,20 +889,20 @@ export default function ProjectCard({ project, focused = false }) {
               </section>}
             </div>
 
-            <div className="projectSectionTabs" role="tablist" aria-label={t('פרטי הפרויקט')}>
+            <ProjectSectionTabs>
               {[
                 ['tasks', t('משימות'), (project.project_tasks || []).length],
-                [
-                  'drawing-batches',
-                  'מנות שרטוט',
-                  assets.project_drawing_batches.length,
-                ],
                 [
                   'documents',
                   t('מסמכים'),
                   assets.project_photos.length +
                     assets.project_documents.length +
                     assets.project_review_files.length,
+                ],
+                [
+                  'drawing-batches',
+                  'מנות שרטוט',
+                  assets.project_drawing_batches.length,
                 ],
                 ['updates', t('עדכונים'), projectHistory.length],
               ].map(([tab, label, count]) => (
@@ -924,7 +918,7 @@ export default function ProjectCard({ project, focused = false }) {
                   <small>{count}</small>
                 </button>
               ))}
-            </div>
+            </ProjectSectionTabs>
 
             {activeDetailTab === 'documents' && (
               <div className="projectTabPanel projectDocumentsTab" role="tabpanel">

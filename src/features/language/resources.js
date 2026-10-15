@@ -1,8 +1,20 @@
 import { enManholeLayouts, elManholeLayouts } from '../manhole-layout/translations.js';
+import { enVehicles, elVehicles } from '../vehicles/translations.js';
+import { enDrafts, elDrafts } from '../drafts/translations.js';
+import { enPersonalWorkflow, elPersonalWorkflow } from '../attendance/translations.js';
 
-export const heTranslations = {};
+export const heTranslations = {
+  'ממתין לתיאום': 'ממתין לתיאום',
+  'פתח {{value0}}': 'פתח {{value0}}',
+};
 
 export const enTranslations = {
+  'אני': 'You',
+  'קבלו התראות על הודעות גם כשהאפליקציה סגורה.': 'Get message notifications even when the app is closed.',
+  'כדי לקבל התראות ב-iPhone, הוסיפו את האפליקציה למסך הבית, פתחו אותה משם והפעילו התראות.': 'To receive notifications on iPhone, add the app to your Home Screen, open it from there and enable notifications.',
+  ...enPersonalWorkflow,
+  ...enDrafts,
+  ...enVehicles,
   ...enManholeLayouts,
   'דף השוחה מתעדכן לפי הנתונים שמילאתם.': 'The manhole sheet reflects the details you entered.',
   'תצוגה מקדימה של דף השוחה': 'Manhole sheet preview',
@@ -80,6 +92,7 @@ export const enTranslations = {
     'Project tracking for field teams, drafting, GPR and permits',
   התראות: 'Notifications',
   'צ׳אט פנימי': 'Team chat',
+  'צ׳אט פנימי, {{value0}} הודעות חדשות': 'Team chat, {{value0}} new messages',
   'שיחה חדשה': 'New conversation',
   חדש: 'New',
   שיחה: 'Conversation',
@@ -305,8 +318,8 @@ export const enTranslations = {
   'ניהול משתמשים': 'User management',
   'רק מנהל ראשי יכול לשנות כתובות דוא״ל. השינוי מתבצע גם בכניסה למערכת וגם בפרופיל.':
     'Only an administrator can change email addresses. The change is applied to both sign-in and the profile.',
-  'מנהל ראשי יכול להזמין משתמשים, לעדכן כתובות דוא״ל ותפקידים ולשלוח קישורים לאיפוס סיסמה.':
-    'An administrator can invite users, update email addresses and roles, and send password reset links.',
+  'מנהל ראשי יכול להזמין משתמשים, לעדכן שמות, כתובות דוא״ל ותפקידים ולשלוח קישורים לאיפוס סיסמה.':
+    'An administrator can invite users, update names, email addresses and roles, and send password reset links.',
   'הזמנת משתמש': 'Invite user',
   'סגירת ההזמנה': 'Close invitation',
   'הזמנת משתמש חדש': 'Invite a new user',
@@ -367,6 +380,8 @@ export const enTranslations = {
   'ארכיון פרויקטים': 'Project archive',
   'הפרויקטים שלי': 'My projects',
   'בעבודה בשטח': 'Field work',
+  'ממתין לתיאום': 'Awaiting coordination',
+  'פתח {{value0}}': 'Open {{value0}}',
   'עבר לשרטוט': 'Sent to drafting',
   'נדרש GPR': 'GPR required',
   'מחכה להיתרים': 'Waiting for permits',
@@ -900,7 +915,11 @@ export const enTranslations = {
 };
 
 const greekTranslations = {
+  'אני': 'Εσείς',
+  'קבלו התראות על הודעות גם כשהאפליקציה סגורה.': 'Λάβετε ειδοποιήσεις μηνυμάτων ακόμα και όταν η εφαρμογή είναι κλειστή.',
+  'כדי לקבל התראות ב-iPhone, הוסיפו את האפליקציה למסך הבית, פתחו אותה משם והפעילו התראות.': 'Για ειδοποιήσεις στο iPhone, προσθέστε την εφαρμογή στην αρχική οθόνη, ανοίξτε την από εκεί και ενεργοποιήστε τις ειδοποιήσεις.',
   ...elManholeLayouts,
+  ...elVehicles,
   'דף השוחה מתעדכן לפי הנתונים שמילאתם.': 'Το φύλλο φρεατίου ενημερώνεται με τα στοιχεία που συμπληρώσατε.',
   'תצוגה מקדימה של דף השוחה': 'Προεπισκόπηση φύλλου φρεατίου',
   'טוען תצוגה מקדימה...': 'Φόρτωση προεπισκόπησης...',
@@ -979,6 +998,7 @@ const greekTranslations = {
   התראות: 'Ειδοποιήσεις',
   'כלים לעובד': 'Εργαλεία εργαζομένου',
   'צ׳אט פנימי': 'Ομαδική συνομιλία',
+  'צ׳אט פנימי, {{value0}} הודעות חדשות': 'Ομαδική συνομιλία, {{value0}} νέα μηνύματα',
   'שיחה חדשה': 'Νέα συνομιλία',
   חדש: 'Νέα',
   שיחה: 'Συνομιλία',
@@ -1088,8 +1108,8 @@ const greekTranslations = {
   'ניהול משתמשים': 'Διαχείριση χρηστών',
   'רק מנהל ראשי יכול לשנות כתובות דוא״ל. השינוי מתבצע גם בכניסה למערכת וגם בפרופיל.':
     'Μόνο ο κύριος διαχειριστής μπορεί να αλλάζει διευθύνσεις email. Η αλλαγή εφαρμόζεται στη σύνδεση και στο προφίλ.',
-  'מנהל ראשי יכול להזמין משתמשים, לעדכן כתובות דוא״ל ותפקידים ולשלוח קישורים לאיפוס סיסמה.':
-    'Ο κύριος διαχειριστής μπορεί να προσκαλεί χρήστες, να ενημερώνει email και ρόλους και να στέλνει συνδέσμους επαναφοράς κωδικού.',
+  'מנהל ראשי יכול להזמין משתמשים, לעדכן שמות, כתובות דוא״ל ותפקידים ולשלוח קישורים לאיפוס סיסמה.':
+    'Ο κύριος διαχειριστής μπορεί να προσκαλεί χρήστες, να ενημερώνει ονόματα, email και ρόλους και να στέλνει συνδέσμους επαναφοράς κωδικού.',
   'הזמנת משתמש': 'Πρόσκληση χρήστη',
   'סגירת ההזמנה': 'Κλείσιμο πρόσκλησης',
   'הזמנת משתמש חדש': 'Πρόσκληση νέου χρήστη',
@@ -1154,6 +1174,8 @@ const greekTranslations = {
   'פרויקטים ללא שיוך': 'Έργα χωρίς ανάθεση',
   'ארכיון פרויקטים': 'Αρχείο έργων',
   'בעבודה בשטח': 'Εργασία πεδίου',
+  'ממתין לתיאום': 'Αναμονή συντονισμού',
+  'פתח {{value0}}': 'Άνοιγμα {{value0}}',
   'עבר לשרטוט': 'Στάλθηκε για σχεδίαση',
   'נדרש GPR': 'Απαιτείται GPR',
   'מחכה להיתרים': 'Αναμονή αδειών',
@@ -1623,4 +1645,4 @@ const greekTranslations = {
     'Η εργασία "{{title}}" παραμένει ανοιχτή εδώ και {{days}} ημέρες.',
 };
 
-export const elTranslations = { ...enTranslations, ...greekTranslations };
+export const elTranslations = { ...enTranslations, ...elPersonalWorkflow, ...greekTranslations, ...elDrafts };

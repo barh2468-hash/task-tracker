@@ -42,6 +42,14 @@ function sortProfiles(rows) {
   );
 }
 
+function createProfileDraft(profile) {
+  return {
+    fullName: profile.full_name || '',
+    email: profile.email || '',
+    role: profile.role,
+  };
+}
+
 async function functionErrorMessage(error, fallback) {
   try {
     const payload = await error?.context?.json();
@@ -77,10 +85,7 @@ export default function UserManagementPage() {
         if (!active) return;
         const rows = data?.profiles || [];
         setProfiles(sortProfiles(rows));
-        setDrafts(Object.fromEntries(rows.map((profile) => [profile.id, {
-          email: profile.email || '',
-          role: profile.role,
-        }])));
+        setDrafts(Object.fromEntries(rows.map((profile) => [profile.id, createProfileDraft(profile)])));
       })
       .catch((loadError) => {
         if (active) setError(loadError.message || t('טעינת המשתמשים נכשלה.'));
@@ -112,7 +117,7 @@ export default function UserManagementPage() {
   function startEditing(profile) {
     setDrafts((current) => ({
       ...current,
-      [profile.id]: { email: profile.email || '', role: profile.role },
+      [profile.id]: createProfileDraft(profile),
     }));
     setEditingId(profile.id);
     setError('');
@@ -121,7 +126,7 @@ export default function UserManagementPage() {
   function cancelEditing(profile) {
     setDrafts((current) => ({
       ...current,
-      [profile.id]: { email: profile.email || '', role: profile.role },
+      [profile.id]: createProfileDraft(profile),
     }));
     setEditingId('');
     setError('');
@@ -130,8 +135,13 @@ export default function UserManagementPage() {
   async function saveUser(event, profile) {
     event.preventDefault();
     const draft = drafts[profile.id] || {};
+    const fullName = draft.fullName?.trim() || '';
     const email = draft.email?.trim().toLocaleLowerCase('en-US') || '';
     const role = draft.role || profile.role;
+    if (!fullName || fullName.length > 120) {
+      setError(t('יש להזין שם מלא.'));
+      return;
+    }
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
       setError(t('יש להזין כתובת דוא״ל תקינה.'));
       return;
@@ -140,7 +150,11 @@ export default function UserManagementPage() {
       setError(t('יש לבחור תפקיד תקין.'));
       return;
     }
-    if (email === (profile.email || '').toLocaleLowerCase('en-US') && role === profile.role) {
+    if (
+      fullName === (profile.full_name || '').trim() &&
+      email === (profile.email || '').toLocaleLowerCase('en-US') &&
+      role === profile.role
+    ) {
       setEditingId('');
       return;
     }
@@ -150,6 +164,7 @@ export default function UserManagementPage() {
     try {
       const { data, error: updateError } = await updateManagedUser({
         userId: profile.id,
+        fullName,
         email,
         role,
       });
@@ -161,7 +176,7 @@ export default function UserManagementPage() {
       ));
       setDrafts((current) => ({
         ...current,
-        [updated.id]: { email: updated.email || email, role: updated.role || role },
+        [updated.id]: createProfileDraft(updated),
       }));
       setEditingId('');
       setMessage(t('פרטי המשתמש עודכנו בהצלחה.'));
@@ -248,7 +263,7 @@ export default function UserManagementPage() {
       setProfiles((current) => sortProfiles([...current, created]));
       setDrafts((current) => ({
         ...current,
-        [created.id]: { email: created.email || email, role: created.role },
+        [created.id]: createProfileDraft(created),
       }));
       setInviteDraft(emptyInvite);
       setInviteOpen(false);
@@ -286,7 +301,7 @@ export default function UserManagementPage() {
         <span className="userManagementIntroIcon"><ShieldCheck size={26} aria-hidden="true" /></span>
         <div>
           <h2>{t('ניהול משתמשים')}</h2>
-          <p>{t('מנהל ראשי יכול להזמין משתמשים, לעדכן כתובות דוא״ל ותפקידים ולשלוח קישורים לאיפוס סיסמה.')}</p>
+          <p>{t('מנהל ראשי יכול להזמין משתמשים, לעדכן שמות, כתובות דוא״ל ותפקידים ולשלוח קישורים לאיפוס סיסמה.')}</p>
         </div>
       </section>
 
@@ -389,8 +404,9 @@ export default function UserManagementPage() {
       ) : (
         <div className="userManagementList">
           {filteredProfiles.map((profile) => {
-            const draft = drafts[profile.id] || { email: profile.email || '', role: profile.role };
-            const unchanged = draft.email.trim().toLocaleLowerCase('en-US') ===
+            const draft = drafts[profile.id] || createProfileDraft(profile);
+            const unchanged = draft.fullName.trim() === (profile.full_name || '').trim() &&
+              draft.email.trim().toLocaleLowerCase('en-US') ===
                 (profile.email || '').toLocaleLowerCase('en-US') && draft.role === profile.role;
             const busy = busyId === profile.id;
             const editing = editingId === profile.id;
@@ -401,10 +417,28 @@ export default function UserManagementPage() {
                 key={profile.id}
                 onSubmit={(event) => saveUser(event, profile)}
               >
-                <div className="userManagementIdentity">
+                <div className={`userManagementIdentity${editing ? ' isEditing' : ''}`}>
                   <span><UserRound size={20} aria-hidden="true" /></span>
                   <div>
-                    <strong>{profile.full_name || t('משתמש ללא שם')}</strong>
+                    {editing ? (
+                      <label className="userManagementNameEditor">
+                        <span>{t('שם מלא')}</span>
+                        <input
+                          type="text"
+                          autoComplete="name"
+                          value={draft.fullName}
+                          onChange={(event) => updateDraft(profile.id, 'fullName', event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Escape' && !busy) cancelEditing(profile);
+                          }}
+                          disabled={busy}
+                          maxLength={120}
+                          required
+                        />
+                      </label>
+                    ) : (
+                      <strong>{profile.full_name || t('משתמש ללא שם')}</strong>
+                    )}
                     <div className="userManagementIdentityMeta">
                       <span className={`userManagementStatus ${profile.account_status || 'inactive'}`}>
                         {t(accountStatusLabel[profile.account_status] || 'לא פעיל')}

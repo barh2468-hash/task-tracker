@@ -53,3 +53,33 @@ test('empty and reversed ranges cannot produce a misleading report', async () =>
   await assert.rejects(createPersonalAttendanceWorkbook(options), /אין נתונים/);
   await assert.rejects(createPersonalAttendanceWorkbook({ ...options, from: '2026-11-01' }), /טווח תאריכים/);
 });
+
+test('English and Greek exports translate labels while preserving names, notes and numeric hours', async () => {
+  const options = {
+    userId: 'me', workerName: 'עובד בדיקה', from: '2026-10-01', to: '2026-10-31',
+    attendance: [{ worker_id: 'me', started_at: '2026-10-12T05:00:00Z', ended_at: '2026-10-12T06:30:00Z', attendance_type: 'field', end_note: 'הערה מקורית' }],
+    work: [{ worker_id: 'me', started_at: '2026-10-12T05:00:00Z', ended_at: '2026-10-12T06:30:00Z', projects: { name: 'פרויקט בדיקה' }, crew_members: [{ name: 'עובד נוסף' }] }],
+  };
+  for (const [language, names, typeLabel, closedLabel] of [
+    ['en', ['Personal attendance', 'Project work'], 'Field work', 'Closed'],
+    ['el', ['Προσωπική παρουσία', 'Εργασία σε έργα'], 'Εργασία πεδίου', 'Κλειστό'],
+  ]) {
+    const workbook = await createPersonalAttendanceWorkbook({ ...options, language });
+    const loaded = new ExcelJS.Workbook();
+    await loaded.xlsx.load(await workbook.xlsx.writeBuffer());
+    assert.deepEqual(loaded.worksheets.map((sheet) => sheet.name), names);
+    const attendance = loaded.worksheets[0], projects = loaded.worksheets[1];
+    assert.equal(attendance.views[0].rightToLeft, false);
+    assert.equal(attendance.getCell('B7').value, typeLabel);
+    assert.equal(attendance.getCell('F7').value, closedLabel);
+    assert.equal(attendance.getCell('E7').value, 1.5);
+    assert.equal(attendance.getCell('E4').result, 1.5);
+    assert.equal(projects.getCell('E4').result, 1.5);
+    assert.equal(attendance.getCell('G7').value, 'הערה מקורית');
+    assert.equal(projects.getCell('B7').value, 'פרויקט בדיקה');
+    assert.equal(projects.getCell('F7').value, 'עובד נוסף');
+    assert.match(attendance.getCell('A2').value, /עובד בדיקה/);
+    assert.match(attendance.getCell('A3').value, language === 'en' ? /Exported:/ : /Εξαγωγή:/);
+    await assert.rejects(createPersonalAttendanceWorkbook({ ...options, attendance: [], work: [], language }), language === 'en' ? /No data/ : /Δεν υπάρχουν δεδομένα/);
+  }
+});

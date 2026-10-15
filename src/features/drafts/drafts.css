@@ -1,0 +1,8 @@
+.formDraftNotice { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; margin-block: 12px; border: 1px solid var(--line); border-radius: 12px; background: #f2f7fb; color: var(--navy); font-size: 14px; }
+.formDraftButtons { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+.formDraftError { background: #fff5ef; border-color: #f1c4a4; }
+.formDraftFields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.formDraftFields:disabled { opacity: .55; }
+.personalNoteForm.formDraftFields { margin: 0; }
+.workDiaryForm > .formDraftFields { display: grid; gap: 18px; }
+@media (max-width: 640px) { .formDraftNotice { flex-direction: column; align-items: stretch; } }

@@ -1,4 +1,9 @@
 import { supabase } from '../supabase.js';
+import { sendPushNotification } from './edgeFunctions.js';
+
+export function notifyChatMessage(messageId) {
+  return sendPushNotification({ chatMessageId: messageId });
+}
 
 export function getChatConversations() {
   return supabase.rpc('get_chat_conversations');
@@ -17,13 +22,14 @@ export function deleteChatConversation(conversationId) {
   });
 }
 
-export function getChatMessages(conversationId) {
-  return supabase
+export async function getChatMessages(conversationId) {
+  const result = await supabase
     .from('chat_messages')
     .select('*')
     .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(300);
+  return { ...result, data: result.data ? [...result.data].reverse() : null };
 }
 
 export function insertChatMessage(conversationId, senderId, body, project) {
@@ -40,10 +46,15 @@ export function insertChatMessage(conversationId, senderId, body, project) {
     .single();
 }
 
-export function markChatConversationRead(conversationId, userId) {
+export function markChatConversationRead(
+  conversationId,
+  userId,
+  readAt = new Date().toISOString(),
+) {
   return supabase
     .from('chat_members')
-    .update({ last_read_at: new Date().toISOString() })
+    .update({ last_read_at: readAt })
     .eq('conversation_id', conversationId)
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .or(`last_read_at.is.null,last_read_at.lt.${readAt}`);
 }

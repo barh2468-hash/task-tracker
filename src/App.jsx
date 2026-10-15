@@ -39,10 +39,20 @@ const AttendancePage = lazy(() => import('./routes/AttendancePage.jsx'));
 const PersonalAttendancePage = lazy(() => import('./routes/PersonalAttendancePage.jsx'));
 const PersonalNotesPage = lazy(() => import('./routes/PersonalNotesPage.jsx'));
 const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
-const VehiclesPage = lazy(() => import('./routes/VehiclesPage.jsx'));
+const VehicleRegisterPage = lazy(() => import('./routes/VehicleRegisterPage.jsx'));
 const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
 const AccountingYearEndPage = lazy(() => import('./routes/AccountingYearEndPage.jsx'));
 const ManholeLayoutPage = lazy(() => import('./routes/ManholeLayoutPage.jsx'));
+const VehiclesPage = lazy(() => import('./routes/VehiclesPage.jsx'));
+const VehicleDetailPage = lazy(() => import('./routes/VehicleDetailPage.jsx'));
+const VehicleFinesPage = lazy(() => import('./routes/VehicleFinesPage.jsx'));
+
+// Vehicle management belongs to the manager role.
+function RequireVehicleAccess({ children }) {
+  const { isManager } = useAuth();
+  if (!isManager) return <Navigate to="/app" replace />;
+  return children;
+}
 const UserManagementPage = lazy(() => import('./routes/UserManagementPage.jsx'));
 
 function AppLanding() {
@@ -202,11 +212,13 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="vehicles"
+                  path="vehicle-register"
                   element={
+                    <RequireVehicleAccess>
                     <Suspense fallback={<LoadingScreen />}>
-                      <VehiclesPage />
+                      <VehicleRegisterPage />
                     </Suspense>
+                    </RequireVehicleAccess>
                   }
                 />
                 <Route
@@ -223,6 +235,36 @@ export default function App() {
                     <Suspense fallback={<LoadingScreen />}>
                       <RecentStatusChangesPage />
                     </Suspense>
+                  }
+                />
+                <Route
+                  path="vehicles"
+                  element={
+                    <RequireVehicleAccess>
+                      <Suspense fallback={<LoadingScreen />}>
+                        <VehiclesPage />
+                      </Suspense>
+                    </RequireVehicleAccess>
+                  }
+                />
+                <Route
+                  path="vehicles/fines"
+                  element={
+                    <RequireVehicleAccess>
+                      <Suspense fallback={<LoadingScreen />}>
+                        <VehicleFinesPage />
+                      </Suspense>
+                    </RequireVehicleAccess>
+                  }
+                />
+                <Route
+                  path="vehicles/:vehicleId"
+                  element={
+                    <RequireVehicleAccess>
+                      <Suspense fallback={<LoadingScreen />}>
+                        <VehicleDetailPage />
+                      </Suspense>
+                    </RequireVehicleAccess>
                   }
                 />
                 <Route

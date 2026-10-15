@@ -314,7 +314,7 @@
   color: #60748a;
 }
 .project.projectWorkspace .projectOverviewTeam .drafterAssignmentBox {
-  padding: 16px 0;
+  padding: 4px 0 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -324,22 +324,10 @@
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
 }
-.projectDrafterDetails > summary {
-  min-height: var(--project-control-height);
-  padding: 9px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  color: var(--navy);
-  font-size: 14px;
-  line-height: 20px;
-  cursor: pointer;
-}
-.projectDrafterDetails > summary:hover {
-  background: var(--surface-muted);
-}
-.projectDrafterDetails > summary:focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 3px;
+.project.projectWorkspace .drafterAssignmentBox .projectDrafterControls {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
 }
 .project.projectWorkspace .drafterAssignmentBox > div {
   display: grid;
@@ -526,6 +514,9 @@
   }
 }
 @media (max-width: 520px) {
+  .project.projectWorkspace .drafterAssignmentBox .projectDrafterControls {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .projectsPage:not(.projectsPageDetail) {
     padding: 14px;
   }

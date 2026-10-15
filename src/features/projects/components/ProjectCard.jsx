@@ -809,18 +809,13 @@ export default function ProjectCard({ project, onBack }) {
                   </div>
 
                   {isManager && !project.is_archived && (
-                    <details className="projectDrafterDetails">
-                      <summary>{t('שיוך הפרויקט לשרטט')}</summary>
-                      <div className="projectSectionPanel drafterAssignmentBox">
-                        <div>
-                          <span>
-                            {assignedDrafterId
-                              ? t('הפרויקט משויך כעת לשרטט. אפשר לשנות את השיוך.')
-                              : t('הפרויקט ממתין לבחירת שרטט על ידי מנהל.')}
-                          </span>
-                        </div>
+                    <section className="projectSectionPanel drafterAssignmentBox">
+                      <label htmlFor={`project-drafter-${project.id}`}>
+                        {t('שיוך הפרויקט לשרטט')}
+                      </label>
+                      <div className="projectDrafterControls">
                         <select
-                          aria-label={t('שיוך הפרויקט לשרטט')}
+                          id={`project-drafter-${project.id}`}
                           value={selectedDrafterId}
                           onChange={(event) => setSelectedDrafterId(event.target.value)}
                         >
@@ -844,7 +839,7 @@ export default function ProjectCard({ project, onBack }) {
                           {assignedDrafterId ? t('עדכון שיוך') : t('שיוך לשרטט')}
                         </button>
                       </div>
-                    </details>
+                    </section>
                   )}
                 </section>
                 <section className="projectContacts">

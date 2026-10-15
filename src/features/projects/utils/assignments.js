@@ -16,6 +16,10 @@ export function isProjectAssignedTo(project, userId) {
     (project.project_workers || []).some((assignment) => assignment.worker_id === userId));
 }
 
+export function hasProjectAssignment(project) {
+  return Boolean(project?.assigned_to || project?.project_workers?.some((assignment) => assignment.worker_id));
+}
+
 export function getProjectAssignmentChanges(project, selectedWorkerIds) {
   const assignments = project?.project_workers || [];
   const previousTeamIds = new Set(getProjectTeamAssignments(project).map((row) => row.worker_id));

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getProjectAssignmentChanges, getProjectTeamAssignments, isProjectAssignedTo } from './assignments.js';
+import { getProjectAssignmentChanges, getProjectTeamAssignments, isProjectAssignedTo, hasProjectAssignment } from './assignments.js';
 
 const project = {
   assigned_to: 'lead',
@@ -11,6 +11,14 @@ const project = {
     { worker_id: 'drafter', profiles: { role: 'drafter', full_name: 'שרטט' } },
   ],
 };
+
+test('a primary assignee or any additional assignee counts as an assignment', () => {
+  assert.equal(hasProjectAssignment({ assigned_to: 'lead' }), true);
+  assert.equal(hasProjectAssignment({ assigned_to: null, project_workers: [{ worker_id: 'drafter' }] }), true);
+  assert.equal(hasProjectAssignment({ assigned_to: null, project_workers: [] }), false);
+  assert.equal(hasProjectAssignment({ project_workers: [{}] }), false);
+  assert.equal(hasProjectAssignment(undefined), false);
+});
 
 test('reopening and saving a team with managers preserves every assignment without repeat notifications', () => {
   const selection = getProjectTeamAssignments(project).map((row) => row.worker_id);

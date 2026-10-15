@@ -579,45 +579,11 @@ export default function ProjectCard({ project, onBack }) {
           <button type="button" className="ghost projectBackButton" onClick={onBack}>
             <ArrowRight size={17} aria-hidden="true" /> {t('חזרה לרשימת הפרויקטים')}
           </button>
-          <span className="muted">
-            {t('עודכן:')}{' '}
-            {new Date(project.updated_at).toLocaleDateString(localeForLanguage(language))}
-          </span>
-        </div>
-        <header className="projectWorkspaceHeader">
-          <h2 id={`project-title-${project.id}`} tabIndex={-1} dir="auto">
-            {project.name}
-          </h2>
-          <p className="projectWorkspaceLocation" dir="auto">
-            {project.location}
-          </p>
-          <div className="projectWorkspaceMeta">
-            <StatusPill status={project.status} />
-            {project.is_archived && <span className="archiveBadge">{t('בארכיון')}</span>}
-            <span>
-              <UserRound size={16} aria-hidden="true" /> {t('עובד אחראי:')}{' '}
-              <bdi>{responsibleWorkerName}</bdi>
+          <div className="projectWorkspaceTopMeta">
+            <span className="muted">
+              {t('עודכן:')}{' '}
+              {new Date(project.updated_at).toLocaleDateString(localeForLanguage(language))}
             </span>
-          </div>
-          <div className="projectWorkspaceActions">
-            {isManager && !project.assigned_to && !project.is_archived ? (
-              <button type="button" className="projectPrimaryAction" onClick={() => openEdit(true)}>
-                <UserRound size={17} /> {t('שיוך עובד')}
-              </button>
-            ) : canReportContinuation ? (
-              <button
-                type="button"
-                className="projectPrimaryAction"
-                onClick={() => setContinuationDialogOpen(true)}
-              >
-                <PlusCircle size={17} /> {t('דיווח חדש לשרטוט')}
-              </button>
-            ) : null}
-            {(!project.is_archived || isManager) && (
-              <button type="button" className="ghost" onClick={() => setStatusDialogOpen(true)}>
-                <MessageSquareText size={17} /> {t('עדכון סטטוס')}
-              </button>
-            )}
             {isManager && (
               <div
                 className="projectMoreActions"
@@ -688,6 +654,42 @@ export default function ProjectCard({ project, onBack }) {
               </div>
             )}
           </div>
+        </div>
+        <header className="projectWorkspaceHeader">
+          <h2 id={`project-title-${project.id}`} tabIndex={-1} dir="auto">
+            {project.name}
+          </h2>
+          <p className="projectWorkspaceLocation" dir="auto">
+            {project.location}
+          </p>
+          <div className="projectWorkspaceMeta">
+            <StatusPill status={project.status} />
+            {project.is_archived && <span className="archiveBadge">{t('בארכיון')}</span>}
+            <span>
+              <UserRound size={16} aria-hidden="true" /> {t('עובד אחראי:')}{' '}
+              <bdi>{responsibleWorkerName}</bdi>
+            </span>
+          </div>
+          <div className="projectWorkspaceActions">
+            {isManager && !project.assigned_to && !project.is_archived ? (
+              <button type="button" className="projectPrimaryAction" onClick={() => openEdit(true)}>
+                <UserRound size={17} /> {t('שיוך עובד')}
+              </button>
+            ) : canReportContinuation ? (
+              <button
+                type="button"
+                className="projectPrimaryAction"
+                onClick={() => setContinuationDialogOpen(true)}
+              >
+                <PlusCircle size={17} /> {t('דיווח חדש לשרטוט')}
+              </button>
+            ) : null}
+            {(!project.is_archived || isManager) && (
+              <button type="button" className="ghost" onClick={() => setStatusDialogOpen(true)}>
+                <MessageSquareText size={17} /> {t('עדכון סטטוס')}
+              </button>
+            )}
+          </div>
         </header>
         <div className="projectExpandedBody">
           <ProjectSectionTabs>
@@ -740,7 +742,7 @@ export default function ProjectCard({ project, onBack }) {
             </div>
           )}
           <div
-            className="projectWorkspacePanel"
+            className={`projectWorkspacePanel projectWorkspacePanel-${activeDetailTab}`}
             role="tabpanel"
             id={`project-${project.id}-panel-${activeDetailTab}`}
             aria-labelledby={`project-${project.id}-tab-${activeDetailTab}`}
@@ -758,66 +760,10 @@ export default function ProjectCard({ project, onBack }) {
                       <p dir="auto">{project.additional_notes}</p>
                     </details>
                   )}
-                  <div className="projectBoundaryShortcut">
-                    <FileText size={20} aria-hidden="true" />
-                    <div>
-                      <b>{t('סקיצת גבול עבודה')}</b>
-                      <span>
-                        {assets.project_documents.some(
-                          (document) => document.document_type === 'boundary_sketch',
-                        )
-                          ? t('זמינה בלשונית הקבצים')
-                          : assetsLoading
-                            ? t('טוען...')
-                            : t('טרם צורפה סקיצה')}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className="ghost smallBtn"
-                      onClick={() => setActiveDetailTab('documents')}
-                    >
-                      {t('פתיחת קבצים')}
-                    </button>
-                  </div>
                 </section>
-                <aside className="projectOverviewPeople">
-                  <section className="projectOverviewTeam">
+                <section className="projectOverviewTeam">
+                  <header className="projectOverviewTeamHeader">
                     <h3>{t('צוות הפרויקט')}</h3>
-                    <div className="projectOverviewAssignments">
-                      <div>
-                        <span>{t('עובד אחראי:')}</span>
-                        <b>{responsibleWorkerName}</b>
-                      </div>
-                      {teamAssignments.length > 0 && (
-                        <div>
-                          <span>{t('עובדים נוספים:')}</span>
-                          <b>
-                            {teamAssignments
-                              .map(
-                                (assignment) =>
-                                  assignment.profiles?.full_name ||
-                                  workerDirectoryById.get(assignment.worker_id)?.full_name ||
-                                  t('עובד'),
-                              )
-                              .join(', ')}
-                          </b>
-                        </div>
-                      )}
-                      {assignedDrafterId && (
-                        <div>
-                          <span>{t('שרטט משויך:')}</span>
-                          <b>
-                            {project.project_workers?.find(
-                              (assignment) => assignment.worker_id === assignedDrafterId,
-                            )?.profiles?.full_name ||
-                              workerDirectoryById.get(assignedDrafterId)?.full_name ||
-                              t('שרטט')}
-                          </b>
-                        </div>
-                      )}
-                    </div>
-
                     {isManager && !project.is_archived && (
                       <button
                         type="button"
@@ -827,10 +773,46 @@ export default function ProjectCard({ project, onBack }) {
                         {t('ניהול הצוות')}
                       </button>
                     )}
-                    {isManager && !project.is_archived && (
-                      <section className="projectSectionPanel drafterAssignmentBox">
+                  </header>
+                  <div className="projectOverviewAssignments">
+                    <div>
+                      <span>{t('עובד אחראי:')}</span>
+                      <b>{responsibleWorkerName}</b>
+                    </div>
+                    {teamAssignments.length > 0 && (
+                      <div>
+                        <span>{t('עובדים נוספים:')}</span>
+                        <b>
+                          {teamAssignments
+                            .map(
+                              (assignment) =>
+                                assignment.profiles?.full_name ||
+                                workerDirectoryById.get(assignment.worker_id)?.full_name ||
+                                t('עובד'),
+                            )
+                            .join(', ')}
+                        </b>
+                      </div>
+                    )}
+                    {assignedDrafterId && (
+                      <div>
+                        <span>{t('שרטט משויך:')}</span>
+                        <b>
+                          {project.project_workers?.find(
+                            (assignment) => assignment.worker_id === assignedDrafterId,
+                          )?.profiles?.full_name ||
+                            workerDirectoryById.get(assignedDrafterId)?.full_name ||
+                            t('שרטט')}
+                        </b>
+                      </div>
+                    )}
+                  </div>
+
+                  {isManager && !project.is_archived && (
+                    <details className="projectDrafterDetails">
+                      <summary>{t('שיוך הפרויקט לשרטט')}</summary>
+                      <div className="projectSectionPanel drafterAssignmentBox">
                         <div>
-                          <b>{t('שיוך הפרויקט לשרטט')}</b>
                           <span>
                             {assignedDrafterId
                               ? t('הפרויקט משויך כעת לשרטט. אפשר לשנות את השיוך.')
@@ -861,39 +843,67 @@ export default function ProjectCard({ project, onBack }) {
                           <Pencil size={16} />{' '}
                           {assignedDrafterId ? t('עדכון שיוך') : t('שיוך לשרטט')}
                         </button>
-                      </section>
-                    )}
-                  </section>
-                  <details className="projectQuietDetails projectContacts">
-                    <summary>{t('פרטי קשר ולקוח')}</summary>
-                    <p dir="auto">{project.client_name || t('ללא לקוח')}</p>
-                    <div className="projectContactLinks">
-                      {project.contact_phone && (
-                        <a
-                          className="phoneLink"
-                          href={`tel:${project.contact_phone.replace(/[^0-9+]/g, '')}`}
-                          title={t('התקשר לאיש קשר בשטח')}
-                        >
-                          <Phone size={15} />
+                      </div>
+                    </details>
+                  )}
+                </section>
+                <section className="projectContacts">
+                  <h3>{t('פרטי קשר ולקוח')}</h3>
+                  <p dir="auto">{project.client_name || t('ללא לקוח')}</p>
+                  <div className="projectContactLinks">
+                    {project.contact_phone && (
+                      <a
+                        className="phoneLink"
+                        href={`tel:${project.contact_phone.replace(/[^0-9+]/g, '')}`}
+                        title={t('התקשר לאיש קשר בשטח')}
+                      >
+                        <Phone size={15} />
+                        <span className="projectContactActionText">
+                          <b>{t('התקשרות')}</b>
                           <bdi>{project.contact_phone}</bdi>
-                        </a>
-                      )}
-                      {project.contact_email && (
-                        <a
-                          className="phoneLink"
-                          href={`mailto:${project.contact_email}`}
-                          title={t('שליחת מייל לאיש קשר בשטח')}
-                        >
-                          <Mail size={15} />
+                        </span>
+                      </a>
+                    )}
+                    {project.contact_email && (
+                      <a
+                        className="phoneLink"
+                        href={`mailto:${project.contact_email}`}
+                        title={t('שליחת מייל לאיש קשר בשטח')}
+                      >
+                        <Mail size={15} />
+                        <span className="projectContactActionText">
+                          <b>{t('שליחת מייל')}</b>
                           <bdi>{project.contact_email}</bdi>
-                        </a>
-                      )}
-                      {!project.contact_phone && !project.contact_email && (
-                        <p>{t('לא הוגדרו פרטי קשר')}</p>
-                      )}
-                    </div>
-                  </details>
-                </aside>
+                        </span>
+                      </a>
+                    )}
+                    {!project.contact_phone && !project.contact_email && (
+                      <p>{t('לא הוגדרו פרטי קשר')}</p>
+                    )}
+                  </div>
+                </section>
+                <div className="projectBoundaryShortcut">
+                  <FileText size={20} aria-hidden="true" />
+                  <div>
+                    <b>{t('סקיצת גבול עבודה')}</b>
+                    <span>
+                      {assets.project_documents.some(
+                        (document) => document.document_type === 'boundary_sketch',
+                      )
+                        ? t('זמינה בלשונית הקבצים')
+                        : assetsLoading
+                          ? t('טוען...')
+                          : t('טרם צורפה סקיצה')}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="ghost smallBtn"
+                    onClick={() => setActiveDetailTab('documents')}
+                  >
+                    {t('פתיחת קבצים')}
+                  </button>
+                </div>
               </div>
             )}
             {activeDetailTab === 'documents' && (

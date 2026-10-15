@@ -1,5 +1,7 @@
 // Hebrew source keys with complete English and Greek translations.
 const entries = [
+  ['התקשרות', 'Call', 'Κλήση'],
+  ['שליחת מייל', 'Send email', 'Αποστολή email'],
   ['נוצרה מנת שרטוט', 'Drawing batch created', 'Δημιουργήθηκε παρτίδα σχεδίων'],
   ['הועלתה תמונה', 'Photo uploaded', 'Μεταφορτώθηκε φωτογραφία'],
   ['נמחקה תמונה', 'Photo deleted', 'Διαγράφηκε φωτογραφία'],

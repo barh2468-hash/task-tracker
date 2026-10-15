@@ -51,7 +51,7 @@ export default function TaskPanel({
           />
 
           <div className="actionsRow">
-            <button className="smallBtn" onClick={onAdd}>
+            <button className="smallBtn projectPrimaryAction" onClick={onAdd}>
               {isManager ? t('הוסף משימה') : t('שלח משימה למנהלים')}
             </button>
             <button className="ghost smallBtn" onClick={() => setShowTaskForm(false)}>

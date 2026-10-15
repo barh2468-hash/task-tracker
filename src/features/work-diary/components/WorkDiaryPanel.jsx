@@ -63,7 +63,7 @@ function emptyDiary(project, teamLeadName) {
   };
 }
 
-export default function WorkDiaryPanel({ project, currentUserName, canDelete, canCreate = true, autoOpen = false, onClose }) {
+export default function WorkDiaryPanel({ project, currentUserName, canDelete, canCreate = true, autoOpen = false, onClose, dialogClassName = '' }) {
   useTranslation();
   const { session } = useAuth();
   const [diaries, setDiaries] = useState([]);
@@ -274,7 +274,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
           // No click-outside-to-close: the diary holds signatures, so only the
           // explicit close/cancel buttons may discard it.
           <div className="modalBackdrop workDiaryBackdrop" role="dialog" aria-modal="true">
-            <div className="workDiaryModal">
+            <div className={`workDiaryModal ${dialogClassName}`}>
               <header className="workDiaryModalHeader">
                 <div>
                   <span>{t('קבוצת מאיה')}</span>
@@ -537,7 +537,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
 
               {message && <div className="workDiaryMessage stickyMessage">{message}</div>}
               <footer className="workDiaryActions">
-                <button type="button" onClick={saveDiary} disabled={saving || !draft.ready}>
+                <button className={dialogClassName ? 'projectPrimaryAction' : undefined} type="button" onClick={saveDiary} disabled={saving || !draft.ready}>
                   <PenLine size={17} /> {saving ? t('שומר...') : t('שמירה וסגירת היומן')}
                 </button>
                 <button type="button" className="ghost" disabled={saving} onClick={() => { setFormOpen(false); onClose?.(); }}>

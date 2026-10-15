@@ -48,7 +48,7 @@ export default function ContinuationReportDialog({ project, submitting, onClose,
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- prevent backdrop dismissal for clicks inside the dialog */}
       <div
-        className="statusNoteModal continuationReportDialog"
+        className="statusNoteModal continuationReportDialog projectDialogControls"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="modalHeader statusNoteHeader">
@@ -183,6 +183,7 @@ export default function ContinuationReportDialog({ project, submitting, onClose,
         <div className="modalActions">
           <button
             type="button"
+            className="projectPrimaryAction"
             disabled={!canSubmit}
             onClick={() => onSubmit({ workDate, updateType, reviewImpact, summary, attachments })}
           >

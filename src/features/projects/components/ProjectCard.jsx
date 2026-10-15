@@ -266,7 +266,7 @@ export default function ProjectCard({ project, onBack }) {
       }}
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- stops the backdrop's close handler from firing for clicks inside the modal */}
-      <div className="editModal" onClick={(e) => e.stopPropagation()}>
+      <div className="editModal projectDialogControls" onClick={(e) => e.stopPropagation()}>
         <div className="editHeader modalHeader">
           <div>
             <h3>{t('עריכת פרויקט')}</h3>
@@ -402,7 +402,7 @@ export default function ProjectCard({ project, onBack }) {
           </label>
         </div>
         <div className="modalActions editModalActions">
-          <button onClick={submitEdit} disabled={savingEdit}>
+          <button className="projectPrimaryAction" onClick={submitEdit} disabled={savingEdit}>
             {savingEdit ? t('שומר...') : t('שמור שינויים')}
           </button>
           <button className="ghost" onClick={() => setEditing(false)}>
@@ -486,7 +486,10 @@ export default function ProjectCard({ project, onBack }) {
       onClick={() => !statusUpdating && setStatusDialogOpen(false)}
     >
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- prevent backdrop dismissal for clicks inside the modal */}
-      <div className="statusNoteModal" onClick={(event) => event.stopPropagation()}>
+      <div
+        className="statusNoteModal projectDialogControls"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="modalHeader statusNoteHeader">
           <div>
             <span className="projectDocumentsEyebrow">{t('שינוי סטטוס')}</span>
@@ -535,6 +538,7 @@ export default function ProjectCard({ project, onBack }) {
         <div className="modalActions">
           <button
             type="button"
+            className="projectPrimaryAction"
             disabled={statusUpdating || !status || status === project.status}
             onClick={async () => {
               setStatusUpdating(true);
@@ -597,11 +601,15 @@ export default function ProjectCard({ project, onBack }) {
           </div>
           <div className="projectWorkspaceActions">
             {isManager && !project.assigned_to && !project.is_archived ? (
-              <button type="button" onClick={() => openEdit(true)}>
+              <button type="button" className="projectPrimaryAction" onClick={() => openEdit(true)}>
                 <UserRound size={17} /> {t('שיוך עובד')}
               </button>
             ) : canReportContinuation ? (
-              <button type="button" onClick={() => setContinuationDialogOpen(true)}>
+              <button
+                type="button"
+                className="projectPrimaryAction"
+                onClick={() => setContinuationDialogOpen(true)}
+              >
                 <PlusCircle size={17} /> {t('דיווח חדש לשרטוט')}
               </button>
             ) : null}
@@ -847,6 +855,7 @@ export default function ProjectCard({ project, onBack }) {
                             await assignProjectDrafter(project, selectedDrafterId);
                             await refreshAssets();
                           }}
+                          className="projectPrimaryAction"
                           disabled={!drafters.length && !assignedDrafterId}
                         >
                           <Pencil size={16} />{' '}
@@ -982,6 +991,7 @@ export default function ProjectCard({ project, onBack }) {
                   <WorkDiaryPanel
                     project={project}
                     currentUserName={currentUserName}
+                    dialogClassName="projectDialogControls"
                     canDelete={isManager}
                     canCreate={isManager || !project.is_archived}
                   />
@@ -1024,7 +1034,11 @@ export default function ProjectCard({ project, onBack }) {
                 {canReportContinuation && (
                   <div className="projectDrawingAction">
                     <p>{t('כל סבב מתקדם בנפרד מסטטוס הפרויקט')}</p>
-                    <button type="button" onClick={() => setContinuationDialogOpen(true)}>
+                    <button
+                      type="button"
+                      className="projectPrimaryAction"
+                      onClick={() => setContinuationDialogOpen(true)}
+                    >
                       <PlusCircle size={17} /> {t('דיווח חדש לשרטוט')}
                     </button>
                   </div>

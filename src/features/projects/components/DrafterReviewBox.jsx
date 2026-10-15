@@ -111,7 +111,7 @@ export default function DrafterReviewBox({
       )}
 
       <button
-        className="smallBtn danger"
+        className="smallBtn projectPrimaryAction"
         onClick={handleSend}
         disabled={!selectedFiles.length || uploading}
       >

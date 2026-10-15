@@ -509,3 +509,206 @@
 .projectWorkspaceHeader h2:focus {
   outline: none;
 }
+
+/* One control system for project workflows, including their portalled dialogs.
+   Navigation tabs and text back links keep their own interaction patterns. */
+:is(article.project.projectWorkspace, .projectDialogControls) {
+  --project-control-height: 40px;
+  --project-control-radius: 8px;
+}
+:is(article.project.projectWorkspace, .projectDialogControls)
+  :is(
+    button,
+    .projectDocumentActions a,
+    .workDiaryRowActions a,
+    .pdfPreviewActions a,
+    .filePickerControl,
+    .reviewFilePicker,
+    .projectPhotoUploadButton
+  ):not(
+    [role='tab'],
+    .projectBackButton,
+    .projectTabsScrollArrow,
+    .projectMoreActionsButton,
+    .reviewSelectedFileRemove
+  ) {
+  min-height: var(--project-control-height);
+  height: auto;
+  padding: 9px var(--project-control-padding, 14px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--project-action-border, var(--border-strong));
+  border-radius: var(--project-control-radius);
+  background: var(--project-action-background, var(--surface));
+  color: var(--project-action-color, var(--navy));
+  box-shadow: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  text-decoration: none;
+  white-space: normal;
+  text-align: center;
+  transform: none;
+  filter: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+:is(article.project.projectWorkspace, .projectDialogControls)
+  :is(
+    button,
+    .projectDocumentActions a,
+    .workDiaryRowActions a,
+    .pdfPreviewActions a,
+    .filePickerControl,
+    .reviewFilePicker,
+    .projectPhotoUploadButton
+  ):hover:not(
+    :disabled,
+    [role='tab'],
+    .projectBackButton,
+    .projectTabsScrollArrow,
+    .projectMoreActionsButton,
+    .reviewSelectedFileRemove
+  ) {
+  background: var(--project-action-hover-background, var(--surface-muted));
+  border-color: var(--project-action-hover-border, #94a3b8);
+  box-shadow: none;
+  transform: none;
+  filter: none;
+}
+:is(article.project.projectWorkspace, .projectDialogControls) button.projectPrimaryAction {
+  --project-action-background: var(--navy);
+  --project-action-border: var(--navy);
+  --project-action-color: #fff;
+  --project-action-hover-background: var(--navy3);
+  --project-action-hover-border: var(--navy3);
+}
+:is(article.project.projectWorkspace, .projectDialogControls)
+  button.projectPrimaryAction:hover:not(:disabled) {
+  background: var(--navy3);
+  border-color: var(--navy3);
+  color: #fff;
+}
+:is(article.project.projectWorkspace, .projectDialogControls) button:is(.danger, .dangerBtn) {
+  --project-action-border: #fecaca;
+  --project-action-color: #b42318;
+  --project-action-hover-border: #fca5a5;
+  background: var(--surface) !important;
+}
+:is(article.project.projectWorkspace, .projectDialogControls)
+  button:is(.danger, .dangerBtn):hover:not(:disabled) {
+  background: #fff5f5 !important;
+  border-color: #fca5a5;
+  color: #b42318;
+}
+:is(article.project.projectWorkspace, .projectDialogControls) :is(.iconBtn, .iconOnly) {
+  --project-control-padding: 10px;
+  width: var(--project-control-height);
+  flex-shrink: 0;
+}
+:is(article.project.projectWorkspace, .projectDialogControls) button.projectMoreActionsButton {
+  width: var(--project-control-height);
+  height: var(--project-control-height);
+  min-height: var(--project-control-height);
+  padding: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--project-control-radius);
+  background: var(--surface);
+  color: var(--navy);
+  font-size: 0;
+  gap: 0;
+  box-shadow: none;
+}
+:is(article.project.projectWorkspace, .projectDialogControls)
+  button.projectMoreActionsButton:hover:not(:disabled) {
+  background: var(--surface-muted);
+  border-color: #94a3b8;
+  box-shadow: none;
+}
+:is(article.project.projectWorkspace, .projectDialogControls)
+  :is(button, .projectDocumentActions a, .pdfPreviewActions a, .projectPhotoUploadButton)
+  > svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+:is(article.project.projectWorkspace, .projectDialogControls)
+  :is(
+    input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']),
+    select,
+    textarea
+  ) {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--project-field-min-height, var(--project-control-height));
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--project-control-radius);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: var(--project-field-line-height, 20px);
+  box-shadow: none;
+}
+:is(article.project.projectWorkspace, .projectDialogControls) textarea {
+  --project-field-min-height: 104px;
+  --project-field-line-height: 1.6;
+  resize: vertical;
+}
+:is(article.project.projectWorkspace, .projectDialogControls)
+  :is(input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']), select) {
+  height: var(--project-control-height);
+}
+:is(article.project.projectWorkspace, .projectDialogControls)
+  :is(.projectOperationField > span, .projectDocumentType > span) {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+:is(article.project.projectWorkspace, .projectDialogControls)
+  :is(
+    input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']),
+    select,
+    textarea
+  ):focus {
+  border-color: var(--blue);
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+:is(article.project.projectWorkspace, .projectDialogControls) :is(button, a):focus-visible,
+:is(article.project.projectWorkspace, .projectDialogControls)
+  :is(.filePickerControl, .reviewFilePicker, .projectPhotoUploadButton):focus-within {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+:is(article.project.projectWorkspace, .projectDialogControls)
+  :is(.filePickerControl, .reviewFilePicker, .projectPhotoUploadButton):has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+:is(article.project.projectWorkspace, .projectDialogControls) .photoUploadBox {
+  align-items: end;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+:is(article.project.projectWorkspace, .projectDialogControls)
+  .projectHistoryViewSwitch
+  button[aria-pressed='true'] {
+  background: var(--surface-muted);
+  border-color: var(--navy);
+  color: var(--navy);
+}
+@media (max-width: 720px), (pointer: coarse) {
+  :is(article.project.projectWorkspace, .projectDialogControls) {
+    --project-control-height: 44px;
+  }
+}

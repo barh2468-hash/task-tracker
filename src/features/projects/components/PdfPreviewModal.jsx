@@ -26,7 +26,7 @@ export default function PdfPreviewModal({ url, fileName, isImage = false, onClos
   return createPortal(
     <div className="pdfPreviewBackdrop">
       <section
-        className="pdfPreviewDialog"
+        className="pdfPreviewDialog projectDialogControls"
         role="dialog"
         aria-modal="true"
         aria-label={`${t('תצוגה מקדימה של הקובץ')}: ${fileName}`}

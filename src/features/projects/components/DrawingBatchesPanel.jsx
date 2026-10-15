@@ -172,7 +172,7 @@ export default function DrawingBatchesPanel({
               {batch.status === 'pending_drafting' && canDraft && (
                 <button
                   type="button"
-                  className="smallBtn drawingBatchPrimaryAction"
+                  className="smallBtn drawingBatchPrimaryAction projectPrimaryAction"
                   disabled={updatingBatchId === batch.id}
                   onClick={() => changeStatus(batch, 'in_drafting')}
                 >

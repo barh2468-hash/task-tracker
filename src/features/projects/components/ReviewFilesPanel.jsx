@@ -136,7 +136,7 @@ export default function ReviewFilesPanel({
           >
             {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- prevent backdrop dismissal for clicks inside the dialog */}
             <div
-              className="statusNoteModal reviewApproveDialog"
+              className="statusNoteModal reviewApproveDialog projectDialogControls"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="statusNoteHeader">
@@ -165,7 +165,7 @@ export default function ReviewFilesPanel({
                 </button>
                 <button
                   type="button"
-                  className="reviewApproveButton"
+                  className="reviewApproveButton projectPrimaryAction"
                   disabled={approving}
                   onClick={confirmApprove}
                 >

@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
 import { useMemo, useState } from 'react';
 import {
   CheckCircle2,
@@ -32,12 +35,15 @@ const impactLabels = {
 };
 
 function eventDescription(event) {
-  if (event.event_type === 'created') return 'המנה נוצרה והועברה לתור השרטוט';
-  if (event.event_type === 'drafter_assigned') return 'שיוך השרטט עודכן';
+  if (event.event_type === 'created') return t('המנה נוצרה והועברה לתור השרטוט');
+  if (event.event_type === 'drafter_assigned') return t('שיוך השרטט עודכן');
   if (event.event_type === 'status_changed') {
-    return `${statusLabels[event.old_status] || event.old_status} ← ${statusLabels[event.new_status] || event.new_status}`;
+    return t('{{value0}} ← {{value1}}', {
+      value0: t(statusLabels[event.new_status] || event.new_status),
+      value1: t(statusLabels[event.old_status] || event.old_status),
+    });
   }
-  return event.note || 'המנה עודכנה';
+  return event.note || t('המנה עודכנה');
 }
 
 export default function DrawingBatchesPanel({
@@ -52,6 +58,8 @@ export default function DrawingBatchesPanel({
   onSendToReview,
   onDeleteReviewFile,
 }) {
+  useTranslation();
+  const { language } = useLanguage();
   const [reviewDrafts, setReviewDrafts] = useState({});
   const [updatingBatchId, setUpdatingBatchId] = useState(null);
 
@@ -71,20 +79,20 @@ export default function DrawingBatchesPanel({
 
   if (!orderedBatches.length) {
     return (
-      <section className="projectTabPanel drawingBatchesEmpty" role="tabpanel">
+      <section className="projectTabPanel drawingBatchesEmpty">
         <Layers3 size={30} />
-        <b>עדיין לא נוצרו מנות שרטוט</b>
-        <span>דיווח המשך העבודה הראשון יופיע כאן עם סטטוס ומסמכים משלו.</span>
+        <b>{t('עדיין לא נוצרו מנות שרטוט')}</b>
+        <span>{t('דיווח המשך העבודה הראשון יופיע כאן עם סטטוס ומסמכים משלו.')}</span>
       </section>
     );
   }
 
   return (
-    <section className="projectTabPanel drawingBatchesPanel" role="tabpanel">
+    <section className="projectTabPanel drawingBatchesPanel">
       <header className="projectTabPanelHeader">
         <div>
-          <b>מנות שרטוט</b>
-          <small>כל סבב מתקדם בנפרד מסטטוס הפרויקט</small>
+          <b>{t('מנות שרטוט')}</b>
+          <small>{t('כל סבב מתקדם בנפרד מסטטוס הפרויקט')}</small>
         </div>
         <span className="projectDocumentsCount">{orderedBatches.length}</span>
       </header>
@@ -94,9 +102,7 @@ export default function DrawingBatchesPanel({
           const batchDocuments = documents.filter(
             (document) => document.drawing_batch_id === batch.id,
           );
-          const batchReviewFiles = reviewFiles.filter(
-            (file) => file.drawing_batch_id === batch.id,
-          );
+          const batchReviewFiles = reviewFiles.filter((file) => file.drawing_batch_id === batch.id);
           const events = [...(batch.project_drawing_batch_events || [])].sort(
             (left, right) => new Date(right.created_at) - new Date(left.created_at),
           );
@@ -111,38 +117,50 @@ export default function DrawingBatchesPanel({
             <article className={`drawingBatchCard batchStatus-${batch.status}`} key={batch.id}>
               <header className="drawingBatchHeader">
                 <div className="drawingBatchIdentity">
-                  <span className="drawingBatchNumber">מנה {batch.batch_number}</span>
+                  <span className="drawingBatchNumber">
+                    {t('מנה {{number}}', {
+                      number: batch.batch_number.toLocaleString(localeForLanguage(language)),
+                    })}
+                  </span>
                   <div>
-                    <b>{typeLabels[batch.update_type]}</b>
+                    <b>{t(typeLabels[batch.update_type])}</b>
                     <small>
-                      {new Date(`${batch.work_date}T12:00:00`).toLocaleDateString('he-IL')}
+                      {new Date(`${batch.work_date}T12:00:00`).toLocaleDateString(
+                        localeForLanguage(language),
+                      )}
                     </small>
                   </div>
                 </div>
                 <span className={`drawingBatchStatus ${batch.status}`}>
-                  {statusLabels[batch.status]}
+                  {t(statusLabels[batch.status])}
                 </span>
               </header>
 
               <p className="drawingBatchSummary">{batch.summary}</p>
 
               <div className="drawingBatchMeta">
-                <span className={batch.review_impact === 'changes_review' ? 'batchImpactWarning' : ''}>
-                  <PencilRuler size={15} /> {impactLabels[batch.review_impact]}
+                <span
+                  className={batch.review_impact === 'changes_review' ? 'batchImpactWarning' : ''}
+                >
+                  <PencilRuler size={15} /> {t(impactLabels[batch.review_impact])}
                 </span>
                 <span>
                   <UserRound size={15} />
-                  {batch.assigned_drafter_profile?.full_name || 'טרם שויך שרטט'}
+                  {batch.assigned_drafter_profile?.full_name || t('טרם שויך שרטט')}
                 </span>
                 <span>
-                  <Clock3 size={15} /> נוצרה על ידי{' '}
-                  {batch.created_by_profile?.full_name || 'משתמש'}
+                  <Clock3 size={15} />{' '}
+                  {t('נוצרה על ידי {{name}}', {
+                    name: batch.created_by_profile?.full_name || t('משתמש'),
+                  })}
                 </span>
               </div>
 
               {batchDocuments.length > 0 && (
                 <div className="drawingBatchFiles">
-                  <b><FileText size={16} /> חומרים מהשטח</b>
+                  <b>
+                    <FileText size={16} /> {t('חומרים מהשטח')}
+                  </b>
                   <ul>
                     {batchDocuments.map((document) => (
                       <li key={document.id}>{document.file_name}</li>
@@ -159,7 +177,7 @@ export default function DrawingBatchesPanel({
                   onClick={() => changeStatus(batch, 'in_drafting')}
                 >
                   <Play size={16} />
-                  {updatingBatchId === batch.id ? 'מעדכן...' : 'התחלת שרטוט'}
+                  {updatingBatchId === batch.id ? t('מעדכן...') : t('התחלת שרטוט')}
                 </button>
               )}
 
@@ -173,9 +191,11 @@ export default function DrawingBatchesPanel({
                     }))
                   }
                   reviewNote={reviewDraft.note}
-                  title={`שליחת מנה ${batch.batch_number} להגהה`}
-                  description="העלה את קובצי השרטוט של המנה. רק המנה הזו תעבור להגהה."
-                  progressDescription="הקבצים נשמרים ומנת השרטוט מועברת להגהה"
+                  title={t('שליחת מנה {{number}} להגהה', {
+                    number: batch.batch_number.toLocaleString(localeForLanguage(language)),
+                  })}
+                  description={t('העלה את קובצי השרטוט של המנה. רק המנה הזו תעבור להגהה.')}
+                  progressDescription={t('הקבצים נשמרים ומנת השרטוט מועברת להגהה')}
                   setReviewNote={(note) =>
                     setReviewDrafts((drafts) => ({
                       ...drafts,
@@ -183,11 +203,7 @@ export default function DrawingBatchesPanel({
                     }))
                   }
                   onSend={async () => {
-                    const result = await onSendToReview(
-                      batch,
-                      reviewDraft.files,
-                      reviewDraft.note,
-                    );
+                    const result = await onSendToReview(batch, reviewDraft.files, reviewDraft.note);
                     if (result?.ok) {
                       setReviewDrafts((drafts) => ({
                         ...drafts,
@@ -205,25 +221,27 @@ export default function DrawingBatchesPanel({
                 onDelete={onDeleteReviewFile}
                 canApprove={canApprove}
                 onApprove={() => changeStatus(batch, 'approved')}
-                approvalDescription={`לאשר את מנת שרטוט ${batch.batch_number} בלי לשנות את סטטוס הפרויקט?`}
+                approvalDescription={t('לאשר את מנת שרטוט {{number}} בלי לשנות את סטטוס הפרויקט?', {
+                  number: batch.batch_number.toLocaleString(localeForLanguage(language)),
+                })}
               />
 
               {batch.status === 'approved' && (
                 <div className="drawingBatchApproved">
-                  <CheckCircle2 size={18} /> מנת השרטוט אושרה
+                  <CheckCircle2 size={18} /> {t('מנת השרטוט אושרה')}
                 </div>
               )}
 
               {events.length > 0 && (
                 <details className="drawingBatchEvents">
-                  <summary>{events.length} פעולות במנה</summary>
+                  <summary>{t('{{count}} פעולות במנה', { count: events.length })}</summary>
                   <div>
                     {events.map((event) => (
                       <p key={event.id}>
                         <b>{eventDescription(event)}</b>
                         <span>
-                          {event.profiles?.full_name || 'משתמש'} ·{' '}
-                          {new Date(event.created_at).toLocaleString('he-IL')}
+                          {event.profiles?.full_name || t('משתמש')} ·{' '}
+                          {new Date(event.created_at).toLocaleString(localeForLanguage(language))}
                         </span>
                       </p>
                     ))}

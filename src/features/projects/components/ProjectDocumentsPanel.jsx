@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Download, Eye, FileText, Image as ImageIcon, LoaderCircle, Trash2, Upload, X } from 'lucide-react';
-import { t } from '../../language/LanguageContext.jsx';
+import {
+  Download,
+  Eye,
+  FileText,
+  Image as ImageIcon,
+  LoaderCircle,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
 import { createSignedUrl } from '../../../services/api/storage.js';
 import PdfPreviewModal from './PdfPreviewModal.jsx';
 import {
@@ -24,10 +34,11 @@ function documentTypeLabel(type) {
   return documentTypes.find((item) => item.value === type)?.label || 'מסמך כללי';
 }
 
-function formatFileSize(size) {
+function formatFileSize(size, language) {
   if (!Number.isFinite(size) || size <= 0) return '';
-  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  const locale = localeForLanguage(language);
+  if (size < 1024 * 1024) return `${Math.ceil(size / 1024).toLocaleString(locale)} KB`;
+  return `${(size / (1024 * 1024)).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB`;
 }
 
 export default function ProjectDocumentsPanel({
@@ -43,6 +54,7 @@ export default function ProjectDocumentsPanel({
   compact = false,
 }) {
   useTranslation();
+  const { language } = useLanguage();
   const [links, setLinks] = useState({});
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
@@ -106,8 +118,10 @@ export default function ProjectDocumentsPanel({
         setUploadProgress(`${index + 1}/${files.length}`);
         try {
           const result = await onUpload(file, lockedDocumentType || documentType);
-          if (!result?.ok) failures.push(`${file.name}: ${result?.message || 'ההעלאה נכשלה'}`);
-        } catch (error) { failures.push(`${file.name}: ${error.message}`); }
+          if (!result?.ok) failures.push(`${file.name}: ${result?.message || t('ההעלאה נכשלה')}`);
+        } catch (error) {
+          failures.push(`${file.name}: ${error.message}`);
+        }
       }
       if (failures.length) setUploadError(failures.join(' · '));
       else setUploadOpen(false);
@@ -123,94 +137,94 @@ export default function ProjectDocumentsPanel({
       <section
         className={`projectSectionPanel projectDocumentsPanel${compact ? ' projectDocumentsPanelCompact' : ''}`}
       >
-      <header className="projectSectionHeader projectDocumentsHeader">
-        <div>
-          <span className="projectDocumentsEyebrow">{t(eyebrow)}</span>
-          <h3>
-            <FileText size={19} /> {t(title)}
-          </h3>
-        </div>
-        <div className="projectDocumentsHeaderActions">
-          <span className="projectDocumentsCount">{documents.length}</span>
-          {canUpload && (
-            <button
-              type="button"
-              className="projectDocumentUpload"
-              disabled={uploading}
-              onClick={() => setUploadOpen(true)}
-            >
-              {uploading ? <LoaderCircle size={16} /> : <Upload size={16} />}
-              {uploading ? t('מעלה קובץ...') : t('העלאת קובץ')}
-            </button>
-          )}
-        </div>
-      </header>
+        <header className="projectSectionHeader projectDocumentsHeader">
+          <div>
+            <span className="projectDocumentsEyebrow">{t(eyebrow)}</span>
+            <h3>
+              <FileText size={19} /> {t(title)}
+            </h3>
+          </div>
+          <div className="projectDocumentsHeaderActions">
+            <span className="projectDocumentsCount">{documents.length}</span>
+            {canUpload && (
+              <button
+                type="button"
+                className="projectDocumentUpload"
+                disabled={uploading}
+                onClick={() => setUploadOpen(true)}
+              >
+                {uploading ? <LoaderCircle size={16} /> : <Upload size={16} />}
+                {uploading ? t('מעלה קובץ...') : t('העלאת קובץ')}
+              </button>
+            )}
+          </div>
+        </header>
 
-      {documents.length === 0 ? (
-        <div className="projectDocumentsEmpty">
-          <FileText size={24} />
-          <span>{t('אין עדיין קבצים בפרויקט')}</span>
-        </div>
-      ) : (
-        <div className="projectDocumentsList">
-          {documents.map((document) => (
-            <article className="projectDocumentItem" key={document.id}>
-              <span className="projectDocumentIcon">
-                {isImageDocument(document) ? <ImageIcon size={20} /> : <FileText size={20} />}
-              </span>
-              <div className="projectDocumentInfo">
-                <b title={document.file_name}>{document.file_name}</b>
-                <span className="projectDocumentTypeBadge">
-                  {t(documentTypeLabel(document.document_type))}
+        {documents.length === 0 ? (
+          <div className="projectDocumentsEmpty">
+            <FileText size={24} />
+            <span>{t('אין עדיין קבצים בפרויקט')}</span>
+          </div>
+        ) : (
+          <div className="projectDocumentsList">
+            {documents.map((document) => (
+              <article className="projectDocumentItem" key={document.id}>
+                <span className="projectDocumentIcon">
+                  {isImageDocument(document) ? <ImageIcon size={20} /> : <FileText size={20} />}
                 </span>
-                <small>
-                  {formatFileSize(Number(document.file_size))}
-                  {document.profiles?.full_name
-                    ? ` · ${t('הועלה על ידי')} ${document.profiles.full_name}`
-                    : ''}
-                  {' · '}
-                  {new Date(document.created_at).toLocaleString('he-IL')}
-                </small>
-              </div>
-              <div className="projectDocumentActions">
-                {links[document.id]?.view && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPreviewDocument({
-                        url: links[document.id].view,
-                        fileName: document.file_name,
-                        isImage: isImageDocument(document),
-                      })
-                    }
-                    title={t('תצוגה מקדימה של הקובץ')}
-                  >
-                    <Eye size={15} />
-                    <span>{t('צפייה')}</span>
-                  </button>
-                )}
-                {links[document.id]?.download && (
-                  <a href={links[document.id].download} title={t('הורדת הקובץ')}>
-                    <Download size={15} />
-                    <span>{t('הורדה')}</span>
-                  </a>
-                )}
-                {canDelete(document) && (
-                  <button
-                    type="button"
-                    className="danger ghost"
-                    onClick={() => onDelete(document)}
-                    title={t('מחיקת הקובץ')}
-                  >
-                    <Trash2 size={15} />
-                    <span>{t('מחיקה')}</span>
-                  </button>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
+                <div className="projectDocumentInfo">
+                  <b title={document.file_name}>{document.file_name}</b>
+                  <span className="projectDocumentTypeBadge">
+                    {t(documentTypeLabel(document.document_type))}
+                  </span>
+                  <small>
+                    {formatFileSize(Number(document.file_size), language)}
+                    {document.profiles?.full_name
+                      ? ` · ${t('הועלה על ידי {{name}}', { name: document.profiles.full_name })}`
+                      : ''}
+                    {' · '}
+                    {new Date(document.created_at).toLocaleString(localeForLanguage(language))}
+                  </small>
+                </div>
+                <div className="projectDocumentActions">
+                  {links[document.id]?.view && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPreviewDocument({
+                          url: links[document.id].view,
+                          fileName: document.file_name,
+                          isImage: isImageDocument(document),
+                        })
+                      }
+                      title={t('תצוגה מקדימה של הקובץ')}
+                    >
+                      <Eye size={15} />
+                      <span>{t('צפייה')}</span>
+                    </button>
+                  )}
+                  {links[document.id]?.download && (
+                    <a href={links[document.id].download} title={t('הורדת הקובץ')}>
+                      <Download size={15} />
+                      <span>{t('הורדה')}</span>
+                    </a>
+                  )}
+                  {canDelete(document) && (
+                    <button
+                      type="button"
+                      className="danger ghost"
+                      onClick={() => onDelete(document)}
+                      title={t('מחיקת הקובץ')}
+                    >
+                      <Trash2 size={15} />
+                      <span>{t('מחיקה')}</span>
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
       <PdfPreviewModal
         url={previewDocument?.url}
@@ -272,8 +286,12 @@ export default function ProjectDocumentsPanel({
                 </label>
               )}
               {uploadError && <p role="alert">{uploadError}</p>}
-              {uploading && <p role="status">מעלה קבצים {uploadProgress}</p>}
-              <label className={`filePickerControl documentFilePicker ${uploading ? 'uploading' : ''}`}>
+              {uploading && (
+                <p role="status">{t('מעלה קבצים {{progress}}', { progress: uploadProgress })}</p>
+              )}
+              <label
+                className={`filePickerControl documentFilePicker ${uploading ? 'uploading' : ''}`}
+              >
                 {uploading ? <LoaderCircle size={19} /> : <Upload size={19} />}
                 <span>
                   {uploading

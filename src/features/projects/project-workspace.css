@@ -1,0 +1,507 @@
+.projectsPage .projects {
+  gap: 10px;
+}
+.projectListItem {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto 20px;
+  gap: 18px;
+  align-items: center;
+  text-align: start;
+  padding: 20px;
+  background: #fff;
+  color: var(--navy);
+  border: 1px solid #dce5ee;
+  border-radius: 12px;
+  box-shadow: none;
+  font-weight: 400;
+}
+.projectListItem:hover {
+  background: #f7fafc;
+  border-color: #9db9cf;
+  box-shadow: none;
+  transform: none;
+}
+.projectListItemName {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+.projectListItemName b {
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.projectListItemName > span,
+.projectListItemOwner {
+  color: #60748a;
+  font-size: 13px;
+}
+.projectListItemOwner {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  max-width: 160px;
+  overflow-wrap: anywhere;
+}
+.projectListItem .pill {
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.projectListOpenIcon {
+  color: #617a90;
+}
+[dir='ltr'] .projectListOpenIcon,
+[dir='ltr'] .projectBackButton svg {
+  transform: rotate(180deg);
+}
+.projectsPage.projectsPageDetail {
+  padding: 0;
+  overflow: visible;
+  background: #fff;
+}
+.project.projectWorkspace {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  border-inline: 0;
+  background: #fff;
+  box-shadow: none;
+  animation: none;
+  overflow: visible;
+}
+.project.projectWorkspace:hover {
+  transform: none;
+  box-shadow: none;
+}
+.project.projectWorkspace::before,
+.project.projectWorkspace::after {
+  display: none;
+}
+.project.projectWorkspace > .projectWorkspaceTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e4eaf0;
+  min-height: 0;
+  background: transparent;
+  border-radius: 0;
+  border-inline: 0;
+  border-top: 0;
+}
+.projectWorkspaceTop .muted {
+  margin: 0;
+  font-size: 12px;
+}
+.projectBackButton {
+  min-height: 36px;
+  padding: 6px 0;
+  border: 0 !important;
+  font-size: 13px;
+  font-weight: 500;
+}
+.projectWorkspaceHeader {
+  padding: 24px 24px 0;
+}
+.projectWorkspaceHeader h2 {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+.projectWorkspaceLocation {
+  font-size: 14px;
+  color: #60748a;
+  margin: 0 0 16px;
+}
+.projectWorkspaceMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.projectWorkspaceMeta > span:not(.pill):not(.archiveBadge) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: #60748a;
+  font-size: 13px;
+}
+.projectWorkspaceMeta .pill {
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.projectWorkspaceActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-block: 20px 22px;
+}
+.projectWorkspaceActions > button {
+  font-size: 13px;
+  min-height: 40px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  box-shadow: none;
+  font-weight: 600;
+}
+.projectWorkspaceActions .projectMoreActions {
+  margin-inline-start: auto;
+}
+.projectWorkspaceActions .projectMoreActionsButton {
+  font-size: 0;
+  gap: 0;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  border-radius: 8px;
+}
+.project.projectWorkspace .projectMoreActionsMenu {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+}
+.project.projectWorkspace > .projectExpandedBody {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-height: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.project.projectWorkspace .projectSectionTabs {
+  border: 0;
+  border-bottom: 1px solid #dce5ee;
+  border-radius: 0;
+  background: #fff;
+  padding: 0 16px;
+  gap: 4px;
+  scrollbar-width: none;
+}
+.project.projectWorkspace .projectSectionTabs button {
+  min-width: max-content;
+  flex: 0 0 auto;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 14px 12px;
+  min-height: 48px;
+  font-size: 14px;
+  font-weight: 400;
+  background: #fff;
+  box-shadow: none;
+  color: #60748a;
+}
+.project.projectWorkspace .projectSectionTabs button.active {
+  color: var(--navy);
+  border-bottom-color: #174b75;
+  font-weight: 600;
+  background: #fff;
+  box-shadow: none;
+}
+.project.projectWorkspace .projectSectionTabs small {
+  color: #60748a;
+  background: #f0f4f7;
+  font-size: 11px;
+  font-weight: 500;
+}
+.project.projectWorkspace .projectTabsScrollArrow {
+  top: 4px;
+  border-radius: 5px;
+  box-shadow: none;
+}
+.projectWorkspacePanel {
+  min-width: 0;
+  padding: 24px;
+  min-height: 300px;
+}
+.projectOverviewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(230px, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+.project.projectWorkspace h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+.projectWorkDescription {
+  color: #425a70;
+  font-size: 14px;
+  line-height: 1.85;
+  margin: 0 0 22px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.projectQuietDetails {
+  padding-block: 16px;
+  border-block-start: 1px solid #e4eaf0;
+  font-size: 14px;
+}
+.projectQuietDetails summary {
+  cursor: pointer;
+  color: var(--navy);
+  font-weight: 500;
+  min-height: 26px;
+}
+.projectQuietDetails p {
+  color: #60748a;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.projectOverviewPeople {
+  min-width: 0;
+}
+.project.projectWorkspace .projectOverviewAssignments {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.project.projectWorkspace .projectOverviewAssignments > div {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  display: grid;
+  gap: 4px;
+}
+.project.projectWorkspace .projectOverviewAssignments b {
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.project.projectWorkspace .projectOverviewAssignments span {
+  font-size: 12px;
+  color: #60748a;
+}
+.project.projectWorkspace .projectOverviewTeam > .drafterAssignmentBox {
+  padding: 16px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+.project.projectWorkspace .drafterAssignmentBox > div {
+  display: grid;
+  gap: 5px;
+}
+.project.projectWorkspace .drafterAssignmentBox span {
+  font-size: 12px;
+  color: #60748a;
+  line-height: 1.5;
+}
+.project.projectWorkspace .drafterAssignmentBox b {
+  font-size: 14px;
+  font-weight: 500;
+}
+.project.projectWorkspace .drafterAssignmentBox button {
+  justify-self: start;
+  font-weight: 500;
+  box-shadow: none;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+.project.projectWorkspace .drafterAssignmentBox select {
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  min-width: 0;
+  max-width: 100%;
+}
+.project.projectWorkspace .phoneLink {
+  border: 0;
+  border-radius: 0;
+  padding: 8px 0;
+  background: transparent;
+  font-weight: 400;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.project.projectWorkspace .phoneLink bdi {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.projectBoundaryShortcut {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  border-block: 1px solid #e4eaf0;
+  padding: 16px 0;
+  margin-block-start: 20px;
+}
+.projectBoundaryShortcut > div {
+  flex: 1;
+  min-width: 120px;
+  display: grid;
+  gap: 5px;
+}
+.projectBoundaryShortcut b {
+  font-size: 14px;
+  font-weight: 500;
+}
+.projectBoundaryShortcut span {
+  font-size: 12px;
+  color: #60748a;
+}
+.projectBoundaryShortcut .smallBtn,
+.project.projectWorkspace .projectOverviewTeam > .smallBtn {
+  border-radius: 8px;
+  box-shadow: none;
+  font-weight: 500;
+}
+.project.projectWorkspace .projectTabPanel {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.project.projectWorkspace .projectDocumentsTab,
+.projectDrawingsTab {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.project.projectWorkspace .projectDocumentsTab > *,
+.projectDrawingsTab > * {
+  min-width: 0;
+}
+.project.projectWorkspace .projectDocumentsPanel,
+.project.projectWorkspace .projectPhotoPanel,
+.project.projectWorkspace .reviewFilesBox,
+.project.projectWorkspace .workDiaryPanel {
+  border: 0;
+  border-bottom: 1px solid #e4eaf0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0 0 24px;
+  background: #fff !important;
+}
+.project.projectWorkspace .projectDocumentsEyebrow {
+  display: none;
+}
+.project.projectWorkspace .projectSectionHeader,
+.project.projectWorkspace .projectDocumentsHeader {
+  border-bottom: 0;
+}
+.projectDrawingAction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e4eaf0;
+}
+.projectDrawingAction p {
+  color: #60748a;
+  font-size: 13px;
+  margin: 0;
+}
+.projectAssetLoading {
+  margin: 12px 24px 0;
+  display: flex;
+  gap: 8px;
+  color: #60748a;
+  font-size: 13px;
+}
+.project.projectWorkspace button:focus-visible,
+.projectListItem:focus-visible,
+.projectQuietDetails summary:focus-visible {
+  outline: 2px solid #287ca9;
+  outline-offset: 3px;
+}
+@media (max-width: 900px) {
+  .projectListItem {
+    grid-template-columns: minmax(0, 1fr) auto 18px;
+    gap: 12px;
+  }
+  .projectListItemOwner {
+    display: none;
+  }
+  .projectOverviewGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+@media (max-width: 520px) {
+  .projectsPage:not(.projectsPageDetail) {
+    padding: 14px;
+  }
+  .projectListItem {
+    grid-template-columns: minmax(0, 1fr) 18px;
+    padding: 16px;
+  }
+  .projectListItemName {
+    grid-column: 1;
+  }
+  .projectListItem .pill {
+    grid-column: 1;
+    justify-self: start;
+  }
+  .projectListOpenIcon {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+  .projectWorkspaceTop,
+  .projectWorkspaceHeader,
+  .projectWorkspacePanel {
+    padding: 16px;
+  }
+  .projectWorkspaceHeader {
+    padding-bottom: 0;
+  }
+  .projectWorkspaceHeader h2 {
+    font-size: 20px;
+  }
+  .projectWorkspaceActions {
+    gap: 8px;
+    margin-block: 18px;
+  }
+  .projectWorkspaceActions > button {
+    min-height: 44px;
+    padding: 10px;
+    max-width: 100%;
+  }
+  .project.projectWorkspace .projectMoreActionsButton {
+    min-height: 44px;
+  }
+  .project.projectWorkspace .projectSectionTabs {
+    padding-inline: 8px;
+  }
+  .project.projectWorkspace .projectSectionTabs button {
+    padding-inline: 10px;
+  }
+  .project.projectWorkspace .projectDocumentRow {
+    flex-wrap: wrap;
+  }
+  .projectWorkspacePanel input,
+  .projectWorkspacePanel select,
+  .projectWorkspacePanel textarea {
+    max-width: 100%;
+  }
+}
+
+.projectWorkspaceHeader h2:focus {
+  outline: none;
+}

@@ -126,7 +126,8 @@ export default function DashboardLayout() {
 
   const tabTitle = getTabTitle(location.pathname, searchParams, isManager);
   const tabSubtitle = getTabSubtitle(isManager, isDrafter);
-  const showHero = !isHeroSuppressed(location.pathname);
+  const projectDetailOpen = location.pathname === '/app/projects' && searchParams.has('project');
+  const showHero = !isHeroSuppressed(location.pathname) && !projectDetailOpen;
 
   return (
     <main
@@ -246,7 +247,7 @@ export default function DashboardLayout() {
             </div>
           )}
 
-          {isProjectWorkspace && <ProjectWorkspaceNavigation stats={stats} />}
+          {isProjectWorkspace && !projectDetailOpen && <ProjectWorkspaceNavigation stats={stats} />}
           <Outlet />
         </section>
       </section>

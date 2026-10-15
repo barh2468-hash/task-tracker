@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { t } from '../../language/LanguageContext.jsx';
+import { useTranslation } from 'react-i18next';
 
 export default function ProjectSectionTabs({ children }) {
+  useTranslation();
   const tabsRef = useRef(null);
   const [edges, setEdges] = useState({ left: false, right: false });
 
@@ -39,7 +41,31 @@ export default function ProjectSectionTabs({ children }) {
 
   return (
     <div className="projectSectionTabsWrapper">
-      <div ref={tabsRef} className="projectSectionTabs" role="tablist" aria-label={t('פרטי הפרויקט')}>
+      <div
+        ref={tabsRef}
+        className="projectSectionTabs"
+        role="tablist"
+        tabIndex={-1}
+        aria-label={t('פרטי הפרויקט')}
+        onKeyDown={(event) => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          const tabs = [...tabsRef.current.querySelectorAll('[role="tab"]')];
+          const current = tabs.indexOf(document.activeElement);
+          if (current < 0) return;
+          event.preventDefault();
+          const rtl = getComputedStyle(tabsRef.current).direction === 'rtl';
+          const direction = (event.key === 'ArrowRight' ? 1 : -1) * (rtl ? -1 : 1);
+          const next =
+            event.key === 'Home'
+              ? 0
+              : event.key === 'End'
+                ? tabs.length - 1
+                : (current + direction + tabs.length) % tabs.length;
+          tabs[next].focus();
+          tabs[next].click();
+          tabs[next].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }}
+      >
         {children}
       </div>
       {edges.left && (

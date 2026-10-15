@@ -2,14 +2,16 @@ import { useTranslation } from 'react-i18next';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Search, ShieldAlert, UserRound } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useMessage } from '../context/MessageContext.jsx';
 import { appStatuses } from '../services/supabase.js';
 import ProjectCard from '../features/projects/components/ProjectCard.jsx';
+import StatusPill from '../components/StatusPill.jsx';
+import '../features/projects/project-workspace.css';
 import { getProjectPage } from '../features/projects/utils/projectPage.js';
-import { isProjectAssignedTo } from '../features/projects/utils/assignments.js';
+import { hasProjectAssignment, isProjectAssignedTo } from '../features/projects/utils/assignments.js';
 
 const PROJECT_BATCH_SIZE = 20;
 const LOAD_MORE_DELAY_MS = 650;
@@ -23,8 +25,12 @@ export default function ProjectsPage() {
   const [query, setQuery] = useState('');
   const [visibleLimit, setVisibleLimit] = useState(PROJECT_BATCH_SIZE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [focusedProjectId, setFocusedProjectId] = useState(null);
-  const [linkedProjectTarget, setLinkedProjectTarget] = useState(null);
+  const selectedProjectId = searchParams.get('project');
+  const selectedProject = projects.find((project) => project.id === selectedProjectId);
+  const projectVisible = Boolean(selectedProject);
+  const listScrollRef = useRef(0);
+  const lastOpenedProjectRef = useRef(null);
+  const previousSelectedRef = useRef(selectedProjectId);
   const [deepLinkDenied, setDeepLinkDenied] = useState(false);
   const loadMoreRef = useRef(null);
   const loadMoreTimerRef = useRef(null);
@@ -41,45 +47,73 @@ export default function ProjectsPage() {
     setSearchParams(next);
   }
 
-  // A project reference can arrive from chat, notifications, reports or a push link.
-  // Resolve it only after the permitted project list has finished loading.
+  // Resolve links against the permitted project list before showing any details.
   useEffect(() => {
-    if (!projectsLoaded) return;
-    const projectId = searchParams.get('project');
-    if (!projectId) return;
-    const linkedProject = projects.find((p) => p.id === projectId);
-
+    if (!projectsLoaded || !selectedProjectId) return;
     const next = new URLSearchParams(searchParams);
-    next.delete('project');
-    if (!linkedProject) {
-      setFocusedProjectId(null);
-      setLinkedProjectTarget(null);
+    if (!selectedProject) {
+      next.delete('project');
       setDeepLinkDenied(true);
       setMessage(t('אין לך הרשאה לצפות בפרויקט זה.'), 'error');
       setSearchParams(next, { replace: true });
       return;
     }
-
     setDeepLinkDenied(false);
-    const linkedFilter = linkedProject.is_archived ? 'archive' : isManager ? 'all' : 'mine';
-    setLinkedProjectTarget({ id: projectId, filter: linkedFilter });
-    setFocusedProjectId(projectId);
-    setQuery('');
-    // Cancel a pending load-more batch before replacing the list's target.
-    window.clearTimeout(loadMoreTimerRef.current);
-    loadMoreTimerRef.current = null;
-    setIsLoadingMore(false);
-    setVisibleLimit(PROJECT_BATCH_SIZE);
-    next.set('filter', linkedFilter);
-    next.delete('status');
-    setSearchParams(next, { replace: true });
-  }, [isManager, projects, projectsLoaded, searchParams, setMessage, setSearchParams]);
+    const linkedFilter = selectedProject.is_archived ? 'archive' : isManager ? filter : 'mine';
+    if (filter !== linkedFilter) {
+      next.set('filter', linkedFilter);
+      setSearchParams(next, { replace: true });
+    }
+  }, [
+    filter,
+    isManager,
+    projectsLoaded,
+    selectedProject,
+    selectedProjectId,
+    searchParams,
+    setMessage,
+    setSearchParams,
+  ]);
+
+  function openProject(project) {
+    listScrollRef.current = window.scrollY;
+    lastOpenedProjectRef.current = project.id;
+    const next = new URLSearchParams(searchParams);
+    next.set('project', project.id);
+    setSearchParams(next);
+  }
+
+  function closeProject() {
+    const next = new URLSearchParams(searchParams);
+    next.delete('project');
+    setSearchParams(next);
+  }
+
+  useEffect(() => {
+    const previous = previousSelectedRef.current;
+    previousSelectedRef.current = selectedProjectId;
+    if (!selectedProjectId && !previous) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (selectedProjectId) {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        document
+          .getElementById(`project-title-${selectedProjectId}`)
+          ?.focus({ preventScroll: true });
+      } else {
+        document
+          .getElementById(`open-project-${lastOpenedProjectRef.current}`)
+          ?.focus({ preventScroll: true });
+        window.scrollTo({ top: listScrollRef.current, behavior: 'instant' });
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedProjectId, projectVisible]);
 
   const categoryProjects = projects.filter((p) => {
     const okArchive = filter === 'archive' ? !!p.is_archived : !p.is_archived;
     const okTab =
       filter === 'unassigned'
-        ? !p.assigned_to
+        ? !hasProjectAssignment(p)
         : filter !== 'mine' || !isManager || isProjectAssignedTo(p, session?.user?.id);
     return okArchive && okTab;
   });
@@ -90,29 +124,8 @@ export default function ProjectsPage() {
     const okStatus = !statusFilter || p.status === statusFilter;
     return okQuery && okStatus;
   });
-  // Keep the target in place after its temporary focus highlight expires.
-  // Search and other list filters still take precedence over this ordering.
-  const linkedProjectId = !query && !statusFilter && filter === linkedProjectTarget?.filter
-    ? linkedProjectTarget.id
-    : null;
-  const pagedProjects = getProjectPage(visibleProjects, visibleLimit, linkedProjectId);
+  const pagedProjects = getProjectPage(visibleProjects, visibleLimit);
   const hasMoreProjects = visibleLimit < visibleProjects.length;
-
-  useEffect(() => {
-    if (!focusedProjectId) return;
-    const projectElement = document.getElementById(`project-${focusedProjectId}`);
-    if (!projectElement) return;
-    const frame = window.requestAnimationFrame(() => {
-      projectElement.scrollIntoView({ behavior: 'auto', block: 'start' });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [focusedProjectId]);
-
-  useEffect(() => {
-    if (!focusedProjectId) return undefined;
-    const timeout = window.setTimeout(() => setFocusedProjectId(null), 4000);
-    return () => window.clearTimeout(timeout);
-  }, [focusedProjectId]);
 
   useEffect(() => {
     if (previousListViewKeyRef.current === listViewKey) return;
@@ -122,10 +135,11 @@ export default function ProjectsPage() {
       loadMoreTimerRef.current = null;
     }
     setIsLoadingMore(false);
-    if (!focusedProjectId) setVisibleLimit(PROJECT_BATCH_SIZE);
-  }, [focusedProjectId, listViewKey]);
+    if (!selectedProjectId) setVisibleLimit(PROJECT_BATCH_SIZE);
+  }, [selectedProjectId, listViewKey]);
 
   useEffect(() => {
+    if (selectedProjectId) return undefined;
     const sentinel = loadMoreRef.current;
     if (!sentinel || !hasMoreProjects) return undefined;
 
@@ -144,7 +158,7 @@ export default function ProjectsPage() {
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMoreProjects, visibleProjects.length]);
+  }, [hasMoreProjects, selectedProjectId, visibleProjects.length]);
 
   useEffect(
     () => () => {
@@ -181,7 +195,7 @@ export default function ProjectsPage() {
         : t('{{count}} פרויקטים', { count: visibleProjects.length });
 
   return (
-    <section className="card">
+    <section className={`card projectsPage${selectedProject ? ' projectsPageDetail' : ''}`}>
       {deepLinkDenied && (
         <div className="projectDeepLinkNotice" role="alert">
           <ShieldAlert size={22} />
@@ -194,77 +208,99 @@ export default function ProjectsPage() {
           </button>
         </div>
       )}
-      <header className="projectListHeader">
-        <div className="projectListHeading">
-          <h2>{heading}</h2>
-          <span
-            className={listLoading || query || statusFilter || !isManager ? 'projectListCount' : 'visuallyHidden'}
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            {countLabel}
-          </span>
-        </div>
-        <div className="projectListFilters">
-          <div className="projectListSearch">
-            <label htmlFor="project-search" className="visuallyHidden">
-              {t('חיפוש פרויקטים')}
+      {selectedProject && (
+        <ProjectCard key={selectedProject.id} project={selectedProject} onBack={closeProject} />
+      )}
+      <div hidden={Boolean(selectedProject)}>
+        <header className="projectListHeader">
+          <div className="projectListHeading">
+            <h2>{heading}</h2>
+            <span
+              className={
+                listLoading || query || statusFilter || !isManager
+                  ? 'projectListCount'
+                  : 'visuallyHidden'
+              }
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {countLabel}
+            </span>
+          </div>
+          <div className="projectListFilters">
+            <div className="projectListSearch">
+              <label htmlFor="project-search" className="visuallyHidden">
+                {t('חיפוש פרויקטים')}
+              </label>
+              <Search size={18} aria-hidden="true" />
+              <input
+                id="project-search"
+                placeholder={t('חיפוש לפי שם, לקוח או מיקום...')}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+            <label htmlFor="project-status-filter" className="visuallyHidden">
+              {t('סינון לפי סטטוס')}
             </label>
-            <Search size={18} aria-hidden="true" />
-            <input
-              id="project-search"
-              placeholder={t('חיפוש לפי שם, לקוח או מיקום...')}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+            <select
+              id="project-status-filter"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              <option value="">{t('כל הסטטוסים')}</option>
+              {appStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {t(status)}
+                </option>
+              ))}
+            </select>
           </div>
-          <label htmlFor="project-status-filter" className="visuallyHidden">
-            {t('סינון לפי סטטוס')}
-          </label>
-          <select
-            id="project-status-filter"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            <option value="">{t('כל הסטטוסים')}</option>
-            {appStatuses.map((status) => (
-              <option key={status} value={status}>
-                {t(status)}
-              </option>
-            ))}
-          </select>
+        </header>
+        <div className="projects" aria-busy={isLoadingMore}>
+          {visibleProjects.length === 0 && (
+            <div className="empty">{t('אין פרויקטים להצגה כרגע')}</div>
+          )}
+          {pagedProjects.map((project) => (
+            <div key={project.id} id={`project-${project.id}`} className="projectListRow">
+              <button
+                type="button"
+                className="projectListItem"
+                id={`open-project-${project.id}`}
+                onClick={() => openProject(project)}
+                aria-label={t('פתיחת פרויקט {{name}}', { name: project.name })}
+              >
+                <span className="projectListItemName">
+                  <b dir="auto">{project.name}</b>
+                  <span dir="auto">{project.location}</span>
+                </span>
+                <span className="projectListItemOwner">
+                  <UserRound size={15} aria-hidden="true" />
+                  <bdi>{project.profiles?.full_name || t('לא משויך')}</bdi>
+                </span>
+                <StatusPill status={project.status} />
+                <ArrowLeft className="projectListOpenIcon" size={18} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+          {hasMoreProjects && (
+            <div
+              ref={loadMoreRef}
+              className={`projectLoadSentinel${isLoadingMore ? ' loading' : ''}`}
+              role={isLoadingMore ? 'status' : undefined}
+              aria-live={isLoadingMore ? 'polite' : undefined}
+              aria-hidden={isLoadingMore ? undefined : 'true'}
+            >
+              {isLoadingMore && (
+                <>
+                  <span className="projectLoadSpinner" aria-hidden="true" />
+                  <span>{t('טוען פרויקטים נוספים...')}</span>
+                </>
+              )}
+            </div>
+          )}
         </div>
-      </header>
-      <div className="projects" aria-busy={isLoadingMore}>
-        {visibleProjects.length === 0 && (
-          <div className="empty">{t('אין פרויקטים להצגה כרגע')}</div>
-        )}
-        {pagedProjects.map((project) => (
-          <div
-            key={project.id}
-            id={`project-${project.id}`}
-            className={project.id === focusedProjectId ? 'projectDeepLinkTarget' : ''}
-          >
-            <ProjectCard project={project} focused={project.id === focusedProjectId} />
-          </div>
-        ))}
-        {hasMoreProjects && (
-          <div
-            ref={loadMoreRef}
-            className={`projectLoadSentinel${isLoadingMore ? ' loading' : ''}`}
-            role={isLoadingMore ? 'status' : undefined}
-            aria-live={isLoadingMore ? 'polite' : undefined}
-            aria-hidden={isLoadingMore ? undefined : 'true'}
-          >
-            {isLoadingMore && (
-              <>
-                <span className="projectLoadSpinner" aria-hidden="true" />
-                <span>{t('טוען פרויקטים נוספים...')}</span>
-              </>
-            )}
-          </div>
-        )}
       </div>
     </section>
   );

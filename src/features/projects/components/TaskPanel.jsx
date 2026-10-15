@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { t } from '../../language/LanguageContext.jsx';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
 import { PlusCircle } from 'lucide-react';
 
 export default function TaskPanel({
@@ -18,6 +19,7 @@ export default function TaskPanel({
   onDelete,
 }) {
   useTranslation();
+  const { language } = useLanguage();
   const sortedTasks = [...tasks].sort(
     (a, b) =>
       Number(a.is_done) - Number(b.is_done) ||
@@ -65,10 +67,8 @@ export default function TaskPanel({
             <b>{task.title}</b>
             {task.description && <p className="muted">{task.description}</p>}
             <span className="muted">
-              {t('נוצר על ידי')}
-              {' '}
-              {task.profiles?.full_name || t('מנהל')} ·{' '}
-              {new Date(task.created_at).toLocaleDateString('he-IL')}
+              {t('נוצר על ידי')} {task.profiles?.full_name || t('מנהל')} ·{' '}
+              {new Date(task.created_at).toLocaleDateString(localeForLanguage(language))}
             </span>
           </div>
           {canCompleteTasks && (

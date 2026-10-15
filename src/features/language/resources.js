@@ -1,4 +1,5 @@
 import { enManholeLayouts, elManholeLayouts } from '../manhole-layout/translations.js';
+import { enProjectWorkspace, elProjectWorkspace } from '../projects/translations.js';
 import { enVehicles, elVehicles } from '../vehicles/translations.js';
 import { enDrafts, elDrafts } from '../drafts/translations.js';
 import { enPersonalWorkflow, elPersonalWorkflow } from '../attendance/translations.js';
@@ -9,6 +10,7 @@ export const heTranslations = {
 };
 
 export const enTranslations = {
+  ...enProjectWorkspace,
   'אני': 'You',
   'קבלו התראות על הודעות גם כשהאפליקציה סגורה.': 'Get message notifications even when the app is closed.',
   'כדי לקבל התראות ב-iPhone, הוסיפו את האפליקציה למסך הבית, פתחו אותה משם והפעילו התראות.': 'To receive notifications on iPhone, add the app to your Home Screen, open it from there and enable notifications.',
@@ -1645,4 +1647,4 @@ const greekTranslations = {
     'Η εργασία "{{title}}" παραμένει ανοιχτή εδώ και {{days}} ημέρες.',
 };
 
-export const elTranslations = { ...enTranslations, ...elPersonalWorkflow, ...greekTranslations, ...elDrafts };
+export const elTranslations = { ...enTranslations, ...elPersonalWorkflow, ...greekTranslations, ...elDrafts, ...elProjectWorkspace };

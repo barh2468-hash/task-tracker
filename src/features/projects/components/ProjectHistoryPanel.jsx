@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Clock3, History } from 'lucide-react';
-import { t } from '../../language/LanguageContext.jsx';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
 import { useProjects } from '../ProjectsContext.jsx';
 
 const HISTORY_PAGE_SIZE = 10;
@@ -25,6 +27,8 @@ function paginationPages(currentPage, totalPages) {
 }
 
 export default function ProjectHistoryPanel({ projectId, fallbackItems, refreshKey }) {
+  useTranslation();
+  const { language } = useLanguage();
   const { loadProjectHistory } = useProjects();
   const [view, setView] = useState('recent');
   const [page, setPage] = useState(1);
@@ -70,7 +74,7 @@ export default function ProjectHistoryPanel({ projectId, fallbackItems, refreshK
         if (requestIdRef.current !== requestId) return;
         setItems(fallback.slice(pageOffset, pageOffset + HISTORY_PAGE_SIZE));
         setTotal(fallback.length);
-        setError(t('טעינת היסטוריית העדכונים נכשלה.'));
+        setError('טעינת היסטוריית העדכונים נכשלה.');
       })
       .finally(() => {
         if (requestIdRef.current === requestId) setLoading(false);
@@ -82,13 +86,11 @@ export default function ProjectHistoryPanel({ projectId, fallbackItems, refreshK
   }, [fallbackItems, loadProjectHistory, page, projectId, refreshKey, view]);
 
   return (
-    <section className="projectTabPanel projectHistoryPanel" role="tabpanel">
+    <section className="projectTabPanel projectHistoryPanel">
       <header className="projectTabPanelHeader projectHistoryHeader">
         <div>
           <b>
-            {view === 'recent'
-              ? t('עדכונים ב־24 השעות האחרונות')
-              : t('היסטוריית עדכונים מלאה')}
+            {view === 'recent' ? t('עדכונים ב־24 השעות האחרונות') : t('היסטוריית עדכונים מלאה')}
           </b>
           <small>
             {total === 0 ? (
@@ -132,7 +134,11 @@ export default function ProjectHistoryPanel({ projectId, fallbackItems, refreshK
         </div>
       </header>
 
-      {error && <div className="projectHistoryError" role="alert">{error}</div>}
+      {error && (
+        <div className="projectHistoryError" role="alert">
+          {t(error)}
+        </div>
+      )}
 
       <div className={`historyList${loading ? ' loading' : ''}`} aria-busy={loading}>
         {loading && items.length === 0 && (
@@ -153,7 +159,7 @@ export default function ProjectHistoryPanel({ projectId, fallbackItems, refreshK
             <b>{t(item.new_status)}</b>
             <span>
               {item.profiles?.full_name || t('משתמש')} ·{' '}
-              {new Date(item.created_at).toLocaleString('he-IL')}
+              {new Date(item.created_at).toLocaleString(localeForLanguage(language))}
             </span>
             {item.note && <p>{item.note}</p>}
           </div>
@@ -176,7 +182,9 @@ export default function ProjectHistoryPanel({ projectId, fallbackItems, refreshK
             {paginationPages(page, totalPages).map((pageNumber, index, pages) => (
               <span key={pageNumber}>
                 {index > 0 && pageNumber - pages[index - 1] > 1 && (
-                  <span className="projectHistoryPageEllipsis" aria-hidden="true">…</span>
+                  <span className="projectHistoryPageEllipsis" aria-hidden="true">
+                    …
+                  </span>
                 )}
                 <button
                   type="button"

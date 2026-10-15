@@ -764,15 +764,6 @@ export default function ProjectCard({ project, onBack }) {
                 <section className="projectOverviewTeam">
                   <header className="projectOverviewTeamHeader">
                     <h3>{t('צוות הפרויקט')}</h3>
-                    {isManager && !project.is_archived && (
-                      <button
-                        type="button"
-                        className="ghost smallBtn"
-                        onClick={() => openEdit(true)}
-                      >
-                        {t('ניהול הצוות')}
-                      </button>
-                    )}
                   </header>
                   <div className="projectOverviewAssignments">
                     <div>

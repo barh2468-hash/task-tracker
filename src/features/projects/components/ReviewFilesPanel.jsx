@@ -3,7 +3,7 @@ import { t, useLanguage } from '../../language/LanguageContext.jsx';
 import { localeForLanguage } from '../../language/locale.js';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, Eye, FileText, Trash2, X } from 'lucide-react';
+import { CheckCircle2, Eye, FileText, Trash2, Upload, X } from 'lucide-react';
 import { createSignedUrl } from '../../../services/api/storage.js';
 import PdfPreviewModal from './PdfPreviewModal.jsx';
 import { getReviewFileVersions } from '../utils/reviewFiles.js';
@@ -14,6 +14,7 @@ export default function ReviewFilesPanel({
   onDelete,
   canApprove,
   onApprove,
+  uploadInputId,
   approvalDescription = 'להעביר את סטטוס הפרויקט ל"עבר לבקרה"?',
 }) {
   useTranslation();
@@ -63,6 +64,21 @@ export default function ReviewFilesPanel({
           </div>
           <div className="projectDocumentsHeaderActions">
             <span className="projectDocumentsCount">{files.length}</span>
+            {uploadInputId && (
+              <button
+                type="button"
+                className="projectDocumentUpload"
+                onClick={() => {
+                  const input = document.getElementById(uploadInputId);
+                  if (!input || input.disabled) return;
+                  input.closest('section')?.scrollIntoView({ block: 'nearest' });
+                  input.click();
+                }}
+              >
+                <Upload size={16} aria-hidden="true" />
+                {t('הוספת קובצי PDF')}
+              </button>
+            )}
             {canApprove && (
               <button
                 type="button"

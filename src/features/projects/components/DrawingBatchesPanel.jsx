@@ -109,6 +109,9 @@ export default function DrawingBatchesPanel({
           const isAssignedDrafter = batch.assigned_drafter === currentUserId;
           const canDraft =
             isManager || (canManageReview && (!batch.assigned_drafter || isAssignedDrafter));
+          const canUploadReview =
+            ['in_drafting', 'sent_to_review'].includes(batch.status) && canDraft;
+          const uploadInputId = `batch-review-upload-${batch.id}`;
           const canApprove =
             batch.status === 'sent_to_review' && (isManager || isAssignedFieldWorker);
           const reviewDraft = reviewDrafts[batch.id] || { files: [], note: '' };
@@ -181,8 +184,9 @@ export default function DrawingBatchesPanel({
                 </button>
               )}
 
-              {['in_drafting', 'sent_to_review'].includes(batch.status) && canDraft && (
+              {canUploadReview && (
                 <DrafterReviewBox
+                  uploadInputId={uploadInputId}
                   reviewFiles={reviewDraft.files}
                   setReviewFiles={(files) =>
                     setReviewDrafts((drafts) => ({
@@ -216,6 +220,7 @@ export default function DrawingBatchesPanel({
               )}
 
               <ReviewFilesPanel
+                uploadInputId={canUploadReview ? uploadInputId : undefined}
                 files={batchReviewFiles}
                 canDelete={canManageReview}
                 onDelete={onDeleteReviewFile}

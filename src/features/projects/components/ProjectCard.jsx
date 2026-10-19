@@ -1063,11 +1063,6 @@ export default function ProjectCard({ project, onBack }) {
                 />
 
                 <ReviewFilesPanel
-                  uploadInputId={
-                    canManageReview && (project.status === 'עבר לשרטוט' || isReviewSent)
-                      ? `project-review-upload-${project.id}`
-                      : undefined
-                  }
                   files={assets.project_review_files.filter((file) => !file.drawing_batch_id)}
                   canDelete={canManageReview}
                   onDelete={async (file) => {
@@ -1080,7 +1075,6 @@ export default function ProjectCard({ project, onBack }) {
 
                 {canManageReview && (project.status === 'עבר לשרטוט' || isReviewSent) && (
                   <DrafterReviewBox
-                    uploadInputId={`project-review-upload-${project.id}`}
                     reviewFiles={reviewFiles}
                     setReviewFiles={setReviewFiles}
                     reviewNote={reviewNote}

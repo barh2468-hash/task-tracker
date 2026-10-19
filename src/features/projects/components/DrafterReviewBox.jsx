@@ -9,7 +9,6 @@ export default function DrafterReviewBox({
   reviewNote,
   setReviewNote,
   onSend,
-  uploadInputId,
   title = 'שליחה להגהה',
   description = 'העלה קובץ PDF אחד או יותר ושלח התראה לעובדי השטח, למנהלים ולשרטטים.',
   progressDescription = 'הקבצים נשמרים והפרויקט מועבר לסטטוס הגהה',
@@ -58,7 +57,6 @@ export default function DrafterReviewBox({
               : t('בחירת קובצי PDF')}
           </span>
           <input
-            id={uploadInputId}
             ref={inputRef}
             type="file"
             accept="application/pdf,.pdf"

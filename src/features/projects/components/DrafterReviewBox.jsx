@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { t } from '../../language/LanguageContext.jsx';
 import { useRef, useState } from 'react';
 import { FileText, LoaderCircle, Send, Upload, X } from 'lucide-react';
+import { appendReviewFiles } from '../utils/reviewFiles.js';
 export default function DrafterReviewBox({
   reviewFiles,
   setReviewFiles,
@@ -36,23 +37,24 @@ export default function DrafterReviewBox({
   }
 
   return (
-    <section className={`projectSectionPanel reviewBox drafterReviewBox ${uploading ? 'uploading' : ''}`}>
+    <section
+      className={`projectSectionPanel reviewBox drafterReviewBox ${uploading ? 'uploading' : ''}`}
+    >
       <div>
         <b>{t(title)}</b>
         <p className="muted" style={{ margin: '4px 0 0' }}>
           {t(description)}
         </p>
+        <p className="muted">{t('אפשר לבחור כמה קבצים יחד או להוסיף קבצים בבחירות נפרדות.')}</p>
       </div>
       <label className="reviewFileField">
         {t('קובצי PDF להגהה')}
         <span className={`reviewFilePicker ${selectedFiles.length ? 'hasFile' : ''}`}>
           {selectedFiles.length ? <FileText size={18} /> : <Upload size={18} />}
           <span>
-            {selectedFiles.length === 1
-              ? selectedFiles[0].name
-              : selectedFiles.length > 1
-                ? t('{{value0}} קובצי PDF נבחרו', { value0: selectedFiles.length })
-                : t('בחירת קובצי PDF')}
+            {selectedFiles.length
+              ? t('{{count}} קובצי PDF נבחרו · הוספת קבצים', { count: selectedFiles.length })
+              : t('בחירת קובצי PDF')}
           </span>
           <input
             ref={inputRef}
@@ -60,8 +62,11 @@ export default function DrafterReviewBox({
             accept="application/pdf,.pdf"
             multiple
             disabled={uploading}
-            onChange={(e) => setReviewFiles(Array.from(e.target.files || []))}
-            aria-label={t('בחירת קובצי PDF')}
+            onChange={(e) => {
+              setReviewFiles(appendReviewFiles(selectedFiles, Array.from(e.target.files || [])));
+              e.target.value = '';
+            }}
+            aria-label={selectedFiles.length ? t('הוספת קובצי PDF') : t('בחירת קובצי PDF')}
           />
         </span>
       </label>
@@ -99,13 +104,9 @@ export default function DrafterReviewBox({
           </span>
           <span>
             <b>
-              {selectedFiles.length > 1
-                ? t('מעלה את קובצי ההגהה...')
-                : t('מעלה את מסמך ההגהה...')}
+              {selectedFiles.length > 1 ? t('מעלה את קובצי ההגהה...') : t('מעלה את מסמך ההגהה...')}
             </b>
-            <small>
-              {t(progressDescription)}
-            </small>
+            <small>{t(progressDescription)}</small>
           </span>
         </div>
       )}

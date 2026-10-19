@@ -181,7 +181,7 @@ export default function DrawingBatchesPanel({
                 </button>
               )}
 
-              {batch.status === 'in_drafting' && canDraft && (
+              {['in_drafting', 'sent_to_review'].includes(batch.status) && canDraft && (
                 <DrafterReviewBox
                   reviewFiles={reviewDraft.files}
                   setReviewFiles={(files) =>

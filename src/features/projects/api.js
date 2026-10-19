@@ -27,6 +27,7 @@ import {
 } from './utils/projectFiles.js';
 import { isManagerRole } from '../../utils/roles.js';
 import { getProjectAssignmentChanges } from './utils/assignments.js';
+import { t } from '../language/LanguageContext.jsx';
 
 // ---- Loading ----------------------------------------------------------
 
@@ -631,8 +632,8 @@ export async function sendProjectToReview(project, selectedFiles, note, profile)
   if (!isManagerRole(profile.role) && !isDrafterCandidate(profile)) {
     return { message: 'רק שרטט או מנהל יכולים לשלוח פרויקט להגהה.', ok: false };
   }
-  if (project.status !== 'עבר לשרטוט') {
-    return { message: 'אפשר לשלוח להגהה רק פרויקט שנמצא בסטטוס עבר לשרטוט.', ok: false };
+  if (!['עבר לשרטוט', REVIEW_STATUS].includes(project.status)) {
+    return { message: t('אפשר להעלות קובצי הגהה כשהפרויקט בשרטוט או בהגהה.'), ok: false };
   }
   const files = Array.from(Array.isArray(selectedFiles) ? selectedFiles : selectedFiles ? [selectedFiles] : []);
   if (!files.length) return { message: 'יש לבחור לפחות קובץ PDF אחד לפני שליחה להגהה.', ok: false };
@@ -774,6 +775,21 @@ const drawingBatchStatusLabels = {
   cancelled: 'בוטלה',
 };
 
+async function notifyDrawingBatchReview(project, drawingBatch, profile, userId) {
+  const title = t('מנת שרטוט {{number}} נשלחה להגהה: {{name}}', {
+    number: drawingBatch.batch_number,
+    name: project.name,
+  });
+  const body = t('{{name}} שלח את מנת השרטוט להגהה.', { name: profile.full_name });
+  const fieldWorkerIds = getProjectFieldWorkerIds(project).filter((workerId) => workerId !== userId);
+  await Promise.all([
+    createManagerNotification('drawing_batch_review', title, body, project.id),
+    ...fieldWorkerIds.map((workerId) =>
+      createUserNotification(workerId, 'drawing_batch_review', title, body, project.id),
+    ),
+  ]);
+}
+
 export async function updateDrawingBatchStatus(project, drawingBatch, newStatus, profile) {
   const user = await authApi.getCurrentUser();
   if (!user || !profile || !project?.id || !drawingBatch?.id) {
@@ -801,15 +817,7 @@ export async function updateDrawingBatchStatus(project, drawingBatch, newStatus,
   });
 
   if (newStatus === 'sent_to_review') {
-    const title = `מנת שרטוט ${drawingBatch.batch_number} נשלחה להגהה: ${project.name}`;
-    const body = `${profile.full_name} שלח את מנת השרטוט להגהה.`;
-    const fieldWorkerIds = getProjectFieldWorkerIds(project).filter((workerId) => workerId !== user.id);
-    await Promise.all([
-      createManagerNotification('drawing_batch_review', title, body, project.id),
-      ...fieldWorkerIds.map((workerId) =>
-        createUserNotification(workerId, 'drawing_batch_review', title, body, project.id),
-      ),
-    ]);
+    await notifyDrawingBatchReview(project, drawingBatch, profile, user.id);
   } else if (newStatus === 'approved' && drawingBatch.assigned_drafter) {
     await createUserNotification(
       drawingBatch.assigned_drafter,
@@ -908,7 +916,8 @@ export async function sendDrawingBatchToReview(
     return { message: `שמירת קובצי ההגהה נכשלה: ${fileError.message}`, ok: false };
   }
 
-  const statusResult = await updateDrawingBatchStatus(
+  const alreadyInReview = drawingBatch.status === 'sent_to_review';
+  const statusResult = alreadyInReview ? { ok: true } : await updateDrawingBatchStatus(
     project,
     drawingBatch,
     'sent_to_review',
@@ -924,6 +933,9 @@ export async function sendDrawingBatchToReview(
   }
 
   const cleanNote = String(note || '').trim();
+  if (alreadyInReview) {
+    await notifyDrawingBatchReview(project, drawingBatch, profile, user.id);
+  }
   if (cleanNote) {
     await statusHistoryApi.insertStatusHistory({
       project_id: project.id,

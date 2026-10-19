@@ -1,5 +1,38 @@
 // Hebrew source keys with complete English and Greek translations.
 const entries = [
+  ['הוספת קובצי PDF', 'Add PDF files', 'Προσθήκη αρχείων PDF'],
+  ['העלאה קודמת', 'Previous upload', 'Προηγούμενη μεταφόρτωση'],
+  ['העלאה עדכנית', 'Current upload', 'Τρέχουσα μεταφόρτωση'],
+  [
+    'אפשר לבחור כמה קבצים יחד או להוסיף קבצים בבחירות נפרדות.',
+    'Select several files together, or add files in separate selections.',
+    'Επιλέξτε πολλά αρχεία μαζί ή προσθέστε αρχεία με ξεχωριστές επιλογές.',
+  ],
+  [
+    '{{count}} קובצי PDF נבחרו · הוספת קבצים',
+    '{{count}} PDF files selected · Add files',
+    'Επιλέχθηκαν {{count}} αρχεία PDF · Προσθήκη αρχείων',
+  ],
+  [
+    'הקבצים מההעלאה האחרונה הם העדכניים. קבצים מהעלאות קודמות נשמרים לצפייה.',
+    'Files from the latest upload are current. Previous uploads remain available to view.',
+    'Τα αρχεία της τελευταίας μεταφόρτωσης είναι τα τρέχοντα. Οι προηγούμενες μεταφορτώσεις παραμένουν διαθέσιμες για προβολή.',
+  ],
+  [
+    'אפשר להעלות קובצי הגהה כשהפרויקט בשרטוט או בהגהה.',
+    'Review files can be uploaded while the project is in drafting or under review.',
+    'Μπορείτε να μεταφορτώσετε αρχεία ελέγχου όταν το έργο βρίσκεται σε σχεδίαση ή υπό έλεγχο.',
+  ],
+  [
+    'מנת שרטוט {{number}} נשלחה להגהה: {{name}}',
+    'Drawing batch {{number}} submitted for review: {{name}}',
+    'Η παρτίδα σχεδίων {{number}} υποβλήθηκε για έλεγχο: {{name}}',
+  ],
+  [
+    '{{name}} שלח את מנת השרטוט להגהה.',
+    '{{name}} submitted the drawing batch for review.',
+    'Ο χρήστης {{name}} υπέβαλε την παρτίδα σχεδίων για έλεγχο.',
+  ],
   ['התקשרות', 'Call', 'Κλήση'],
   ['שליחת מייל', 'Send email', 'Αποστολή email'],
   ['נוצרה מנת שרטוט', 'Drawing batch created', 'Δημιουργήθηκε παρτίδα σχεδίων'],

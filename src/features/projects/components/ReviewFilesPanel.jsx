@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { CheckCircle2, Eye, FileText, Trash2, X } from 'lucide-react';
 import { createSignedUrl } from '../../../services/api/storage.js';
 import PdfPreviewModal from './PdfPreviewModal.jsx';
+import { getReviewFileVersions } from '../utils/reviewFiles.js';
 
 export default function ReviewFilesPanel({
   files,
@@ -74,14 +75,29 @@ export default function ReviewFilesPanel({
             )}
           </div>
         </header>
+        <p className="muted reviewFilesVersionHint">
+          {t('הקבצים מההעלאה האחרונה הם העדכניים. קבצים מהעלאות קודמות נשמרים לצפייה.')}
+        </p>
         <div className="projectDocumentsList">
-          {files.map((file) => (
-            <article className="projectDocumentItem" key={file.id}>
+          {getReviewFileVersions(files).map(({ file, isSuperseded }) => (
+            <article
+              className={`projectDocumentItem${isSuperseded ? ' reviewFileSuperseded' : ''}`}
+              key={file.id}
+            >
               <span className="projectDocumentIcon reviewFileIcon">
                 <FileText size={20} />
               </span>
               <div className="projectDocumentInfo">
-                <b title={file.file_name || t('קובץ PDF')}>{file.file_name || t('קובץ PDF')}</b>
+                <span className="reviewFileVersionLabel">
+                  {isSuperseded ? t('העלאה קודמת') : t('העלאה עדכנית')}
+                </span>
+                <b title={file.file_name || t('קובץ PDF')}>
+                  {isSuperseded ? (
+                    <s>{file.file_name || t('קובץ PDF')}</s>
+                  ) : (
+                    file.file_name || t('קובץ PDF')
+                  )}
+                </b>
                 <small>
                   {t('הועלה על ידי {{name}}', { name: file.profiles?.full_name || t('שרטט') })} ·{' '}
                   {new Date(file.created_at).toLocaleString(localeForLanguage(language))}

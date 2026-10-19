@@ -479,6 +479,26 @@
   padding-block-start: 16px;
   margin: 0;
 }
+.reviewFilesVersionHint {
+  margin-block: 0 12px;
+}
+.reviewFileVersionLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #17618f;
+}
+.project.projectWorkspace .projectDocumentItem.reviewFileSuperseded {
+  background: #f5f6f8;
+  border-color: #dce1e7;
+}
+.project.projectWorkspace
+  .reviewFileSuperseded
+  :is(.projectDocumentInfo b, .reviewFileVersionLabel, .projectDocumentIcon) {
+  color: #677586;
+}
+.project.projectWorkspace .reviewFileSuperseded .projectDocumentIcon {
+  background: #e9edf1;
+}
 .projectBoundaryShortcut > div {
   flex: 1;
   min-width: 120px;

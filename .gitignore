@@ -8,3 +8,7 @@ dev-dist
 output/
 tmp/
 supabase/.temp/cli-latest
+
+server/.env
+.venv/
+__pycache__/

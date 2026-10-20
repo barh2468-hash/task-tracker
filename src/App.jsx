@@ -42,6 +42,7 @@ const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
 const VehicleRegisterPage = lazy(() => import('./routes/VehicleRegisterPage.jsx'));
 const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
 const AccountingYearEndPage = lazy(() => import('./routes/AccountingYearEndPage.jsx'));
+const AccountingFuelPage = lazy(() => import('./routes/AccountingFuelPage.jsx'));
 const ManholeLayoutPage = lazy(() => import('./routes/ManholeLayoutPage.jsx'));
 const VehiclesPage = lazy(() => import('./routes/VehiclesPage.jsx'));
 const VehicleDetailPage = lazy(() => import('./routes/VehicleDetailPage.jsx'));
@@ -272,6 +273,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<LoadingScreen />}>
                       <AccountingYearEndPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="accounting/fuel"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <AccountingFuelPage />
                     </Suspense>
                   }
                 />

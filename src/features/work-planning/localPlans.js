@@ -12,15 +12,20 @@ export function planStorageKey(scope, date) {
   return `maya:daily-work-plan:v1:${encodeURIComponent(scope)}:${date}`;
 }
 
-function isRow(row) {
+export function isPlanRow(row) {
   return row && typeof row.id === 'string' && typeof row.projectId === 'string' &&
     planColumns.every((column) => typeof row[column] === 'string');
 }
 
+export function samePlanRows(left, right) {
+  return Array.isArray(left) && Array.isArray(right) && left.length === right.length
+    && left.every((row, index) => ['id', 'projectId', ...planColumns].every((key) => row[key] === right[index][key]));
+}
+
 function isPlan(value) {
   return value?.version === 1 && Number.isInteger(value.revision) && value.revision >= 0 &&
-    Array.isArray(value.rows) && value.rows.every(isRow) &&
-    (value.publishedRows === null || (Array.isArray(value.publishedRows) && value.publishedRows.every(isRow))) &&
+    Array.isArray(value.rows) && value.rows.every(isPlanRow) &&
+    (value.publishedRows === null || (Array.isArray(value.publishedRows) && value.publishedRows.every(isPlanRow))) &&
     (value.savedAt === null || (typeof value.savedAt === 'string' && Number.isFinite(Date.parse(value.savedAt)))) &&
     (value.publishedAt === null || (typeof value.publishedAt === 'string' && Number.isFinite(Date.parse(value.publishedAt))));
 }

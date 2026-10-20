@@ -1,4 +1,15 @@
 export const heWorkPlanning = {
+  'workPlan.staffingPublishedSource': 'הבדיקה היא מול רשימת העובדים שנשמרה עם התכנון המשותף. הרשימה נשארת קבועה גם כשמוחקים שורה.',
+  'workPlan.sharedNotice': 'התכנון שפורסם משותף למשתמשים המחוברים באפליקציה. טיוטת העריכה נשמרת במכשיר זה עד לפרסום.',
+  'workPlan.sharedPublished': 'פורסם באפליקציה',
+  'workPlan.sharedPublishedAt': 'פורסם באפליקציה: {{time}}',
+  'workPlan.sharedPublish': 'פרסום באפליקציה',
+  'workPlan.publishing': 'מפרסם…',
+  'workPlan.sharedPublishSuccess': 'התכנון פורסם באפליקציה וזמין למשתמשים המחוברים עבור התאריך שנבחר.',
+  'workPlan.sharedLoadError': 'לא ניתן לטעון את התכנון המשותף. בדקו את החיבור ונסו שוב. הטיוטה המקומית נשמרה.',
+  'workPlan.sharedPublishError': 'הפרסום נכשל. הטיוטה נשמרה במכשיר ואפשר לנסות לפרסם שוב.',
+  'workPlan.sharedConflict': 'מנהל אחר פרסם גרסה חדשה. רעננו את העמוד ובדקו את תצוגת הצפייה לפני פרסום הטיוטה שלכם.',
+  'workPlan.sharedEmpty': 'טרם פורסם באפליקציה תכנון לתאריך שנבחר.',
   'workPlan.uniqueStaffOne': 'בתכנון: עובד אחד',
   'workPlan.missingStaffOne': 'חסר עובד אחד',
   'workPlan.staffingTitle': 'בדיקת שיבוץ העובדים',
@@ -113,6 +124,17 @@ export const heWorkPlanning = {
 };
 
 export const enWorkPlanning = {
+  'workPlan.staffingPublishedSource': 'Coverage is checked against the roster saved with the shared plan. This roster stays fixed when a row is deleted.',
+  'workPlan.sharedNotice': 'The published plan is shared with signed-in app users. Your editing draft stays on this device until publication.',
+  'workPlan.sharedPublished': 'Published in the app',
+  'workPlan.sharedPublishedAt': 'Published in the app: {{time}}',
+  'workPlan.sharedPublish': 'Publish in the app',
+  'workPlan.publishing': 'Publishing…',
+  'workPlan.sharedPublishSuccess': 'The plan was published in the app and is available to signed-in users for the selected date.',
+  'workPlan.sharedLoadError': 'Unable to load the shared plan. Check your connection and try again. Your local draft is preserved.',
+  'workPlan.sharedPublishError': 'Publication failed. Your draft is saved on this device and you can try publishing again.',
+  'workPlan.sharedConflict': 'Another manager published a newer version. Refresh the page and check the read-only view before publishing your draft.',
+  'workPlan.sharedEmpty': 'No plan has been published in the app for the selected date.',
   'workPlan.uniqueStaffOne': 'In plan: one unique worker',
   'workPlan.missingStaffOne': 'One worker missing',
   'workPlan.staffingTitle': 'Worker scheduling coverage',
@@ -202,6 +224,17 @@ export const enWorkPlanning = {
 };
 
 export const elWorkPlanning = {
+  'workPlan.staffingPublishedSource': 'Η κάλυψη ελέγχεται βάσει της λίστας εργαζομένων που αποθηκεύτηκε με το κοινό πρόγραμμα. Η λίστα παραμένει σταθερή όταν διαγράφεται μια γραμμή.',
+  'workPlan.sharedNotice': 'Το δημοσιευμένο πρόγραμμα είναι κοινό για τους συνδεδεμένους χρήστες της εφαρμογής. Το προσχέδιο παραμένει σε αυτή τη συσκευή μέχρι τη δημοσίευση.',
+  'workPlan.sharedPublished': 'Δημοσιεύτηκε στην εφαρμογή',
+  'workPlan.sharedPublishedAt': 'Δημοσιεύτηκε στην εφαρμογή: {{time}}',
+  'workPlan.sharedPublish': 'Δημοσίευση στην εφαρμογή',
+  'workPlan.publishing': 'Δημοσίευση…',
+  'workPlan.sharedPublishSuccess': 'Το πρόγραμμα δημοσιεύτηκε στην εφαρμογή και είναι διαθέσιμο στους συνδεδεμένους χρήστες για την επιλεγμένη ημερομηνία.',
+  'workPlan.sharedLoadError': 'Δεν ήταν δυνατή η φόρτωση του κοινού προγράμματος. Ελέγξτε τη σύνδεση και δοκιμάστε ξανά. Το τοπικό προσχέδιο διατηρήθηκε.',
+  'workPlan.sharedPublishError': 'Η δημοσίευση απέτυχε. Το προσχέδιο αποθηκεύτηκε σε αυτή τη συσκευή και μπορείτε να δοκιμάσετε ξανά.',
+  'workPlan.sharedConflict': 'Άλλος διαχειριστής δημοσίευσε νεότερη έκδοση. Ανανεώστε τη σελίδα και ελέγξτε την προβολή μόνο για ανάγνωση πριν δημοσιεύσετε το προσχέδιό σας.',
+  'workPlan.sharedEmpty': 'Δεν έχει δημοσιευτεί πρόγραμμα στην εφαρμογή για την επιλεγμένη ημερομηνία.',
   'workPlan.uniqueStaffOne': 'Στο πρόγραμμα: ένας εργαζόμενος',
   'workPlan.missingStaffOne': 'Λείπει ένας εργαζόμενος',
   'workPlan.staffingTitle': 'Έλεγχος προγραμματισμού εργαζομένων',

@@ -25,7 +25,7 @@ export default function StaffingCounter({ rows, rosterNames, workers, source }) 
     <details className="workPlanStaffingDetails">
       <summary aria-controls={id}>{t('workPlan.staffingDetails')}<ChevronDown size={12} aria-hidden="true" /></summary>
       <div id={id} className="workPlanStaffingBody">
-        <p>{t(source === 'workbook' ? 'workPlan.staffingWorkbookSource' : 'workPlan.staffingDirectorySource')}</p>
+        <p>{t(source === 'published' ? 'workPlan.staffingPublishedSource' : source === 'workbook' ? 'workPlan.staffingWorkbookSource' : 'workPlan.staffingDirectorySource')}</p>
         <p>{t('workPlan.staffingAbsenceHint')}</p>
         {summary.missing.length > 0 && <><h3>{t('workPlan.missingStaffTitle')}</h3><ul>{list(summary.missing)}</ul></>}
         {summary.review.length > 0 && <><h3>{t('workPlan.staffingReviewTitle')}</h3><p>{t('workPlan.staffingReviewHint')}</p><ul>{list(summary.review)}</ul></>}

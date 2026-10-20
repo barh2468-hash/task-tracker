@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { ArrowDown, ArrowUp, CalendarDays, ChevronLeft, ChevronRight, Copy, CornerDownLeft, Eye, Info, Maximize2, Minimize2, PencilLine, Plus, Printer, Save, Send, Table2, Trash2 } from 'lucide-react';
 import { t, useLanguage } from '../language/LanguageContext.jsx';
 import { localeForLanguage } from '../language/locale.js';
-import { applyProject, copyPlanRows, createPlanRow, planColumns, planStorageKey, readPlan, shiftPlanDate, todayPlanDate } from './localPlans.js';
+import { applyProject, copyPlanRows, createPlanRow, planColumns, planStorageKey, readPlan, samePlanRows, shiftPlanDate, todayPlanDate } from './localPlans.js';
 import useLocalPlan from './useLocalPlan.js';
 import { getPlanProjectChoices } from './projectChoices.js';
 import { getWorkerCellGroups, updateWorkerGroup } from './rowGroups.js';
 import WorkerPicker from './WorkerPicker.jsx';
 import StaffingCounter from './StaffingCounter.jsx';
+import SharedPlanLoader from './SharedPlanLoader.jsx';
 import './work-planning.css';
 
 function WorkPlanTextarea(props) {
@@ -29,7 +30,7 @@ function formatStart(value, language) {
   return value;
 }
 
-function PlanForDate({ date, onDateChange, storageScope, workers, projects, projectsReady, canEdit, initialRows, planningRoster, rosterSource }) {
+function PlanForDate({ date, onDateChange, storageScope, workers, projects, projectsReady, canEdit, initialRows, planningRoster, rosterSource, shared }) {
   const { language } = useLanguage();
   const locale = localeForLanguage(language);
   const local = useLocalPlan(planStorageKey(storageScope, date), initialRows);
@@ -37,18 +38,22 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
   const [viewing, setViewing] = useState(!canEdit);
   const [notice, setNotice] = useState('');
   const [expanded, setExpanded] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState('');
   const pageRef = useRef(null);
   const expandButtonRef = useRef(null);
   const tableRef = useRef(null);
   const listId = useId();
   const editing = canEdit && !viewing;
-  const rows = editing ? plan.rows : plan.publishedRows || [];
+  const publishedRows = shared ? shared.record?.rows || [] : plan.publishedRows;
+  const publishedAt = shared ? shared.record?.published_at : plan.publishedAt;
+  const rows = editing ? plan.rows : publishedRows || [];
   const rowNumber = (index) => new Intl.NumberFormat(locale).format(index + 1);
   const displayedDate = new Intl.DateTimeFormat(locale, {
     timeZone: 'Asia/Hebron', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   }).format(new Date(`${date}T12:00:00Z`));
-  const changed = plan.publishedRows !== null && JSON.stringify(plan.rows) !== JSON.stringify(plan.publishedRows);
-  const blocked = error === 'invalid' || error === 'conflict';
+  const changed = publishedAt && !samePlanRows(plan.rows, publishedRows);
+  const blocked = error === 'invalid' || error === 'conflict' || publishing;
   const registeredWorkers = workers.filter((worker) => worker.id);
   const sortedWorkers = [...new Set((registeredWorkers.length ? registeredWorkers : workers)
     .map((worker) => worker.full_name).filter(Boolean))].sort((a, b) => a.localeCompare(b, locale));
@@ -223,6 +228,23 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
     </>;
   }
 
+  async function publish() {
+    if (!shared) {
+      if (local.publish()) setNotice('workPlan.publishSuccess');
+      return;
+    }
+    if (!local.save()) return;
+    setPublishing(true);
+    setPublishError('');
+    setNotice('');
+    try {
+      await shared.publish(structuredClone(plan.rows), planningRoster);
+      setNotice('workPlan.sharedPublishSuccess');
+    } catch (failure) {
+      setPublishError(failure.message === 'conflict' ? 'workPlan.sharedConflict' : 'workPlan.sharedPublishError');
+    } finally { setPublishing(false); }
+  }
+
   const time = (value) => new Intl.DateTimeFormat(locale, {
     timeZone: 'Asia/Hebron', dateStyle: 'short', timeStyle: 'short',
   }).format(new Date(value));
@@ -234,10 +256,10 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
         <h1>{t('workPlan.title')}</h1><p>{t('workPlan.subtitle')}</p>
       </div></div>
       <span className={`workPlanStatus${changed ? ' changed' : ''}`}>
-        {t(changed ? 'workPlan.draftChanged' : plan.publishedAt ? 'workPlan.published' : 'workPlan.draft')}
+        {t(changed ? 'workPlan.draftChanged' : publishedAt ? shared ? 'workPlan.sharedPublished' : 'workPlan.published' : 'workPlan.draft')}
       </span>
     </header>
-    <p className="workPlanLocalNotice"><Info size={14} aria-hidden="true" /><span>{t('workPlan.local')}</span></p>
+    <p className="workPlanLocalNotice"><Info size={14} aria-hidden="true" /><span>{t(shared ? 'workPlan.sharedNotice' : 'workPlan.local')}</span></p>
     <div className="workPlanToolbar">
       <div className="workPlanDateNavigation">
         <button type="button" className="ghost workPlanSquare" disabled={date === '1900-01-01'} aria-label={t('workPlan.previous')} onClick={() => changeDate(shiftPlanDate(date, -1))}>
@@ -261,7 +283,8 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
       {editing && <button type="button" className="ghost" disabled={blocked} onClick={copyPrevious}><Copy size={16} aria-hidden="true" />{t('workPlan.copyPrevious')}</button>}
       <button type="button" className="ghost" disabled={!rows.length} onClick={() => window.print()}><Printer size={16} aria-hidden="true" />{t('workPlan.print')}</button>
     </div></div>
-    {error && <div className="workPlanError" role="alert"><p>{t(error === 'invalid' ? 'workPlan.invalidError' : error === 'conflict' ? 'workPlan.conflictError' : 'workPlan.storageError')}</p>
+    {publishError && <div className="workPlanError" role="alert">{t(publishError)}</div>}
+    {error && editing && <div className="workPlanError" role="alert"><p>{t(error === 'invalid' ? 'workPlan.invalidError' : error === 'conflict' ? 'workPlan.conflictError' : 'workPlan.storageError')}</p>
       <button type="button" className="ghost" onClick={() => {
         if (unsaved && !window.confirm(t('workPlan.confirmReload'))) return;
         local.reload(); setNotice('');
@@ -295,26 +318,34 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
           </td>; })}
         </tr>)}</tbody>
       </table>
-      {!rows.length && <div className="workPlanEmpty">{t(editing ? 'workPlan.empty' : 'workPlan.emptyPublished')}</div>}
+      {!rows.length && <div className="workPlanEmpty">{t(editing ? 'workPlan.empty' : shared ? 'workPlan.sharedEmpty' : 'workPlan.emptyPublished')}</div>}
     </div>
     <footer className="workPlanFooter">
       <div><span className="workPlanRowCount">{t('workPlan.count', { count: new Intl.NumberFormat(locale).format(rows.length) })}</span>
-        <p>{plan.savedAt ? t('workPlan.savedAt', { time: time(plan.savedAt) }) : t('workPlan.autoSave')}</p>
-        {!editing && plan.publishedAt && <p>{t('workPlan.publishedAt', { time: time(plan.publishedAt) })}</p>}
+        {editing && <p>{plan.savedAt ? t('workPlan.savedAt', { time: time(plan.savedAt) }) : t('workPlan.autoSave')}</p>}
+        {!editing && publishedAt && <p>{t(shared ? 'workPlan.sharedPublishedAt' : 'workPlan.publishedAt', { time: time(publishedAt) })}</p>}
       </div>
       {editing && <div className="workPlanActions">
         <button type="button" className="ghost" disabled={blocked} onClick={() => addRow()}><Plus size={17} aria-hidden="true" />{t('workPlan.add')}</button>
         <button type="button" className="secondary" disabled={blocked} onClick={() => { if (local.save()) setNotice('workPlan.saveSuccess'); }}><Save size={17} aria-hidden="true" />{t('workPlan.save')}</button>
-        <button type="button" disabled={blocked || !plan.rows.length} onClick={() => { if (local.publish()) setNotice('workPlan.publishSuccess'); }}><Send size={17} aria-hidden="true" />{t('workPlan.publish')}</button>
+        <button type="button" disabled={blocked || !plan.rows.length} onClick={publish}><Send size={17} aria-hidden="true" />{t(publishing ? 'workPlan.publishing' : shared ? 'workPlan.sharedPublish' : 'workPlan.publish')}</button>
       </div>}
     </footer>
     <p className="workPlanFeedback" role="status" aria-live="polite">{notice ? t(notice) : ''}</p>
   </section>;
 }
 
-export default function DailyWorkPlan({ storageScope, workers = [], projects = [], projectsReady = true, canEdit = false, initialDate, initialRows = [], planningRoster, rosterSource = 'directory' }) {
+export default function DailyWorkPlan({ storageScope, workers = [], projects = [], projectsReady = true, canEdit = false, initialDate, initialRows = [], planningRoster, rosterSource = 'directory', shared = false }) {
   useTranslation();
   const [date, setDate] = useState(initialDate || todayPlanDate);
+  const props = { date, onDateChange: setDate, storageScope, workers, projects, projectsReady, canEdit,
+    initialRows: date === initialDate ? initialRows : [], planningRoster: planningRoster || workers.map((worker) => worker.full_name).filter(Boolean), rosterSource };
+  if (shared) return <SharedPlanLoader key={`${storageScope}:${date}`} date={date} storageScope={storageScope}>
+    {(publication) => <PlanForDate {...props} shared={publication}
+      initialRows={publication.record?.rows || props.initialRows}
+      planningRoster={publication.record?.roster_names || props.planningRoster}
+      rosterSource={publication.record?.roster_names ? 'published' : rosterSource} />}
+  </SharedPlanLoader>;
   return <PlanForDate key={`${storageScope}:${date}`} date={date} onDateChange={setDate} storageScope={storageScope}
     workers={workers} projects={projects} projectsReady={projectsReady} canEdit={canEdit} initialRows={date === initialDate ? initialRows : []}
     planningRoster={planningRoster || workers.map((worker) => worker.full_name).filter(Boolean)} rosterSource={rosterSource} />;

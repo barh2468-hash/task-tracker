@@ -1,4 +1,7 @@
 export const heWorkPlanning = {
+  'workPlan.loadPublished': 'טעינת התכנון שפורסם לעריכה',
+  'workPlan.confirmLoadPublished': 'להחליף את הטיוטה במכשיר הזה בתכנון שפורסם באפליקציה?',
+  'workPlan.loadedPublished': 'התכנון שפורסם נטען לטיוטת העריכה. השינויים הבאים יופיעו לכולם רק לאחר פרסום.',
   'workPlan.staffingPublishedSource': 'הבדיקה היא מול רשימת העובדים שנשמרה עם התכנון המשותף. הרשימה נשארת קבועה גם כשמוחקים שורה.',
   'workPlan.sharedNotice': 'התכנון שפורסם משותף למשתמשים המחוברים באפליקציה. טיוטת העריכה נשמרת במכשיר זה עד לפרסום.',
   'workPlan.sharedPublished': 'פורסם באפליקציה',
@@ -124,6 +127,9 @@ export const heWorkPlanning = {
 };
 
 export const enWorkPlanning = {
+  'workPlan.loadPublished': 'Load published plan for editing',
+  'workPlan.confirmLoadPublished': 'Replace the draft on this device with the plan published in the app?',
+  'workPlan.loadedPublished': 'The published plan was loaded into your editing draft. Further changes will be shared after publication.',
   'workPlan.staffingPublishedSource': 'Coverage is checked against the roster saved with the shared plan. This roster stays fixed when a row is deleted.',
   'workPlan.sharedNotice': 'The published plan is shared with signed-in app users. Your editing draft stays on this device until publication.',
   'workPlan.sharedPublished': 'Published in the app',
@@ -224,6 +230,9 @@ export const enWorkPlanning = {
 };
 
 export const elWorkPlanning = {
+  'workPlan.loadPublished': 'Φόρτωση δημοσιευμένου προγράμματος για επεξεργασία',
+  'workPlan.confirmLoadPublished': 'Να αντικατασταθεί το προσχέδιο σε αυτή τη συσκευή με το πρόγραμμα που δημοσιεύτηκε στην εφαρμογή;',
+  'workPlan.loadedPublished': 'Το δημοσιευμένο πρόγραμμα φορτώθηκε στο προσχέδιο επεξεργασίας. Οι επόμενες αλλαγές θα κοινοποιηθούν μετά τη δημοσίευση.',
   'workPlan.staffingPublishedSource': 'Η κάλυψη ελέγχεται βάσει της λίστας εργαζομένων που αποθηκεύτηκε με το κοινό πρόγραμμα. Η λίστα παραμένει σταθερή όταν διαγράφεται μια γραμμή.',
   'workPlan.sharedNotice': 'Το δημοσιευμένο πρόγραμμα είναι κοινό για τους συνδεδεμένους χρήστες της εφαρμογής. Το προσχέδιο παραμένει σε αυτή τη συσκευή μέχρι τη δημοσίευση.',
   'workPlan.sharedPublished': 'Δημοσιεύτηκε στην εφαρμογή',

@@ -35,7 +35,8 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
   const locale = localeForLanguage(language);
   const local = useLocalPlan(planStorageKey(storageScope, date), initialRows);
   const { plan, error, unsaved } = local;
-  const [viewing, setViewing] = useState(!canEdit);
+  // Open the shared publication first, even when this device has an older or empty draft.
+  const [viewing, setViewing] = useState(!canEdit || Boolean(shared?.record));
   const [notice, setNotice] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -52,7 +53,7 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
   const displayedDate = new Intl.DateTimeFormat(locale, {
     timeZone: 'Asia/Hebron', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   }).format(new Date(`${date}T12:00:00Z`));
-  const changed = publishedAt && !samePlanRows(plan.rows, publishedRows);
+  const changed = editing && publishedAt && !samePlanRows(plan.rows, publishedRows);
   const blocked = error === 'invalid' || error === 'conflict' || publishing;
   const registeredWorkers = workers.filter((worker) => worker.id);
   const sortedWorkers = [...new Set((registeredWorkers.length ? registeredWorkers : workers)
@@ -145,6 +146,12 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
       if (plan.rows.length && !window.confirm(t('workPlan.confirmCopy'))) return;
       if (local.updateRows(() => copyPlanRows(source))) setNotice('workPlan.copySuccess');
     } catch { setNotice('workPlan.invalidError'); }
+  }
+
+  function loadPublishedDraft() {
+    if (!publishedRows?.length) return;
+    if (plan.rows.length && !window.confirm(t('workPlan.confirmLoadPublished'))) return;
+    if (local.updateRows(() => structuredClone(publishedRows))) setNotice('workPlan.loadedPublished');
   }
 
   function field(row, column, index) {
@@ -281,6 +288,9 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
         {expanded ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}{t(expanded ? 'workPlan.collapseTable' : 'workPlan.expandTable')}
       </button>
       {editing && <button type="button" className="ghost" disabled={blocked} onClick={copyPrevious}><Copy size={16} aria-hidden="true" />{t('workPlan.copyPrevious')}</button>}
+      {editing && shared?.record && <button type="button" className="ghost" disabled={blocked || samePlanRows(plan.rows, publishedRows)} onClick={loadPublishedDraft}>
+        <Copy size={16} aria-hidden="true" />{t('workPlan.loadPublished')}
+      </button>}
       <button type="button" className="ghost" disabled={!rows.length} onClick={() => window.print()}><Printer size={16} aria-hidden="true" />{t('workPlan.print')}</button>
     </div></div>
     {publishError && <div className="workPlanError" role="alert">{t(publishError)}</div>}

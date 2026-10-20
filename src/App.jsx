@@ -25,6 +25,8 @@ import { useAuth } from './features/auth/useAuth.js';
 // CSV-export-heavy reports) so the initial bundle stays close to the
 // projects list that most sessions land on.
 const TodayPage = lazy(() => import('./routes/TodayPage.jsx'));
+const WorkPlanPage = lazy(() => import('./routes/WorkPlanPage.jsx'));
+const LocalWorkPlanPreview = import.meta.env.DEV ? lazy(() => import('./features/work-planning/LocalWorkPlanPreview.jsx')) : null;
 const LiveMapPage = lazy(() => import('./routes/LiveMapPage.jsx'));
 const NewProjectPage = lazy(() => import('./routes/NewProjectPage.jsx'));
 const ProjectStatusReportPage = lazy(() => import('./routes/ProjectStatusReportPage.jsx'));
@@ -90,6 +92,10 @@ function AppRoot() {
 }
 
 export default function App() {
+  // Preview only in the local Vite development server; the production auth flow is unchanged.
+  if (import.meta.env.DEV && window.location.pathname === '/local/work-plan') {
+    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><LocalWorkPlanPreview /></Suspense></LanguageProvider>;
+  }
   if (!envReady) return <SetupPage />;
 
   return (
@@ -116,6 +122,7 @@ export default function App() {
                 <Route path="my-attendance" element={<Suspense fallback={<LoadingScreen />}><PersonalAttendancePage /></Suspense>} />
                 <Route path="my-notes" element={<Suspense fallback={<LoadingScreen />}><PersonalNotesPage /></Suspense>} />
                 <Route path="overview" element={<OverviewPage />} />
+                <Route path="work-plan" element={<Suspense fallback={<LoadingScreen />}><WorkPlanPage /></Suspense>} />
                 <Route
                   path="manhole-layout"
                   element={

@@ -3,6 +3,7 @@
 // `tab` variable instead of a URL.
 export function getTabTitle(pathname, searchParams, isManager) {
   if (pathname === '/app/overview') return 'סקירה כללית';
+  if (pathname === '/app/work-plan') return 'workPlan.title';
   if (pathname === '/app/attendance') return 'שעון נוכחות';
   if (pathname === '/app/my-attendance') return 'דוח הנוכחות שלי';
   if (pathname === '/app/my-notes') return 'ההערות שלי';
@@ -41,6 +42,7 @@ export function getTabSubtitle(isManager, isDrafter) {
 export function isHeroSuppressed(pathname) {
   return (
     pathname === '/app/overview' ||
+    pathname === '/app/work-plan' ||
     pathname === '/app/attendance' ||
     pathname === '/app/map' ||
     pathname === '/app/status-report' ||

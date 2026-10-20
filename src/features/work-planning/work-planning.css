@@ -1,0 +1,230 @@
+.workPlanPage {
+  --plan-line: #e5eaf1;
+  --plan-ink: #20364f;
+  --plan-muted: #68788d;
+  --plan-soft: #f6f8fb;
+  min-width: 0;
+  padding: 16px;
+  color: var(--plan-ink);
+  background: #fff;
+  border: 1px solid var(--plan-line);
+  border-radius: 16px;
+  box-shadow: 0 3px 16px #20364f05;
+}
+.workPlanHeading,.workPlanIdentity,.workPlanDateNavigation,.workPlanUtilityRow,.workPlanFooter,.workPlanActions {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.workPlanHeading,.workPlanUtilityRow,.workPlanFooter { justify-content: space-between; }
+.workPlanHeading { gap: 12px; }
+.workPlanIdentity { flex-wrap: nowrap; min-width: 0; gap: 10px; }
+.workPlanIdentity h1 { margin: 0; color: var(--plan-ink); font-size: 21px; font-weight: 750; line-height: 1.4; }
+.workPlanIdentity p { display: none; }
+.workPlanIcon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; background: var(--blue2); color: var(--navy); }
+.workPlanIcon svg { width: 21px; height: 21px; }
+.workPlanStatus { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 999px; background: #f0f6f5; color: #397562; font-size: 11px; font-weight: 600; }
+.workPlanStatus::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.workPlanStatus.changed { color: #9b6c27; background: #fcf6e9; }
+.workPlanLocalNotice { display: flex; align-items: flex-start; gap: 6px; margin: 7px 0 14px; padding: 4px 8px; border: 1px solid #f0dbb4; border-radius: 6px; background: #fff9ed; color: #7c531e; font-size: 11px; line-height: 1.6; }
+.workPlanLocalNotice svg { flex-shrink: 0; margin-top: 2px; }
+.workPlanToolbar { display: grid; grid-template-columns: auto minmax(230px,1fr) auto; align-items: center; gap: 12px; margin-bottom: 10px; }
+.workPlanDateNavigation { justify-content: center; flex-wrap: nowrap; gap: 3px; padding: 3px; border: 1px solid var(--plan-line); border-radius: 10px; background: #fafbfd; }
+.workPlanPage .workPlanSquare { display: grid; place-items: center; min-width: 28px; min-height: 32px; padding: 4px; border: 0; border-radius: 7px; background: transparent; color: #708299; box-shadow: none; }
+.workPlanDateLabel { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--plan-muted); min-width: 0; }
+.workPlanDateLabel>svg { width: 15px; flex-shrink: 0; }
+.workPlanDateLabel input { width: 134px; min-width: 0; min-height: 32px; margin: 0; padding: 3px 4px; border: 0; border-radius: 6px; background: transparent; color: var(--plan-ink); font: inherit; font-size: 12px; font-weight: 650; box-shadow: none; }
+.workPlanViewModes { display: flex; align-items: stretch; justify-self: end; gap: 2px; padding: 3px; border: 1px solid var(--plan-line); border-radius: 10px; background: #f2f5f9; }
+.workPlanPage .workPlanViewModes button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 5px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--plan-muted); font-size: 12px; font-weight: 500; line-height: 1.4; box-shadow: none; transform: none; }
+.workPlanPage .workPlanViewModes button[aria-pressed=true] { background: var(--navy); color: #fff; box-shadow: 0 1px 4px #233a5510; }
+.workPlanViewModes svg { flex-shrink: 0; }
+.workPlanUtilityRow { gap: 8px; margin-bottom: 10px; }
+.workPlanUtilityRow>p { margin: 0; font-size: 11px; line-height: 1.5; color: var(--plan-muted); }
+.workPlanUtilityRow>div { display: flex; flex-wrap: wrap; gap: 4px; }
+.workPlanPage .workPlanUtilityRow button { min-height: 30px; padding: 4px 8px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #5f738b; font-size: 11px; font-weight: 500; box-shadow: none; transform: none; }
+.workPlanPage .workPlanUtilityRow button:hover,.workPlanPage .workPlanSquare:hover { background: #eef3f8; color: var(--plan-ink); }
+.workPlanMobileScroll { display: none; }
+/* Staffing stays centered between the date and the view controls. */
+.workPlanStaffing { --staff-accent: #c99442; position: relative; justify-self: center; min-width: 0; max-width: 100%; padding: 8px 12px 6px; border: 1px solid #efd6ad; border-radius: 11px; background: #fffaf0; color: #7c531e; text-align: center; }
+.workPlanStaffing.complete { --staff-accent: #358772; border-color: #b9dfce; background: #f0faf5; color: #17664a; }
+.workPlanStaffingCounts { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 5px 12px; font-size: 12px; line-height: 1.45; }
+.workPlanStaffingCounts strong,.workPlanStaffingStatus { display: flex; justify-content: center; align-items: center; gap: 5px; max-width: 100%; }
+.workPlanStaffingCounts strong { color: inherit; font-size: 11px; font-weight: 500; }
+.workPlanStaffingCounts>span:first-of-type { font-weight: 750; }
+.workPlanStaffingCounts svg { flex-shrink: 0; }
+.workPlanStaffingStatus { padding: 2px 7px; border-radius: 999px; background: #fcf4e5; color: #986a2d; font-size: 11px; }
+.workPlanStaffing.complete .workPlanStaffingStatus { background: #eaf5ef; color: #367764; }
+.workPlanStaffingProgress { display: block; width: 100%; height: 3px; margin: 7px 0 5px; border: 0; border-radius: 999px; overflow: hidden; background: #e8edf3; accent-color: var(--staff-accent); }
+.workPlanStaffingProgress::-webkit-progress-bar { background: #e8edf3; border-radius: 999px; }
+.workPlanStaffingProgress::-webkit-progress-value { background: var(--staff-accent); border-radius: 999px; }
+.workPlanStaffingProgress::-moz-progress-bar { background: var(--staff-accent); border-radius: 999px; }
+.workPlanStaffingDetails>summary { display: flex; align-items: center; justify-content: center; gap: 4px; color: #687c96; font-size: 10px; line-height: 1.5; cursor: pointer; list-style: none; }
+.workPlanStaffingDetails>summary::-webkit-details-marker { display: none; }
+.workPlanStaffingDetails[open]>summary svg { transform: rotate(180deg); }
+.workPlanStaffingBody { position: absolute; inset-inline-start: 50%; transform: translateX(-50%); top: calc(100% + 8px); z-index: 10030; width: min(520px,calc(100vw - 32px)); max-height: min(420px,60vh); overflow: auto; padding: 16px; border: 1px solid var(--plan-line); border-radius: 13px; background: #fff; color: var(--plan-ink); text-align: start; box-shadow: 0 12px 35px #20364f16; }
+[dir=rtl] .workPlanStaffingBody { transform: translateX(50%); }
+.workPlanStaffingBody p { margin: 0 0 8px; font-size: 12px; line-height: 1.7; color: #66768a; }
+.workPlanStaffingBody h3 { margin: 12px 0 8px; font-size: 13px; font-weight: 650; }
+.workPlanStaffingBody ul { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; list-style: none; font-size: 12px; }
+.workPlanStaffingBody li { padding: 5px 9px; border-radius: 7px; background: #f2f5f9; }
+/* Editors and values always wrap to their full natural height. */
+.workPlanTableWrap { max-width: 100%; overflow: auto; border: 1px solid #dfe6ee; border-radius: 12px; isolation: isolate; container-type: inline-size; background: #fff; }
+.workPlanTableWrap:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.workPlanTable { width: 100%; min-width: 1280px; table-layout: fixed; border-collapse: separate; border-spacing: 0; color: var(--plan-ink); text-align: start; font: inherit; font-size: 13px; background: #fff; }
+.workPlanTable caption { caption-side: top; padding: 0; text-align: center; font-size: 12px; font-weight: 650; background: #f9cb9c; color: #35230e; white-space: normal; border-bottom: 1px solid #edbd8a; }
+.workPlanTable caption>span { display: block; position: sticky; inset-inline-start: 0; inline-size: 100cqi; padding: 8px 10px; overflow-wrap: anywhere; }
+.workPlanColumn-leader { width: 10%; }.workPlanColumn-helpers { width: 10%; }.workPlanColumn-work { width: 23%; }.workPlanColumn-start { width: 9%; }.workPlanColumn-client { width: 12%; }.workPlanColumn-contact { width: 12%; }.workPlanColumn-notes { width: 18%; }.workPlanColumn-vehicle { width: 6%; }
+.workPlanTable thead th { position: sticky; top: 0; z-index: 20; padding: 10px 6px; vertical-align: middle; text-align: center; font-size: 12px; font-weight: 650; line-height: 1.45; color: #18344f; background: #c8dcf0; border-inline-end: 1px solid #adc3db; border-bottom: 1px solid #adc3db; white-space: normal; overflow-wrap: anywhere; }
+.workPlanTable tbody tr { position: relative; }
+.workPlanTable td { position: relative; padding: 4px; vertical-align: top; background: #fff; border-inline-end: 1px solid #c7d5e6; border-bottom: 1px solid #c7d5e6; overflow-wrap: anywhere; }
+.workPlanTable tr:nth-child(even)>td { background: #fcfdff; }
+.workPlanTable tr:hover>td { background: #f7fafe; }
+.workPlanTable tr:last-child td { border-bottom: 0; }
+.workPlanTable td:last-child,.workPlanTable th:last-child { border-inline-end: 0; }
+.workPlanTable td[data-column=vehicle] { position: static; }
+.workPlanTable td.workPlanMergedCell,.workPlanTable td.workPlanSoloCell { vertical-align: middle; background: #fff; }
+.workPlanTable tr>td[data-column=leader],.workPlanTable tr>td[data-column=helpers] { color: #344f6c; background: #fff; }
+.workPlanTable td.workPlanSoloCell,.workPlanSoloCell>.workPlanCellValue { text-align: center; }
+.workPlanTextEditor { display: grid; min-width: 0; width: 100%; }
+.workPlanTextEditor::after,.workPlanTable .workPlanTextEditor textarea { grid-area: 1/1; box-sizing: border-box; width: 100%; min-width: 0; min-height: 28px; margin: 0; padding: 4px; border: 1px solid transparent; border-radius: 5px; font: inherit; font-size: 13px; line-height: 19px; white-space: pre-wrap; overflow-wrap: anywhere; text-align: start; }
+.workPlanTextEditor::after { content: attr(data-value) ' '; visibility: hidden; }
+.workPlanTable .workPlanTextEditor textarea { display: block; position: static; height: 100%; max-height: none; resize: none; overflow: hidden; background: transparent; color: inherit; font-weight: 400; box-shadow: none; transition: none; }
+.workPlanTable .workPlanTextEditor textarea:hover { background: #fff; border-color: #dbe5ef; }
+.workPlanTable .workPlanTextEditor textarea:focus { background: #fff; outline: 2px solid #8cadcb; outline-offset: -1px; border-color: transparent; }
+.workPlanTable td:focus-within { z-index: 6; }
+.workPlanTable textarea::placeholder { color: #94a1b1; font-weight: 400; }
+.workPlanCellValue,.workPlanPrintValue { white-space: pre-wrap; overflow: visible; overflow-wrap: anywhere; padding: 4px; line-height: 19px; min-height: 28px; }
+.workPlanPrintValue { display: none; }
+.workPlanTable td:has(.workPlanProjectPicker),.workPlanTable td:has(.workPlanTimePicker) { padding-inline-end: 28px; }
+.workPlanPage .workPlanProjectPicker,.workPlanPage .workPlanTimePicker { position: absolute; inset-inline-end: 3px; top: 5px; width: 22px; height: 28px; min-height: 0; padding: 0; margin: 0; border: 1px solid transparent; border-radius: 5px; background: transparent; color: #8194a9; font-size: 11px; font-weight: 400; box-shadow: none; max-width: 100%; }
+.workPlanPage .workPlanProjectPicker:hover,.workPlanPage .workPlanTimePicker:hover { background: #eaf0f7; border-color: #dce5ee; }
+.workPlanPage .workPlanProjectPicker:focus { width: calc(100% - 6px); padding: 2px 5px; z-index: 9; background: #fff; border-color: #a7bbd0; }
+.workPlanAssignmentHint { display: none; position: absolute; inset-inline: 2px; bottom: calc(100% + 5px); z-index: 8; margin: 0; padding: 7px 9px; border: 1px solid var(--plan-line); border-radius: 7px; background: #fff; color: var(--plan-muted); box-shadow: var(--elev-2); font-size: 11px; line-height: 1.5; }
+.workPlanTable td:focus-within .workPlanAssignmentHint { display: block; }
+.workPlanTable tbody tr:nth-child(-n+3) .workPlanAssignmentHint { bottom: auto; top: calc(100% + 5px); }
+/* Keep actions next to the crew, including continuation rows with merged cells. */
+.workPlanRowActions { display: none; position: absolute; inset-inline-start: calc(10% + 3px); inset-inline-end: auto; top: auto; bottom: 100%; z-index: 30; flex-wrap: nowrap; gap: 2px; width: max-content; margin: 0; padding: 3px; background: #fff; border: 1px solid #dde5ef; border-radius: 8px; box-shadow: 0 3px 12px #243d5a14; }
+.workPlanTable tr:focus-within .workPlanRowActions { display: flex; }
+.workPlanPage .workPlanRowActions button { display: grid; place-items: center; min-width: 25px; min-height: 25px; padding: 4px; border: 0; border-radius: 5px; background: #f4f7fb; color: #71849a; box-shadow: none; transform: none; }
+.workPlanPage .workPlanRowActions button:hover { background: #e8eff8; color: #2d4f76; }
+.workPlanPage .workPlanRowActions button:last-child:hover { background: #fff0f2; color: #bd4256; }
+.workPlanSoloCrew { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.workPlanSoloCrew>.workPlanWorkerSingle { flex: 1; min-width: 0; width: auto; }
+.workPlanSoloCrew .workPlanWorkerName { text-align: center; }
+.workPlanPage .workPlanWorkerTrigger,.workPlanWorkerSingle { display: flex; align-items: center; gap: 5px; width: 100%; min-width: 0; min-height: 28px; height: auto; margin: 0; padding: 4px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: inherit; font: inherit; font-size: 13px; font-weight: 500; line-height: 19px; text-align: start; box-shadow: none; transition: none; }
+.workPlanWorkerSingle { position: relative; padding-inline-end: 22px; }
+.workPlanWorkerSingle>svg { position: absolute; inset-inline-end: 5px; top: 50%; transform: translateY(-50%); color: #92a1b3; }
+.workPlanPage .workPlanWorkerSingle .workPlanWorkerSelect { position: absolute; inset: 0; display: block; width: 100%; height: 100%; min-height: 0; opacity: 0; cursor: pointer; }
+.workPlanWorkerSingle:focus-within,.workPlanPage .workPlanWorkerTrigger:focus-visible { outline: 2px solid #8cadcb; outline-offset: -1px; background: #fff; }
+.workPlanWorkerTrigger>span,.workPlanWorkerName { flex: 1; min-width: 0; overflow: visible; white-space: pre-wrap; overflow-wrap: anywhere; }
+.workPlanWorkerTrigger>svg { flex-shrink: 0; color: #92a1b3; }
+.workPlanPage .workPlanWorkerTrigger:hover { background: #fff; border-color: #dce5ee; transform: none; }
+.workPlanPage .workPlanAddHelpers { justify-content: center; flex: 0 0 25px; width: 25px; min-width: 25px; height: 25px; min-height: 25px; padding: 4px; background: transparent; color: #92a1b3; }
+.workPlanPage .workPlanAddHelpers:hover { background: #e6edf6; color: #395c84; }
+.workPlanWorkerMenu { position: fixed; z-index: 10020; display: flex; flex-direction: column; gap: 9px; padding: 12px; border: 1px solid #dfe6ef; border-radius: 12px; background: #fff; color: var(--plan-ink); font-size: 13px; box-shadow: 0 12px 35px #20364f1a; overflow: hidden; }
+.workPlanWorkerMenuHeader { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.workPlanWorkerMenuHeader strong { font-size: 13px; font-weight: 650; }
+.workPlanPage .workPlanWorkerMenuHeader button { display: grid; place-items: center; min-width: 28px; min-height: 28px; padding: 4px; border: 0; border-radius: 6px; background: #f3f6f9; color: #687b93; box-shadow: none; }
+.workPlanWorkerMenu>input { width: 100%; min-height: 36px; padding: 7px 9px; border: 1px solid var(--plan-line); border-radius: 7px; background: #fafbfd; color: var(--plan-ink); font-size: 13px; box-shadow: none; }
+.workPlanWorkerOptions { overflow: auto; min-height: 0; flex: 1; }
+.workPlanWorkerOptions label { display: flex; align-items: center; gap: 9px; min-height: 34px; margin: 0; padding: 5px; border-radius: 6px; cursor: pointer; font-weight: 400; }
+.workPlanWorkerOptions label:hover { background: #f0f5fa; }
+.workPlanWorkerOptions input[type=checkbox] { width: 16px; height: 16px; min-height: 0; flex-shrink: 0; margin: 0; accent-color: #456a8e; }
+.workPlanWorkerOptions p { margin: 8px 0; color: var(--plan-muted); font-size: 13px; }
+.workPlanPage .workPlanWorkerMenu>button { min-height: 32px; padding: 6px 10px; border: 1px solid #dce5ef; border-radius: 7px; background: #f2f6fa; color: #45627f; font-size: 12px; box-shadow: none; }
+.workPlanEmpty { padding: 35px 20px; background: #fafbfd; color: var(--plan-muted); text-align: center; font-size: 13px; line-height: 1.7; }
+.workPlanFooter { margin-top: 12px; padding-top: 10px; gap: 10px; border-top: 1px solid #eef2f6; }
+.workPlanFooter p { margin: 3px 0 0; color: #8090a3; font-size: 11px; }
+.workPlanRowCount { color: #536b85; font-size: 12px; font-weight: 600; }
+.workPlanActions { gap: 6px; }
+.workPlanPage .workPlanActions button { min-height: 34px; padding: 7px 11px; border: 1px solid #dce4ee; border-radius: 8px; background: #fff; color: #536b85; font-size: 12px; font-weight: 500; box-shadow: none; transform: none; }
+.workPlanPage .workPlanActions button:hover { background: #f2f6fa; }
+.workPlanPage .workPlanActions button:last-child { border-color: #284866; background: #284866; color: #fff; }
+.workPlanPage .workPlanActions button:last-child:hover { background: #365a7d; }
+.workPlanFeedback { min-height: 0; margin: 7px 0 0; color: #397b65; font-size: 12px; line-height: 1.6; }
+.workPlanFeedback:empty { display: none; }
+.workPlanError { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid #ecc7cf; border-radius: 9px; background: #fff6f7; color: #a24153; }
+.workPlanError p { flex: 1; min-width: 160px; margin: 0; font-size: 13px; }
+.workPlanError button { font-size: 12px; box-shadow: none; }
+.workPlanWorkbookSource { display: block; padding: 7px 11px; margin-bottom: 8px; border: 1px solid #e6ebf2; border-radius: 9px; background: #fafbfd; color: #8090a3; }
+.workPlanWorkbookSource>summary { cursor: pointer; font-size: 11px; font-weight: 500; }
+.workPlanWorkbookSourceBody { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding-top: 8px; }
+.workPlanWorkbookSourceBody p { margin: 0; overflow-wrap: anywhere; font-size: 12px; }
+.workPlanWorkbookSourceBody button { padding: 6px 9px; font-size: 12px; box-shadow: none; }
+.workPlanImportFeedback { margin: 0 5px 12px; color: #397b65; font-size: 13px; line-height: 1.7; }
+.workPlanImportFeedback[role=alert] { color: #a24153; }
+.workPlanPage.workPlanExpanded { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; gap: 0; margin: 0; width: auto; height: 100dvh; padding: 14px; border: 0; border-radius: 0; background: #f8fafc; box-shadow: none; overflow: hidden; }
+.workPlanExpanded>.workPlanTableWrap { flex: 1; min-height: 0; width: 100%; }
+.workPlanExpanded>.workPlanHeading,.workPlanExpanded>.workPlanLocalNotice,.workPlanExpanded>.workPlanToolbar,.workPlanExpanded>.workPlanUtilityRow,.workPlanExpanded>.workPlanFooter,.workPlanExpanded>.workPlanFeedback,.workPlanExpanded>.workPlanError { flex-shrink: 0; }
+.workPlanPreview { max-width: 1880px; min-width: 0; margin: 0 auto; padding: 22px 30px 40px; }
+.workPlanPreviewHeader { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; padding: 16px 4px 24px; }
+.workPlanPreviewBrand { display: flex; align-items: center; gap: 13px; }
+.workPlanPreviewBrand img { width: 60px; height: 60px; object-fit: contain; }
+.workPlanPreviewBrand strong { display: block; color: var(--navy); font-size: 20px; }
+.workPlanPreviewBrand p,.workPlanPreviewIntro { margin: 4px 0 15px; color: var(--muted); font-size: 13px; }
+.workPlanPreviewControls { display: flex; align-items: center; flex-wrap: wrap; gap: 15px; }
+.workPlanPreviewControls label { min-width: 125px; font-size: 12px; }
+.workPlanPreviewControls select { padding: 9px 12px; border-radius: 10px; }
+.workPlanPreviewControls a { color: var(--navy); font-size: 13px; }
+@media(max-width:1100px) {
+  .workPlanToolbar { grid-template-columns: minmax(0,1fr) auto; }
+  .workPlanToolbar>.workPlanStaffing { grid-column: 1/-1; grid-row: 2; width: 100%; }
+  .workPlanDateNavigation { justify-self: start; }
+  .workPlanStaffingBody { inset-inline-start: 0; transform: none; }
+  [dir=rtl] .workPlanStaffingBody { transform: none; }
+}
+@media(max-width:760px) {
+  .workPlanPage { padding: 12px; border-radius: 12px; }
+  .workPlanIdentity h1 { font-size: 19px; }
+  .workPlanToolbar { grid-template-columns: minmax(0,1fr); gap: 8px; }
+  .workPlanDateNavigation { width: 100%; justify-self: stretch; }
+  .workPlanDateLabel { flex: 1; justify-content: center; }
+  .workPlanDateLabel input { width: 140px; }
+  .workPlanToolbar>.workPlanViewModes { grid-column: 1; grid-row: 2; justify-self: stretch; }
+  .workPlanViewModes button { flex: 1; }
+  .workPlanToolbar>.workPlanStaffing { grid-column: 1; grid-row: 3; }
+  .workPlanUtilityRow>div { width: 100%; }
+  .workPlanMobileScroll { display: inline; }
+  .workPlanActions { width: 100%; }
+  .workPlanActions button { flex: 1; }
+  .workPlanTableWrap { border-radius: 9px; }
+  .workPlanWorkbookSourceBody button { width: 100%; }
+  .workPlanPreview { padding: 10px 10px 24px; }
+  .workPlanPreviewHeader { padding: 8px 4px 17px; }
+  .workPlanPreviewBrand img { width: 46px; height: 46px; }
+  .workPlanPreviewBrand strong { font-size: 18px; }
+  .workPlanPage.workPlanExpanded { padding: 10px; }
+}
+@media(pointer:coarse) {
+  .workPlanStaffingDetails>summary { min-height: 44px; font-size: 12px; }
+  .workPlanPage .workPlanSquare,.workPlanPage .workPlanUtilityRow button,.workPlanPage .workPlanActions button,.workPlanPage .workPlanViewModes button,.workPlanDateLabel input,.workPlanPreviewControls select { min-height: 44px; }
+  .workPlanPage .workPlanRowActions button { min-width: 44px; min-height: 44px; }
+  .workPlanPage .workPlanProjectPicker,.workPlanPage .workPlanTimePicker { width: 44px; height: 44px; font-size: 16px; }
+  .workPlanPage .workPlanProjectPicker:focus { width: calc(100% - 6px); }
+  .workPlanTable td:has(.workPlanProjectPicker),.workPlanTable td:has(.workPlanTimePicker) { padding-inline-end: 51px; }
+  .workPlanTextEditor::after,.workPlanTable .workPlanTextEditor textarea { min-height: 44px; font-size: 16px; line-height: 22px; }
+  .workPlanWorkerSingle,.workPlanPage .workPlanWorkerTrigger { min-height: 44px; font-size: 16px; line-height: 22px; }
+  .workPlanPage .workPlanAddHelpers { flex-basis: 44px; width: 44px; min-width: 44px; height: 44px; }
+  .workPlanWorkerOptions label,.workPlanPage .workPlanWorkerMenu button { min-height: 44px; }
+  .workPlanWorkerMenu>input { min-height: 44px; font-size: 16px; }
+}
+@page work-plan { size: A4 landscape; margin: 10mm; }
+@media print {
+  body:has(.workPlanPage) * { visibility: hidden; }
+  body:has(.workPlanPage) .workPlanPage,body:has(.workPlanPage) .workPlanPage * { visibility: visible; }
+  .workPlanPage,.workPlanPage.workPlanExpanded { page: work-plan; position: absolute; inset: 0; display: block; height: auto; overflow: visible; padding: 0; border: 0; border-radius: 0; background: #fff; color: #000; box-shadow: none; }
+  .workPlanPage .workPlanToolbar,.workPlanPage .workPlanLocalNotice,.workPlanPage .workPlanUtilityRow,.workPlanPage .workPlanFooter,.workPlanPage .workPlanFeedback,.workPlanPage .workPlanError,.workPlanPage .workPlanRowActions,.workPlanPage .workPlanIcon,.workPlanStaffing,.workPlanWorkerTrigger,.workPlanWorkerSingle,.workPlanWorkerMenu,.workPlanTextEditor { display: none!important; }
+  .workPlanSoloCrew { display: block; }
+  .workPlanSoloCrew .workPlanPrintValue { text-align: center; }
+  .workPlanHeading { margin-bottom: 10px; }
+  .workPlanTableWrap { overflow: visible; border-radius: 0; container-type: normal; }
+  .workPlanTable { min-width: 0; width: 100%; font-size: 10pt; }
+  .workPlanTable caption>span { inline-size: 100%; position: static; }
+  .workPlanTable thead { display: table-header-group; }
+  .workPlanTable thead th { position: static; }
+  .workPlanTable tr { break-inside: avoid; }
+  .workPlanTable td,.workPlanTable th { padding: 5px; print-color-adjust: exact; }
+  .workPlanTable caption { print-color-adjust: exact; }
+  .workPlanTable input,.workPlanTable textarea,.workPlanTable select { display: none; }
+  .workPlanPrintValue { display: block; }
+  .workPlanTable .workPlanColumn-leader { width: 8%; }
+  .workPlanTable .workPlanColumn-work { width: 25%; }
+}

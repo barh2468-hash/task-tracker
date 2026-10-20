@@ -3,13 +3,16 @@ import { enProjectWorkspace, elProjectWorkspace } from '../projects/translations
 import { enVehicles, elVehicles } from '../vehicles/translations.js';
 import { enDrafts, elDrafts } from '../drafts/translations.js';
 import { enPersonalWorkflow, elPersonalWorkflow } from '../attendance/translations.js';
+import { heWorkPlanning, enWorkPlanning, elWorkPlanning } from '../work-planning/translations.js';
 
 export const heTranslations = {
+  ...heWorkPlanning,
   'ממתין לתיאום': 'ממתין לתיאום',
   'פתח {{value0}}': 'פתח {{value0}}',
 };
 
 export const enTranslations = {
+  ...enWorkPlanning,
   ...enProjectWorkspace,
   'אני': 'You',
   'קבלו התראות על הודעות גם כשהאפליקציה סגורה.': 'Get message notifications even when the app is closed.',
@@ -1647,4 +1650,4 @@ const greekTranslations = {
     'Η εργασία "{{title}}" παραμένει ανοιχτή εδώ και {{days}} ημέρες.',
 };
 
-export const elTranslations = { ...enTranslations, ...elPersonalWorkflow, ...greekTranslations, ...elDrafts, ...elProjectWorkspace };
+export const elTranslations = { ...enTranslations, ...elPersonalWorkflow, ...greekTranslations, ...elDrafts, ...elProjectWorkspace, ...elWorkPlanning };

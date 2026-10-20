@@ -1,0 +1,568 @@
+{
+  "source": {
+    "filename": "תכנון עבודה ליום ג' 20.10.2026.xlsx",
+    "sheet": "Work",
+    "range": "A1:H28",
+    "date": "2026-10-20",
+    "sha256": "8040f084697c3d139b0c4ccd257b7a6f0dfccd4811d9bef5404eb466e7890a21",
+    "merges": [
+      "A9:B9",
+      "A11:B11",
+      "A23:B23",
+      "A26:B26",
+      "A20:A21",
+      "B20:B21",
+      "A5:B5",
+      "A17:A18",
+      "B17:B18",
+      "A19:B19",
+      "A13:B15",
+      "A25:B25",
+      "A28:B28",
+      "A3:B3",
+      "A4:B4",
+      "A27:B27",
+      "A6:B6"
+    ],
+    "headers": {
+      "A": "ראש צוות",
+      "B": "עוזר/ים וצ' נוסף",
+      "C": "מקום + מהות העבודה",
+      "D": "תחילת עבודה",
+      "E": "מזמין העבודה",
+      "F": "פרטי איש קשר",
+      "G": "הערות",
+      "H": "אוטו / ס' בשטח"
+    }
+  },
+  "rows": [
+    {
+      "id": "ea4e94bd-5866-55c5-b227-5df501ac63ac",
+      "sourceRow": 3,
+      "projectId": "",
+      "leader": "נמרוד, אושר, אופק",
+      "helpers": "",
+      "work": "מילואים",
+      "start": "",
+      "client": "",
+      "contact": "",
+      "notes": "",
+      "vehicle": ""
+    },
+    {
+      "id": "21256241-0799-5465-8833-2f374ea60aba",
+      "sourceRow": 4,
+      "projectId": "",
+      "leader": "גבי",
+      "helpers": "",
+      "work": "תאונת עבודה",
+      "start": "",
+      "client": "",
+      "contact": "",
+      "notes": "",
+      "vehicle": ""
+    },
+    {
+      "id": "0e9466c6-06a8-50ff-9a22-caa2b9294581",
+      "sourceRow": 5,
+      "projectId": "",
+      "leader": "אופק מושנוב",
+      "helpers": "",
+      "work": "לא יעבוד",
+      "start": "",
+      "client": "",
+      "contact": "",
+      "notes": "",
+      "vehicle": ""
+    },
+    {
+      "id": "e3d2fcde-ad99-572d-aee4-ac186f286f7a",
+      "sourceRow": 6,
+      "projectId": "",
+      "leader": "גבריאל",
+      "helpers": "",
+      "work": "חופש",
+      "start": "",
+      "client": "",
+      "contact": "",
+      "notes": "",
+      "vehicle": ""
+    },
+    {
+      "id": "d30efc3e-e9fd-5c74-b2f9-189ade9ef173",
+      "sourceRow": 7,
+      "projectId": "workbook-2026-10-20-row-7",
+      "leader": "רז",
+      "helpers": "נהוראי",
+      "work": "פרויקט שביל אופניים רוזנטל, ירושלים",
+      "start": "08:00",
+      "client": "תכנית אב לתחבורה",
+      "contact": "",
+      "notes": "פרטים בדוא\"ל",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "599f6c74-f3a9-501d-ba0b-7f64ce353170",
+      "sourceRow": 8,
+      "projectId": "workbook-2026-10-20-row-8",
+      "leader": "יניב",
+      "helpers": "שי",
+      "work": "פרויקט דבורה הנביאה, תל אביב - איתור קו חשמל",
+      "start": "08:00",
+      "client": "גיא חורש הנדסת בנין בע\"מ",
+      "contact": "ג'ימי- 0542228491",
+      "notes": "פרטים בדוא\"ל. נפגשים בצנחנים 16, תל אביב ב-8 בבוקר",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "eb4c6a2f-edd0-5bf9-8b34-dd57b84b96c4",
+      "sourceRow": 9,
+      "projectId": "",
+      "leader": "יניב",
+      "helpers": "",
+      "work": "משרד- עבודה עם יקיר",
+      "start": "__after__",
+      "client": "",
+      "contact": "",
+      "notes": "",
+      "vehicle": ""
+    },
+    {
+      "id": "9b5282ec-41e0-5959-90dd-0d0ca724494f",
+      "sourceRow": 10,
+      "projectId": "workbook-2026-10-20-row-10",
+      "leader": "אוהד",
+      "helpers": "אילן",
+      "work": "פרויקט איתור תשתיות - מעיין צבי - השלמה בשטח סבוך",
+      "start": "08:00",
+      "client": "אלקטרה אלקו התקש",
+      "contact": "אליאב – 052-3337481",
+      "notes": "פרטים בדוא\"ל. אוהד- אליאב יפגש איתכם בשטח ב-8 בבוקר",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "680b3601-a3f6-593c-ac15-e5b9ba51342a",
+      "sourceRow": 11,
+      "projectId": "workbook-2026-10-20-row-11",
+      "leader": "אוהד",
+      "helpers": "",
+      "work": " מאיץ חדרה מקטע DP5 - רח' הנשיא ויצמן",
+      "start": "__after__",
+      "client": "נתיבי ישראל ",
+      "contact": "",
+      "notes": "אוהד- יוני יצטרף אלייך אחרי העבודה בקוקה קולה",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "37306c40-b48b-59fe-9f4d-2cff5acfc03b",
+      "sourceRow": 12,
+      "projectId": "workbook-2026-10-20-row-12",
+      "leader": "אילן",
+      "helpers": "שי",
+      "work": "פרויקט זבוטינסקי מד 1, פתח תקווה - שאיבת עפר - משאית גדולה- עבודת לילה",
+      "start": "20:00",
+      "client": "גאודניה",
+      "contact": "",
+      "notes": "",
+      "vehicle": "שאיבות עפר"
+    },
+    {
+      "id": "e5057d2c-fdd3-5e0b-9671-fe01074bd483",
+      "sourceRow": 13,
+      "projectId": "",
+      "leader": "עידן",
+      "helpers": "",
+      "work": "משרד- הכנת קבצים לעבודת לילה",
+      "start": "08:00",
+      "client": "",
+      "contact": "",
+      "notes": "",
+      "vehicle": ""
+    },
+    {
+      "id": "0b2ab6f7-1e38-5c8f-832d-d56baee3b1eb",
+      "sourceRow": 14,
+      "projectId": "workbook-2026-10-20-row-14",
+      "leader": "עידן",
+      "helpers": "",
+      "work": "פרויקט הקו הצהוב- פתיחת שוחות- עבודות לילה",
+      "start": "22:00",
+      "client": "נתיבי איילון",
+      "contact": "",
+      "notes": "",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "98c0e746-20cd-5d4f-9c96-de90cf9cd730",
+      "sourceRow": 15,
+      "projectId": "workbook-2026-10-20-row-15",
+      "leader": "עידן",
+      "helpers": "",
+      "work": " מטרו M3 - שאיבות עפר לחישוף עמודי חשמל של הרק\"ל האדום בצומת יוספטל הקוממיות- עבודת לילה",
+      "start": "01:00",
+      "client": "נת\"ע",
+      "contact": "מור סופר קבלן- 0526340398",
+      "notes": "פרטים בדוא\"ל",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "e5fc9249-cebd-5151-9387-253745be7161",
+      "sourceRow": 16,
+      "projectId": "workbook-2026-10-20-row-16",
+      "leader": "איתי",
+      "helpers": "עומר זיסמן, יובל",
+      "work": "פרויקט הקו הצהוב- מקטע צפוני",
+      "start": "08:00",
+      "client": "נתיבי איילון",
+      "contact": "",
+      "notes": "פיקוח הוט",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "09301d41-0004-583b-b0fe-05a1b22471b7",
+      "sourceRow": 17,
+      "projectId": "workbook-2026-10-20-row-17",
+      "leader": "בר",
+      "helpers": "חיים",
+      "work": "פרויקט משכנות הדרים,ביתר עילית- GPR מערכת גדולה",
+      "start": "08:00",
+      "client": "אם או נוף ביתר בע\"מ",
+      "contact": "",
+      "notes": "",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "d3557ee2-5358-5570-8d3a-eccfeccde8f5",
+      "sourceRow": 18,
+      "projectId": "workbook-2026-10-20-row-18",
+      "leader": "בר",
+      "helpers": "חיים",
+      "work": "פרויקט חוות שרתים קיבוץ צרעה - תוספת- סריקת GPR - מערכת גדולה",
+      "start": "__after__",
+      "client": "דאטה סנטר צרעה בע\"מ",
+      "contact": "",
+      "notes": "",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "bf07f2cf-a727-5c43-aecb-32dc7a85db9d",
+      "sourceRow": 19,
+      "projectId": "",
+      "leader": "בר",
+      "helpers": "",
+      "work": "משרד- פענוח GPR",
+      "start": "__after__",
+      "client": "",
+      "contact": "",
+      "notes": "",
+      "vehicle": ""
+    },
+    {
+      "id": "e0b05d67-7cd7-501d-97e6-520792dc7fc3",
+      "sourceRow": 20,
+      "projectId": "workbook-2026-10-20-row-20",
+      "leader": "מיכאל",
+      "helpers": "שקד",
+      "work": "פרויקט משכנות הדרים,ביתר עילית ",
+      "start": "08:00",
+      "client": "אם או נוף ביתר בע\"מ",
+      "contact": "",
+      "notes": "פרטים בדוא\"ל",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "f7131081-d4fe-52b2-9c10-eed3ae8d4f98",
+      "sourceRow": 21,
+      "projectId": "workbook-2026-10-20-row-21",
+      "leader": "מיכאל",
+      "helpers": "שקד",
+      "work": "פרויקט חוות שרתים, אור יהודה WBO-873",
+      "start": "__after__",
+      "client": "חברת החשמל ",
+      "contact": "",
+      "notes": "",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "5feb0b6e-525d-59d0-8a25-d866b3b6d829",
+      "sourceRow": 22,
+      "projectId": "workbook-2026-10-20-row-22",
+      "leader": "גרמן",
+      "helpers": "אלי",
+      "work": " פרויקט קו מחבר קד' סמר 14",
+      "start": "08:00",
+      "client": "INTECSA-INARSA S.A.U",
+      "contact": "",
+      "notes": "פרטים בדוא\"ל",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "ebcb0897-1096-5d86-ac5f-44493bd55fc6",
+      "sourceRow": 23,
+      "projectId": "",
+      "leader": "גרמן",
+      "helpers": "",
+      "work": "משרד- פרישת שוחות למטרו",
+      "start": "__after__",
+      "client": "",
+      "contact": "",
+      "notes": "",
+      "vehicle": ""
+    },
+    {
+      "id": "4a7fee40-91b2-54ad-b28b-a34244ccfb92",
+      "sourceRow": 24,
+      "projectId": "workbook-2026-10-20-row-24",
+      "leader": "יוני",
+      "helpers": "יצחק",
+      "work": "פרויקט מוסך שורק קוקה קולה, ראשון לציון – תוספת",
+      "start": "07:00",
+      "client": "החברה המרכזית לייצור משקאות קלים בע\"מ",
+      "contact": "עופר- 0522955176",
+      "notes": "פרטים בדוא\"ל- יוני- שים לב לשעה. מזמין יפגש איתכם בשטח. להגיע עם נעלי עבודה ואפודים זוהרים. לאחר מכן תצטרף לאוהד.",
+      "vehicle": "אוטוקאד"
+    },
+    {
+      "id": "17255822-294f-5bf6-aa4d-80da01d3bf37",
+      "sourceRow": 25,
+      "projectId": "",
+      "leader": "יוסי",
+      "helpers": "",
+      "work": "משרד",
+      "start": "08:00",
+      "client": "",
+      "contact": "",
+      "notes": "",
+      "vehicle": ""
+    },
+    {
+      "id": "af9f66c4-4e08-5e3e-a2c0-9312b0db4c91",
+      "sourceRow": 26,
+      "projectId": "",
+      "leader": "איל",
+      "helpers": "",
+      "work": "משרד",
+      "start": "08:00",
+      "client": "",
+      "contact": "",
+      "notes": "",
+      "vehicle": ""
+    },
+    {
+      "id": "52df8753-6ae6-56b2-8c13-5fdb89c1043d",
+      "sourceRow": 27,
+      "projectId": "",
+      "leader": "דודי",
+      "helpers": "",
+      "work": "משרד",
+      "start": "08:00",
+      "client": "",
+      "contact": "",
+      "notes": "",
+      "vehicle": ""
+    },
+    {
+      "id": "87fb85c5-7991-54b6-be5e-810e53fc3173",
+      "sourceRow": 28,
+      "projectId": "",
+      "leader": "יקיר",
+      "helpers": "",
+      "work": "משרד",
+      "start": "08:00",
+      "client": "",
+      "contact": "",
+      "notes": "",
+      "vehicle": ""
+    }
+  ],
+  "projects": [
+    {
+      "id": "workbook-2026-10-20-row-7",
+      "name": "פרויקט שביל אופניים רוזנטל, ירושלים",
+      "client_name": "תכנית אב לתחבורה",
+      "contact_name": ""
+    },
+    {
+      "id": "workbook-2026-10-20-row-8",
+      "name": "פרויקט דבורה הנביאה, תל אביב - איתור קו חשמל",
+      "client_name": "גיא חורש הנדסת בנין בע\"מ",
+      "contact_name": "ג'ימי- 0542228491"
+    },
+    {
+      "id": "workbook-2026-10-20-row-10",
+      "name": "פרויקט איתור תשתיות - מעיין צבי - השלמה בשטח סבוך",
+      "client_name": "אלקטרה אלקו התקש",
+      "contact_name": "אליאב – 052-3337481"
+    },
+    {
+      "id": "workbook-2026-10-20-row-11",
+      "name": " מאיץ חדרה מקטע DP5 - רח' הנשיא ויצמן",
+      "client_name": "נתיבי ישראל ",
+      "contact_name": ""
+    },
+    {
+      "id": "workbook-2026-10-20-row-12",
+      "name": "פרויקט זבוטינסקי מד 1, פתח תקווה - שאיבת עפר - משאית גדולה- עבודת לילה",
+      "client_name": "גאודניה",
+      "contact_name": ""
+    },
+    {
+      "id": "workbook-2026-10-20-row-14",
+      "name": "פרויקט הקו הצהוב- פתיחת שוחות- עבודות לילה",
+      "client_name": "נתיבי איילון",
+      "contact_name": ""
+    },
+    {
+      "id": "workbook-2026-10-20-row-15",
+      "name": " מטרו M3 - שאיבות עפר לחישוף עמודי חשמל של הרק\"ל האדום בצומת יוספטל הקוממיות- עבודת לילה",
+      "client_name": "נת\"ע",
+      "contact_name": "מור סופר קבלן- 0526340398"
+    },
+    {
+      "id": "workbook-2026-10-20-row-16",
+      "name": "פרויקט הקו הצהוב- מקטע צפוני",
+      "client_name": "נתיבי איילון",
+      "contact_name": ""
+    },
+    {
+      "id": "workbook-2026-10-20-row-17",
+      "name": "פרויקט משכנות הדרים,ביתר עילית- GPR מערכת גדולה",
+      "client_name": "אם או נוף ביתר בע\"מ",
+      "contact_name": ""
+    },
+    {
+      "id": "workbook-2026-10-20-row-18",
+      "name": "פרויקט חוות שרתים קיבוץ צרעה - תוספת- סריקת GPR - מערכת גדולה",
+      "client_name": "דאטה סנטר צרעה בע\"מ",
+      "contact_name": ""
+    },
+    {
+      "id": "workbook-2026-10-20-row-20",
+      "name": "פרויקט משכנות הדרים,ביתר עילית ",
+      "client_name": "אם או נוף ביתר בע\"מ",
+      "contact_name": ""
+    },
+    {
+      "id": "workbook-2026-10-20-row-21",
+      "name": "פרויקט חוות שרתים, אור יהודה WBO-873",
+      "client_name": "חברת החשמל ",
+      "contact_name": ""
+    },
+    {
+      "id": "workbook-2026-10-20-row-22",
+      "name": " פרויקט קו מחבר קד' סמר 14",
+      "client_name": "INTECSA-INARSA S.A.U",
+      "contact_name": ""
+    },
+    {
+      "id": "workbook-2026-10-20-row-24",
+      "name": "פרויקט מוסך שורק קוקה קולה, ראשון לציון – תוספת",
+      "client_name": "החברה המרכזית לייצור משקאות קלים בע\"מ",
+      "contact_name": "עופר- 0522955176"
+    }
+  ],
+  "workers": [
+    {
+      "full_name": "נמרוד"
+    },
+    {
+      "full_name": "אושר"
+    },
+    {
+      "full_name": "אופק"
+    },
+    {
+      "full_name": "גבי"
+    },
+    {
+      "full_name": "אופק מושנוב"
+    },
+    {
+      "full_name": "גבריאל"
+    },
+    {
+      "full_name": "רז"
+    },
+    {
+      "full_name": "נהוראי"
+    },
+    {
+      "full_name": "יניב"
+    },
+    {
+      "full_name": "שי"
+    },
+    {
+      "full_name": "אוהד"
+    },
+    {
+      "full_name": "אילן"
+    },
+    {
+      "full_name": "עידן"
+    },
+    {
+      "full_name": "איתי"
+    },
+    {
+      "full_name": "עומר זיסמן"
+    },
+    {
+      "full_name": "יובל"
+    },
+    {
+      "full_name": "בר"
+    },
+    {
+      "full_name": "חיים"
+    },
+    {
+      "full_name": "מיכאל"
+    },
+    {
+      "full_name": "שקד"
+    },
+    {
+      "full_name": "גרמן"
+    },
+    {
+      "full_name": "אלי"
+    },
+    {
+      "full_name": "יוני"
+    },
+    {
+      "full_name": "יצחק"
+    },
+    {
+      "full_name": "יוסי"
+    },
+    {
+      "full_name": "איל"
+    },
+    {
+      "full_name": "דודי"
+    },
+    {
+      "full_name": "יקיר"
+    },
+    {
+      "full_name": "לישי"
+    },
+    {
+      "full_name": "פלג"
+    },
+    {
+      "full_name": "אמיר"
+    },
+    {
+      "full_name": "ליאור"
+    },
+    {
+      "full_name": "בוריס"
+    },
+    {
+      "full_name": "טל"
+    }
+  ]
+}

@@ -8,6 +8,8 @@ export default defineConfig({
   // in Vercel by the previous Next.js version. Only explicitly public prefixes
   // are exposed to browser code.
   envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
+  // Scan the app entry, excluding unrelated HTML test harnesses under tmp/.
+  optimizeDeps: { entries: ['index.html'] },
   plugins: [
     react(),
     VitePWA({

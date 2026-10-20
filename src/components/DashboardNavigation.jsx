@@ -57,6 +57,7 @@ export default function DashboardNavigation({
         {(!secondaryOnly || !isDrafter) && <div className="sidebarNavGroup">
           <h2 className="sidebarGroupLabel">{t('יום העבודה')}</h2>
           {item('/app/overview', 'סקירה כללית', LayoutDashboard)}
+          {item('/app/work-plan', 'workPlan.title', ClipboardList)}
           {!secondaryOnly && !isDrafter && item('/app/attendance', 'שעון נוכחות', Clock)}
           {!secondaryOnly && !isDrafter && item('/app/tasks', 'משימות פתוחות', ClipboardList, stats.openTasks)}
         </div>}
@@ -73,6 +74,7 @@ export default function DashboardNavigation({
 
         <div className="sidebarNavGroup">
           <h2 className="sidebarGroupLabel">{t('כלי עבודה')}</h2>
+          {secondaryOnly && isDrafter && item('/app/work-plan', 'workPlan.title', ClipboardList)}
           {item('/app/manhole-layout', 'פרישת שוחות', Layers)}
           {!isDrafter && item('/app/my-attendance', 'דוח הנוכחות שלי', Clock)}
           {!isDrafter && item('/app/my-notes', 'ההערות שלי', FileText)}

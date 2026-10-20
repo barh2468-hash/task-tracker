@@ -9,10 +9,25 @@ const supportedImageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic'];
 
 export function documentTypeAllowsImages(documentType) {
   return (
+    documentType === 'general' ||
     documentType === 'boundary_sketch' ||
     documentType === 'drawing_source' ||
     documentType === 'drawing_correction'
   );
+}
+
+export function projectFileMimeType(file) {
+  if (isPdfFile(file)) return 'application/pdf';
+  if (!isSupportedImageFile(file)) return null;
+  if (file.type) return file.type;
+  const extension = String(file.name).toLowerCase().split('.').pop();
+  return {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    heic: 'image/heic',
+  }[extension];
 }
 
 export function isPdfFile(file) {

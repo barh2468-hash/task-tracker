@@ -24,6 +24,7 @@ import {
   isPdfFile,
   isSupportedImageFile,
   MAX_PROJECT_FILE_SIZE,
+  projectFileMimeType,
 } from './utils/projectFiles.js';
 import { isManagerRole } from '../../utils/roles.js';
 import { getProjectAssignmentChanges } from './utils/assignments.js';
@@ -438,8 +439,8 @@ export async function uploadProjectDocument(
   if (!user || !project?.id || !file || !profile) return { message: '' };
 
   const canUpload = isManagerRole(profile.role) || isAssignedFieldWorker(project, profile, user.id);
-  if (!canUpload) return { message: 'אין לך הרשאה להעלות מסמכים לפרויקט הזה.' };
-  if (!navigator.onLine) return { message: 'נדרש חיבור לאינטרנט כדי להעלות קובץ.' };
+  if (!canUpload) return { message: t('אין לך הרשאה להעלות מסמכים לפרויקט הזה.') };
+  if (!navigator.onLine) return { message: t('נדרש חיבור לאינטרנט כדי להעלות קובץ.') };
 
   const pdfFile = isPdfFile(file);
   const imageFile = isSupportedImageFile(file);
@@ -447,22 +448,23 @@ export async function uploadProjectDocument(
   if (!pdfFile && !(allowsImages && imageFile)) {
     return {
       message: allowsImages
-        ? 'אפשר להעלות PDF או תמונה בפורמט JPG, PNG, WEBP או HEIC.'
-        : 'אפשר להעלות קובץ PDF בלבד.',
+        ? t('אפשר להעלות PDF או תמונה בפורמט JPG, PNG, WEBP או HEIC.')
+        : t('אפשר להעלות קובץ PDF בלבד.'),
     };
   }
-  if (!file.size) return { message: 'הקובץ ריק ולא ניתן להעלות אותו.' };
+  if (!file.size) return { message: t('הקובץ ריק ולא ניתן להעלות אותו.') };
   if (file.size > MAX_PROJECT_FILE_SIZE) {
-    return { message: 'הקובץ גדול מדי. הגודל המרבי הוא 20MB.' };
+    return { message: t('הקובץ גדול מדי. הגודל המרבי הוא 20MB.') };
   }
 
+  const mimeType = projectFileMimeType(file);
   const path = `${project.id}/${user.id}/${Date.now()}-${storageApi.safeFileName(file.name)}`;
   const { error: uploadError } = await storageApi.uploadFile('project-documents', path, file, {
     upsert: false,
-    contentType: file.type || (pdfFile ? 'application/pdf' : undefined),
+    contentType: mimeType,
     cacheControl: '3600',
   });
-  if (uploadError) return { message: `העלאת הקובץ נכשלה: ${uploadError.message}` };
+  if (uploadError) return { message: t('העלאת הקובץ נכשלה: {{message}}', { message: uploadError.message }) };
 
   const { error: insertError } = await projectDocumentsApi.insertProjectDocument({
     project_id: project.id,
@@ -471,12 +473,12 @@ export async function uploadProjectDocument(
     file_path: path,
     file_name: file.name,
     file_size: file.size,
-    mime_type: file.type || (pdfFile ? 'application/pdf' : null),
+    mime_type: mimeType,
     document_type: documentType,
   });
   if (insertError) {
     await storageApi.removeFiles('project-documents', [path]);
-    return { message: `שמירת הקובץ בפרויקט נכשלה: ${insertError.message}` };
+    return { message: t('שמירת הקובץ בפרויקט נכשלה: {{message}}', { message: insertError.message }) };
   }
 
   await statusHistoryApi.insertStatusHistory({
@@ -509,7 +511,7 @@ export async function uploadProjectDocument(
     }
   }
 
-  return { message: 'הקובץ הועלה ונשמר בפרויקט.', ok: true };
+  return { message: t('הקובץ הועלה ונשמר בפרויקט.'), ok: true };
 }
 
 export async function deleteProjectDocument(projectDocument, project, profile) {

@@ -41,6 +41,27 @@ function formatFileSize(size, language) {
   return `${(size / (1024 * 1024)).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB`;
 }
 
+function DocumentThumbnail({ url, fileName, onPreview }) {
+  const [failedUrl, setFailedUrl] = useState(null);
+  if (!url || failedUrl === url) {
+    return (
+      <span className="projectDocumentIcon">
+        <ImageIcon size={20} aria-hidden="true" />
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="projectDocumentThumbnail"
+      onClick={onPreview}
+      aria-label={t('תצוגה מקדימה של {{name}}', { name: fileName })}
+    >
+      <img src={url} alt="" loading="lazy" decoding="async" onError={() => setFailedUrl(url)} />
+    </button>
+  );
+}
+
 export default function ProjectDocumentsPanel({
   documents,
   canUpload,
@@ -49,8 +70,8 @@ export default function ProjectDocumentsPanel({
   onDelete,
   defaultDocumentType = 'general',
   lockedDocumentType,
-  title = 'קבצים לשרטוט ולתיקונים',
-  eyebrow = 'מסמכים מהשטח לשרטט',
+  title = 'קבצי הפרויקט',
+  eyebrow = 'מסמכים משותפים לפרויקט',
   compact = false,
 }) {
   useTranslation();
@@ -169,9 +190,23 @@ export default function ProjectDocumentsPanel({
           <div className="projectDocumentsList">
             {documents.map((document) => (
               <article className="projectDocumentItem" key={document.id}>
-                <span className="projectDocumentIcon">
-                  {isImageDocument(document) ? <ImageIcon size={20} /> : <FileText size={20} />}
-                </span>
+                {isImageDocument(document) ? (
+                  <DocumentThumbnail
+                    url={links[document.id]?.view}
+                    fileName={document.file_name}
+                    onPreview={() =>
+                      setPreviewDocument({
+                        url: links[document.id].view,
+                        fileName: document.file_name,
+                        isImage: true,
+                      })
+                    }
+                  />
+                ) : (
+                  <span className="projectDocumentIcon">
+                    <FileText size={20} aria-hidden="true" />
+                  </span>
+                )}
                 <div className="projectDocumentInfo">
                   <b title={document.file_name}>{document.file_name}</b>
                   <span className="projectDocumentTypeBadge">

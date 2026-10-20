@@ -479,6 +479,51 @@
   padding-block-start: 16px;
   margin: 0;
 }
+.reviewFilesVersionHint {
+  margin-block: 0 12px;
+}
+.project.projectWorkspace button.projectDocumentThumbnail {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
+.projectDocumentThumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.project.projectWorkspace .projectDocumentsPanel .projectDocumentsList {
+  grid-template-columns: minmax(0, 1fr);
+}
+.filePreviewUnavailable {
+  max-width: 520px;
+  margin: auto;
+  padding: 24px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.6;
+}
+.reviewFileVersionLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #17618f;
+}
+.project.projectWorkspace .projectDocumentItem.reviewFileSuperseded {
+  background: #f5f6f8;
+  border-color: #dce1e7;
+}
+.project.projectWorkspace
+  .reviewFileSuperseded
+  :is(.projectDocumentInfo b, .reviewFileVersionLabel, .projectDocumentIcon) {
+  color: #677586;
+}
+.project.projectWorkspace .reviewFileSuperseded .projectDocumentIcon {
+  background: #e9edf1;
+}
 .projectBoundaryShortcut > div {
   flex: 1;
   min-width: 120px;
@@ -665,7 +710,8 @@
     .projectBackButton,
     .projectTabsScrollArrow,
     .projectMoreActionsButton,
-    .reviewSelectedFileRemove
+    .reviewSelectedFileRemove,
+    .projectDocumentThumbnail
   ) {
   min-height: var(--project-control-height);
   height: auto;
@@ -707,7 +753,8 @@
     .projectBackButton,
     .projectTabsScrollArrow,
     .projectMoreActionsButton,
-    .reviewSelectedFileRemove
+    .reviewSelectedFileRemove,
+    .projectDocumentThumbnail
   ) {
   background: var(--project-action-hover-background, var(--surface-muted));
   border-color: var(--project-action-hover-border, #94a3b8);

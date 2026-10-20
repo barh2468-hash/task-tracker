@@ -1,5 +1,90 @@
 // Hebrew source keys with complete English and Greek translations.
 const entries = [
+  [
+    'אין לך הרשאה להעלות מסמכים לפרויקט הזה.',
+    'You do not have permission to upload files to this project.',
+    'Δεν έχετε άδεια να μεταφορτώσετε αρχεία σε αυτό το έργο.',
+  ],
+  [
+    'נדרש חיבור לאינטרנט כדי להעלות קובץ.',
+    'An internet connection is required to upload a file.',
+    'Απαιτείται σύνδεση στο διαδίκτυο για τη μεταφόρτωση αρχείου.',
+  ],
+  [
+    'אפשר להעלות PDF או תמונה בפורמט JPG, PNG, WEBP או HEIC.',
+    'Upload a PDF or an image in JPG, PNG, WebP or HEIC format.',
+    'Μεταφορτώστε PDF ή εικόνα σε μορφή JPG, PNG, WebP ή HEIC.',
+  ],
+  [
+    'אפשר להעלות קובץ PDF בלבד.',
+    'Only PDF files can be uploaded.',
+    'Επιτρέπεται η μεταφόρτωση μόνο αρχείων PDF.',
+  ],
+  [
+    'הקובץ ריק ולא ניתן להעלות אותו.',
+    'The file is empty and cannot be uploaded.',
+    'Το αρχείο είναι κενό και δεν μπορεί να μεταφορτωθεί.',
+  ],
+  [
+    'הקובץ גדול מדי. הגודל המרבי הוא 20MB.',
+    'The file is too large. The maximum size is 20 MB.',
+    'Το αρχείο είναι πολύ μεγάλο. Το μέγιστο μέγεθος είναι 20 MB.',
+  ],
+  [
+    'העלאת הקובץ נכשלה: {{message}}',
+    'File upload failed: {{message}}',
+    'Η μεταφόρτωση του αρχείου απέτυχε: {{message}}',
+  ],
+  [
+    'שמירת הקובץ בפרויקט נכשלה: {{message}}',
+    'Saving the file to the project failed: {{message}}',
+    'Η αποθήκευση του αρχείου στο έργο απέτυχε: {{message}}',
+  ],
+  [
+    'הקובץ הועלה ונשמר בפרויקט.',
+    'The file was uploaded and saved to the project.',
+    'Το αρχείο μεταφορτώθηκε και αποθηκεύτηκε στο έργο.',
+  ],
+  ['קבצי הפרויקט', 'Project files', 'Αρχεία έργου'],
+  ['תצוגה מקדימה של {{name}}', 'Preview {{name}}', 'Προεπισκόπηση {{name}}'],
+  [
+    'הדפדפן לא הצליח להציג את התמונה. אפשר להוריד את הקובץ ולפתוח אותו במכשיר.',
+    'The browser could not display this image. Download the file to open it on your device.',
+    'Το πρόγραμμα περιήγησης δεν μπόρεσε να εμφανίσει την εικόνα. Κατεβάστε το αρχείο για να το ανοίξετε στη συσκευή σας.',
+  ],
+  ['הוספת קובצי PDF', 'Add PDF files', 'Προσθήκη αρχείων PDF'],
+  ['העלאה קודמת', 'Previous upload', 'Προηγούμενη μεταφόρτωση'],
+  ['העלאה עדכנית', 'Current upload', 'Τρέχουσα μεταφόρτωση'],
+  [
+    'אפשר לבחור כמה קבצים יחד או להוסיף קבצים בבחירות נפרדות.',
+    'Select several files together, or add files in separate selections.',
+    'Επιλέξτε πολλά αρχεία μαζί ή προσθέστε αρχεία με ξεχωριστές επιλογές.',
+  ],
+  [
+    '{{count}} קובצי PDF נבחרו · הוספת קבצים',
+    '{{count}} PDF files selected · Add files',
+    'Επιλέχθηκαν {{count}} αρχεία PDF · Προσθήκη αρχείων',
+  ],
+  [
+    'הקבצים מההעלאה האחרונה הם העדכניים. קבצים מהעלאות קודמות נשמרים לצפייה.',
+    'Files from the latest upload are current. Previous uploads remain available to view.',
+    'Τα αρχεία της τελευταίας μεταφόρτωσης είναι τα τρέχοντα. Οι προηγούμενες μεταφορτώσεις παραμένουν διαθέσιμες για προβολή.',
+  ],
+  [
+    'אפשר להעלות קובצי הגהה כשהפרויקט בשרטוט או בהגהה.',
+    'Review files can be uploaded while the project is in drafting or under review.',
+    'Μπορείτε να μεταφορτώσετε αρχεία ελέγχου όταν το έργο βρίσκεται σε σχεδίαση ή υπό έλεγχο.',
+  ],
+  [
+    'מנת שרטוט {{number}} נשלחה להגהה: {{name}}',
+    'Drawing batch {{number}} submitted for review: {{name}}',
+    'Η παρτίδα σχεδίων {{number}} υποβλήθηκε για έλεγχο: {{name}}',
+  ],
+  [
+    '{{name}} שלח את מנת השרטוט להגהה.',
+    '{{name}} submitted the drawing batch for review.',
+    'Ο χρήστης {{name}} υπέβαλε την παρτίδα σχεδίων για έλεγχο.',
+  ],
   ['התקשרות', 'Call', 'Κλήση'],
   ['שליחת מייל', 'Send email', 'Αποστολή email'],
   ['נוצרה מנת שרטוט', 'Drawing batch created', 'Δημιουργήθηκε παρτίδα σχεδίων'],

@@ -1073,7 +1073,7 @@ export default function ProjectCard({ project, onBack }) {
                   onApprove={() => updateStatus(project, REVIEW_COMPLETED_STATUS, '')}
                 />
 
-                {canManageReview && project.status === 'עבר לשרטוט' && (
+                {canManageReview && (project.status === 'עבר לשרטוט' || isReviewSent) && (
                   <DrafterReviewBox
                     reviewFiles={reviewFiles}
                     setReviewFiles={setReviewFiles}

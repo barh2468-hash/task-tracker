@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Download, Eye, LoaderCircle, X } from 'lucide-react';
 import { t } from '../../language/LanguageContext.jsx';
+import { useTranslation } from 'react-i18next';
 
 export default function PdfPreviewModal({ url, fileName, isImage = false, onClose }) {
+  useTranslation();
   const [loaded, setLoaded] = useState(false);
+  const [failedUrl, setFailedUrl] = useState(null);
 
   useEffect(() => {
     if (!url) return undefined;
@@ -55,19 +58,26 @@ export default function PdfPreviewModal({ url, fileName, isImage = false, onClos
           </div>
         </header>
         <div className="pdfPreviewFrame">
-          {!loaded && (
+          {!loaded && failedUrl !== url && (
             <div className="pdfPreviewLoading" role="status">
               <LoaderCircle size={28} />
               <span>{t('טוען את הקובץ...')}</span>
             </div>
           )}
-          {isImage ? (
+          {isImage && failedUrl === url ? (
+            <p className="filePreviewUnavailable" role="status">
+              {t('הדפדפן לא הצליח להציג את התמונה. אפשר להוריד את הקובץ ולפתוח אותו במכשיר.')}
+            </p>
+          ) : isImage ? (
             <img
               className="filePreviewImage"
               src={url}
               alt={fileName}
               onLoad={() => setLoaded(true)}
-              onError={() => setLoaded(true)}
+              onError={() => {
+                setLoaded(true);
+                setFailedUrl(url);
+              }}
             />
           ) : (
             <iframe

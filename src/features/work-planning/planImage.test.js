@@ -1,12 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { planImageLayout, wrapImageText } from './planImage.js';
+import { planImageInputKey, planImageLayout, wrapImageText } from './planImage.js';
 import { createPlanRow, planColumns } from './localPlans.js';
 const workbook = JSON.parse(readFileSync(new URL('./october-20-work-plan.json', import.meta.url), 'utf8'));
 
 const measure = (value) => Array.from(value).length * 11;
 const labels = Object.fromEntries(planColumns.map((key) => [key, key]));
+
+test('background worker refreshes with unchanged names do not invalidate the image', () => {
+  const input = { rows: workbook.rows, workers: [{ id: 'worker-1', full_name: 'עידן', updated_at: 'before' }], labels, title: 'Plan', footer: '26', rtl: true };
+  const refreshed = { ...input, rows: structuredClone(input.rows), workers: [{ ...input.workers[0], updated_at: 'after', is_online: true }] };
+  assert.equal(planImageInputKey(input), planImageInputKey(refreshed));
+  assert.deepEqual(JSON.parse(planImageInputKey(input)).rows.map((row) => row.work), workbook.rows.map((row) => row.work));
+});
+
+test('visible edits, worker identities, language and row order still invalidate the image', () => {
+  const input = { rows: workbook.rows, workers: [{ id: 'worker-1', full_name: 'עידן' }], labels, title: 'Plan', footer: '26', rtl: true };
+  const original = planImageInputKey(input);
+  for (const changed of [
+    { ...input, rows: input.rows.map((row, index) => index === 0 ? { ...row, notes: 'Updated note' } : row) },
+    { ...input, rows: [...input.rows].reverse() },
+    { ...input, workers: [{ id: 'worker-2', full_name: 'עידן' }] },
+    { ...input, workers: [{ id: 'worker-1', full_name: 'עידן שטיינברג' }] },
+    { ...input, labels: { ...labels, start: 'Start of work' }, rtl: false },
+    { ...input, title: 'Next day' },
+  ]) assert.notEqual(planImageInputKey(changed), original);
+});
 test('long unbroken contact details and manual line breaks are preserved without clipping', () => {
   const value = 'https://example.com/' + 'x'.repeat(140) + '\nפגישה בשטח בבוקר';
   const lines = wrapImageText(value, 140, measure);

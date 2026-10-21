@@ -4,7 +4,7 @@ import { Download, Maximize2, Share2, ZoomIn, ZoomOut } from 'lucide-react';
 import { t, useLanguage } from '../language/LanguageContext.jsx';
 import { localeForLanguage } from '../language/locale.js';
 import { planColumns } from './localPlans.js';
-import { renderPlanImage } from './planImage.js';
+import { planImageInputKey, renderPlanImage } from './planImage.js';
 
 export default function PublishedPlanImage({ rows, workers, date, title }) {
   useTranslation();
@@ -13,21 +13,27 @@ export default function PublishedPlanImage({ rows, workers, date, title }) {
   const [attempt, setAttempt] = useState(0);
   const [zoom, setZoom] = useState('width');
   const [shareError, setShareError] = useState(false);
+  const renderKey = planImageInputKey({
+    rows: rows.map((row) => ({ ...row, start: row.start === '__after__' ? t('workPlan.after') : row.start })),
+    workers, title, rtl: language === 'he',
+    labels: Object.fromEntries(planColumns.map((column) => [column, t(`workPlan.${column}`)])),
+    footer: t('workPlan.count', { count: new Intl.NumberFormat(localeForLanguage(language)).format(rows.length) }),
+  });
   useEffect(() => {
     let active = true;
-    let url;
-    setImage({ loading: true });
-    const formattedRows = rows.map((row) => ({ ...row, start: row.start === '__after__' ? t('workPlan.after') : row.start }));
-    renderPlanImage({ rows: formattedRows, workers, title, rtl: language === 'he',
-      labels: Object.fromEntries(planColumns.map((column) => [column, t(`workPlan.${column}`)])),
-      footer: t('workPlan.count', { count: new Intl.NumberFormat(localeForLanguage(language)).format(rows.length) }),
-    }).then((result) => {
+    // Keep the current image and its height while a real content change is rendered.
+    setImage((previous) => ({ ...previous, loading: true, error: false }));
+    renderPlanImage(JSON.parse(renderKey)).then((result) => {
       if (!active) return;
-      url = URL.createObjectURL(result.blob);
+      const url = URL.createObjectURL(result.blob);
       setImage({ ...result, url, loading: false });
-    }).catch(() => { if (active) setImage({ loading: false, error: true }); });
-    return () => { active = false; if (url) URL.revokeObjectURL(url); };
-  }, [rows, workers, title, language, attempt]);
+    }).catch(() => { if (active) setImage((previous) => ({ ...previous, loading: false, error: true })); });
+    return () => { active = false; };
+  }, [renderKey, attempt]);
+  useEffect(() => {
+    const url = image.url;
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [image.url]);
 
   function download() {
     const anchor = document.createElement('a');
@@ -46,7 +52,7 @@ export default function PublishedPlanImage({ rows, workers, date, title }) {
     catch (error) { if (error.name !== 'AbortError') setShareError(true); }
   }
 
-  const ready = Boolean(image.url);
+  const ready = Boolean(image.url) && !image.loading && !image.error;
   return <div className="workPlanImageView">
     <div className="workPlanImageControls" role="group" aria-label={t('workPlan.imageControls')}>
       <button type="button" className="ghost" disabled={!ready || zoom >= 200} aria-label={t('workPlan.imageZoomIn')} onClick={() => setZoom((value) => typeof value === 'number' ? Math.min(200, value + 25) : 100)}><ZoomIn size={17} aria-hidden="true" /></button>
@@ -57,13 +63,13 @@ export default function PublishedPlanImage({ rows, workers, date, title }) {
       <button type="button" className="secondary" disabled={!ready} onClick={download}><Download size={16} aria-hidden="true" />{t('workPlan.imageDownload')}</button>
       {typeof navigator.share === 'function' && <button type="button" className="secondary" disabled={!ready} onClick={share}><Share2 size={16} aria-hidden="true" />{t('workPlan.imageShare')}</button>}
     </div>
-    {image.loading && <p role="status">{t('workPlan.imageLoading')}</p>}
+    {image.loading && <p role="status" className={image.url ? 'visuallyHidden' : undefined}>{t('workPlan.imageLoading')}</p>}
     {image.error && <div className="workPlanError" role="alert"><p>{t('workPlan.imageError')}</p><button type="button" onClick={() => setAttempt((value) => value + 1)}>{t('workPlan.imageRetry')}</button></div>}
     {shareError && <p className="workPlanError" role="alert">{t('workPlan.imageShareError')}</p>}
     {/* Keyboard focus lets readers scroll an enlarged image. */}
     {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-    {ready && <div className={`workPlanImageViewport${zoom === 'width' ? ' widthFit' : ''}`} role="region" aria-label={t('workPlan.imageRegion')} tabIndex={0}>
-      <img src={image.url} alt={t('workPlan.imageAlt', { title })} draggable={false} className={zoom === 'width' ? 'widthFit' : zoom === null ? 'fit' : 'zoomed'}
+    {image.url && <div className={`workPlanImageViewport${zoom === 'width' ? ' widthFit' : ''}`} role="region" aria-label={t('workPlan.imageRegion')} aria-busy={image.loading} tabIndex={0}>
+      <img src={image.url} width={image.width} height={image.height} alt={t('workPlan.imageAlt', { title })} draggable={false} className={zoom === 'width' ? 'widthFit' : zoom === null ? 'fit' : 'zoomed'}
         style={typeof zoom !== 'number' ? undefined : { width: image.width * zoom / 100, height: image.height * zoom / 100 }} />
     </div>}
   </div>;

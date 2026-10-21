@@ -6,6 +6,15 @@ const padding = 12;
 const lineHeight = 28;
 const font = '20px Arial, sans-serif';
 
+// Background directory refreshes replace objects even when the visible plan is unchanged.
+export function planImageInputKey({ rows, workers = [], labels, title, footer, rtl }) {
+  return JSON.stringify({
+    rows: rows.map((row) => Object.fromEntries(planColumns.map((column) => [column, row[column]]))),
+    workers: workers.map(({ id, full_name }) => ({ id, full_name })),
+    labels, title, footer, rtl,
+  });
+}
+
 export function wrapImageText(text, width, measure) {
   const lines = [];
   for (const paragraph of String(text || '').replace(/\r/g, '').split('\n')) {

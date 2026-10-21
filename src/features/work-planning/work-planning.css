@@ -216,9 +216,12 @@
 .workPlanImageViewport:focus-visible { outline: 2px solid #8cadcb; outline-offset: 2px; }
 .workPlanImageViewport img { display: block; margin: auto; background: #fff; box-shadow: 0 2px 12px #20364f18; }
 .workPlanImageViewport img.fit { width: 100%; height: 100%; object-fit: contain; box-shadow: none; background: transparent; }
+.workPlanImageViewport.widthFit { height: auto; }
+.workPlanImageViewport img.widthFit { width: 100%; height: auto; }
 .workPlanImageViewport img.zoomed { max-width: none; }
 .workPlanExpanded>.workPlanImageView { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .workPlanExpanded .workPlanImageViewport { flex: 1; min-height: 0; }
+.workPlanExpanded .workPlanImageViewport.widthFit { height: 0; }
 @media(pointer:coarse) { .workPlanPage .workPlanImageControls button { min-height: 44px; } }
 @media print {
   .workPlanImageView { display: none!important; }

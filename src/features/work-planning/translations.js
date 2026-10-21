@@ -1,4 +1,5 @@
 export const heWorkPlanning = {
+  'workPlan.imageFitWidth': 'התאמה לרוחב העמוד',
   'workPlan.imageFilename': 'תכנון-עבודה-{{date}}.png',
   'workPlan.imageControls': 'כלי צפייה והורדה של תמונת התכנון',
   'workPlan.imageZoomIn': 'הגדלת תמונת התכנון',
@@ -145,6 +146,7 @@ export const heWorkPlanning = {
 };
 
 export const enWorkPlanning = {
+  'workPlan.imageFitWidth': 'Fit to page width',
   'workPlan.imageFilename': 'work-plan-{{date}}.png',
   'workPlan.imageControls': 'Plan image viewing and download controls',
   'workPlan.imageZoomIn': 'Zoom in on the plan image',
@@ -266,6 +268,7 @@ export const enWorkPlanning = {
 };
 
 export const elWorkPlanning = {
+  'workPlan.imageFitWidth': 'Προσαρμογή στο πλάτος της σελίδας',
   'workPlan.imageFilename': 'πρόγραμμα-εργασίας-{{date}}.png',
   'workPlan.imageControls': 'Εργαλεία προβολής και λήψης της εικόνας προγράμματος',
   'workPlan.imageZoomIn': 'Μεγέθυνση της εικόνας προγράμματος',

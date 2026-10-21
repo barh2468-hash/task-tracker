@@ -11,7 +11,7 @@ export default function PublishedPlanImage({ rows, workers, date, title }) {
   const { language } = useLanguage();
   const [image, setImage] = useState({ loading: true });
   const [attempt, setAttempt] = useState(0);
-  const [zoom, setZoom] = useState(null);
+  const [zoom, setZoom] = useState('width');
   const [shareError, setShareError] = useState(false);
   useEffect(() => {
     let active = true;
@@ -49,10 +49,11 @@ export default function PublishedPlanImage({ rows, workers, date, title }) {
   const ready = Boolean(image.url);
   return <div className="workPlanImageView">
     <div className="workPlanImageControls" role="group" aria-label={t('workPlan.imageControls')}>
-      <button type="button" className="ghost" disabled={!ready || zoom >= 200} aria-label={t('workPlan.imageZoomIn')} onClick={() => setZoom((value) => value === null ? 100 : Math.min(200, value + 25))}><ZoomIn size={17} aria-hidden="true" /></button>
-      <button type="button" className="ghost" disabled={!ready || zoom === null || zoom <= 25} aria-label={t('workPlan.imageZoomOut')} onClick={() => setZoom((value) => Math.max(25, value - 25))}><ZoomOut size={17} aria-hidden="true" /></button>
+      <button type="button" className="ghost" disabled={!ready || zoom >= 200} aria-label={t('workPlan.imageZoomIn')} onClick={() => setZoom((value) => typeof value === 'number' ? Math.min(200, value + 25) : 100)}><ZoomIn size={17} aria-hidden="true" /></button>
+      <button type="button" className="ghost" disabled={!ready || typeof zoom !== 'number' || zoom <= 25} aria-label={t('workPlan.imageZoomOut')} onClick={() => setZoom((value) => Math.max(25, value - 25))}><ZoomOut size={17} aria-hidden="true" /></button>
+      <button type="button" className="ghost" disabled={!ready} aria-pressed={zoom === 'width'} onClick={() => setZoom('width')}><Maximize2 size={16} aria-hidden="true" />{t('workPlan.imageFitWidth')}</button>
       <button type="button" className="ghost" disabled={!ready} aria-pressed={zoom === null} onClick={() => setZoom(null)}><Maximize2 size={16} aria-hidden="true" />{t('workPlan.imageFit')}</button>
-      <span role="status">{zoom === null ? '' : new Intl.NumberFormat(localeForLanguage(language), { style: 'percent' }).format(zoom / 100)}</span>
+      <span role="status">{typeof zoom === 'number' ? new Intl.NumberFormat(localeForLanguage(language), { style: 'percent' }).format(zoom / 100) : ''}</span>
       <button type="button" className="secondary" disabled={!ready} onClick={download}><Download size={16} aria-hidden="true" />{t('workPlan.imageDownload')}</button>
       {typeof navigator.share === 'function' && <button type="button" className="secondary" disabled={!ready} onClick={share}><Share2 size={16} aria-hidden="true" />{t('workPlan.imageShare')}</button>}
     </div>
@@ -61,9 +62,9 @@ export default function PublishedPlanImage({ rows, workers, date, title }) {
     {shareError && <p className="workPlanError" role="alert">{t('workPlan.imageShareError')}</p>}
     {/* Keyboard focus lets readers scroll an enlarged image. */}
     {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-    {ready && <div className="workPlanImageViewport" role="region" aria-label={t('workPlan.imageRegion')} tabIndex={0}>
-      <img src={image.url} alt={t('workPlan.imageAlt', { title })} draggable={false} className={zoom === null ? 'fit' : 'zoomed'}
-        style={zoom === null ? undefined : { width: image.width * zoom / 100, height: image.height * zoom / 100 }} />
+    {ready && <div className={`workPlanImageViewport${zoom === 'width' ? ' widthFit' : ''}`} role="region" aria-label={t('workPlan.imageRegion')} tabIndex={0}>
+      <img src={image.url} alt={t('workPlan.imageAlt', { title })} draggable={false} className={zoom === 'width' ? 'widthFit' : zoom === null ? 'fit' : 'zoomed'}
+        style={typeof zoom !== 'number' ? undefined : { width: image.width * zoom / 100, height: image.height * zoom / 100 }} />
     </div>}
   </div>;
 }

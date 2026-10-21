@@ -207,7 +207,22 @@
   .workPlanWorkerMenu>input { min-height: 44px; font-size: 16px; }
 }
 @page work-plan { size: A4 landscape; margin: 10mm; }
+.workPlanImageView { min-width: 0; }
+.workPlanImageControls { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 9px; }
+.workPlanPage .workPlanImageControls button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 6px 10px; border: 1px solid #dce5ef; border-radius: 8px; background: #fff; color: #284866; font-size: 12px; box-shadow: none; }
+.workPlanPage .workPlanImageControls button[aria-pressed=true] { background: #eef4fb; }
+.workPlanImageControls>span { min-width: 42px; color: #68788d; font-size: 12px; text-align: center; }
+.workPlanImageViewport { height: clamp(220px,calc(100dvh - 390px),850px); overflow: auto; padding: 10px; border: 1px solid #dce5ef; border-radius: 10px; background: #edf2f7; overscroll-behavior: contain; }
+.workPlanImageViewport:focus-visible { outline: 2px solid #8cadcb; outline-offset: 2px; }
+.workPlanImageViewport img { display: block; margin: auto; background: #fff; box-shadow: 0 2px 12px #20364f18; }
+.workPlanImageViewport img.fit { width: 100%; height: 100%; object-fit: contain; box-shadow: none; background: transparent; }
+.workPlanImageViewport img.zoomed { max-width: none; }
+.workPlanExpanded>.workPlanImageView { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.workPlanExpanded .workPlanImageViewport { flex: 1; min-height: 0; }
+@media(pointer:coarse) { .workPlanPage .workPlanImageControls button { min-height: 44px; } }
 @media print {
+  .workPlanImageView { display: none!important; }
+  .workPlanTableWrap[hidden] { display: block!important; }
   body:has(.workPlanPage) * { visibility: hidden; }
   body:has(.workPlanPage) .workPlanPage,body:has(.workPlanPage) .workPlanPage * { visibility: visible; }
   .workPlanPage,.workPlanPage.workPlanExpanded { page: work-plan; position: absolute; inset: 0; display: block; height: auto; overflow: visible; padding: 0; border: 0; border-radius: 0; background: #fff; color: #000; box-shadow: none; }

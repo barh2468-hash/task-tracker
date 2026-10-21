@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, ArrowUp, CalendarDays, ChevronLeft, ChevronRight, Copy, CornerDownLeft, Eye, Info, Maximize2, Minimize2, PencilLine, Plus, Printer, Save, Send, Table2, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, CalendarDays, ChevronLeft, ChevronRight, Copy, CornerDownLeft, Eye, Image as ImageIcon, Info, Maximize2, Minimize2, PencilLine, Plus, Printer, Save, Send, Table2, Trash2 } from 'lucide-react';
 import { t, useLanguage } from '../language/LanguageContext.jsx';
 import { localeForLanguage } from '../language/locale.js';
 import { applyProject, createPlanRow, planColumns, planStorageKey, samePlanRows, shiftPlanDate, todayPlanDate } from './localPlans.js';
@@ -11,6 +11,7 @@ import { getWorkerCellGroups, updateWorkerGroup } from './rowGroups.js';
 import WorkerPicker from './WorkerPicker.jsx';
 import StaffingCounter from './StaffingCounter.jsx';
 import SharedPlanLoader from './SharedPlanLoader.jsx';
+import PublishedPlanImage from './PublishedPlanImage.jsx';
 import './work-planning.css';
 
 function WorkPlanTextarea(props) {
@@ -44,6 +45,7 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
   const [publishError, setPublishError] = useState('');
   const [copying, setCopying] = useState(false);
   const [copyError, setCopyError] = useState(false);
+  const [imageMode, setImageMode] = useState(true);
   const copyRequestRef = useRef(null);
   const pageRef = useRef(null);
   const expandButtonRef = useRef(null);
@@ -53,6 +55,7 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
   const publishedRows = shared ? shared.record?.rows || [] : plan.publishedRows;
   const publishedAt = shared ? shared.record?.published_at : plan.publishedAt;
   const rows = editing ? plan.rows : publishedRows || [];
+  const showingImage = !editing && imageMode && rows.length > 0;
   const rowNumber = (index) => new Intl.NumberFormat(locale).format(index + 1);
   const displayedDate = new Intl.DateTimeFormat(locale, {
     timeZone: 'Asia/Hebron', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -300,13 +303,16 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
         <button type="button" className={!editing ? 'active' : 'ghost'} disabled={copying} aria-pressed={!editing} onClick={() => { setViewing(true); setNotice(''); }}><Eye size={14} aria-hidden="true" />{t('workPlan.view')}</button>
       </div>
     </div>
-    <div className="workPlanUtilityRow"><p>{t('workPlan.compactHint')}<span className="workPlanMobileScroll"> {t('workPlan.scroll')}</span></p><div>
+    <div className="workPlanUtilityRow"><p>{t(showingImage ? 'workPlan.imageHint' : 'workPlan.compactHint')}{!showingImage && <span className="workPlanMobileScroll"> {t('workPlan.scroll')}</span>}</p><div>
       <button ref={expandButtonRef} type="button" className="ghost workPlanExpandControl" aria-expanded={expanded} aria-controls={`${listId}-plan-screen`} onClick={() => setExpanded((value) => !value)}>
         {expanded ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}{t(expanded ? 'workPlan.collapseTable' : 'workPlan.expandTable')}
       </button>
       {editing && <button type="button" className="ghost" disabled={blocked || date === '1900-01-01'} aria-busy={copying} onClick={copyPrevious}><Copy size={16} aria-hidden="true" />{t(copying ? 'workPlan.copyingPrevious' : 'workPlan.copyPrevious')}</button>}
       {editing && shared?.record && <button type="button" className="ghost" disabled={blocked || samePlanRows(plan.rows, publishedRows)} onClick={loadPublishedDraft}>
         <Copy size={16} aria-hidden="true" />{t('workPlan.loadPublished')}
+      </button>}
+      {!editing && rows.length > 0 && <button type="button" className="ghost" onClick={() => setImageMode((value) => !value)}>
+        {imageMode ? <Table2 size={16} aria-hidden="true" /> : <ImageIcon size={16} aria-hidden="true" />}{t(imageMode ? 'workPlan.imageShowTable' : 'workPlan.imageShowImage')}
       </button>}
       <button type="button" className="ghost" disabled={!rows.length} onClick={() => window.print()}><Printer size={16} aria-hidden="true" />{t('workPlan.print')}</button>
     </div></div>
@@ -318,9 +324,10 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
         local.reload(); setNotice('');
       }}>{t('workPlan.reload')}</button>
     </div>}
+    {showingImage && <PublishedPlanImage rows={publishedRows} workers={workers} date={date} title={t('workPlan.tableTitle', { date: displayedDate })} />}
     {/* Keyboard focus is needed to scroll the read-only table horizontally. */}
     {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-    <div className="workPlanTableWrap" ref={tableRef} role="region" aria-label={t('workPlan.tableLabel', { date: displayedDate })} tabIndex={0}>
+    <div className="workPlanTableWrap" hidden={showingImage} ref={tableRef} role="region" aria-label={t('workPlan.tableLabel', { date: displayedDate })} tabIndex={0}>
       <table className="workPlanTable">
         <caption><span>{t('workPlan.tableTitle', { date: displayedDate })}</span></caption>
         <colgroup>{planColumns.map((column) => <col key={column} className={`workPlanColumn-${column}`} />)}</colgroup>

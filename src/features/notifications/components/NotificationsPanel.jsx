@@ -1,9 +1,12 @@
 import { useTranslation } from 'react-i18next';
-import { t } from '../../language/LanguageContext.jsx';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
+import { notificationText } from '../notificationText.js';
 import { useNotifications } from '../NotificationsContext.jsx';
 
 export default function NotificationsPanel({ onOpenProject }) {
   useTranslation();
+  const { language } = useLanguage();
   const { notifications, markNotificationRead, markAllNotificationsRead } = useNotifications();
   const unread = notifications.filter((n) => !n.is_read).length;
 
@@ -16,7 +19,7 @@ export default function NotificationsPanel({ onOpenProject }) {
   }
 
   return (
-    <section className="card notificationsPanel">
+    <section className="card notificationsPanel" dir={language === 'he' ? 'rtl' : 'ltr'}>
       <div className="reportHeader">
         <div>
           <h2>{t('התראות')}</h2>
@@ -48,12 +51,12 @@ export default function NotificationsPanel({ onOpenProject }) {
             title={item.project_id ? t('פתח פרויקט') : undefined}
           >
             <div>
-              <b>{item.title}</b>
-              {item.body && <p>{item.body}</p>}
+              <b>{notificationText(item, t).title}</b>
+              {item.body && <p>{notificationText(item, t).body}</p>}
               <span className="muted">
                 {item.projects?.name ? `${item.projects.name} · ` : ''}
                 {item.profiles?.full_name ? `${item.profiles.full_name} · ` : ''}
-                {new Date(item.created_at).toLocaleString('he-IL')}
+                {new Date(item.created_at).toLocaleString(localeForLanguage(language))}
               </span>
             </div>
             {!item.is_read && (

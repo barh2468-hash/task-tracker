@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { t } from '../../language/LanguageContext.jsx';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
+import { notificationText } from '../notificationText.js';
 import { X } from 'lucide-react';
 import { useNotifications } from '../NotificationsContext.jsx';
 
@@ -11,6 +13,7 @@ export default function NotificationsPopover({
   onOpenProject,
 }) {
   useTranslation();
+  const { language } = useLanguage();
   const { notifications, unreadCount, markNotificationRead, markAllNotificationsRead } =
     useNotifications();
   const recent = notifications.slice(0, 6);
@@ -34,7 +37,7 @@ export default function NotificationsPopover({
       role="region"
       aria-label={t('התראות')}
       className="notificationsPopover notificationsPopoverViewport"
-      dir="rtl"
+      dir={language === 'he' ? 'rtl' : 'ltr'}
       style={
         position
           ? {
@@ -69,9 +72,9 @@ export default function NotificationsPopover({
           >
             <span className="dot" />
             <span className="popoverText">
-              <b>{item.title}</b>
-              {item.body && <small>{item.body}</small>}
-              <em>{new Date(item.created_at).toLocaleString('he-IL')}</em>
+              <b>{notificationText(item, t).title}</b>
+              {item.body && <small>{notificationText(item, t).body}</small>}
+              <em>{new Date(item.created_at).toLocaleString(localeForLanguage(language))}</em>
             </span>
           </button>
         ))}

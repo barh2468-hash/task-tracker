@@ -1,6 +1,26 @@
 // Hebrew source keys with complete English and Greek translations.
 const entries = [
   [
+    'ההגהה אושרה והפרויקט עבר לבקרה: {{name}}',
+    'Review approved and project sent to control: {{name}}',
+    'Ο έλεγχος εγκρίθηκε και το έργο στάλθηκε για τελικό έλεγχο: {{name}}',
+  ],
+  [
+    'ההגהה אושרה והפרויקט עבר לבקרה',
+    'Review approved and project sent to control',
+    'Ο έλεγχος εγκρίθηκε και το έργο στάλθηκε για τελικό έλεγχο',
+  ],
+  [
+    '{{name}} אישר את ההגהה. הפרויקט עבר לבקרה.',
+    '{{name}} approved the review. The project was sent to control.',
+    'Ο/Η {{name}} ενέκρινε τον έλεγχο. Το έργο στάλθηκε για τελικό έλεγχο.',
+  ],
+  [
+    'הפרויקט עבר לבקרה לאחר אישור ההגהה.',
+    'The project was sent to control after review approval.',
+    'Το έργο στάλθηκε για τελικό έλεγχο μετά την έγκριση του ελέγχου.',
+  ],
+  [
     'אין לך הרשאה להעלות מסמכים לפרויקט הזה.',
     'You do not have permission to upload files to this project.',
     'Δεν έχετε άδεια να μεταφορτώσετε αρχεία σε αυτό το έργο.',

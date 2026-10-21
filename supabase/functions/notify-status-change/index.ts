@@ -2,6 +2,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sendEmail, type EmailAttachment } from '../_shared/smtp.ts';
 import { getStatusEmailTheme } from '../_shared/status-email-theme.ts';
 import { createWorkDiaryPdf } from './work-diary-pdf.ts';
+import { getStatusEmailRecipients } from './recipients.js';
+import { notifyReviewApprovedDrafters } from './notifications.js';
 
 type Payload = {
   projectId: string;
@@ -97,7 +99,7 @@ Deno.serve(async (req) => {
     if (changerError) throw changerError;
     if (!changer) throw new Error('Missing changer profile');
 
-    // Field workers, managers, and administrators trigger management email notifications.
+    // Field workers, managers, and administrators trigger status email notifications.
     if (!['field_worker', 'manager', 'admin'].includes(changer.role)) {
       return new Response(
         JSON.stringify({ ok: true, skipped: true, reason: 'changed_by_role_is_not_supported' }),
@@ -105,27 +107,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: managers, error: managersError } = await adminClient
-      .from('profiles')
-      .select('email,full_name')
-      .in('role', ['manager', 'admin'])
-      .not('email', 'is', null);
+    // Check project access before resolving recipients with the service role.
+    const { data: project, error: projectError } = await userClient
+      .from('projects')
+      .select('id,status')
+      .eq('id', payload.projectId)
+      .maybeSingle();
+    if (projectError) throw projectError;
+    if (!project) throw new Error('Project not found or access denied');
 
-    if (managersError) throw managersError;
-
-    const recipients = Array.from(
-      new Set((managers || []).map((m) => m.email).filter(Boolean)),
-    ) as string[];
-    if (!recipients.length) {
+    const isReviewApproval = payload.oldStatus === 'נשלח להגהה' &&
+      payload.newStatus === 'עבר לבקרה' && project.status === 'עבר לבקרה';
+    const { recipients, drafterIds, isDrafting, awaitingDrafterAssignment } =
+      await getStatusEmailRecipients(adminClient, payload.projectId, payload.newStatus);
+    if (!recipients.length && !(isReviewApproval && drafterIds.length)) {
       return new Response(
-        JSON.stringify({ ok: true, skipped: true, reason: 'no_manager_emails' }),
+        JSON.stringify({ ok: true, skipped: true, reason: 'no_recipient_emails' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    const awaitingDrafterAssignment = payload.newStatus === 'עבר לשרטוט';
     let executionStartDate: string | null = null;
-    if (awaitingDrafterAssignment) {
+    if (isDrafting) {
       const { data: firstWorkSession, error: firstWorkSessionError } = await adminClient
         .from('work_sessions')
         .select('started_at')
@@ -222,12 +225,12 @@ Deno.serve(async (req) => {
                   </td>
                 </tr>
                 ${
-                  awaitingDrafterAssignment
+                  isDrafting
                     ? `
                 <tr>
                   <td style="padding:0 30px 18px">
                     <div style="padding:15px 17px;border-right:5px solid ${newStatusTheme.accent};border-radius:12px;background:${newStatusTheme.background};color:${newStatusTheme.text};font-size:14px;line-height:1.65">
-                      <b>נדרשת פעולת מנהל</b><br/>יש להיכנס למערכת ולשייך את הפרויקט לשרטט.<br/>
+                      ${awaitingDrafterAssignment ? '<b>נדרשת פעולת מנהל</b><br/>יש להיכנס למערכת ולשייך את הפרויקט לשרטט.<br/>' : ''}
                       <span style="font-size:13px">תאריך תחילת ביצוע: ${escapeHtml(executionStartDate || 'לא נמצא דיווח כניסה')}</span>
                     </div>
                   </td>
@@ -287,7 +290,7 @@ Deno.serve(async (req) => {
       `מיקום: ${payload.location || 'לא צוין'}`,
       `סטטוס קודם: ${payload.oldStatus || 'לא צוין'}`,
       `סטטוס חדש: ${payload.newStatus}`,
-      awaitingDrafterAssignment
+      isDrafting
         ? `תאריך תחילת ביצוע: ${executionStartDate || 'לא נמצא דיווח כניסה'}`
         : '',
       awaitingDrafterAssignment ? 'נדרשת פעולת מנהל: יש לשייך את הפרויקט לשרטט במערכת.' : '',
@@ -302,15 +305,18 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .join('\n');
 
-    const result = await sendEmail({
+    const drafterNotifications = isReviewApproval
+      ? await notifyReviewApprovedDrafters(userClient, drafterIds, payload.projectId, subject, text)
+      : undefined;
+    const result = recipients.length ? await sendEmail({
       to: recipients,
       subject,
       html,
       text,
       attachments: attachments.length ? attachments : undefined,
-    });
+    }) : undefined;
     return new Response(
-      JSON.stringify({ ok: true, sentTo: recipients.length, attachedDiaryNumber, result }),
+      JSON.stringify({ ok: true, sentTo: recipients.length, attachedDiaryNumber, drafterNotifications, result }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {

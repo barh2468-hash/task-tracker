@@ -7,7 +7,7 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text unique,
   full_name text not null,
-  role text not null default 'field_worker' check (role in ('admin','manager','field_worker','drafter','accounting')),
+  role text not null default 'field_worker' check (role in ('admin','manager','field_worker','drafter','accounting','accounting_main')),
   created_at timestamptz default now()
 );
 

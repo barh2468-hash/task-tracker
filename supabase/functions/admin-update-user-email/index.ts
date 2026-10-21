@@ -39,7 +39,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const allowedRoles = new Set(['admin', 'manager', 'field_worker', 'drafter', 'accounting']);
+const allowedRoles = new Set(['admin', 'manager', 'field_worker', 'drafter', 'accounting', 'accounting_main']);
 
 const json = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: corsHeaders });

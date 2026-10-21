@@ -50,6 +50,13 @@ const VehiclesPage = lazy(() => import('./routes/VehiclesPage.jsx'));
 const VehicleDetailPage = lazy(() => import('./routes/VehicleDetailPage.jsx'));
 const VehicleFinesPage = lazy(() => import('./routes/VehicleFinesPage.jsx'));
 
+// The year-end table is for the main accounting role only; regular accounting gets fuel.
+function RequireMainAccounting({ children }) {
+  const { isAccountingMain } = useAuth();
+  if (!isAccountingMain) return <Navigate to="/app/accounting/fuel" replace />;
+  return children;
+}
+
 // Vehicle management belongs to the manager role.
 function RequireVehicleAccess({ children }) {
   const { isManager } = useAuth();
@@ -59,8 +66,8 @@ function RequireVehicleAccess({ children }) {
 const UserManagementPage = lazy(() => import('./routes/UserManagementPage.jsx'));
 
 function AppLanding() {
-  const { isAccounting, isDrafter } = useAuth();
-  if (isAccounting) return <Navigate to="accounting/year-end" replace />;
+  const { isAccounting, isAccountingMain, isDrafter } = useAuth();
+  if (isAccounting) return <Navigate to={isAccountingMain ? 'accounting/year-end' : 'accounting/fuel'} replace />;
   return <Navigate to={isDrafter ? 'projects' : 'attendance'} replace />;
 }
 
@@ -278,9 +285,11 @@ export default function App() {
                 <Route
                   path="accounting/year-end"
                   element={
-                    <Suspense fallback={<LoadingScreen />}>
-                      <AccountingYearEndPage />
-                    </Suspense>
+                    <RequireMainAccounting>
+                      <Suspense fallback={<LoadingScreen />}>
+                        <AccountingYearEndPage />
+                      </Suspense>
+                    </RequireMainAccounting>
                   }
                 />
                 <Route

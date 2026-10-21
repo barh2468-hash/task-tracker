@@ -7,7 +7,7 @@ import { MessageProvider, useMessage } from '../context/MessageContext.jsx';
 
 function AccountingLayoutContent() {
   useTranslation();
-  const { profile, logout } = useAuth();
+  const { profile, logout, isAccountingMain } = useAuth();
   const { message, setMessage } = useMessage();
 
   return (
@@ -26,9 +26,11 @@ function AccountingLayoutContent() {
       </header>
 
       <nav className="accountingTabs">
-        <NavLink to="/app/accounting/year-end" className={({ isActive }) => `accountingTab${isActive ? ' active' : ''}`}>
-          <FileSpreadsheet size={16} /> {t('טבלת סוף שנה')}
-        </NavLink>
+        {isAccountingMain && (
+          <NavLink to="/app/accounting/year-end" className={({ isActive }) => `accountingTab${isActive ? ' active' : ''}`}>
+            <FileSpreadsheet size={16} /> {t('טבלת סוף שנה')}
+          </NavLink>
+        )}
         <NavLink to="/app/accounting/fuel" className={({ isActive }) => `accountingTab${isActive ? ' active' : ''}`}>
           <Fuel size={16} /> {t('דלק — יבוא לסאפ')}
         </NavLink>

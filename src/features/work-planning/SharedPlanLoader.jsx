@@ -28,5 +28,5 @@ export default function SharedPlanLoader({ date, storageScope, children }) {
     setState({ loading: false, record, error: false });
   }
 
-  return children({ record: state.record, publish });
+  return children({ record: state.record, publish, loadPublication: (planDate) => loadPublication(planDate, supabase) });
 }

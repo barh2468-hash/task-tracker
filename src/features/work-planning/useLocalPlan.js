@@ -23,7 +23,7 @@ export default function useLocalPlan(key, initialRows = []) {
       return true;
     } catch (error) {
       apply({
-        plan: keepDraftOnFailure ? { ...previous.plan, rows: candidate.rows } : previous.plan,
+        plan: keepDraftOnFailure ? { ...previous.plan, rows: candidate.rows, rosterNames: candidate.rosterNames } : previous.plan,
         error: error.code || 'storage', unsaved: keepDraftOnFailure || previous.unsaved,
       });
       return false;
@@ -57,6 +57,7 @@ export default function useLocalPlan(key, initialRows = []) {
   return {
     ...state,
     updateRows: (update) => commit((plan) => ({ ...plan, rows: update(plan.rows) }), true),
+    replaceDraft: ({ rows, rosterNames }) => commit((plan) => ({ ...plan, rows, rosterNames }), true),
     save: () => commit((plan) => plan),
     publish: () => commit((plan) => ({
       ...plan, publishedRows: structuredClone(plan.rows), publishedAt: new Date().toISOString(),

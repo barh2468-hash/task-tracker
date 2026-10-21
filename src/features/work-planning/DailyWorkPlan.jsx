@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { ArrowDown, ArrowUp, CalendarDays, ChevronLeft, ChevronRight, Copy, CornerDownLeft, Eye, Info, Maximize2, Minimize2, PencilLine, Plus, Printer, Save, Send, Table2, Trash2 } from 'lucide-react';
 import { t, useLanguage } from '../language/LanguageContext.jsx';
 import { localeForLanguage } from '../language/locale.js';
-import { applyProject, copyPlanRows, createPlanRow, planColumns, planStorageKey, readPlan, samePlanRows, shiftPlanDate, todayPlanDate } from './localPlans.js';
+import { applyProject, createPlanRow, planColumns, planStorageKey, samePlanRows, shiftPlanDate, todayPlanDate } from './localPlans.js';
+import { copyPreviousPlan } from './previousPlan.js';
 import useLocalPlan from './useLocalPlan.js';
 import { getPlanProjectChoices } from './projectChoices.js';
 import { getWorkerCellGroups, updateWorkerGroup } from './rowGroups.js';
@@ -41,6 +42,9 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
   const [expanded, setExpanded] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState('');
+  const [copying, setCopying] = useState(false);
+  const [copyError, setCopyError] = useState(false);
+  const copyRequestRef = useRef(null);
   const pageRef = useRef(null);
   const expandButtonRef = useRef(null);
   const tableRef = useRef(null);
@@ -54,12 +58,15 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
     timeZone: 'Asia/Hebron', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   }).format(new Date(`${date}T12:00:00Z`));
   const changed = editing && publishedAt && !samePlanRows(plan.rows, publishedRows);
-  const blocked = error === 'invalid' || error === 'conflict' || publishing;
+  const blocked = error === 'invalid' || error === 'conflict' || publishing || copying;
+  const draftRoster = plan.rosterNames ?? planningRoster;
   const registeredWorkers = workers.filter((worker) => worker.id);
   const sortedWorkers = [...new Set((registeredWorkers.length ? registeredWorkers : workers)
     .map((worker) => worker.full_name).filter(Boolean))].sort((a, b) => a.localeCompare(b, locale));
   const cellGroups = getWorkerCellGroups(rows, workers);
   const activeProjects = projects.filter((project) => !project.is_archived).sort((a, b) => a.name.localeCompare(b.name, locale));
+
+  useEffect(() => () => { copyRequestRef.current = null; }, []);
 
   useEffect(() => {
     if (!expanded) return;
@@ -94,7 +101,7 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
   }, [expanded]);
 
   function changeDate(next) {
-    if (!next || next === date) return;
+    if (copying || !next || next === date) return;
     if (unsaved && !window.confirm(t('workPlan.unsaved'))) return;
     onDateChange(next);
   }
@@ -138,20 +145,30 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
     });
   }
 
-  function copyPrevious() {
+  async function copyPrevious() {
+    if (blocked || copyRequestRef.current) return;
+    const request = {};
+    copyRequestRef.current = request;
+    setCopying(true);
+    setCopyError(false);
+    setNotice('');
     try {
-      const previous = readPlan(window.localStorage, planStorageKey(storageScope, shiftPlanDate(date, -1)));
-      const source = previous?.rows.length ? previous.rows : previous?.publishedRows;
-      if (!source?.length) { setNotice('workPlan.noPrevious'); return; }
+      const source = await copyPreviousPlan({ date, storageScope, storage: window.localStorage, loadPublished: shared?.loadPublication });
+      if (copyRequestRef.current !== request) return;
+      if (!source) { setNotice('workPlan.noPrevious'); return; }
       if (plan.rows.length && !window.confirm(t('workPlan.confirmCopy'))) return;
-      if (local.updateRows(() => copyPlanRows(source))) setNotice('workPlan.copySuccess');
-    } catch { setNotice('workPlan.invalidError'); }
+      if (local.replaceDraft({ rows: source.rows, rosterNames: source.rosterNames ?? draftRoster })) setNotice('workPlan.copySuccess');
+    } catch {
+      if (copyRequestRef.current === request) setCopyError(true);
+    } finally {
+      if (copyRequestRef.current === request) { copyRequestRef.current = null; setCopying(false); }
+    }
   }
 
   function loadPublishedDraft() {
     if (!publishedRows?.length) return;
     if (plan.rows.length && !window.confirm(t('workPlan.confirmLoadPublished'))) return;
-    if (local.updateRows(() => structuredClone(publishedRows))) setNotice('workPlan.loadedPublished');
+    if (local.replaceDraft({ rows: structuredClone(publishedRows), rosterNames: planningRoster })) setNotice('workPlan.loadedPublished');
   }
 
   function field(row, column, index) {
@@ -245,7 +262,7 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
     setPublishError('');
     setNotice('');
     try {
-      await shared.publish(structuredClone(plan.rows), planningRoster);
+      await shared.publish(structuredClone(plan.rows), draftRoster);
       setNotice('workPlan.sharedPublishSuccess');
     } catch (failure) {
       setPublishError(failure.message === 'conflict' ? 'workPlan.sharedConflict' : 'workPlan.sharedPublishError');
@@ -269,31 +286,32 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
     <p className="workPlanLocalNotice"><Info size={14} aria-hidden="true" /><span>{t(shared ? 'workPlan.sharedNotice' : 'workPlan.local')}</span></p>
     <div className="workPlanToolbar">
       <div className="workPlanDateNavigation">
-        <button type="button" className="ghost workPlanSquare" disabled={date === '1900-01-01'} aria-label={t('workPlan.previous')} onClick={() => changeDate(shiftPlanDate(date, -1))}>
+        <button type="button" className="ghost workPlanSquare" disabled={copying || date === '1900-01-01'} aria-label={t('workPlan.previous')} onClick={() => changeDate(shiftPlanDate(date, -1))}>
           {language === 'he' ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronLeft size={18} aria-hidden="true" />}
         </button>
-        <label className="workPlanDateLabel"><CalendarDays size={18} aria-hidden="true" /><span>{t('workPlan.date')}</span><input type="date" value={date} min="1900-01-01" max="9999-12-31" onChange={(event) => changeDate(event.target.value)} /></label>
-        <button type="button" className="ghost workPlanSquare" disabled={date === '9999-12-31'} aria-label={t('workPlan.next')} onClick={() => changeDate(shiftPlanDate(date, 1))}>
+        <label className="workPlanDateLabel"><CalendarDays size={18} aria-hidden="true" /><span>{t('workPlan.date')}</span><input type="date" value={date} disabled={copying} min="1900-01-01" max="9999-12-31" onChange={(event) => changeDate(event.target.value)} /></label>
+        <button type="button" className="ghost workPlanSquare" disabled={copying || date === '9999-12-31'} aria-label={t('workPlan.next')} onClick={() => changeDate(shiftPlanDate(date, 1))}>
           {language === 'he' ? <ChevronLeft size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
         </button>
       </div>
-      <StaffingCounter rows={rows} rosterNames={planningRoster} workers={workers} source={rosterSource} />
+      <StaffingCounter rows={rows} rosterNames={editing ? draftRoster : planningRoster} workers={workers} source={editing && plan.rosterNames ? 'published' : rosterSource} />
       <div className="workPlanViewModes" role="group" aria-label={t('workPlan.modes')}>
-        {canEdit && <button type="button" className={editing ? 'active' : 'ghost'} aria-pressed={editing} onClick={() => { setViewing(false); setNotice(''); }}><PencilLine size={14} aria-hidden="true" />{t('workPlan.edit')}</button>}
-        <button type="button" className={!editing ? 'active' : 'ghost'} aria-pressed={!editing} onClick={() => { setViewing(true); setNotice(''); }}><Eye size={14} aria-hidden="true" />{t('workPlan.view')}</button>
+        {canEdit && <button type="button" className={editing ? 'active' : 'ghost'} disabled={copying} aria-pressed={editing} onClick={() => { setViewing(false); setNotice(''); }}><PencilLine size={14} aria-hidden="true" />{t('workPlan.edit')}</button>}
+        <button type="button" className={!editing ? 'active' : 'ghost'} disabled={copying} aria-pressed={!editing} onClick={() => { setViewing(true); setNotice(''); }}><Eye size={14} aria-hidden="true" />{t('workPlan.view')}</button>
       </div>
     </div>
     <div className="workPlanUtilityRow"><p>{t('workPlan.compactHint')}<span className="workPlanMobileScroll"> {t('workPlan.scroll')}</span></p><div>
       <button ref={expandButtonRef} type="button" className="ghost workPlanExpandControl" aria-expanded={expanded} aria-controls={`${listId}-plan-screen`} onClick={() => setExpanded((value) => !value)}>
         {expanded ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}{t(expanded ? 'workPlan.collapseTable' : 'workPlan.expandTable')}
       </button>
-      {editing && <button type="button" className="ghost" disabled={blocked} onClick={copyPrevious}><Copy size={16} aria-hidden="true" />{t('workPlan.copyPrevious')}</button>}
+      {editing && <button type="button" className="ghost" disabled={blocked || date === '1900-01-01'} aria-busy={copying} onClick={copyPrevious}><Copy size={16} aria-hidden="true" />{t(copying ? 'workPlan.copyingPrevious' : 'workPlan.copyPrevious')}</button>}
       {editing && shared?.record && <button type="button" className="ghost" disabled={blocked || samePlanRows(plan.rows, publishedRows)} onClick={loadPublishedDraft}>
         <Copy size={16} aria-hidden="true" />{t('workPlan.loadPublished')}
       </button>}
       <button type="button" className="ghost" disabled={!rows.length} onClick={() => window.print()}><Printer size={16} aria-hidden="true" />{t('workPlan.print')}</button>
     </div></div>
     {publishError && <div className="workPlanError" role="alert">{t(publishError)}</div>}
+    {copyError && <div className="workPlanError" role="alert">{t('workPlan.copyPreviousError')}</div>}
     {error && editing && <div className="workPlanError" role="alert"><p>{t(error === 'invalid' ? 'workPlan.invalidError' : error === 'conflict' ? 'workPlan.conflictError' : 'workPlan.storageError')}</p>
       <button type="button" className="ghost" onClick={() => {
         if (unsaved && !window.confirm(t('workPlan.confirmReload'))) return;

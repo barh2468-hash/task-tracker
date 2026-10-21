@@ -25,6 +25,7 @@ export function samePlanRows(left, right) {
 function isPlan(value) {
   return value?.version === 1 && Number.isInteger(value.revision) && value.revision >= 0 &&
     Array.isArray(value.rows) && value.rows.every(isPlanRow) &&
+    (value.rosterNames == null || (Array.isArray(value.rosterNames) && value.rosterNames.every((name) => typeof name === 'string'))) &&
     (value.publishedRows === null || (Array.isArray(value.publishedRows) && value.publishedRows.every(isPlanRow))) &&
     (value.savedAt === null || (typeof value.savedAt === 'string' && Number.isFinite(Date.parse(value.savedAt)))) &&
     (value.publishedAt === null || (typeof value.publishedAt === 'string' && Number.isFinite(Date.parse(value.publishedAt))));

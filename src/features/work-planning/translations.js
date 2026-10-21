@@ -1,4 +1,6 @@
 export const heWorkPlanning = {
+  'workPlan.copyingPrevious': 'טוען את תכנון היום הקודם…',
+  'workPlan.copyPreviousError': 'לא ניתן לטעון את תכנון היום הקודם. בדקו את החיבור ונסו שוב. הטיוטה הנוכחית לא הוחלפה.',
   'workPlan.loadPublished': 'טעינת התכנון שפורסם לעריכה',
   'workPlan.confirmLoadPublished': 'להחליף את הטיוטה במכשיר הזה בתכנון שפורסם באפליקציה?',
   'workPlan.loadedPublished': 'התכנון שפורסם נטען לטיוטת העריכה. השינויים הבאים יופיעו לכולם רק לאחר פרסום.',
@@ -100,7 +102,7 @@ export const heWorkPlanning = {
   'workPlan.publishSuccess': 'נשמרה גרסה לתצוגת צפייה במכשיר זה. שינויים נוספים בטיוטה לא יופיעו בה עד לפרסום מחדש.',
   'workPlan.copyPrevious': 'העתקה מיום קודם',
   'workPlan.confirmCopy': 'להחליף את שורות הטיוטה בתכנון מהיום הקודם?',
-  'workPlan.noPrevious': 'לא נמצא במכשיר תכנון ליום הקודם.',
+  'workPlan.noPrevious': 'לא נמצא תכנון ליום הקודם.',
   'workPlan.copySuccess': 'התכנון מהיום הקודם הועתק לטיוטה.',
   'workPlan.empty': 'עדיין אין שורות לתאריך הזה. אפשר להוסיף שורה ולהתחיל למלא.',
   'workPlan.emptyPublished': 'טרם פורסם במכשיר זה תכנון לתאריך שנבחר.',
@@ -127,6 +129,8 @@ export const heWorkPlanning = {
 };
 
 export const enWorkPlanning = {
+  'workPlan.copyingPrevious': 'Loading the previous day’s plan…',
+  'workPlan.copyPreviousError': 'Unable to load the previous day’s plan. Check your connection and try again. Your current draft was not replaced.',
   'workPlan.loadPublished': 'Load published plan for editing',
   'workPlan.confirmLoadPublished': 'Replace the draft on this device with the plan published in the app?',
   'workPlan.loadedPublished': 'The published plan was loaded into your editing draft. Further changes will be shared after publication.',
@@ -207,7 +211,7 @@ export const enWorkPlanning = {
   'workPlan.publish': 'Publish for local viewing',
   'workPlan.publishSuccess': 'A read-only version was saved on this device. Further draft changes will appear there only after publishing again.',
   'workPlan.copyPrevious': 'Copy previous day', 'workPlan.confirmCopy': 'Replace the draft rows with the previous day’s plan?',
-  'workPlan.noPrevious': 'No plan for the previous day was found on this device.',
+  'workPlan.noPrevious': 'No plan was found for the previous day.',
   'workPlan.copySuccess': 'The previous day’s plan was copied into the draft.',
   'workPlan.empty': 'No rows for this date yet. Add a row to start filling in the plan.',
   'workPlan.emptyPublished': 'No plan for the selected date has been published on this device.',
@@ -230,6 +234,8 @@ export const enWorkPlanning = {
 };
 
 export const elWorkPlanning = {
+  'workPlan.copyingPrevious': 'Φόρτωση προγράμματος προηγούμενης ημέρας…',
+  'workPlan.copyPreviousError': 'Δεν ήταν δυνατή η φόρτωση του προγράμματος της προηγούμενης ημέρας. Ελέγξτε τη σύνδεση και δοκιμάστε ξανά. Το τρέχον προσχέδιο δεν αντικαταστάθηκε.',
   'workPlan.loadPublished': 'Φόρτωση δημοσιευμένου προγράμματος για επεξεργασία',
   'workPlan.confirmLoadPublished': 'Να αντικατασταθεί το προσχέδιο σε αυτή τη συσκευή με το πρόγραμμα που δημοσιεύτηκε στην εφαρμογή;',
   'workPlan.loadedPublished': 'Το δημοσιευμένο πρόγραμμα φορτώθηκε στο προσχέδιο επεξεργασίας. Οι επόμενες αλλαγές θα κοινοποιηθούν μετά τη δημοσίευση.',
@@ -310,7 +316,7 @@ export const elWorkPlanning = {
   'workPlan.publish': 'Δημοσίευση για τοπική προβολή',
   'workPlan.publishSuccess': 'Αποθηκεύτηκε έκδοση μόνο για ανάγνωση σε αυτή τη συσκευή. Οι επόμενες αλλαγές στο προσχέδιο θα εμφανιστούν εκεί μετά από νέα δημοσίευση.',
   'workPlan.copyPrevious': 'Αντιγραφή προηγούμενης ημέρας', 'workPlan.confirmCopy': 'Να αντικατασταθούν οι γραμμές με το πρόγραμμα της προηγούμενης ημέρας;',
-  'workPlan.noPrevious': 'Δεν βρέθηκε πρόγραμμα προηγούμενης ημέρας στη συσκευή.',
+  'workPlan.noPrevious': 'Δεν βρέθηκε πρόγραμμα για την προηγούμενη ημέρα.',
   'workPlan.copySuccess': 'Το πρόγραμμα της προηγούμενης ημέρας αντιγράφηκε στο προσχέδιο.',
   'workPlan.empty': 'Δεν υπάρχουν ακόμη γραμμές για αυτή την ημερομηνία. Προσθέστε μια γραμμή για να ξεκινήσετε.',
   'workPlan.emptyPublished': 'Δεν έχει δημοσιευτεί πρόγραμμα για την επιλεγμένη ημερομηνία σε αυτή τη συσκευή.',

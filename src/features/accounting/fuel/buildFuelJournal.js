@@ -8,21 +8,18 @@ import {
   VAT_INPUT_CARD,
   VAT_RATE_PERCENT,
 } from './fuelConfig.js';
-
-const pad = (n) => String(n).padStart(2, '0');
-const sapDate = ({ year, month, day }) => `${year}/${pad(month)}/${pad(day)}`;
-export const money = (cents) => (cents / 100).toFixed(2);
-
-function lastDayOfMonth(year, month) {
-  return new Date(year, month, 0).getDate();
-}
+import { balanceCheck, lastDayOfMonth, money, pad, sapDate } from './journalCommon.js';
 
 /**
- * Builds the journal entries for one Delek monthly summary.
+ * Builds the journal entries for the fuel part of a Delek monthly summary.
  * All maths is in integer cents. `cardFor(plateDigits)` returns a card code or ''.
+ *
+ * The fuel invoice total is the monthly summary's "סה"כ לתשלום" (page 2). The
+ * bank charge on page 1 may also contain the car-wash invoice, which is
+ * booked separately (see buildWashJournal).
  */
 export function buildFuelJournal(report, cardFor) {
-  const { totalDueCents, pageTwoTotalCents, chargeDate, invoiceNumber, period, vehicles } = report;
+  const { fuelTotalCents, chargeTotalCents, wash, chargeDate, invoiceNumber, period, vehicles } = report;
   const posting = { year: period.year, month: period.month, day: lastDayOfMonth(period.year, period.month) };
   const remark = `${REMARK_PREFIX} ${pad(period.month)}.${String(period.year).slice(2)}`;
   const header = (ref2) => ({
@@ -38,7 +35,7 @@ export function buildFuelJournal(report, cardFor) {
   const others = vehicles.filter((v) => !TRUCKS[v.plateDigits]);
 
   const truckInclCents = trucks.reduce((sum, v) => sum + v.inclVatCents, 0);
-  const generalInclCents = totalDueCents - truckInclCents;
+  const generalInclCents = fuelTotalCents - truckInclCents;
   const recognizedPercent = VAT_RATE_PERCENT * RECOGNIZED_VAT_FRACTION;
   const generalVatCents = Math.round((generalInclCents * recognizedPercent) / (100 + VAT_RATE_PERCENT));
   const generalExpenseCents = generalInclCents - generalVatCents;
@@ -98,24 +95,23 @@ export function buildFuelJournal(report, cardFor) {
   });
 
   const sumIncl = vehicles.reduce((sum, v) => sum + v.inclVatCents, 0);
+  const washTotalCents = wash ? wash.invoiceTotalCents : 0;
   const checks = [
     {
-      ok: sumIncl === totalDueCents,
-      label: `סכום כל הרכבים בריכוז (${money(sumIncl)}) = סכום לחיוב (${money(totalDueCents)})`,
+      ok: sumIncl === fuelTotalCents,
+      label: `סכום כל הרכבים בריכוז (${money(sumIncl)}) = סה"כ ריכוז הדלק (${money(fuelTotalCents)})`,
     },
-    ...(pageTwoTotalCents !== null
-      ? [{ ok: pageTwoTotalCents === totalDueCents, label: `סה"כ לתשלום בעמוד 2 (${money(pageTwoTotalCents)}) = סכום לחיוב` }]
-      : []),
+    {
+      ok: chargeTotalCents === fuelTotalCents + washTotalCents,
+      label: wash
+        ? `סה"כ לחיוב (${money(chargeTotalCents)}) = דלק (${money(fuelTotalCents)}) + חשבונית שטיפומט (${money(washTotalCents)})`
+        : `סה"כ לחיוב (${money(chargeTotalCents)}) = סה"כ ריכוז הדלק`,
+    },
     {
       ok: trucks.length === Object.keys(TRUCKS).length,
       label: `נמצאו ${trucks.length} מתוך ${Object.keys(TRUCKS).length} משאיות בדוח`,
     },
-    ...entries.map((entry) => {
-      const debit = entry.lines.reduce((sum, l) => sum + (l.debit || 0), 0);
-      const credit = entry.lines.reduce((sum, l) => sum + (l.credit || 0), 0);
-      if (entry.step === 2) return { ok: debit === 0, label: `${entry.title}: הרכבים מסתכמים בדיוק לסכום ברכב כללי (הפרש ${money(debit)})` };
-      return { ok: debit === credit, label: `${entry.title}: חובה ${money(debit)} = זכות ${money(credit)}` };
-    }),
+    ...entries.map(balanceCheck),
     {
       ok: unmappedPlates.length === 0,
       label: unmappedPlates.length ? `${unmappedPlates.length} רכבים ללא כרטיס` : 'לכל הרכבים יש כרטיס',
@@ -124,6 +120,7 @@ export function buildFuelJournal(report, cardFor) {
   if (lastRow && lastRow.cents < 0) checks.push({ ok: false, label: 'הרכב האחרון יצא בסכום שלילי' });
 
   return {
+    kind: 'fuel',
     entries,
     checks,
     unmappedPlates,
@@ -132,6 +129,6 @@ export function buildFuelJournal(report, cardFor) {
     ok: checks.every((check) => check.ok),
     period,
     invoiceNumber,
-    totalDueCents,
+    totalCents: fuelTotalCents,
   };
 }

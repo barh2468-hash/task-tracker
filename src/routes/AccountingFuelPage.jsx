@@ -2,6 +2,8 @@ import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle2, Download, Fuel, Upload, XCircle } from 'lucide-react';
 import { t } from '../features/language/LanguageContext.jsx';
+import AccountingGuide from '../features/accounting/components/AccountingGuide.jsx';
+import { FUEL_GUIDE } from '../features/accounting/guides.js';
 import { extractPdfLines, parseDelekPages } from '../features/accounting/fuel/parseDelekReport.js';
 import { buildFuelJournal, money } from '../features/accounting/fuel/buildFuelJournal.js';
 import { downloadBytes, entriesToRows, makeZip, rowsToUnicodeText, rowsToXlsxBytes } from '../features/accounting/fuel/exportSapImport.js';
@@ -129,6 +131,8 @@ export default function AccountingFuelPage() {
           <input ref={inputRef} type="file" accept=".pdf,application/pdf" disabled={busy} onChange={onFile} />
         </label>
       </section>
+
+      <AccountingGuide guide={FUEL_GUIDE} />
 
       {error && (
         <div className="equipmentNotice error" role="alert">

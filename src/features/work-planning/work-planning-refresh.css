@@ -1,0 +1,107 @@
+/* Screen styling preserves the layout of the existing printed form. */
+@media screen {
+  .workPlanPage {
+    --plan-ink: #18334f;
+    --plan-muted: #6b7d90;
+    --plan-line: #e1e8f0;
+    padding: 20px;
+    border-radius: 18px;
+    box-shadow: 0 6px 28px #18334f07;
+  }
+  .workPlanHeading { padding-bottom: 4px; }
+  .workPlanIdentity { gap: 12px; }
+  .workPlanIdentity h1 { font-size: 24px; letter-spacing: -.4px; }
+  .workPlanIcon { width: 42px; height: 42px; border-radius: 12px; background: #edf4fc; color: #315d88; border: 1px solid #dce9f6; }
+  .workPlanStatus { padding: 6px 10px; background: #edf7f2; color: #28715a; }
+  .workPlanStatus.changed { background: #fff3e3; color: #98601c; }
+  .workPlanLocalNotice { margin: 6px 0 16px; padding: 6px 9px; border-color: #e9edf2; background: #f8fafc; color: #718197; border-radius: 8px; }
+
+  /* The page also hosts fixed worker menus, so only the toolbar contains layout. */
+  .workPlanToolbar { gap: 14px; margin-bottom: 14px; container: daily-plan / inline-size; }
+  .workPlanDateNavigation { padding: 5px; background: #fff; border-radius: 12px; box-shadow: 0 2px 5px #18334f03; }
+  .workPlanDateLabel { gap: 8px; }
+  .workPlanDateLabel>svg { color: #ba7734; }
+  .workPlanDateLabel input { font-size: 13px; font-variant-numeric: tabular-nums; }
+  .workPlanPage .workPlanSquare { color: #6c829a; }
+  .workPlanViewModes { padding: 4px; border-radius: 12px; background: #f2f5f9; }
+  .workPlanPage .workPlanViewModes button { border-radius: 8px; min-height: 34px; padding-inline: 12px; font-weight: 600; }
+  .workPlanPage .workPlanViewModes button[aria-pressed=true] { background: #193b60; box-shadow: 0 2px 5px #193b601c; }
+
+  .workPlanStaffing { width: 100%; padding: 10px 13px 7px; border-radius: 12px; background: #fffaf3; }
+  .workPlanStaffing.complete { background: #f4faf7; border-color: #d3e7dc; }
+  .workPlanStaffingCounts { gap: 4px 10px; }
+  .workPlanStaffingCounts>span:first-of-type { font-size: 15px; letter-spacing: -.2px; font-variant-numeric: tabular-nums; }
+  .workPlanStaffingStatus { background: transparent; padding: 1px 0; }
+  .workPlanStaffing.complete .workPlanStaffingStatus { background: transparent; }
+  .workPlanStaffingProgress { height: 4px; margin-top: 8px; }
+  .workPlanStaffingDetails>summary { color: #6a8279; }
+
+  .workPlanUtilityRow { padding: 0 0 12px; margin-bottom: 0; gap: 8px 12px; }
+  .workPlanUtilityRow>p { line-height: 1.65; }
+  .workPlanUtilityRow>div { gap: 6px; }
+  .workPlanPage .workPlanUtilityRow button { border-color: #e5ebf2; background: #fff; border-radius: 8px; color: #4d6781; padding: 5px 9px; }
+  .workPlanPage .workPlanUtilityRow button:hover { border-color: #c7d7e7; background: #f5f8fc; }
+
+  .workPlanTableWrap { border-color: #d5e0eb; border-radius: 12px; box-shadow: 0 3px 12px #18334f04; }
+  .workPlanTable { min-width: 1000px; font-size: 12px; }
+  .workPlanColumn-client { width: 11%; }
+  .workPlanColumn-notes { width: 17%; }
+  .workPlanColumn-vehicle { width: 8%; }
+  .workPlanTable caption { background: #ffe2c0; color: #745027; border-bottom-color: #efc99e; font-size: 13px; font-weight: 700; }
+  .workPlanTable caption>span { display: flex; justify-content: center; align-items: center; gap: 8px; inline-size: auto; max-inline-size: 100cqi; padding: 11px 12px; }
+  .workPlanTable caption svg { flex-shrink: 0; color: #a06b30; }
+  .workPlanTable thead th { padding: 11px 7px; background: #d9e8f7; color: #2e5275; border-color: #c4d6e8; font-size: 11px; font-weight: 700; line-height: 1.5; }
+  .workPlanTable td { padding: 5px; border-color: #e2e9f1; }
+  .workPlanTable tr:nth-child(even)>td { background: #fff; }
+  .workPlanTable tr:hover>td { background: #f9fbfd; }
+  .workPlanTable tr.workPlanCrewStart>td { border-top: 2px solid #cddcea; }
+  .workPlanTable tr>td[data-column=leader],.workPlanTable tr>td[data-column=helpers] { background: #fff; }
+  .workPlanTable td[data-column=leader] { color: #234f77; }
+  .workPlanTable td[data-column=leader] .workPlanWorkerName,
+  .workPlanTable td[data-column=leader]>.workPlanCellValue { font-weight: 700; }
+  .workPlanTable td[data-column=start] { color: #305f85; font-variant-numeric: tabular-nums; }
+  .workPlanTable td[data-column=start] .workPlanCellValue,
+  .workPlanTable td[data-column=start] textarea,
+  .workPlanTable td[data-column=start] .workPlanTextEditor::after { text-align: center; font-weight: 600; }
+  .workPlanTable td[data-column=notes] { color: #5b6c7e; }
+  .workPlanTable td[data-column=contact] { font-size: 11px; }
+  .workPlanTextEditor::after,.workPlanTable .workPlanTextEditor textarea,
+  .workPlanPage .workPlanWorkerTrigger,.workPlanWorkerSingle { font-size: 12px; line-height: 19px; }
+  .workPlanCellValue { padding: 5px; line-height: 20px; }
+  .workPlanTable .workPlanTextEditor textarea:focus,
+  .workPlanWorkerSingle:focus-within,.workPlanPage .workPlanWorkerTrigger:focus-visible { outline-color: #83acd0; border-radius: 6px; }
+  .workPlanPage .workPlanProjectPicker,.workPlanPage .workPlanTimePicker { top: 6px; color: #7896b0; }
+
+  .workPlanFooter { margin-top: 14px; padding-top: 12px; border-top-color: #e5ebf2; }
+  .workPlanRowCount { color: #355a7b; }
+  .workPlanPage .workPlanActions button { min-height: 36px; border-radius: 9px; }
+  .workPlanPage .workPlanActions button:last-child { background: #193b60; border-color: #193b60; box-shadow: 0 3px 7px #193b6014; }
+  .workPlanPage .workPlanActions button:last-child:hover { background: #28557e; }
+  .workPlanPage.workPlanExpanded { background: #fff; padding: 18px; }
+
+  @container (min-width: 840px) {
+    .workPlanTable { min-width: 100%; }
+  }
+  @container daily-plan (max-width: 1050px) {
+    .workPlanDateLabel>span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .workPlanViewModes { max-width: 260px; }
+  }
+  @media (max-width: 760px) {
+    .workPlanPage { padding: 12px; border-radius: 14px; }
+    .workPlanIdentity h1 { font-size: 21px; }
+    .workPlanIcon { width: 36px; height: 36px; border-radius: 10px; }
+    .workPlanToolbar { gap: 9px; }
+    .workPlanViewModes { max-width: none; }
+    .workPlanUtilityRow>div { gap: 5px; }
+    .workPlanPage .workPlanUtilityRow button { flex: 1 1 auto; }
+    .workPlanPage.workPlanExpanded { padding: 10px; }
+  }
+  @media (pointer: coarse) {
+    .workPlanTextEditor::after,.workPlanTable .workPlanTextEditor textarea,
+    .workPlanWorkerSingle,.workPlanPage .workPlanWorkerTrigger { font-size: 16px; line-height: 22px; }
+    .workPlanPage .workPlanViewModes button,.workPlanPage .workPlanActions button { min-height: 44px; }
+  }
+}
+@media print {
+  .workPlanTable caption svg { display: none; }
+}

@@ -13,6 +13,7 @@ import StaffingCounter from './StaffingCounter.jsx';
 import SharedPlanLoader from './SharedPlanLoader.jsx';
 import PublishedPlanImage from './PublishedPlanImage.jsx';
 import './work-planning.css';
+import './work-planning-refresh.css';
 
 function WorkPlanTextarea(props) {
   // The hidden mirror gives the editor its full natural height before focus.
@@ -182,7 +183,7 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
     const value = column === 'start' ? formatStart(row.start, language) : row[column];
     if (!editing) return <div className="workPlanCellValue" dir="auto">{value}</div>;
     const assignmentDescriptionId = `${listId}-${row.id}-projects`;
-    const placeholders = { leader: 'workPlan.workerPlaceholder', helpers: 'workPlan.helpersPlaceholder', work: 'workPlan.workPlaceholder', start: 'workPlan.startPlaceholder' };
+    const placeholders = { leader: 'workPlan.workerPlaceholder', helpers: 'workPlan.helpersPlaceholder', work: 'workPlan.workPlaceholder', start: 'workPlan.startCellPlaceholder' };
     const props = {
       'aria-label': label,
       'data-column': column,
@@ -329,10 +330,11 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
     {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
     <div className="workPlanTableWrap" hidden={showingImage} ref={tableRef} role="region" aria-label={t('workPlan.tableLabel', { date: displayedDate })} tabIndex={0}>
       <table className="workPlanTable">
-        <caption><span>{t('workPlan.tableTitle', { date: displayedDate })}</span></caption>
+        <caption><span><CalendarDays size={16} aria-hidden="true" />{t('workPlan.tableTitle', { date: displayedDate })}</span></caption>
         <colgroup>{planColumns.map((column) => <col key={column} className={`workPlanColumn-${column}`} />)}</colgroup>
         <thead><tr>{planColumns.map((column) => <th scope="col" key={column}>{t(`workPlan.${column}`)}</th>)}</tr></thead>
-        <tbody>{rows.map((row, index) => <tr key={row.id} data-row-id={row.id}>
+        <tbody>{rows.map((row, index) => <tr key={row.id} data-row-id={row.id}
+          className={index > 0 && cellGroups[index].leader.start === index ? 'workPlanCrewStart' : undefined}>
           {planColumns.map((column) => {
             const group = cellGroups[index][column];
             if (group && group.start !== index) return null;

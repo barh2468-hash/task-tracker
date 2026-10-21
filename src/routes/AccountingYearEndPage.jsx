@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { useMessage } from '../context/MessageContext.jsx';
 import { t } from '../features/language/LanguageContext.jsx';
+import AccountingGuide from '../features/accounting/components/AccountingGuide.jsx';
+import { YEAR_END_GUIDE } from '../features/accounting/guides.js';
 import { collectMatchWarnings, matchPayrollToBalances } from '../features/accounting/api.js';
 import { parseVehiclePayrollExport } from '../features/accounting/utils/parseVehiclePayrollExport.js';
 import { parseSapBalanceExport } from '../features/accounting/utils/parseSapBalanceExport.js';
@@ -251,6 +253,8 @@ export default function AccountingYearEndPage() {
           </button>
         </div>
       </section>
+
+      <AccountingGuide guide={YEAR_END_GUIDE} />
 
       <section className="card accountingUploadPanel">
         <div className="accountingUploadRow">

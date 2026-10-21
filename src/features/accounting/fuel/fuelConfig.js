@@ -11,6 +11,7 @@ export const VAT_RATE_PERCENT = 18;
 export const RECOGNIZED_VAT_FRACTION = 2 / 3;
 
 export const REMARK_PREFIX = 'חש.דלק ריכוז';
+export const WASH_REMARK_PREFIX = 'ריכוז שטיפומט';
 
 // Trucks are booked on their own (full 18% VAT). `refDigits` = how many last
 // digits of the summary invoice number go into "אסמכתא 2".
@@ -31,6 +32,7 @@ export const SEED_VEHICLE_CARDS = {
   28470703: '8362',
   31863903: '8364',
   42442202: '8369',
+  43654203: '8205', // from the balance-prep file (verify: vehicle 436-54-203)
   49578004: '8230',
   50308503: '8371',
   55330203: '8398',

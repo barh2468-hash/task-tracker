@@ -827,6 +827,11 @@
 }
 
 @media (max-width: 760px) {
+  /* Keep the project room's title readable on phones. */
+  .projectChatRoom .chatRoomHint,
+  .chatMuteButton span {
+    display: none;
+  }
   .chatMessageRow .chatBubble {
     max-width: calc(100% - 52px);
   }

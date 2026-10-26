@@ -78,8 +78,11 @@ export default function ProjectChatPanel({ project }) {
             <div>
               <h2>{t('דיון בפרויקט')}</h2>
               <p>
-                {Number(room.member_count || 0)} {t('משתתפים')} ·{' '}
-                {t('עדכוני הפרויקט מופיעים כאן אוטומטית')}
+                {Number(room.member_count || 0)} {t('משתתפים')}
+                <span className="chatRoomHint">
+                  {' · '}
+                  {t('עדכוני הפרויקט מופיעים כאן אוטומטית')}
+                </span>
               </p>
             </div>
             <button

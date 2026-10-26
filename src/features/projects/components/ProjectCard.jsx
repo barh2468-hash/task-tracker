@@ -134,9 +134,8 @@ export default function ProjectCard({ project, onBack, initialTab }) {
   const [editSnapshot, setEditSnapshot] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
   const { projectChatAvailable, projectRoomsByProjectId } = useChat();
-  const [activeDetailTab, setActiveDetailTab] = useState(
-    DETAIL_TABS.includes(initialTab) ? initialTab : 'overview',
-  );
+  const requestedTabRef = useRef(DETAIL_TABS.includes(initialTab) ? initialTab : 'overview');
+  const [activeDetailTab, setActiveDetailTab] = useState(requestedTabRef.current);
   const discussionUnread = Number(projectRoomsByProjectId.get(project.id)?.unread_count || 0);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
   const [editMenuOpen, setEditMenuOpen] = useState(false);
@@ -185,7 +184,8 @@ export default function ProjectCard({ project, onBack, initialTab }) {
     setStatusDialogOpen(false);
     setContinuationDialogOpen(false);
     setStatusNote('');
-    setActiveDetailTab('overview');
+    // Keep the tab a link asked for (e.g. ?tab=discussion from a chat push).
+    setActiveDetailTab(requestedTabRef.current);
     setMoreActionsOpen(false);
   }, [project.id]);
 

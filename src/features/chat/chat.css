@@ -91,42 +91,30 @@
 .projectChatRoom .chatMessageForm {
   padding-inline-end: 90px;
 }
-.chatNotificationControls {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--line);
-  background: #edf5fa;
+.chatListSearch {
+  margin: 8px 12px 2px;
 }
-.chatNotificationControls p {
-  margin: 0 0 9px;
-  color: #415a72;
-  font-size: 12px;
-  line-height: 1.5;
+.chatListSearch input {
+  min-width: 0;
+  padding: 10px 2px;
 }
-.chatNotificationControls .pwaControls {
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-.chatNotificationControls .pwaControlButton {
-  width: auto;
-  flex: 1;
-  justify-content: center;
-  padding: 9px 7px;
-  font-size: 11px;
-  border: 1px solid #b9d4e5;
-  background: #fff;
-  color: #164a78;
+.chatListSearch button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
   box-shadow: none;
 }
-.chatNotificationControls .pwaControlButton:hover {
-  background: #dcecf7;
+.chatListSearch button:hover {
+  background: #e9f2f8;
   transform: none;
-}
-.chatNotificationControls .pwaControlButton.enabled {
-  background: #d9efe6;
-  color: #145d45;
-  border-color: #a8d3c1;
+  box-shadow: none;
 }
 .chatConversationItem.unread {
   border-color: #bfdae8;

@@ -13,7 +13,6 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { t, useLanguage } from '../features/language/LanguageContext.jsx';
 import { localeForLanguage } from '../features/language/locale.js';
-import PwaControls from '../features/pwa/components/PwaControls.jsx';
 import '../features/chat/chat.css';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
@@ -31,7 +30,7 @@ export default function ChatPage() {
   const { language } = useLanguage();
   const locale = localeForLanguage(language);
   const { profile } = useAuth();
-  const { workers } = useProjects();
+  const { workers, projects } = useProjects();
   const {
     conversations,
     chatAvailable,
@@ -39,6 +38,7 @@ export default function ChatPage() {
     unreadChatCount,
     projectRooms,
     projectRoomsLoaded,
+    projectRoomsByProjectId,
     projectChatAvailable,
     unreadProjectChatCount,
     createConversation,
@@ -61,6 +61,8 @@ export default function ChatPage() {
     updateParams({ conversation: id });
   }
   const [drafts, setDrafts] = useState(() => readDrafts(profile?.id));
+  const [listQuery, setListQuery] = useState('');
+  const searchText = listQuery.trim().toLowerCase();
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
   const [memberSearch, setMemberSearch] = useState('');
@@ -175,7 +177,21 @@ export default function ChatPage() {
     );
   }
 
+  function matchesSearch(...values) {
+    return !searchText || values.filter(Boolean).join(' ').toLowerCase().includes(searchText);
+  }
+
   function renderPersonalList() {
+    // Groups match by their title or any member's name, direct chats by the
+    // other person's name.
+    const visibleConversations = conversations.filter((conversation) =>
+      matchesSearch(
+        conversationName(conversation),
+        ...(conversation.member_ids || [])
+          .filter((id) => id !== profile?.id)
+          .map((id) => profilesById.get(id)?.full_name),
+      ),
+    );
     return (
       <>
         {chatLoading && conversations.length === 0 && (
@@ -188,7 +204,10 @@ export default function ChatPage() {
             <span>{t('פתחו שיחה עם עובד אחד או עם קבוצה.')}</span>
           </div>
         )}
-        {conversations.map((conversation) => {
+        {conversations.length > 0 && visibleConversations.length === 0 && (
+          <p className="chatHint">{t('לא נמצאו שיחות')}</p>
+        )}
+        {visibleConversations.map((conversation) => {
           const name = conversationName(conversation);
           const unread = Number(conversation.unread_count || 0);
           // Like WhatsApp: an unsent message shows in place of the last one,
@@ -240,11 +259,67 @@ export default function ChatPage() {
     return sender ? `${sender}: ${room.last_message_body}` : room.last_message_body;
   }
 
+  function renderProjectRow(projectId, name, room, fallbackPreview) {
+    const unread = Number(room?.unread_count || 0);
+    return (
+      <button
+        type="button"
+        key={projectId}
+        className={`chatConversationItem ${unread > 0 && !room?.muted ? 'unread' : ''}`}
+        onClick={() => navigate(projectDiscussionPath(projectId))}
+      >
+        <span className="chatAvatar" aria-hidden="true">
+          <FolderKanban size={19} />
+        </span>
+        <span className="chatConversationCopy">
+          <span className="chatConversationTopline">
+            <b dir="auto">{name}</b>
+            <time>{listDate(room?.last_message_at)}</time>
+          </span>
+          <span className="chatConversationPreview">
+            <small dir="auto">{room ? projectRoomPreview(room) : fallbackPreview}</small>
+            {room?.muted && <BellOff size={13} className="chatMutedIcon" aria-label={t('מושתק')} />}
+            {unread > 0 && <em>{Math.min(unread, 99)}</em>}
+          </span>
+        </span>
+      </button>
+    );
+  }
+
   function renderProjectList() {
     if (!projectChatAvailable) {
       return <p className="chatHint">{t('הדיונים בפרויקטים עדיין לא הופעלו.')}</p>;
     }
     if (!projectRoomsLoaded) return <p className="chatHint">{t('טוען שיחות...')}</p>;
+
+    // Searching covers every project the user can see, not only the inbox,
+    // so a quiet project's room is still one search away.
+    if (searchText) {
+      const matches = projects
+        .filter((project) => matchesSearch(project.name, project.location, project.client_name))
+        .map((project) => ({ project, room: projectRoomsByProjectId.get(project.id) }))
+        .sort(
+          (a, b) =>
+            Number(Boolean(a.project.is_archived)) - Number(Boolean(b.project.is_archived)) ||
+            String(b.room?.last_message_at || '').localeCompare(
+              String(a.room?.last_message_at || ''),
+            ) ||
+            String(a.project.name || '').localeCompare(String(b.project.name || ''), locale),
+        )
+        .slice(0, 50);
+      if (matches.length === 0) return <p className="chatHint">{t('לא נמצאו פרויקטים')}</p>;
+      return matches.map(({ project, room }) =>
+        renderProjectRow(
+          project.id,
+          project.name,
+          room,
+          project.is_archived
+            ? t('בארכיון')
+            : project.location || project.client_name || t('אין הודעות עדיין'),
+        ),
+      );
+    }
+
     if (projectRooms.length === 0) {
       return (
         <div className="chatListEmpty">
@@ -254,34 +329,7 @@ export default function ChatPage() {
         </div>
       );
     }
-    return projectRooms.map((room) => {
-      const unread = Number(room.unread_count || 0);
-      return (
-        <button
-          type="button"
-          key={room.conversation_id}
-          className={`chatConversationItem ${unread > 0 && !room.muted ? 'unread' : ''}`}
-          onClick={() => navigate(projectDiscussionPath(room.project_id))}
-        >
-          <span className="chatAvatar" aria-hidden="true">
-            <FolderKanban size={19} />
-          </span>
-          <span className="chatConversationCopy">
-            <span className="chatConversationTopline">
-              <b dir="auto">{room.project_name}</b>
-              <time>{listDate(room.last_message_at)}</time>
-            </span>
-            <span className="chatConversationPreview">
-              <small dir="auto">{projectRoomPreview(room)}</small>
-              {room.muted && (
-                <BellOff size={13} className="chatMutedIcon" aria-label={t('מושתק')} />
-              )}
-              {unread > 0 && <em>{Math.min(unread, 99)}</em>}
-            </span>
-          </span>
-        </button>
-      );
-    });
+    return projectRooms.map((room) => renderProjectRow(room.project_id, room.project_name, room));
   }
 
   return (
@@ -298,11 +346,6 @@ export default function ChatPage() {
             <Plus size={18} />
             <span>{t('חדש')}</span>
           </button>
-        </div>
-
-        <div className="chatNotificationControls">
-          <p>{t('קבלו התראות על הודעות גם כשהאפליקציה סגורה.')}</p>
-          <PwaControls />
         </div>
 
         <div className="projectSectionTabs chatListTabs" role="tablist" aria-label={t('סוג שיחות')}>
@@ -323,6 +366,26 @@ export default function ChatPage() {
             </button>
           ))}
         </div>
+
+        <label className="chatMemberSearch chatListSearch">
+          <Search size={17} aria-hidden="true" />
+          <input
+            value={listQuery}
+            onChange={(event) => setListQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setListQuery('');
+            }}
+            placeholder={
+              listView === 'projects' ? t('חיפוש פרויקט...') : t('חיפוש שיחה או עובד...')
+            }
+            aria-label={t('חיפוש שיחות')}
+          />
+          {listQuery && (
+            <button type="button" onClick={() => setListQuery('')} aria-label={t('ניקוי חיפוש')}>
+              <X size={15} />
+            </button>
+          )}
+        </label>
 
         <div className="chatConversationList">
           {listView === 'projects' ? renderProjectList() : renderPersonalList()}

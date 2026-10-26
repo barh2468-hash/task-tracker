@@ -47,6 +47,7 @@ const AccountingYearEndPage = lazy(() => import('./routes/AccountingYearEndPage.
 const AccountingFuelPage = lazy(() => import('./routes/AccountingFuelPage.jsx'));
 const ManholeLayoutPage = lazy(() => import('./routes/ManholeLayoutPage.jsx'));
 const VehiclesPage = lazy(() => import('./routes/VehiclesPage.jsx'));
+const MyVehiclePage = lazy(() => import('./routes/MyVehiclePage.jsx'));
 const VehicleDetailPage = lazy(() => import('./routes/VehicleDetailPage.jsx'));
 const VehicleFinesPage = lazy(() => import('./routes/VehicleFinesPage.jsx'));
 
@@ -128,6 +129,7 @@ export default function App() {
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="my-attendance" element={<Suspense fallback={<LoadingScreen />}><PersonalAttendancePage /></Suspense>} />
                 <Route path="my-notes" element={<Suspense fallback={<LoadingScreen />}><PersonalNotesPage /></Suspense>} />
+                <Route path="my-vehicle" element={<Suspense fallback={<LoadingScreen />}><MyVehiclePage /></Suspense>} />
                 <Route path="overview" element={<OverviewPage />} />
                 <Route path="work-plan" element={<Suspense fallback={<LoadingScreen />}><WorkPlanPage /></Suspense>} />
                 <Route
@@ -258,6 +260,16 @@ export default function App() {
                     <RequireVehicleAccess>
                       <Suspense fallback={<LoadingScreen />}>
                         <VehiclesPage />
+                      </Suspense>
+                    </RequireVehicleAccess>
+                  }
+                />
+                <Route
+                  path="vehicles/archive"
+                  element={
+                    <RequireVehicleAccess>
+                      <Suspense fallback={<LoadingScreen />}>
+                        <VehiclesPage archive />
                       </Suspense>
                     </RequireVehicleAccess>
                   }

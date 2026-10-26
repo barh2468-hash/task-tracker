@@ -78,6 +78,7 @@ export default function DashboardNavigation({
           {item('/app/manhole-layout', 'פרישת שוחות', Layers)}
           {!isDrafter && item('/app/my-attendance', 'דוח הנוכחות שלי', Clock)}
           {!isDrafter && item('/app/my-notes', 'ההערות שלי', FileText)}
+          {item('/app/my-vehicle', 'הרכב שלי', Car)}
           {!isManager && !isDrafter && item('/app/projects?filter=archive', 'הארכיון שלי', FolderKanban)}
         </div>
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Car, ClipboardList, FileSpreadsheet, FileCheck2, Gauge, Plus, ShieldAlert, Upload, UserCheck, Users, Receipt } from 'lucide-react';
+import { AlertTriangle, Archive, Car, ClipboardList, FileSpreadsheet, FileCheck2, Gauge, Plus, ShieldAlert, Upload, UserCheck, Users, Receipt } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useMessage } from '../context/MessageContext.jsx';
 import { t } from '../features/language/LanguageContext.jsx';
@@ -31,14 +31,16 @@ const FOCUS_FILTERS = {
   quotes: (summary) => summary.hasPendingQuote,
 };
 
-export default function VehiclesPage() {
+// `archive`: the separate list of vehicles that are out of use (status "retired").
+// The main list never shows them, so opening "vehicles" only shows what is in use.
+export default function VehiclesPage({ archive = false }) {
   useTranslation();
   const { session, isManager } = useAuth();
   const { setMessage } = useMessage();
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('active');
+  const [statusFilter, setStatusFilter] = useState(archive ? 'retired' : 'active');
   const [focus, setFocus] = useState(null);
   const [dialog, setDialog] = useState(null);
   const userId = session?.user?.id;
@@ -75,6 +77,7 @@ export default function VehiclesPage() {
     const active = summaries.filter((s) => s.vehicle.status !== 'retired');
     return {
       active: active.length,
+      retired: summaries.length - active.length,
       attention: active.filter(FOCUS_FILTERS.attention).length,
       missing: active.filter(FOCUS_FILTERS.missing).length,
       odometer: active.filter(FOCUS_FILTERS.odometer).length,
@@ -148,17 +151,28 @@ export default function VehiclesPage() {
   return (
     <>
       <PageHeader
-        title={t('רכבי חברה')}
-        subtitle={t('ניהול הצי, ביטוחים, טסטים ומסמכים')}
+        title={archive ? t('רכבים שלא בשימוש') : t('רכבי חברה')}
+        subtitle={archive ? t('רכבים שנמכרו, נגנבו, הושבתו או שפג תוקפם. לא מופיעים ברשימה הפעילה.') : t('ניהול הצי, ביטוחים, טסטים ומסמכים')}
         actions={
           <>
-            <Link to="/app/vehicles/fines" className="secondary smallBtn">
-              <Receipt size={16} /> {t('דוחות')}
-            </Link>
+            {archive ? (
+              <Link to="/app/vehicles" className="secondary smallBtn">
+                <Car size={16} /> {t('חזרה לרכבי החברה')}
+              </Link>
+            ) : (
+              <>
+                <Link to="/app/vehicles/archive" className="secondary smallBtn">
+                  <Archive size={16} /> {t('רכבים שלא בשימוש')} ({counts.retired})
+                </Link>
+                <Link to="/app/vehicles/fines" className="secondary smallBtn">
+                  <Receipt size={16} /> {t('דוחות')}
+                </Link>
+              </>
+            )}
             <Button variant="secondary" onClick={handleExport}>
               <FileSpreadsheet size={16} /> {t('ייצוא לאקסל')}
             </Button>
-            {isManager && (
+            {isManager && !archive && (
             <>
               {unlinkedDrivers > 0 && (
                 <Button variant="secondary" onClick={() => setDialog('drivers')}>
@@ -177,6 +191,7 @@ export default function VehiclesPage() {
         }
       />
 
+      {!archive && (
       <div className="grid">
         <Stat
           icon={<Car size={22} />}
@@ -216,6 +231,7 @@ export default function VehiclesPage() {
           onClick={() => toggleFocus('odometer')}
         />
       </div>
+      )}
 
       <div className="toolbar">
         <input
@@ -225,19 +241,20 @@ export default function VehiclesPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-          <option value="active">{t('פעילים')}</option>
-          <option value="all">{t('הכל')}</option>
-          {Object.entries(VEHICLE_STATUSES).map(([value, label]) => (
-            <option key={value} value={value}>{t(label)}</option>
-          ))}
-        </select>
+        {!archive && (
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <option value="active">{t('פעילים')}</option>
+            {Object.entries(VEHICLE_STATUSES).filter(([value]) => value !== 'retired').map(([value, label]) => (
+              <option key={value} value={value}>{t(label)}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {visible.length === 0 ? (
         <EmptyState
           icon={Car}
-          title={data.vehicles.length ? t('אין רכבים התואמים לסינון') : t('עדיין אין רכבים במערכת')}
+          title={archive ? t('אין רכבים שלא בשימוש') : data.vehicles.length ? t('אין רכבים התואמים לסינון') : t('עדיין אין רכבים במערכת')}
           description={isManager && !data.vehicles.length ? t('אפשר להוסיף רכב או לייבא את הטבלה הקיימת.') : undefined}
         />
       ) : (

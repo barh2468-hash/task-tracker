@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, LogOut, FileSpreadsheet, Fuel, X } from 'lucide-react';
+import { CheckCircle, Car, LogOut, FileSpreadsheet, Fuel, X } from 'lucide-react';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useAuth } from '../features/auth/useAuth.js';
 import { MessageProvider, useMessage } from '../context/MessageContext.jsx';
@@ -33,6 +33,9 @@ function AccountingLayoutContent() {
         )}
         <NavLink to="/app/accounting/fuel" className={({ isActive }) => `accountingTab${isActive ? ' active' : ''}`}>
           <Fuel size={16} /> {t('דלק — יבוא לסאפ')}
+        </NavLink>
+        <NavLink to="/app/my-vehicle" className={({ isActive }) => `accountingTab${isActive ? ' active' : ''}`}>
+          <Car size={16} /> {t('הרכב שלי')}
         </NavLink>
       </nav>
 

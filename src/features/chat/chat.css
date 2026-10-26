@@ -179,6 +179,15 @@
 .chatConversationPreview em {
   font-weight: 700;
 }
+.chatListTick {
+  margin-inline-end: 4px;
+  display: inline-flex;
+  vertical-align: -2px;
+  color: #8193a6;
+}
+.chatListTick.read {
+  color: #3998bb;
+}
 .chatConversationPreview .chatDraftLabel {
   color: #a14b20;
   font-weight: 700;
@@ -361,6 +370,193 @@
 .chatNewMessagesButton:hover {
   background: var(--navy3);
   transform: none;
+}
+
+/* ---- Message footer, receipts and actions ----------------------------- */
+.chatBubbleFooter {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  color: #75879a;
+  font-size: 10px;
+  font-weight: 500;
+}
+.chatMessageRow .chatBubble .chatBubbleFooter time {
+  margin: 0;
+  display: inline;
+}
+.chatBubble.mine .chatBubbleFooter {
+  color: #c9dbec;
+}
+.chatSendState {
+  display: inline-flex;
+  color: inherit;
+}
+.chatSendState.read {
+  color: #3998bb;
+}
+.chatBubble.mine .chatSendState.read {
+  color: #7fd3f5;
+}
+/* The menu is anchored to the bubble's outer edge (not the small button), so
+   it opens toward the middle of the screen whatever the bubble's width. */
+.chatMessageRow .chatBubble {
+  position: relative;
+}
+.chatMessageActions.projectMoreActions {
+  position: static;
+  display: inline-flex;
+}
+.chatMessageMenuButton {
+  width: 22px;
+  height: 18px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  opacity: 0.75;
+}
+.chatMessageMenuButton:hover:not(:disabled) {
+  background: rgb(127 150 175 / 18%);
+  box-shadow: none;
+  opacity: 1;
+}
+.chatMessageActions .projectMoreActionsMenu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: auto;
+  width: 210px;
+  max-width: calc(100vw - 40px);
+  text-align: start;
+}
+.chatMessageRow.mine .chatMessageActions .projectMoreActionsMenu {
+  left: auto;
+  right: 0;
+}
+.chatMessageActions .projectMoreActionsMenu button:hover:not(:disabled) {
+  background: #eef6fb;
+  color: var(--navy);
+  box-shadow: none;
+}
+.chatMessageActions .projectMoreActionsMenu button.danger:hover:not(:disabled) {
+  background: #ffe4e6 !important;
+  color: #b4232f;
+}
+.chatReadInfo {
+  display: grid;
+  gap: 4px;
+  margin-top: 3px;
+  padding: 8px 10px 4px;
+  border-top: 1px solid #e3ebf2;
+  color: #60748a;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: normal;
+}
+/* Beats the bubble's own name styling (white in your navy bubbles). */
+.chatMessageRow .chatBubble .chatReadInfo b,
+.chatMessageRow .chatBubble.mine .chatReadInfo b {
+  display: inline;
+  margin: 0;
+  color: var(--navy);
+  font-size: 11px;
+}
+.chatSendFailed {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #b42318;
+  font-size: 11px;
+  font-weight: 600;
+}
+.chatBubble.mine .chatSendFailed {
+  color: #ffc9c9;
+}
+.chatSendFailed button {
+  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  font-size: 11px;
+}
+.chatSendFailed button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 12%);
+  box-shadow: none;
+}
+.chatMessageRow .chatBubble.failed {
+  opacity: 0.85;
+}
+.chatMessageRow .chatBubble .chatDeletedText {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #8193a6;
+  font-style: italic;
+}
+.chatMessageRow .chatBubble.mine .chatDeletedText {
+  color: #c9dbec;
+}
+.chatReplyQuote {
+  width: 100%;
+  margin: 2px 0 6px;
+  padding: 6px 10px;
+  display: grid;
+  gap: 2px;
+  border: 0;
+  border-inline-start: 3px solid var(--chat-sender-color);
+  border-radius: 8px;
+  background: rgb(127 150 175 / 12%);
+  color: inherit;
+  box-shadow: none;
+  font-weight: 400;
+  text-align: start;
+}
+.chatReplyQuote:hover:not(:disabled) {
+  background: rgb(127 150 175 / 20%);
+  box-shadow: none;
+}
+.chatReplyQuote small {
+  font-size: 11px;
+  font-weight: 700;
+}
+.chatReplyQuote span {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chatBubble.mine .chatReplyQuote {
+  border-inline-start-color: #7fd3f5;
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+}
+.chatInlineLink {
+  color: #0b6fa4;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+.chatBubble.mine .chatInlineLink {
+  color: #9fdcf7;
+}
+.chatMessageRow.highlighted .chatBubble {
+  box-shadow: 0 0 0 3px rgb(245 158 11 / 55%);
+  transition: box-shadow 0.2s ease;
+}
+.chatComposerContext b {
+  font-weight: 500;
 }
 
 /* ---- Project card in messages ----------------------------------------- */

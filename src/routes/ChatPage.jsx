@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   BellOff,
   Check,
+  CheckCheck,
   EyeOff,
   FolderKanban,
   MessageCircle,
@@ -27,6 +28,7 @@ import { useMessage } from '../context/MessageContext.jsx';
 import { readDrafts, saveDraft } from '../features/chat/drafts.js';
 import { chatEventText } from '../features/chat/chatEvents.js';
 import { initials } from '../features/chat/initials.js';
+import { messageReaders } from '../features/chat/receipts.js';
 import { roleLabel } from '../services/supabase.js';
 import { getStatusClass } from '../components/StatusPill.jsx';
 import { projectDiscussionPath } from '../utils/navigation.js';
@@ -41,6 +43,7 @@ export default function ChatPage() {
   const { workers, projects } = useProjects();
   const {
     conversations,
+    listReadStates,
     chatAvailable,
     chatLoading,
     unreadChatCount,
@@ -238,6 +241,16 @@ export default function ChatPage() {
           // except for the chat that is open and already shows it in the box.
           const draft =
             conversation.id !== activeConversationId ? drafts[conversation.id]?.trim() : '';
+          // ✓ / ✓✓ on chats whose last message is yours, like the open chat.
+          const lastIsMine =
+            !draft && conversation.last_sender_id === profile?.id && conversation.last_message_at;
+          const lastReadByAll =
+            lastIsMine && listReadStates.has(conversation.id)
+              ? messageReaders(
+                  { sender_id: profile?.id, created_at: conversation.last_message_at },
+                  listReadStates.get(conversation.id),
+                ).readByAll
+              : null;
           return (
             <button
               type="button"
@@ -259,7 +272,21 @@ export default function ChatPage() {
                         <span className="chatDraftLabel">{t('טיוטה:')}</span> {draft}
                       </>
                     ) : (
-                      conversation.last_message_body || t('שיחה חדשה')
+                      <>
+                        {lastReadByAll !== null && (
+                          <span
+                            className={`chatListTick ${lastReadByAll ? 'read' : ''}`}
+                            title={lastReadByAll ? t('נקרא') : t('נשלח')}
+                          >
+                            {lastReadByAll ? (
+                              <CheckCheck size={14} aria-label={t('נקרא')} />
+                            ) : (
+                              <Check size={14} aria-label={t('נשלח')} />
+                            )}
+                          </span>
+                        )}
+                        {conversation.last_message_body || t('שיחה חדשה')}
+                      </>
                     )}
                   </small>
                   {unread > 0 && <em>{Math.min(unread, 99)}</em>}

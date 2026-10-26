@@ -15,6 +15,7 @@ export function ChatProvider({ children }) {
   const [conversations, setConversations] = useState([]);
   const [chatAvailable, setChatAvailable] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
+  const [listReadStates, setListReadStates] = useState(() => new Map());
   // Project rooms live apart from personal chats: their own inbox, counts and
   // badges. Unavailable until the project chat migration has been applied.
   const [projectRooms, setProjectRooms] = useState([]);
@@ -31,6 +32,7 @@ export function ChatProvider({ children }) {
       const next = data || [];
       setChatAvailable(true);
       setConversations(next);
+      void loadListReadStates(next);
       return next;
     } catch (error) {
       console.warn('Chat load failed:', error instanceof Error ? error.message : error);
@@ -39,6 +41,28 @@ export function ChatProvider({ children }) {
       return [];
     } finally {
       setChatLoading(false);
+    }
+  }
+
+  // Read positions for chats whose last message is yours, so the list can
+  // show ✓ / ✓✓. Optional: a failure here never affects the list itself.
+  async function loadListReadStates(items) {
+    const ids = items.filter((item) => item.last_sender_id === profile?.id).map((item) => item.id);
+    if (!ids.length) {
+      setListReadStates(new Map());
+      return;
+    }
+    try {
+      const { data, error } = await chatApi.getChatReadStatesFor(ids);
+      if (error) throw error;
+      const byConversation = new Map();
+      (data || []).forEach((row) => {
+        if (!byConversation.has(row.conversation_id)) byConversation.set(row.conversation_id, []);
+        byConversation.get(row.conversation_id).push(row);
+      });
+      setListReadStates(byConversation);
+    } catch (error) {
+      console.warn('Chat read states failed:', error instanceof Error ? error.message : error);
     }
   }
 
@@ -149,18 +173,27 @@ export function ChatProvider({ children }) {
     return data || [];
   }
 
-  async function sendMessage(conversationId, body, project = null) {
+  // `quiet` leaves failure reporting to the caller (the chat marks the
+  // message "not sent" with a retry instead of showing a toast).
+  async function sendMessage(conversationId, body, project = null, { replyToId, quiet } = {}) {
     const text = body.trim();
     if ((!text && !project?.id) || !profile) return null;
     const messageBody = text || projectReferenceBody(project.label);
-    const { data, error } = await chatApi.insertChatMessage(
-      conversationId,
-      profile.id,
-      messageBody,
-      project,
-    );
+    let result;
+    try {
+      result = await chatApi.insertChatMessage(
+        conversationId,
+        profile.id,
+        messageBody,
+        project,
+        replyToId,
+      );
+    } catch (error) {
+      result = { error };
+    }
+    const { data, error } = result;
     if (error) {
-      setMessage(error.message, 'error');
+      if (!quiet) setMessage(error.message, 'error');
       return null;
     }
     // Push delivery must never turn a saved message into a failed send or retry.
@@ -170,8 +203,35 @@ export function ChatProvider({ children }) {
         if (pushError) console.warn('Chat push failed:', pushError.message);
       })
       .catch((pushError) => console.warn('Chat push failed:', pushError.message));
-    await refreshChat();
+    // The list refresh must not delay the message showing as sent.
+    void refreshChat();
     return data;
+  }
+
+  async function editMessage(messageId, body) {
+    const { data, error } = await chatApi.editChatMessage(messageId, body);
+    if (error) {
+      setMessage(error.message, 'error');
+      return null;
+    }
+    void refreshChat();
+    return data;
+  }
+
+  async function deleteMessage(messageId) {
+    const { data, error } = await chatApi.deleteChatMessage(messageId);
+    if (error) {
+      setMessage(error.message, 'error');
+      return null;
+    }
+    void refreshChat();
+    return data;
+  }
+
+  async function getReadStates(conversationId) {
+    const { data, error } = await chatApi.getChatReadStates(conversationId);
+    if (error) throw error;
+    return data || [];
   }
 
   async function markConversationRead(conversationId, readAt) {
@@ -223,6 +283,7 @@ export function ChatProvider({ children }) {
 
   const value = {
     conversations,
+    listReadStates,
     chatAvailable,
     chatLoading,
     unreadChatCount,
@@ -238,7 +299,10 @@ export function ChatProvider({ children }) {
     openProjectConversation,
     setConversationMuted,
     getMessages,
+    getReadStates,
     sendMessage,
+    editMessage,
+    deleteMessage,
     markConversationRead,
   };
 

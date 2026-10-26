@@ -7,7 +7,9 @@ import {
   FolderKanban,
   ListPlus,
   MessageCircle,
+  Pencil,
   RefreshCw,
+  Reply,
   Search,
   SendHorizontal,
   X,
@@ -18,14 +20,20 @@ import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useChat } from '../ChatContext.jsx';
 import { readDrafts, saveDraft } from '../drafts.js';
-import { initials } from '../initials.js';
-import { chatEventNote, chatEventText, isProjectReferenceOnly } from '../chatEvents.js';
+import {
+  chatEventNote,
+  chatEventText,
+  isProjectReferenceOnly,
+  projectReferenceBody,
+} from '../chatEvents.js';
 import { firstUnreadIndex } from '../unreadDivider.js';
+import { messageReaders } from '../receipts.js';
 import { useRealtimeRefresh } from '../../../hooks/useRealtimeRefresh.js';
-import ProjectReferenceCard from './ProjectReferenceCard.jsx';
+import MessageBubble from './MessageBubble.jsx';
 import '../chat.css';
 
 const NEAR_BOTTOM_PX = 80;
+const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const EVENT_ICONS = {
   status_changed: RefreshCw,
@@ -49,6 +57,15 @@ function enterSendsMessage() {
   return !window.matchMedia?.('(hover: none) and (pointer: coarse)').matches;
 }
 
+function previewText(message) {
+  if (!message) return t('הודעה קודמת');
+  if (message.deleted_at) return t('ההודעה נמחקה');
+  const text = isProjectReferenceOnly(message)
+    ? `${t('הפניה לפרויקט')}: ${message.project_label || ''}`
+    : message.body;
+  return text.length > 120 ? `${text.slice(0, 120)}…` : text;
+}
+
 // One open conversation: messages, project activity lines and the composer.
 // Render it with `key={conversationId}` so every conversation starts fresh.
 // `unreadCount` is the conversation's unread count from its list, or null
@@ -65,12 +82,27 @@ export default function ChatRoom({
   const locale = localeForLanguage(language);
   const { profile } = useAuth();
   const { projects, workers } = useProjects();
-  const { getMessages, sendMessage, markConversationRead } = useChat();
+  const {
+    getMessages,
+    getReadStates,
+    sendMessage,
+    editMessage,
+    deleteMessage,
+    markConversationRead,
+  } = useChat();
   const [messages, setMessages] = useState([]);
+  // Messages shown right away while they are saved; "failed" ones stay with a
+  // retry until sent or removed. Background refreshes never drop them.
+  const [outbox, setOutbox] = useState([]);
+  const [readStates, setReadStates] = useState([]);
   const [messageText, setMessageText] = useState(
     () => readDrafts(profile?.id)[conversationId] || '',
   );
-  const [sending, setSending] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [menuFor, setMenuFor] = useState(null);
+  const [highlightId, setHighlightId] = useState(null);
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const [projectSearch, setProjectSearch] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState(null);
@@ -79,6 +111,7 @@ export default function ChatRoom({
   const messagesContainerRef = useRef(null);
   const unreadDividerRef = useRef(null);
   const textareaRef = useRef(null);
+  const draftBeforeEditRef = useRef('');
   const nearBottomRef = useRef(true);
   const initialScrollDoneRef = useRef(false);
   const lastMessageIdRef = useRef(null);
@@ -95,7 +128,19 @@ export default function ChatRoom({
     () => new Map(projects.map((project) => [project.id, project])),
     [projects],
   );
+  const messagesById = useMemo(
+    () => new Map(messages.map((message) => [message.id, message])),
+    [messages],
+  );
+  const displayed = useMemo(() => [...messages, ...outbox], [messages, outbox]);
+  // Reply, edit and delete need the message-actions migration; its columns
+  // show up on loaded messages once it is applied.
+  const actionsAvailable = messages.some((message) => 'edited_at' in message);
   const selectedProject = projectsById.get(selectedProjectId) || null;
+
+  function nameOf(userId) {
+    return userId === profile?.id ? t('אני') : profilesById.get(userId)?.full_name || t('משתמש');
+  }
 
   useEffect(() => {
     mountedRef.current = true;
@@ -106,9 +151,13 @@ export default function ChatRoom({
 
   async function loadMessages() {
     try {
-      const next = await getMessages(conversationId);
+      const [next, states] = await Promise.all([
+        getMessages(conversationId),
+        getReadStates(conversationId).catch(() => null),
+      ]);
       if (!mountedRef.current) return;
       setMessages(next);
+      if (states) setReadStates(states);
       // Remember the unread count before marking the conversation read, so the
       // divider survives the read receipt.
       if (unreadMarkerRef.current === null) {
@@ -137,17 +186,18 @@ export default function ChatRoom({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unreadCountKnown]);
 
+  // chat_members changes when someone reads, which updates "seen by".
   useRealtimeRefresh({
     enabled: Boolean(conversationId),
     channelName: `infrastructure-tracker-chat-room-${profile?.id || 'guest'}`,
-    tables: ['chat_messages'],
+    tables: ['chat_messages', 'chat_members'],
     onRefresh: loadMessages,
     pollIntervalMs: 5000,
   });
 
   const unreadIndex = useMemo(
-    () => firstUnreadIndex(messages, unreadMarker || 0, profile?.id),
-    [messages, unreadMarker, profile?.id],
+    () => firstUnreadIndex(displayed, unreadMarker || 0, profile?.id),
+    [displayed, unreadMarker, profile?.id],
   );
 
   function scrollToBottom(behavior = 'smooth') {
@@ -171,7 +221,7 @@ export default function ChatRoom({
   // already at the bottom or sent it, otherwise a "new messages" button shows.
   useLayoutEffect(() => {
     const container = messagesContainerRef.current;
-    const last = messages.at(-1);
+    const last = displayed.at(-1);
     if (!container || !last) return;
     if (!initialScrollDoneRef.current) {
       if (unreadMarker === null) return;
@@ -192,7 +242,7 @@ export default function ChatRoom({
     if (last.sender_id === profile?.id || nearBottomRef.current) scrollToBottom();
     else setHasNewBelow(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, unreadMarker]);
+  }, [displayed, unreadMarker]);
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
@@ -208,36 +258,142 @@ export default function ChatRoom({
 
   function handleMessageTextChange(event) {
     setMessageText(event.target.value);
-    updateDraft(event.target.value);
+    // An edit in progress is not a draft of a new message.
+    if (!editing) updateDraft(event.target.value);
   }
 
-  async function handleSendMessage(event) {
-    event?.preventDefault();
+  function markReadAfterSending(createdAt) {
+    if (document.visibilityState === 'visible' && document.hasFocus()) {
+      void markConversationRead(conversationId, createdAt);
+    }
+  }
+
+  async function deliver(item) {
+    const sent = await sendMessage(conversationId, item.typed, item.project, {
+      replyToId: item.reply_to_id,
+      quiet: true,
+    });
+    if (!mountedRef.current) return;
+    if (sent) {
+      setMessages((items) =>
+        items.some((entry) => entry.id === sent.id) ? items : [...items, sent],
+      );
+      setOutbox((items) => items.filter((entry) => entry.id !== item.id));
+      markReadAfterSending(sent.created_at);
+    } else {
+      setOutbox((items) =>
+        items.map((entry) => (entry.id === item.id ? { ...entry, status: 'failed' } : entry)),
+      );
+    }
+  }
+
+  function retry(item) {
+    const again = { ...item, status: 'sending' };
+    setOutbox((items) => items.map((entry) => (entry.id === item.id ? again : entry)));
+    void deliver(again);
+  }
+
+  function discard(item) {
+    setOutbox((items) => items.filter((entry) => entry.id !== item.id));
+  }
+
+  function startReply(message) {
+    if (editing) cancelEdit();
+    setReplyTo(message);
+    textareaRef.current?.focus();
+  }
+
+  function startEdit(message) {
+    draftBeforeEditRef.current = messageText;
+    setReplyTo(null);
+    setSelectedProjectId(null);
+    setProjectPickerOpen(false);
+    setEditing(message);
+    setMessageText(isProjectReferenceOnly(message) ? '' : message.body);
+    textareaRef.current?.focus();
+  }
+
+  function cancelEdit() {
+    setEditing(null);
+    setMessageText(draftBeforeEditRef.current);
+  }
+
+  async function saveEdit() {
     const body = messageText.trim();
-    if ((!body && !selectedProject) || sending) return;
-    setSending(true);
+    if (!body || savingEdit) return;
+    if (body === editing.body) {
+      cancelEdit();
+      return;
+    }
+    setSavingEdit(true);
     try {
-      const projectReference = selectedProject
-        ? { id: selectedProject.id, label: selectedProject.name }
-        : null;
-      const sent = await sendMessage(conversationId, body, projectReference);
-      if (sent) {
-        updateDraft('');
-        if (!mountedRef.current) return;
+      const updated = await editMessage(editing.id, body);
+      if (updated && mountedRef.current) {
         setMessages((items) =>
-          items.some((item) => item.id === sent.id) ? items : [...items, sent],
+          items.map((entry) => (entry.id === updated.id ? { ...entry, ...updated } : entry)),
         );
-        setMessageText('');
-        setSelectedProjectId(null);
-        setProjectPickerOpen(false);
-        setProjectSearch('');
-        if (document.visibilityState === 'visible' && document.hasFocus()) {
-          await markConversationRead(conversationId, sent.created_at);
-        }
+        cancelEdit();
       }
     } finally {
-      if (mountedRef.current) setSending(false);
+      if (mountedRef.current) setSavingEdit(false);
     }
+  }
+
+  async function removeMessage(message) {
+    const updated = await deleteMessage(message.id);
+    if (!updated || !mountedRef.current) return;
+    setMessages((items) =>
+      items.map((entry) => (entry.id === updated.id ? { ...entry, ...updated } : entry)),
+    );
+    if (replyTo?.id === message.id) setReplyTo(null);
+    if (editing?.id === message.id) cancelEdit();
+  }
+
+  function jumpTo(messageId) {
+    const container = messagesContainerRef.current;
+    const target = document.getElementById(`chat-message-${messageId}`);
+    if (!container || !target) return;
+    container.scrollTop +=
+      target.getBoundingClientRect().top - container.getBoundingClientRect().top - 40;
+    setHighlightId(messageId);
+    window.setTimeout(() => {
+      if (mountedRef.current) setHighlightId(null);
+    }, 1600);
+  }
+
+  function handleSendMessage(event) {
+    event?.preventDefault();
+    if (editing) {
+      void saveEdit();
+      return;
+    }
+    const typed = messageText.trim();
+    if (!typed && !selectedProject) return;
+    const project = selectedProject
+      ? { id: selectedProject.id, label: selectedProject.name }
+      : null;
+    const item = {
+      id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      conversation_id: conversationId,
+      sender_id: profile?.id,
+      body: typed || projectReferenceBody(project.label),
+      project_id: project?.id || null,
+      project_label: project?.label || null,
+      reply_to_id: actionsAvailable ? replyTo?.id || null : null,
+      created_at: new Date().toISOString(),
+      status: 'sending',
+      typed,
+      project,
+    };
+    setOutbox((items) => [...items, item]);
+    setMessageText('');
+    updateDraft('');
+    setSelectedProjectId(null);
+    setProjectPickerOpen(false);
+    setProjectSearch('');
+    setReplyTo(null);
+    textareaRef.current?.focus();
+    void deliver(item);
   }
 
   const filteredProjects = projects
@@ -272,35 +428,61 @@ export default function ChatRoom({
     );
   }
 
-  function renderMessage(message, createdAt) {
+  function renderMessage(message) {
     const mine = message.sender_id === profile?.id;
-    const sender = mine ? profile : profilesById.get(message.sender_id);
-    const referencedProject = projectsById.get(message.project_id);
+    const local = Boolean(message.status);
+    const original = message.reply_to_id ? messagesById.get(message.reply_to_id) : null;
+    let receipts = null;
+    if (mine && !local) {
+      const readers = messageReaders(message, readStates);
+      receipts = {
+        readByAll: readers.readByAll,
+        readerNames: readers.readerIds.map(nameOf),
+        waitingNames: readers.waitingIds.map(nameOf),
+      };
+    }
     return (
-      <div
-        className={`chatMessageRow ${mine ? 'mine' : ''}`}
-        style={{ '--chat-sender-color': senderColor(message.sender_id) }}
-      >
-        <span className="chatMessageAvatar" aria-hidden="true">
-          {initials(sender?.full_name)}
-        </span>
-        <article className={`chatBubble ${mine ? 'mine' : ''}`}>
-          <b>{mine ? t('אני') : sender?.full_name || t('משתמש')}</b>
-          {!isProjectReferenceOnly(message) && <p dir="auto">{message.body}</p>}
-          {message.project_id && (
-            <ProjectReferenceCard
-              projectId={message.project_id}
-              label={message.project_label}
-              project={referencedProject}
-            />
-          )}
-          <time dateTime={message.created_at}>
-            {createdAt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
-          </time>
-        </article>
-      </div>
+      <MessageBubble
+        message={message}
+        mine={mine}
+        senderName={mine ? profile?.full_name : profilesById.get(message.sender_id)?.full_name}
+        senderColor={senderColor(message.sender_id)}
+        referencedProject={projectsById.get(message.project_id)}
+        quoted={
+          message.reply_to_id
+            ? {
+                id: original?.id || null,
+                senderName: original ? nameOf(original.sender_id) : '',
+                text: previewText(original),
+              }
+            : null
+        }
+        receipts={receipts}
+        locale={locale}
+        highlighted={highlightId === message.id}
+        canReply={actionsAvailable && !local}
+        canEdit={
+          actionsAvailable &&
+          mine &&
+          !local &&
+          Date.now() - Date.parse(message.created_at) < EDIT_WINDOW_MS
+        }
+        canDelete={actionsAvailable && mine && !local}
+        menuOpen={menuFor === message.id}
+        onMenuChange={(open) => setMenuFor(open ? message.id : null)}
+        onReply={() => startReply(message)}
+        onEdit={() => startEdit(message)}
+        onDelete={() => removeMessage(message)}
+        onRetry={() => retry(message)}
+        onDiscard={() => discard(message)}
+        onJumpTo={jumpTo}
+      />
     );
   }
+
+  const canSend = editing
+    ? Boolean(messageText.trim()) && !savingEdit
+    : Boolean(messageText.trim() || selectedProject);
 
   return (
     <>
@@ -312,18 +494,18 @@ export default function ChatRoom({
         ref={messagesContainerRef}
         onScroll={handleMessagesScroll}
       >
-        {messages.length === 0 && (
+        {displayed.length === 0 && (
           <div className="chatFirstMessage">
             <MessageCircle size={28} />
             <b>{t('זו תחילת השיחה')}</b>
             <span>{t('שלחו הודעה ראשונה למשתתפים.')}</span>
           </div>
         )}
-        {messages.map((message, index) => {
+        {displayed.map((message, index) => {
           const createdAt = new Date(message.created_at);
           const showDate =
             !index ||
-            createdAt.toDateString() !== new Date(messages[index - 1].created_at).toDateString();
+            createdAt.toDateString() !== new Date(displayed[index - 1].created_at).toDateString();
           return (
             <Fragment key={message.id}>
               {showDate && (
@@ -347,9 +529,7 @@ export default function ChatRoom({
                   </span>
                 </div>
               )}
-              {message.kind === 'event'
-                ? renderEvent(message, createdAt)
-                : renderMessage(message, createdAt)}
+              {message.kind === 'event' ? renderEvent(message, createdAt) : renderMessage(message)}
             </Fragment>
           );
         })}
@@ -411,6 +591,30 @@ export default function ChatRoom({
             </div>
           </div>
         )}
+        {replyTo && (
+          <div className="chatSelectedProject chatComposerContext">
+            <Reply size={17} />
+            <span>
+              <small>{t('תשובה ל{{value0}}', { value0: nameOf(replyTo.sender_id) })}</small>
+              <b dir="auto">{previewText(replyTo)}</b>
+            </span>
+            <button type="button" onClick={() => setReplyTo(null)} aria-label={t('ביטול תשובה')}>
+              <X size={15} />
+            </button>
+          </div>
+        )}
+        {editing && (
+          <div className="chatSelectedProject chatComposerContext">
+            <Pencil size={17} />
+            <span>
+              <small>{t('עריכת הודעה')}</small>
+              <b dir="auto">{previewText(editing)}</b>
+            </span>
+            <button type="button" onClick={cancelEdit} aria-label={t('ביטול עריכה')}>
+              <X size={15} />
+            </button>
+          </div>
+        )}
         {selectedProject && (
           <div className="chatSelectedProject">
             <FolderKanban size={17} />
@@ -427,7 +631,7 @@ export default function ChatRoom({
             </button>
           </div>
         )}
-        {allowProjectReference ? (
+        {allowProjectReference && !editing ? (
           <button
             type="button"
             className={`chatProjectButton ${selectedProject ? 'active' : ''}`}
@@ -447,10 +651,15 @@ export default function ChatRoom({
           rows="1"
           maxLength="4000"
           value={messageText}
-          placeholder={t('כתבו הודעה...')}
+          placeholder={editing ? t('עריכת ההודעה...') : t('כתבו הודעה...')}
           enterKeyHint={enterSendsMessage() ? 'send' : 'enter'}
           onChange={handleMessageTextChange}
           onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              if (editing) cancelEdit();
+              else if (replyTo) setReplyTo(null);
+              return;
+            }
             if (
               event.key === 'Enter' &&
               !event.shiftKey &&
@@ -465,8 +674,8 @@ export default function ChatRoom({
         <button
           type="submit"
           className="chatSendButton"
-          disabled={(!messageText.trim() && !selectedProject) || sending}
-          aria-label={t('שליחת הודעה')}
+          disabled={!canSend}
+          aria-label={editing ? t('שמירת השינוי') : t('שליחת הודעה')}
         >
           <SendHorizontal size={19} />
         </button>

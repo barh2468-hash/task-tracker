@@ -26,6 +26,18 @@ export function mapsLink(lat, lng) {
   return `https://www.google.com/maps?q=${lat},${lng}`;
 }
 
+// Projects store a text address, not coordinates; Waze searches it and offers
+// to start navigation (and falls back to the web on phones without the app).
+export function navigationLink(address) {
+  const query = String(address || '').trim();
+  return query ? `https://waze.com/ul?q=${encodeURIComponent(query)}&navigate=yes` : '';
+}
+
+export function phoneLink(phone) {
+  const digits = String(phone || '').replace(/[^0-9+]/g, '');
+  return digits ? `tel:${digits}` : '';
+}
+
 export function formatLocation(location) {
   const accuracy = typeof location.accuracy === 'number' ? ` · דיוק כ-${location.accuracy} מ׳` : '';
   return `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}${accuracy}`;

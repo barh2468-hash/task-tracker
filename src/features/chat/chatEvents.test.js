@@ -2,7 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import i18next from 'i18next';
 import { heTranslations, enTranslations, elTranslations } from '../language/resources.js';
-import { chatEventNote, chatEventText } from './chatEvents.js';
+import {
+  chatEventNote,
+  chatEventText,
+  isProjectReferenceOnly,
+  projectReferenceBody,
+} from './chatEvents.js';
 
 const events = [
   ['status_changed', { from: 'חדש', to: 'בעבודה בשטח' }],
@@ -58,4 +63,16 @@ test('counts and names reach the text', () => {
 test('only status updates carry a note', () => {
   assert.equal(chatEventNote('status_changed', { note: '  הגענו  ' }), 'הגענו');
   assert.equal(chatEventNote('photo_added', { note: 'x' }), '');
+});
+
+test('a project link sent without text hides its stand-in body', () => {
+  const linkOnly = {
+    project_id: 'p',
+    project_label: 'פרויקט לדוגמה',
+    body: projectReferenceBody('פרויקט לדוגמה'),
+  };
+  assert.equal(linkOnly.body, 'הפניה לפרויקט: פרויקט לדוגמה');
+  assert.equal(isProjectReferenceOnly(linkOnly), true);
+  assert.equal(isProjectReferenceOnly({ ...linkOnly, body: 'תסתכלו על זה' }), false);
+  assert.equal(isProjectReferenceOnly({ body: linkOnly.body }), false);
 });

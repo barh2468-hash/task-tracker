@@ -30,3 +30,16 @@ export function chatEventText(eventType, eventData, translate, fallback = '') {
 export function chatEventNote(eventType, eventData) {
   return eventType === 'status_changed' ? String(eventData?.note || '').trim() : '';
 }
+
+// A project link sent without text is saved with this stand-in body (the
+// database requires one; push notifications and list previews show it). The
+// bubble already shows the project card, so the stand-in is not repeated there.
+export function projectReferenceBody(label) {
+  return `הפניה לפרויקט: ${label}`;
+}
+
+export function isProjectReferenceOnly(message) {
+  return Boolean(
+    message?.project_id && message.body === projectReferenceBody(message.project_label),
+  );
+}

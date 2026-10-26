@@ -3,7 +3,6 @@ import {
   ArrowDown,
   Camera,
   CircleCheck,
-  ExternalLink,
   FileText,
   FolderKanban,
   ListPlus,
@@ -13,7 +12,6 @@ import {
   SendHorizontal,
   X,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { t, useLanguage } from '../../language/LanguageContext.jsx';
 import { localeForLanguage } from '../../language/locale.js';
 import { useAuth } from '../../auth/useAuth.js';
@@ -21,10 +19,10 @@ import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useChat } from '../ChatContext.jsx';
 import { readDrafts, saveDraft } from '../drafts.js';
 import { initials } from '../initials.js';
-import { chatEventNote, chatEventText } from '../chatEvents.js';
+import { chatEventNote, chatEventText, isProjectReferenceOnly } from '../chatEvents.js';
 import { firstUnreadIndex } from '../unreadDivider.js';
 import { useRealtimeRefresh } from '../../../hooks/useRealtimeRefresh.js';
-import { projectDeepLinkPath } from '../../../utils/navigation.js';
+import ProjectReferenceCard from './ProjectReferenceCard.jsx';
 import '../chat.css';
 
 const NEAR_BOTTOM_PX = 80;
@@ -63,7 +61,6 @@ export default function ChatRoom({
   allowProjectReference = true,
   onDraftsChange,
 }) {
-  const navigate = useNavigate();
   const { language } = useLanguage();
   const locale = localeForLanguage(language);
   const { profile } = useAuth();
@@ -289,20 +286,13 @@ export default function ChatRoom({
         </span>
         <article className={`chatBubble ${mine ? 'mine' : ''}`}>
           <b>{mine ? t('אני') : sender?.full_name || t('משתמש')}</b>
-          <p dir="auto">{message.body}</p>
+          {!isProjectReferenceOnly(message) && <p dir="auto">{message.body}</p>}
           {message.project_id && (
-            <button
-              type="button"
-              className="chatProjectReference"
-              onClick={() => navigate(projectDeepLinkPath(message.project_id))}
-            >
-              <FolderKanban size={20} />
-              <span>
-                <small>{t('הפניה לפרויקט')}</small>
-                <strong>{referencedProject?.name || message.project_label || t('פרויקט')}</strong>
-              </span>
-              <ExternalLink size={15} />
-            </button>
+            <ProjectReferenceCard
+              projectId={message.project_id}
+              label={message.project_label}
+              project={referencedProject}
+            />
           )}
           <time dateTime={message.created_at}>
             {createdAt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}

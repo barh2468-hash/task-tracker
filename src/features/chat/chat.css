@@ -363,6 +363,111 @@
   transform: none;
 }
 
+/* ---- Project card in messages ----------------------------------------- */
+.chatProjectCard {
+  width: 100%;
+  min-width: 220px;
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid #b9deec;
+  border-radius: 12px;
+  background: #fff;
+}
+.chatProjectCardMain {
+  width: 100%;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  gap: 10px;
+  align-items: start;
+  border: 0;
+  border-radius: 0;
+  background: #eef9fd;
+  color: var(--navy);
+  box-shadow: none;
+  font-weight: 400;
+  text-align: start;
+}
+.chatProjectCardIcon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #fff;
+  color: #17698f;
+}
+.chatProjectCardCopy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.chatProjectCardTopline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.chatProjectCardTopline small {
+  color: #17698f;
+  font-size: 10px;
+  font-weight: 700;
+}
+.chatProjectCardTopline :is(.pill, .archiveBadge) {
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.chatProjectCardCopy strong {
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.chatProjectCardMeta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #60748a;
+  font-size: 11px;
+}
+.chatProjectCardMeta svg {
+  flex-shrink: 0;
+}
+.chatProjectCardMeta bdi {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chatProjectCardOpen {
+  margin-top: 8px;
+  color: #17698f;
+}
+.chatProjectCardActions {
+  display: flex;
+  border-top: 1px solid #d3e8f1;
+}
+.chatProjectCardActions a {
+  min-height: 38px;
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #17698f;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.chatProjectCardActions a + a {
+  border-inline-start: 1px solid #d3e8f1;
+}
+.chatProjectCardActions a:hover {
+  background: #f3fafd;
+}
+
 /* ---- Composer --------------------------------------------------------- */
 .chatMessageForm textarea {
   border-radius: 14px;
@@ -485,7 +590,7 @@
   background: #f0f4f8;
   box-shadow: none;
 }
-.chatProjectReference:hover:not(:disabled) {
+.chatProjectCardMain:hover:not(:disabled) {
   background: #e1f3fa;
   box-shadow: none;
 }

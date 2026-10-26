@@ -3,6 +3,7 @@ import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
 import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh.js';
 import * as chatApi from '../../services/api/chat.js';
+import { projectReferenceBody } from './chatEvents.js';
 import { useNotifications } from '../notifications/NotificationsContext.jsx';
 
 const ChatContext = createContext(null);
@@ -151,7 +152,7 @@ export function ChatProvider({ children }) {
   async function sendMessage(conversationId, body, project = null) {
     const text = body.trim();
     if ((!text && !project?.id) || !profile) return null;
-    const messageBody = text || `הפניה לפרויקט: ${project.label}`;
+    const messageBody = text || projectReferenceBody(project.label);
     const { data, error } = await chatApi.insertChatMessage(
       conversationId,
       profile.id,

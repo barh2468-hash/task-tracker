@@ -27,6 +27,17 @@ test('own messages are skipped when counting back', () => {
   assert.equal(firstUnreadIndex(messages, 4, me), 0);
 });
 
+test('project activity events are skipped like own messages', () => {
+  const withEvents = [
+    { sender_id: 'avi' },
+    { sender_id: 'dana', kind: 'event' },
+    { sender_id: 'avi' },
+    { sender_id: null, kind: 'event' },
+  ];
+  assert.equal(firstUnreadIndex(withEvents, 1, me), 2);
+  assert.equal(firstUnreadIndex(withEvents, 2, me), 0);
+});
+
 test('more unread than loaded history puts the divider at the top', () => {
   assert.equal(firstUnreadIndex(messages, 50, me), 0);
 });

@@ -5,3 +5,8 @@ export function projectDeepLinkPath(projectOrId) {
   const projectId = typeof projectOrId === 'string' ? projectOrId : projectOrId?.id;
   return `/app/projects?project=${encodeURIComponent(projectId || '')}`;
 }
+
+// Opens the project straight on its discussion (project chat room) tab.
+export function projectDiscussionPath(projectOrId) {
+  return `${projectDeepLinkPath(projectOrId)}&tab=discussion`;
+}

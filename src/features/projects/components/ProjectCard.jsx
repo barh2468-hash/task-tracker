@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { t, useLanguage } from '../../language/LanguageContext.jsx';
 import { localeForLanguage } from '../../language/locale.js';
 import '../project-workspace.css';
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Archive,
@@ -44,6 +44,7 @@ import ContinuationReportDialog from './ContinuationReportDialog.jsx';
 import DrawingBatchesPanel from './DrawingBatchesPanel.jsx';
 import ProjectHistoryPanel from './ProjectHistoryPanel.jsx';
 import ProjectSectionTabs from './ProjectSectionTabs.jsx';
+import { useChat } from '../../chat/ChatContext.jsx';
 import useProjectDialog from '../hooks/useProjectDialog.js';
 import { isManagerRole } from '../../../utils/roles.js';
 import { getProjectTeamAssignments, isProjectTeamMember } from '../utils/assignments.js';
@@ -72,7 +73,13 @@ function buildEditForm(project) {
   };
 }
 
-export default function ProjectCard({ project, onBack }) {
+// Loaded on demand: keeps chat code (and chat.css, which must come after
+// globals.css) out of the projects page's initial bundle.
+const ProjectChatPanel = lazy(() => import('../../chat/components/ProjectChatPanel.jsx'));
+
+const DETAIL_TABS = ['overview', 'tasks', 'documents', 'drawing-batches', 'updates', 'discussion'];
+
+export default function ProjectCard({ project, onBack, initialTab }) {
   useTranslation();
   const { language } = useLanguage();
   const assignmentRef = useRef(null);
@@ -126,7 +133,10 @@ export default function ProjectCard({ project, onBack }) {
   const [editing, setEditing] = useState(false);
   const [editSnapshot, setEditSnapshot] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
-  const [activeDetailTab, setActiveDetailTab] = useState('overview');
+  const { projectChatAvailable, projectRoomsByProjectId } = useChat();
+  const requestedTabRef = useRef(DETAIL_TABS.includes(initialTab) ? initialTab : 'overview');
+  const [activeDetailTab, setActiveDetailTab] = useState(requestedTabRef.current);
+  const discussionUnread = Number(projectRoomsByProjectId.get(project.id)?.unread_count || 0);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
   const [editMenuOpen, setEditMenuOpen] = useState(false);
   const [assets, setAssets] = useState({
@@ -174,7 +184,8 @@ export default function ProjectCard({ project, onBack }) {
     setStatusDialogOpen(false);
     setContinuationDialogOpen(false);
     setStatusNote('');
-    setActiveDetailTab('overview');
+    // Keep the tab a link asked for (e.g. ?tab=discussion from a chat push).
+    setActiveDetailTab(requestedTabRef.current);
     setMoreActionsOpen(false);
   }, [project.id]);
 
@@ -711,6 +722,7 @@ export default function ProjectCard({ project, onBack }) {
                 assets.project_drawing_batches.length + assets.project_review_files.length,
               ],
               ['updates', t('פעילות הפרויקט'), null],
+              ...(projectChatAvailable ? [['discussion', t('דיון'), discussionUnread]] : []),
             ].map(([tab, label, count]) => (
               <button
                 type="button"
@@ -1099,6 +1111,17 @@ export default function ProjectCard({ project, onBack }) {
                 fallbackItems={projectHistory}
                 refreshKey={historyItems[0]?.id || ''}
               />
+            )}
+            {activeDetailTab === 'discussion' && projectChatAvailable && (
+              <Suspense
+                fallback={
+                  <p className="chatHint" role="status">
+                    <LoaderCircle size={16} className="spinIcon" /> {t('טוען את הדיון...')}
+                  </p>
+                }
+              >
+                <ProjectChatPanel project={project} />
+              </Suspense>
             )}
           </div>
         </div>

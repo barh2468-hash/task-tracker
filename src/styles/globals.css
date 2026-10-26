@@ -1412,6 +1412,8 @@ body.language-en { direction: ltr; }
 }
 .language-en .floatingChatButton { right:24px; left:auto; }
 .language-en .floatingChatBadge { right:auto; left:-7px; }
+.floatingChatDot { position:absolute; top:-4px; right:-4px; width:14px; height:14px; border:2px solid var(--navy); border-radius:50%; background:var(--orange); }
+.language-en .floatingChatDot { right:auto; left:-4px; }
 .language-en .panelHeader h2:before,
 .language-en .reportHeader h2:before { margin-left: 0; margin-right: 9px; }
 .language-en .notificationBell span { left: auto; right: -5px; }

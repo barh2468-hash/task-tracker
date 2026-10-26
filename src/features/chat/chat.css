@@ -1,64 +1,247 @@
-.chatShell .chatConversationPane {
-  grid-template-rows: auto auto minmax(0, 1fr);
-}
-.chatNotificationControls {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--line);
-  background: #edf5fa;
-}
-.chatNotificationControls p {
-  margin: 0 0 9px;
-  color: #415a72;
-  font-size: 12px;
-  line-height: 1.5;
-}
-.chatNotificationControls .pwaControls {
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-.chatNotificationControls .pwaControlButton {
-  width: auto;
-  flex: 1;
-  justify-content: center;
-  padding: 9px 7px;
-  font-size: 11px;
-  border: 1px solid #b9d4e5;
+/* Chat follows the project list's look: white card, quiet tabs with an orange
+   underline, the shared search field, and bordered rows with a colored edge.
+   These rules override the older chat block in globals.css. */
+
+/* ---- Shell and list pane ---------------------------------------------- */
+.chatShell {
+  border: 1px solid rgba(223, 232, 242, 0.92);
+  border-radius: var(--radius);
   background: #fff;
-  color: #164a78;
+  box-shadow: var(--shadow);
+}
+.chatShell .chatConversationPane {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  background: #fff;
+}
+.chatPaneHeader {
+  padding: 20px 16px 14px;
+  border-bottom: 0;
+}
+.chatPaneHeader h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.chatPaneHeader .projectCreateLink {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  background: var(--navy);
+  color: #fff;
+  box-shadow: none;
+  font-size: 13px;
+}
+.chatPaneHeader .projectCreateLink:hover {
+  background: var(--navy3);
+  filter: none;
+  transform: none;
   box-shadow: none;
 }
-.chatNotificationControls .pwaControlButton:hover {
-  background: #dcecf7;
+.chatListTabs {
+  margin: 0 12px;
+  padding: 4px;
+  flex-wrap: nowrap;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.chatListTabs .projectViewLink {
+  min-width: 0;
+  min-height: 40px;
+  flex: 1 1 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.chatListTabs .projectViewLink.active {
+  background: #edf5fb;
+  box-shadow: inset 0 -3px 0 var(--orange);
+}
+.chatListSearch {
+  width: auto;
+  max-width: none;
+  margin: 10px 12px 4px;
+  flex: none;
+}
+.chatListSearch input {
+  padding-inline-end: 40px;
+}
+.chatListSearch button {
+  position: absolute;
+  inset-inline-end: 7px;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+  transform: translateY(-50%);
+}
+.chatListSearch button:hover {
+  transform: translateY(-50%);
+}
+.chatListSearch button svg {
+  position: static;
   transform: none;
 }
-.chatNotificationControls .pwaControlButton.enabled {
-  background: #d9efe6;
-  color: #145d45;
-  border-color: #a8d3c1;
+
+/* ---- Conversation rows ------------------------------------------------ */
+.chatConversationList {
+  padding: 8px 12px 14px;
+  gap: 8px;
+}
+.chatConversationItem {
+  --chat-row-accent: #d3dee8;
+  padding: 12px 14px;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  border: 1px solid #dce5ee;
+  border-inline-start: 3px solid var(--chat-row-accent);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgb(11 35 72 / 4%);
+  font-weight: 400;
+  text-align: start;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.chatConversationItem:hover {
+  border-color: #b8cadb;
+  border-inline-start-color: var(--chat-row-accent);
+  background: #fff;
+  box-shadow: 0 4px 12px rgb(11 35 72 / 8%);
+  filter: none;
+  transform: none;
 }
 .chatConversationItem.unread {
-  border-color: #bfdae8;
-  background: #e8f4fb;
+  --chat-row-accent: var(--orange);
 }
-.chatConversationItem.unread .chatAvatar {
-  background: #176b93;
+.chatConversationItem.active {
+  --chat-row-accent: var(--navy);
+  border-color: #b8cadb;
+  background: #f5f9fc;
+  box-shadow: 0 4px 12px rgb(11 35 72 / 8%);
+}
+/* Project rooms keep their project's status color, like the project list. */
+.chatConversationItem.chatProjectRow {
+  --chat-row-accent: var(--project-list-accent, #7188a3);
+  grid-template-columns: 40px minmax(0, 1fr) 32px;
+}
+.chatProjectRow:is(:hover, :focus-visible) .projectListOpenIcon {
+  background: var(--navy);
   color: #fff;
 }
+.chatAvatar {
+  width: 40px;
+  height: 40px;
+  flex-basis: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: #f0f4f8;
+  color: #4b6680;
+  font-size: 13px;
+  font-weight: 700;
+}
+.chatConversationItem.unread .chatAvatar {
+  background: #fff4df;
+  color: #a15c00;
+}
+.chatConversationCopy {
+  gap: 4px;
+}
+.chatConversationTopline b {
+  color: var(--navy);
+  font-size: 15px;
+  font-weight: 600;
+}
+.chatConversationTopline time {
+  color: #8193a6;
+  font-size: 12px;
+  font-weight: 500;
+}
+.chatConversationPreview small {
+  color: #60748a;
+  font-size: 13px;
+  font-weight: 400;
+}
+.chatConversationItem.unread .chatConversationTopline b {
+  font-weight: 700;
+}
 .chatConversationItem.unread .chatConversationPreview small {
-  color: #153b5c;
-  font-weight: 800;
+  color: var(--navy);
+  font-weight: 600;
+}
+.chatConversationPreview em {
+  font-weight: 700;
+}
+.chatListTick {
+  margin-inline-end: 4px;
+  display: inline-flex;
+  vertical-align: -2px;
+  color: #8193a6;
+}
+.chatListTick.read {
+  color: #3998bb;
 }
 .chatConversationPreview .chatDraftLabel {
   color: #a14b20;
-  font-weight: 850;
+  font-weight: 700;
 }
-.chatConversationItem.unread.active {
-  border-color: #176b93;
+.chatMutedIcon {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+/* ---- Conversation ----------------------------------------------------- */
+.chatRoom {
+  background: #f6f9fb;
+}
+.chatRoomEmpty > span {
+  border-radius: 18px;
+  background: #f0f4f8;
+  color: var(--navy);
+}
+.chatRoomHeader {
+  min-height: 72px;
+  padding: 14px 20px;
+}
+.chatRoomHeader h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.chatRoomHeader p {
+  color: #60748a;
+  font-size: 12px;
+  font-weight: 500;
+}
+.chatBackButton {
+  border-radius: 10px;
+  background: #f0f4f8;
+}
+/* The delete confirmation's checkbox is a warning, not a positive choice. */
+.draftingReadyToggle.deleteChatAcknowledge {
+  border-color: #fecaca;
+  background: #fff5f5;
+  color: #b42318;
+}
+/* Hide / delete menu, reusing the project page's "more actions" menu. */
+.chatRoomActions {
+  margin-inline-start: auto;
+}
+.chatRoomActions .projectMoreActionsButton {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  font-size: 0;
 }
 .chatRoom .chatMessages {
-  gap: 13px;
+  gap: 12px;
+  background: #f6f9fb;
 }
 .chatMessageRow {
   display: flex;
@@ -76,47 +259,51 @@
   height: 30px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  border-radius: 9px;
   background: var(--chat-sender-color);
   color: #fff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .chatMessageRow.mine .chatMessageAvatar {
-  background: #164a78;
+  background: var(--navy);
 }
 .chatMessageRow .chatBubble {
   min-width: 90px;
-  padding: 11px 14px 8px;
-  border-color: #d2dfe9;
+  padding: 10px 14px 8px;
+  border: 1px solid #dce5ee;
   border-inline-start: 3px solid var(--chat-sender-color);
+  border-radius: 12px;
   background: #fff;
+  box-shadow: 0 2px 6px rgb(11 35 72 / 4%);
   text-align: start;
   direction: rtl;
 }
 .chatMessageRow .chatBubble b {
   color: var(--chat-sender-color);
   font-size: 12px;
+  font-weight: 600;
 }
 .chatMessageRow .chatBubble p {
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.6;
 }
 .chatMessageRow .chatBubble.mine {
-  background: #164a78;
-  border-color: #164a78;
+  border-color: var(--navy);
   border-inline-start-width: 1px;
-  box-shadow: 0 5px 14px rgba(7, 30, 65, 0.12);
+  background: var(--navy);
+  box-shadow: 0 4px 12px rgb(11 35 72 / 12%);
 }
 .chatMessageRow .chatBubble.mine p,
 .chatMessageRow .chatBubble.mine b {
   color: #fff;
 }
-.chatMessageRow .chatBubble.mine time {
-  color: #d1e3f2;
-}
 .chatMessageRow .chatBubble time {
   font-size: 10px;
+  font-weight: 500;
+}
+.chatMessageRow .chatBubble.mine time {
+  color: #c9dbec;
 }
 .language-en .chatMessageRow .chatBubble {
   direction: ltr;
@@ -127,21 +314,21 @@
   justify-content: center;
   gap: 12px;
   margin: 9px 0 3px;
-  color: #536a81;
-  font-size: 11px;
-  font-weight: 750;
+  color: #60748a;
+  font-size: 12px;
+  font-weight: 600;
 }
 .chatDateSeparator::before,
 .chatDateSeparator::after {
   content: '';
   width: 42px;
   height: 1px;
-  background: #cad8e3;
+  background: #dce5ee;
 }
 .chatDateSeparator time {
-  padding: 5px 12px;
-  border: 1px solid #d4e0e9;
-  border-radius: 99px;
+  padding: 4px 10px;
+  border: 1px solid #dce5ee;
+  border-radius: 8px;
   background: #fff;
 }
 .chatUnreadDivider {
@@ -149,21 +336,21 @@
   align-items: center;
   gap: 10px;
   margin: 6px 0 2px;
-  color: #a14b20;
-  font-size: 11px;
-  font-weight: 800;
+  color: #a15c00;
+  font-size: 12px;
+  font-weight: 600;
 }
 .chatUnreadDivider::before,
 .chatUnreadDivider::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: #f0b98a;
+  background: #f3c98a;
 }
 .chatUnreadDivider span {
-  padding: 4px 12px;
-  border-radius: 99px;
-  background: #fdf0e4;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #fff4df;
 }
 .chatNewMessagesButton {
   position: sticky;
@@ -174,17 +361,477 @@
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  border-radius: 99px;
-  background: #164a78;
+  border-radius: 10px;
+  background: var(--navy);
   color: #fff;
   font-size: 12px;
-  box-shadow: 0 6px 18px rgba(7, 30, 65, 0.25);
+  box-shadow: 0 6px 18px rgb(11 35 72 / 22%);
 }
 .chatNewMessagesButton:hover {
-  background: #0f3a61;
+  background: var(--navy3);
   transform: none;
 }
+
+/* ---- Message footer, receipts and actions ----------------------------- */
+.chatBubbleFooter {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  color: #75879a;
+  font-size: 10px;
+  font-weight: 500;
+}
+.chatMessageRow .chatBubble .chatBubbleFooter time {
+  margin: 0;
+  display: inline;
+}
+.chatBubble.mine .chatBubbleFooter {
+  color: #c9dbec;
+}
+.chatSendState {
+  display: inline-flex;
+  color: inherit;
+}
+.chatSendState.read {
+  color: #3998bb;
+}
+.chatBubble.mine .chatSendState.read {
+  color: #7fd3f5;
+}
+/* The menu is anchored to the bubble's outer edge (not the small button), so
+   it opens toward the middle of the screen whatever the bubble's width. */
+.chatMessageRow .chatBubble {
+  position: relative;
+}
+.chatMessageActions.projectMoreActions {
+  position: static;
+  display: inline-flex;
+}
+.chatMessageMenuButton {
+  width: 22px;
+  height: 18px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  opacity: 0.75;
+}
+.chatMessageMenuButton:hover:not(:disabled) {
+  background: rgb(127 150 175 / 18%);
+  box-shadow: none;
+  opacity: 1;
+}
+.chatMessageActions .projectMoreActionsMenu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: auto;
+  width: 210px;
+  max-width: calc(100vw - 40px);
+  text-align: start;
+}
+.chatMessageRow.mine .chatMessageActions .projectMoreActionsMenu {
+  left: auto;
+  right: 0;
+}
+.chatMessageActions .projectMoreActionsMenu button:hover:not(:disabled) {
+  background: #eef6fb;
+  color: var(--navy);
+  box-shadow: none;
+}
+.chatMessageActions .projectMoreActionsMenu button.danger:hover:not(:disabled) {
+  background: #ffe4e6 !important;
+  color: #b4232f;
+}
+.chatReadInfo {
+  display: grid;
+  gap: 4px;
+  margin-top: 3px;
+  padding: 8px 10px 4px;
+  border-top: 1px solid #e3ebf2;
+  color: #60748a;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: normal;
+}
+/* Beats the bubble's own name styling (white in your navy bubbles). */
+.chatMessageRow .chatBubble .chatReadInfo b,
+.chatMessageRow .chatBubble.mine .chatReadInfo b {
+  display: inline;
+  margin: 0;
+  color: var(--navy);
+  font-size: 11px;
+}
+.chatSendFailed {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #b42318;
+  font-size: 11px;
+  font-weight: 600;
+}
+.chatBubble.mine .chatSendFailed {
+  color: #ffc9c9;
+}
+.chatSendFailed button {
+  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  font-size: 11px;
+}
+.chatSendFailed button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 12%);
+  box-shadow: none;
+}
+.chatMessageRow .chatBubble.failed {
+  opacity: 0.85;
+}
+.chatMessageRow .chatBubble .chatDeletedText {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #8193a6;
+  font-style: italic;
+}
+.chatMessageRow .chatBubble.mine .chatDeletedText {
+  color: #c9dbec;
+}
+.chatReplyQuote {
+  width: 100%;
+  margin: 2px 0 6px;
+  padding: 6px 10px;
+  display: grid;
+  gap: 2px;
+  border: 0;
+  border-inline-start: 3px solid var(--chat-sender-color);
+  border-radius: 8px;
+  background: rgb(127 150 175 / 12%);
+  color: inherit;
+  box-shadow: none;
+  font-weight: 400;
+  text-align: start;
+}
+.chatReplyQuote:hover:not(:disabled) {
+  background: rgb(127 150 175 / 20%);
+  box-shadow: none;
+}
+.chatReplyQuote small {
+  font-size: 11px;
+  font-weight: 700;
+}
+.chatReplyQuote span {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chatBubble.mine .chatReplyQuote {
+  border-inline-start-color: #7fd3f5;
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+}
+.chatInlineLink {
+  color: #0b6fa4;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+.chatBubble.mine .chatInlineLink {
+  color: #9fdcf7;
+}
+.chatMessageRow.highlighted .chatBubble {
+  box-shadow: 0 0 0 3px rgb(245 158 11 / 55%);
+  transition: box-shadow 0.2s ease;
+}
+.chatComposerContext b {
+  font-weight: 500;
+}
+
+/* ---- Project card in messages ----------------------------------------- */
+.chatProjectCard {
+  width: 100%;
+  min-width: 220px;
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid #b9deec;
+  border-radius: 12px;
+  background: #fff;
+}
+.chatProjectCardMain {
+  width: 100%;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  gap: 10px;
+  align-items: start;
+  border: 0;
+  border-radius: 0;
+  background: #eef9fd;
+  color: var(--navy);
+  box-shadow: none;
+  font-weight: 400;
+  text-align: start;
+}
+.chatProjectCardIcon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: #fff;
+  color: #17698f;
+}
+.chatProjectCardCopy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.chatProjectCardTopline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.chatProjectCardTopline small {
+  color: #17698f;
+  font-size: 10px;
+  font-weight: 700;
+}
+.chatProjectCardTopline :is(.pill, .archiveBadge) {
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.chatProjectCardCopy strong {
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.chatProjectCardMeta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #60748a;
+  font-size: 11px;
+}
+.chatProjectCardMeta svg {
+  flex-shrink: 0;
+}
+.chatProjectCardMeta bdi {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chatProjectCardOpen {
+  margin-top: 8px;
+  color: #17698f;
+}
+.chatProjectCardActions {
+  display: flex;
+  border-top: 1px solid #d3e8f1;
+}
+.chatProjectCardActions a {
+  min-height: 38px;
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #17698f;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.chatProjectCardActions a + a {
+  border-inline-start: 1px solid #d3e8f1;
+}
+.chatProjectCardActions a:hover {
+  background: #f3fafd;
+}
+
+/* ---- Composer --------------------------------------------------------- */
+.chatMessageForm textarea {
+  border-radius: 14px;
+}
+.chatSendButton {
+  border-radius: 12px;
+  background: var(--navy);
+  color: #fff;
+}
+.chatSendButton:hover {
+  background: var(--navy3);
+}
+.chatProjectButton {
+  border-color: #dce5ee;
+  border-radius: 12px;
+  background: #fff;
+  color: #4b6680;
+}
+
+/* ---- Project activity lines ------------------------------------------- */
+.chatEventLine {
+  align-self: center;
+  max-width: min(92%, 560px);
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  color: #60748a;
+  font-size: 12px;
+  text-align: center;
+}
+.chatEventSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border: 1px solid #dce5ee;
+  border-radius: 10px;
+  background: #fff;
+  direction: rtl;
+}
+.language-en .chatEventSummary {
+  direction: ltr;
+}
+.chatEventSummary svg {
+  flex: 0 0 auto;
+  color: #3998bb;
+}
+.chatEventSummary time {
+  color: #8193a6;
+  font-size: 10px;
+  font-weight: 500;
+}
+.chatEventActor {
+  color: #8193a6;
+}
+.chatEventLine p {
+  margin: 0;
+  max-width: 100%;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: #edf2f6;
+  color: #26415c;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Project discussion tab ------------------------------------------- */
+.chatMuteButton {
+  margin-inline-start: auto;
+  padding: 8px 11px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #dce5ee;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--navy);
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 600;
+}
+.chatMuteButton.muted {
+  color: var(--muted);
+}
+.projectChatRoom {
+  height: min(72dvh, 680px);
+  min-height: 420px;
+  overflow: hidden;
+  border: 1px solid #dce5ee;
+  border-radius: 12px;
+}
+/* Leave room for the floating chat button, which sits on the send side. */
+.projectChatRoom .chatMessageForm {
+  padding-inline-end: 90px;
+}
+
+/* ---- Hover colors -------------------------------------------------------
+   ui.css turns every hovered button navy (button:hover:not(:disabled)).
+   Chat's light buttons keep their own hover color, the same way the project
+   list does, by matching that rule's :not(:disabled) specificity. */
+.chatConversationItem:hover:not(:disabled) {
+  background: #fff;
+  box-shadow: 0 4px 12px rgb(11 35 72 / 8%);
+}
+.chatConversationItem.active:hover:not(:disabled) {
+  background: #f5f9fc;
+}
+.chatListTabs .projectViewLink:hover:not(:disabled) {
+  background: #f3f7fb;
+  color: var(--navy);
+  box-shadow: none;
+}
+.chatListTabs .projectViewLink.active:hover:not(:disabled) {
+  background: #edf5fb;
+  box-shadow: inset 0 -3px 0 var(--orange);
+}
+.chatListSearch button:hover:not(:disabled) {
+  background: #f0f4f8;
+  box-shadow: none;
+}
+.chatProjectCardMain:hover:not(:disabled) {
+  background: #e1f3fa;
+  box-shadow: none;
+}
+.chatProjectButton:hover:not(:disabled) {
+  border-color: #7fc5df;
+  background: #e9f7fc;
+  box-shadow: none;
+}
+.chatProjectOptions > button:hover:not(:disabled) {
+  border-color: #b9deec;
+  background: #eef9fd;
+  box-shadow: none;
+}
+.chatSelectedProject button:hover:not(:disabled) {
+  background: #dff1f8;
+  box-shadow: none;
+}
+.chatMemberOption:hover:not(:disabled) {
+  background: #f8fbfd;
+  box-shadow: none;
+}
+.chatBackButton:hover:not(:disabled) {
+  background: #e7eef5;
+  box-shadow: none;
+}
+.chatRoomActions .projectMoreActionsMenu button:hover:not(:disabled) {
+  background: #eef6fb;
+  color: var(--navy);
+  box-shadow: none;
+}
+.chatRoomActions .projectMoreActionsMenu button.danger:hover:not(:disabled) {
+  background: #ffe4e6 !important;
+  color: #b4232f;
+}
+.chatMuteButton:hover:not(:disabled) {
+  background: #f3f7fb;
+  box-shadow: none;
+}
+
 @media (max-width: 760px) {
+  /* Keep the project room's title readable on phones. */
+  .projectChatRoom .chatRoomHint,
+  .chatMuteButton span {
+    display: none;
+  }
   .chatMessageRow .chatBubble {
     max-width: calc(100% - 52px);
   }

@@ -15,9 +15,15 @@ function client(rows = {}) {
   const tables = {
     chat_messages: [message], chat_members: members,
     profiles: [{ id: 'sender', full_name: 'Sender Name' }],
-    chat_conversations: [{ id: 'room', title: 'Team' }], ...rows,
+    chat_conversations: [{ id: 'room', title: 'Team' }],
+    projects: [{ id: 'project', name: 'WBO-253' }], ...rows,
   };
   return {
+    rpcCalls: [],
+    async rpc(name, args) {
+      this.rpcCalls.push([name, args]);
+      return { data: rows.rpcResult ?? 0, error: null };
+    },
     from(table) {
       let result = tables[table];
       let countOnly = false;
@@ -68,20 +74,25 @@ test('a read conversation produces no recipients; direct chat title uses sender 
   assert.equal(result.title, 'Sender Name');
 });
 
-test('badge count includes only unread incoming messages across the recipient conversations', async () => {
-  const result = await unreadChatCount(client({
-    chat_members: [
-      { user_id: 'recipient', conversation_id: 'room', last_read_at: '2026-10-14T09:00:00Z' },
-      { user_id: 'recipient', conversation_id: 'second', last_read_at: null },
-      { user_id: 'outsider', conversation_id: 'private', last_read_at: null },
-    ],
-    chat_messages: [message,
-      { conversation_id: 'room', sender_id: 'recipient', created_at: message.created_at },
-      { conversation_id: 'room', sender_id: 'sender', created_at: '2026-10-14T08:59:00Z' },
-      { conversation_id: 'second', sender_id: 'sender', created_at: message.created_at },
-      { conversation_id: 'private', sender_id: 'sender', created_at: message.created_at },
-    ],
-  }), 'recipient');
-  assert.equal(result, 2);
-  assert.equal(await unreadChatCount(client({ chat_members: [] }), 'recipient'), 0);
+test('muted members receive no push', async () => {
+  const result = await resolveChatNotification(client({ chat_members: [members[0], { ...members[1], muted: true }, members[2]] }), 'sender', 'message', now);
+  assert.deepEqual(result.recipientIds, ['new-member']);
+});
+
+test('project activity events cannot trigger a push', async () => {
+  await assert.rejects(resolveChatNotification(client({ chat_messages: [{ ...message, kind: 'event' }] }), 'sender', 'message', now), /Only your recent messages/);
+});
+
+test('project room push is titled with the project and opens its discussion tab', async () => {
+  const result = await resolveChatNotification(client({ chat_messages: [{ ...message, kind: 'message' }], chat_conversations: [{ id: 'room', title: null, project_id: 'project' }] }), 'sender', 'message', now);
+  assert.equal(result.title, 'Sender Name · WBO-253');
+  assert.equal(result.url, '/app/projects?project=project&tab=discussion');
+  assert.equal(result.tag, 'chat-room');
+});
+
+test('badge count comes from one database call for the recipient', async () => {
+  const db = client({ rpcResult: 7 });
+  assert.equal(await unreadChatCount(db, 'recipient'), 7);
+  assert.deepEqual(db.rpcCalls, [['chat_unread_count_for', { p_user_id: 'recipient' }]]);
+  assert.equal(await unreadChatCount(client(), 'recipient'), 0);
 });

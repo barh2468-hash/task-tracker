@@ -1,108 +1,77 @@
-.chatShell .chatConversationPane {
-  grid-template-rows: auto auto auto minmax(0, 1fr);
-}
-.chatListTabs {
-  margin: 10px 12px 2px;
-}
-.chatListTabs button {
-  min-width: 0;
-  flex: 1 1 0;
-}
-.chatMutedIcon {
-  flex: 0 0 auto;
-  color: var(--muted);
-}
-.chatEventLine {
-  align-self: center;
-  max-width: min(92%, 560px);
-  display: grid;
-  justify-items: center;
-  gap: 3px;
-  color: #536a81;
-  font-size: 12px;
-  text-align: center;
-}
-.chatEventSummary {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 12px;
-  border: 1px solid #d4e0e9;
-  border-radius: 99px;
+/* Chat follows the project list's look: white card, quiet tabs with an orange
+   underline, the shared search field, and bordered rows with a colored edge.
+   These rules override the older chat block in globals.css. */
+
+/* ---- Shell and list pane ---------------------------------------------- */
+.chatShell {
+  border: 1px solid rgba(223, 232, 242, 0.92);
+  border-radius: var(--radius);
   background: #fff;
-  direction: rtl;
+  box-shadow: var(--shadow);
 }
-.language-en .chatEventSummary {
-  direction: ltr;
+.chatShell .chatConversationPane {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  background: #fff;
 }
-.chatEventSummary svg {
-  flex: 0 0 auto;
-  color: #17698f;
+.chatPaneHeader {
+  padding: 20px 16px 14px;
+  border-bottom: 0;
 }
-.chatEventSummary time {
-  color: #8195a8;
-  font-size: 10px;
-  font-weight: 750;
-}
-.chatEventActor {
-  color: #7a8ea2;
-}
-.chatEventLine p {
+.chatPaneHeader h2 {
   margin: 0;
-  max-width: 100%;
-  padding: 7px 12px;
-  border-radius: 12px;
-  background: #e6eef4;
-  color: #26415c;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  font-size: 22px;
 }
-.chatMuteButton {
-  margin-inline-start: auto;
-  padding: 9px 11px;
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #f4f8fb;
-  color: #17698f;
+.chatPaneHeader .projectCreateLink {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  background: var(--navy);
+  color: #fff;
   box-shadow: none;
-  font-size: 12px;
+  font-size: 13px;
 }
-.chatMuteButton:hover {
-  background: #e9f7fc;
+.chatPaneHeader .projectCreateLink:hover {
+  background: var(--navy3);
+  filter: none;
   transform: none;
   box-shadow: none;
 }
-.chatMuteButton.muted {
-  color: var(--muted);
-}
-.projectChatRoom {
-  height: min(72dvh, 680px);
-  min-height: 420px;
-  overflow: hidden;
+.chatListTabs {
+  margin: 0 12px;
+  padding: 4px;
+  flex-wrap: nowrap;
   border: 1px solid var(--line);
-  border-radius: 20px;
+  border-radius: 14px;
 }
-/* Leave room for the floating chat button, which sits on the send side. */
-.projectChatRoom .chatMessageForm {
-  padding-inline-end: 90px;
+.chatListTabs .projectViewLink {
+  min-width: 0;
+  min-height: 40px;
+  flex: 1 1 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.chatListTabs .projectViewLink.active {
+  background: #edf5fb;
+  box-shadow: inset 0 -3px 0 var(--orange);
 }
 .chatListSearch {
-  margin: 8px 12px 2px;
+  width: auto;
+  max-width: none;
+  margin: 10px 12px 4px;
+  flex: none;
 }
 .chatListSearch input {
-  min-width: 0;
-  padding: 10px 2px;
+  padding-inline-end: 40px;
 }
 .chatListSearch button {
+  position: absolute;
+  inset-inline-end: 7px;
+  top: 50%;
   width: 28px;
   height: 28px;
   padding: 0;
-  flex: 0 0 auto;
   display: grid;
   place-items: center;
   border: 0;
@@ -110,33 +79,144 @@
   background: transparent;
   color: var(--muted);
   box-shadow: none;
+  transform: translateY(-50%);
 }
 .chatListSearch button:hover {
-  background: #e9f2f8;
+  transform: translateY(-50%);
+}
+.chatListSearch button svg {
+  position: static;
   transform: none;
-  box-shadow: none;
+}
+
+/* ---- Conversation rows ------------------------------------------------ */
+.chatConversationList {
+  padding: 8px 12px 14px;
+  gap: 8px;
+}
+.chatConversationItem {
+  --chat-row-accent: #d3dee8;
+  padding: 12px 14px;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  border: 1px solid #dce5ee;
+  border-inline-start: 3px solid var(--chat-row-accent);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgb(11 35 72 / 4%);
+  font-weight: 400;
+  text-align: start;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.chatConversationItem:hover {
+  border-color: #b8cadb;
+  border-inline-start-color: var(--chat-row-accent);
+  background: #fff;
+  box-shadow: 0 4px 12px rgb(11 35 72 / 8%);
+  filter: none;
+  transform: none;
 }
 .chatConversationItem.unread {
-  border-color: #bfdae8;
-  background: #e8f4fb;
+  --chat-row-accent: var(--orange);
 }
-.chatConversationItem.unread .chatAvatar {
-  background: #176b93;
+.chatConversationItem.active {
+  --chat-row-accent: var(--navy);
+  border-color: #b8cadb;
+  background: #f5f9fc;
+  box-shadow: 0 4px 12px rgb(11 35 72 / 8%);
+}
+/* Project rooms keep their project's status color, like the project list. */
+.chatConversationItem.chatProjectRow {
+  --chat-row-accent: var(--project-list-accent, #7188a3);
+  grid-template-columns: 40px minmax(0, 1fr) 32px;
+}
+.chatProjectRow:is(:hover, :focus-visible) .projectListOpenIcon {
+  background: var(--navy);
   color: #fff;
 }
+.chatAvatar {
+  width: 40px;
+  height: 40px;
+  flex-basis: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: #f0f4f8;
+  color: #4b6680;
+  font-size: 13px;
+  font-weight: 700;
+}
+.chatConversationItem.unread .chatAvatar {
+  background: #fff4df;
+  color: #a15c00;
+}
+.chatConversationCopy {
+  gap: 4px;
+}
+.chatConversationTopline b {
+  color: var(--navy);
+  font-size: 15px;
+  font-weight: 600;
+}
+.chatConversationTopline time {
+  color: #8193a6;
+  font-size: 12px;
+  font-weight: 500;
+}
+.chatConversationPreview small {
+  color: #60748a;
+  font-size: 13px;
+  font-weight: 400;
+}
+.chatConversationItem.unread .chatConversationTopline b {
+  font-weight: 700;
+}
 .chatConversationItem.unread .chatConversationPreview small {
-  color: #153b5c;
-  font-weight: 800;
+  color: var(--navy);
+  font-weight: 600;
+}
+.chatConversationPreview em {
+  font-weight: 700;
 }
 .chatConversationPreview .chatDraftLabel {
   color: #a14b20;
-  font-weight: 850;
+  font-weight: 700;
 }
-.chatConversationItem.unread.active {
-  border-color: #176b93;
+.chatMutedIcon {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+/* ---- Conversation ----------------------------------------------------- */
+.chatRoom {
+  background: #f6f9fb;
+}
+.chatRoomEmpty > span {
+  border-radius: 18px;
+  background: #f0f4f8;
+  color: var(--navy);
+}
+.chatRoomHeader {
+  min-height: 72px;
+  padding: 14px 20px;
+}
+.chatRoomHeader h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.chatRoomHeader p {
+  color: #60748a;
+  font-size: 12px;
+  font-weight: 500;
+}
+.chatBackButton {
+  border-radius: 10px;
+  background: #f0f4f8;
 }
 .chatRoom .chatMessages {
-  gap: 13px;
+  gap: 12px;
+  background: #f6f9fb;
 }
 .chatMessageRow {
   display: flex;
@@ -154,47 +234,51 @@
   height: 30px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  border-radius: 9px;
   background: var(--chat-sender-color);
   color: #fff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .chatMessageRow.mine .chatMessageAvatar {
-  background: #164a78;
+  background: var(--navy);
 }
 .chatMessageRow .chatBubble {
   min-width: 90px;
-  padding: 11px 14px 8px;
-  border-color: #d2dfe9;
+  padding: 10px 14px 8px;
+  border: 1px solid #dce5ee;
   border-inline-start: 3px solid var(--chat-sender-color);
+  border-radius: 12px;
   background: #fff;
+  box-shadow: 0 2px 6px rgb(11 35 72 / 4%);
   text-align: start;
   direction: rtl;
 }
 .chatMessageRow .chatBubble b {
   color: var(--chat-sender-color);
   font-size: 12px;
+  font-weight: 600;
 }
 .chatMessageRow .chatBubble p {
   font-size: 14px;
-  line-height: 1.65;
+  line-height: 1.6;
 }
 .chatMessageRow .chatBubble.mine {
-  background: #164a78;
-  border-color: #164a78;
+  border-color: var(--navy);
   border-inline-start-width: 1px;
-  box-shadow: 0 5px 14px rgba(7, 30, 65, 0.12);
+  background: var(--navy);
+  box-shadow: 0 4px 12px rgb(11 35 72 / 12%);
 }
 .chatMessageRow .chatBubble.mine p,
 .chatMessageRow .chatBubble.mine b {
   color: #fff;
 }
-.chatMessageRow .chatBubble.mine time {
-  color: #d1e3f2;
-}
 .chatMessageRow .chatBubble time {
   font-size: 10px;
+  font-weight: 500;
+}
+.chatMessageRow .chatBubble.mine time {
+  color: #c9dbec;
 }
 .language-en .chatMessageRow .chatBubble {
   direction: ltr;
@@ -205,21 +289,21 @@
   justify-content: center;
   gap: 12px;
   margin: 9px 0 3px;
-  color: #536a81;
-  font-size: 11px;
-  font-weight: 750;
+  color: #60748a;
+  font-size: 12px;
+  font-weight: 600;
 }
 .chatDateSeparator::before,
 .chatDateSeparator::after {
   content: '';
   width: 42px;
   height: 1px;
-  background: #cad8e3;
+  background: #dce5ee;
 }
 .chatDateSeparator time {
-  padding: 5px 12px;
-  border: 1px solid #d4e0e9;
-  border-radius: 99px;
+  padding: 4px 10px;
+  border: 1px solid #dce5ee;
+  border-radius: 8px;
   background: #fff;
 }
 .chatUnreadDivider {
@@ -227,21 +311,21 @@
   align-items: center;
   gap: 10px;
   margin: 6px 0 2px;
-  color: #a14b20;
-  font-size: 11px;
-  font-weight: 800;
+  color: #a15c00;
+  font-size: 12px;
+  font-weight: 600;
 }
 .chatUnreadDivider::before,
 .chatUnreadDivider::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: #f0b98a;
+  background: #f3c98a;
 }
 .chatUnreadDivider span {
-  padding: 4px 12px;
-  border-radius: 99px;
-  background: #fdf0e4;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #fff4df;
 }
 .chatNewMessagesButton {
   position: sticky;
@@ -252,16 +336,174 @@
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  border-radius: 99px;
-  background: #164a78;
+  border-radius: 10px;
+  background: var(--navy);
   color: #fff;
   font-size: 12px;
-  box-shadow: 0 6px 18px rgba(7, 30, 65, 0.25);
+  box-shadow: 0 6px 18px rgb(11 35 72 / 22%);
 }
 .chatNewMessagesButton:hover {
-  background: #0f3a61;
+  background: var(--navy3);
   transform: none;
 }
+
+/* ---- Composer --------------------------------------------------------- */
+.chatMessageForm textarea {
+  border-radius: 14px;
+}
+.chatSendButton {
+  border-radius: 12px;
+  background: var(--navy);
+  color: #fff;
+}
+.chatSendButton:hover {
+  background: var(--navy3);
+}
+.chatProjectButton {
+  border-color: #dce5ee;
+  border-radius: 12px;
+  background: #fff;
+  color: #4b6680;
+}
+
+/* ---- Project activity lines ------------------------------------------- */
+.chatEventLine {
+  align-self: center;
+  max-width: min(92%, 560px);
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  color: #60748a;
+  font-size: 12px;
+  text-align: center;
+}
+.chatEventSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border: 1px solid #dce5ee;
+  border-radius: 10px;
+  background: #fff;
+  direction: rtl;
+}
+.language-en .chatEventSummary {
+  direction: ltr;
+}
+.chatEventSummary svg {
+  flex: 0 0 auto;
+  color: #3998bb;
+}
+.chatEventSummary time {
+  color: #8193a6;
+  font-size: 10px;
+  font-weight: 500;
+}
+.chatEventActor {
+  color: #8193a6;
+}
+.chatEventLine p {
+  margin: 0;
+  max-width: 100%;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: #edf2f6;
+  color: #26415c;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Project discussion tab ------------------------------------------- */
+.chatMuteButton {
+  margin-inline-start: auto;
+  padding: 8px 11px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #dce5ee;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--navy);
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 600;
+}
+.chatMuteButton.muted {
+  color: var(--muted);
+}
+.projectChatRoom {
+  height: min(72dvh, 680px);
+  min-height: 420px;
+  overflow: hidden;
+  border: 1px solid #dce5ee;
+  border-radius: 12px;
+}
+/* Leave room for the floating chat button, which sits on the send side. */
+.projectChatRoom .chatMessageForm {
+  padding-inline-end: 90px;
+}
+
+/* ---- Hover colors -------------------------------------------------------
+   ui.css turns every hovered button navy (button:hover:not(:disabled)).
+   Chat's light buttons keep their own hover color, the same way the project
+   list does, by matching that rule's :not(:disabled) specificity. */
+.chatConversationItem:hover:not(:disabled) {
+  background: #fff;
+  box-shadow: 0 4px 12px rgb(11 35 72 / 8%);
+}
+.chatConversationItem.active:hover:not(:disabled) {
+  background: #f5f9fc;
+}
+.chatListTabs .projectViewLink:hover:not(:disabled) {
+  background: #f3f7fb;
+  color: var(--navy);
+  box-shadow: none;
+}
+.chatListTabs .projectViewLink.active:hover:not(:disabled) {
+  background: #edf5fb;
+  box-shadow: inset 0 -3px 0 var(--orange);
+}
+.chatListSearch button:hover:not(:disabled) {
+  background: #f0f4f8;
+  box-shadow: none;
+}
+.chatProjectReference:hover:not(:disabled) {
+  background: #e1f3fa;
+  box-shadow: none;
+}
+.chatProjectButton:hover:not(:disabled) {
+  border-color: #7fc5df;
+  background: #e9f7fc;
+  box-shadow: none;
+}
+.chatProjectOptions > button:hover:not(:disabled) {
+  border-color: #b9deec;
+  background: #eef9fd;
+  box-shadow: none;
+}
+.chatSelectedProject button:hover:not(:disabled) {
+  background: #dff1f8;
+  box-shadow: none;
+}
+.chatMemberOption:hover:not(:disabled) {
+  background: #f8fbfd;
+  box-shadow: none;
+}
+.chatBackButton:hover:not(:disabled) {
+  background: #e7eef5;
+  box-shadow: none;
+}
+.chatDeleteButton:hover:not(:disabled) {
+  background: #fee2e2;
+  box-shadow: none;
+}
+.chatMuteButton:hover:not(:disabled) {
+  background: #f3f7fb;
+  box-shadow: none;
+}
+
 @media (max-width: 760px) {
   .chatMessageRow .chatBubble {
     max-width: calc(100% - 52px);

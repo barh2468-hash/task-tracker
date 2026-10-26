@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  ArrowLeft,
   BellOff,
   Check,
   FolderKanban,
@@ -13,6 +14,7 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { t, useLanguage } from '../features/language/LanguageContext.jsx';
 import { localeForLanguage } from '../features/language/locale.js';
+import '../features/projects/project-workspace.css';
 import '../features/chat/chat.css';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
@@ -22,6 +24,7 @@ import { readDrafts, saveDraft } from '../features/chat/drafts.js';
 import { chatEventText } from '../features/chat/chatEvents.js';
 import { initials } from '../features/chat/initials.js';
 import { roleLabel } from '../services/supabase.js';
+import { getStatusClass } from '../components/StatusPill.jsx';
 import { projectDiscussionPath } from '../utils/navigation.js';
 
 export default function ChatPage() {
@@ -259,17 +262,19 @@ export default function ChatPage() {
     return sender ? `${sender}: ${room.last_message_body}` : room.last_message_body;
   }
 
-  function renderProjectRow(projectId, name, room, fallbackPreview) {
+  // Project rooms look like rows of the project list: status-colored edge and
+  // an arrow, since they open the project's discussion tab.
+  function renderProjectRow(projectId, name, status, room, fallbackPreview) {
     const unread = Number(room?.unread_count || 0);
     return (
       <button
         type="button"
         key={projectId}
-        className={`chatConversationItem ${unread > 0 && !room?.muted ? 'unread' : ''}`}
+        className={`chatConversationItem chatProjectRow status-${getStatusClass(status)} ${unread > 0 && !room?.muted ? 'unread' : ''}`}
         onClick={() => navigate(projectDiscussionPath(projectId))}
       >
         <span className="chatAvatar" aria-hidden="true">
-          <FolderKanban size={19} />
+          <FolderKanban size={18} />
         </span>
         <span className="chatConversationCopy">
           <span className="chatConversationTopline">
@@ -281,6 +286,9 @@ export default function ChatPage() {
             {room?.muted && <BellOff size={13} className="chatMutedIcon" aria-label={t('מושתק')} />}
             {unread > 0 && <em>{Math.min(unread, 99)}</em>}
           </span>
+        </span>
+        <span className="projectListOpenIcon" aria-hidden="true">
+          <ArrowLeft size={16} />
         </span>
       </button>
     );
@@ -312,6 +320,7 @@ export default function ChatPage() {
         renderProjectRow(
           project.id,
           project.name,
+          project.status,
           room,
           project.is_archived
             ? t('בארכיון')
@@ -329,7 +338,9 @@ export default function ChatPage() {
         </div>
       );
     }
-    return projectRooms.map((room) => renderProjectRow(room.project_id, room.project_name, room));
+    return projectRooms.map((room) =>
+      renderProjectRow(room.project_id, room.project_name, room.project_status, room),
+    );
   }
 
   return (
@@ -338,17 +349,21 @@ export default function ChatPage() {
         className={`chatConversationPane ${activeConversation ? 'hasActiveConversation' : ''}`}
       >
         <div className="chatPaneHeader">
-          <div>
-            <span className="eyebrow">TEAM CHAT</span>
+          <div className="projectListHeading">
             <h2>{t('צ׳אט פנימי')}</h2>
           </div>
-          <button type="button" onClick={openNewChat} title={t('שיחה חדשה')}>
-            <Plus size={18} />
-            <span>{t('חדש')}</span>
+          <button
+            type="button"
+            className="projectCreateLink"
+            onClick={openNewChat}
+            title={t('שיחה חדשה')}
+          >
+            <Plus size={17} />
+            <span>{t('שיחה חדשה')}</span>
           </button>
         </div>
 
-        <div className="projectSectionTabs chatListTabs" role="tablist" aria-label={t('סוג שיחות')}>
+        <div className="projectViewLinks chatListTabs" role="tablist" aria-label={t('סוג שיחות')}>
           {[
             ['personal', t('אישי'), unreadChatCount],
             ['projects', t('פרויקטים'), unreadProjectChatCount],
@@ -358,16 +373,20 @@ export default function ChatPage() {
               role="tab"
               key={view}
               aria-selected={listView === view}
-              className={listView === view ? 'active' : ''}
+              className={`projectViewLink${listView === view ? ' active' : ''}`}
               onClick={() => updateParams({ view: view === 'projects' ? 'projects' : null })}
             >
               <span>{label}</span>
-              {count > 0 && <small>{Math.min(count, 99).toLocaleString(locale)}</small>}
+              {count > 0 && (
+                <span className="projectViewCount">
+                  {Math.min(count, 99).toLocaleString(locale)}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
-        <label className="chatMemberSearch chatListSearch">
+        <div className="projectListSearch chatListSearch">
           <Search size={17} aria-hidden="true" />
           <input
             value={listQuery}
@@ -385,7 +404,7 @@ export default function ChatPage() {
               <X size={15} />
             </button>
           )}
-        </label>
+        </div>
 
         <div className="chatConversationList">
           {listView === 'projects' ? renderProjectList() : renderPersonalList()}

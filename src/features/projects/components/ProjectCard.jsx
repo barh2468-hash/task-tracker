@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { t, useLanguage } from '../../language/LanguageContext.jsx';
 import { localeForLanguage } from '../../language/locale.js';
 import '../project-workspace.css';
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Archive,
@@ -45,7 +45,6 @@ import DrawingBatchesPanel from './DrawingBatchesPanel.jsx';
 import ProjectHistoryPanel from './ProjectHistoryPanel.jsx';
 import ProjectSectionTabs from './ProjectSectionTabs.jsx';
 import { useChat } from '../../chat/ChatContext.jsx';
-import ProjectChatPanel from '../../chat/components/ProjectChatPanel.jsx';
 import useProjectDialog from '../hooks/useProjectDialog.js';
 import { isManagerRole } from '../../../utils/roles.js';
 import { getProjectTeamAssignments, isProjectTeamMember } from '../utils/assignments.js';
@@ -73,6 +72,10 @@ function buildEditForm(project) {
     requires_work_diary: Boolean(project.requires_work_diary),
   };
 }
+
+// Loaded on demand: keeps chat code (and chat.css, which must come after
+// globals.css) out of the projects page's initial bundle.
+const ProjectChatPanel = lazy(() => import('../../chat/components/ProjectChatPanel.jsx'));
 
 const DETAIL_TABS = ['overview', 'tasks', 'documents', 'drawing-batches', 'updates', 'discussion'];
 
@@ -1110,7 +1113,15 @@ export default function ProjectCard({ project, onBack, initialTab }) {
               />
             )}
             {activeDetailTab === 'discussion' && projectChatAvailable && (
-              <ProjectChatPanel project={project} />
+              <Suspense
+                fallback={
+                  <p className="chatHint" role="status">
+                    <LoaderCircle size={16} className="spinIcon" /> {t('טוען את הדיון...')}
+                  </p>
+                }
+              >
+                <ProjectChatPanel project={project} />
+              </Suspense>
             )}
           </div>
         </div>

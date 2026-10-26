@@ -22,22 +22,22 @@
     border-color 0.15s ease,
     box-shadow 0.15s ease;
 }
-.projectListItem.status-field {
+:is(.projectListItem, .chatProjectRow).status-field {
   --project-list-accent: #e9a23b;
 }
-.projectListItem.status-drafting {
+:is(.projectListItem, .chatProjectRow).status-drafting {
   --project-list-accent: #9c79d8;
 }
-.projectListItem.status-gpr {
+:is(.projectListItem, .chatProjectRow).status-gpr {
   --project-list-accent: #3998bb;
 }
-.projectListItem.status-permits {
+:is(.projectListItem, .chatProjectRow).status-permits {
   --project-list-accent: #e18a52;
 }
-.projectListItem.status-review {
+:is(.projectListItem, .chatProjectRow).status-review {
   --project-list-accent: #db7592;
 }
-.projectListItem:is(.status-done, .status-review-complete) {
+:is(.projectListItem, .chatProjectRow):is(.status-done, .status-review-complete) {
   --project-list-accent: #48a77e;
 }
 .projectsPage .projectListItem:hover:not(:disabled) {

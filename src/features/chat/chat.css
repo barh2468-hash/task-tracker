@@ -214,6 +214,22 @@
   border-radius: 10px;
   background: #f0f4f8;
 }
+/* The delete confirmation's checkbox is a warning, not a positive choice. */
+.draftingReadyToggle.deleteChatAcknowledge {
+  border-color: #fecaca;
+  background: #fff5f5;
+  color: #b42318;
+}
+/* Hide / delete menu, reusing the project page's "more actions" menu. */
+.chatRoomActions {
+  margin-inline-start: auto;
+}
+.chatRoomActions .projectMoreActionsButton {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  font-size: 0;
+}
 .chatRoom .chatMessages {
   gap: 12px;
   background: #f6f9fb;
@@ -495,9 +511,14 @@
   background: #e7eef5;
   box-shadow: none;
 }
-.chatDeleteButton:hover:not(:disabled) {
-  background: #fee2e2;
+.chatRoomActions .projectMoreActionsMenu button:hover:not(:disabled) {
+  background: #eef6fb;
+  color: var(--navy);
   box-shadow: none;
+}
+.chatRoomActions .projectMoreActionsMenu button.danger:hover:not(:disabled) {
+  background: #ffe4e6 !important;
+  color: #b4232f;
 }
 .chatMuteButton:hover:not(:disabled) {
   background: #f3f7fb;

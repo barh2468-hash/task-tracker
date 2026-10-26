@@ -22,6 +22,12 @@ export function deleteChatConversation(conversationId) {
   });
 }
 
+export function hideChatConversation(conversationId) {
+  return supabase.rpc('hide_chat_conversation', {
+    p_conversation_id: conversationId,
+  });
+}
+
 export async function getChatMessages(conversationId) {
   const result = await supabase
     .from('chat_messages')

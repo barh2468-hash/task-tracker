@@ -109,6 +109,18 @@ export function ChatProvider({ children }) {
     return true;
   }
 
+  // Removes a personal chat from the caller's list only; the next message in
+  // it brings it back.
+  async function hideConversation(conversationId) {
+    const { error } = await chatApi.hideChatConversation(conversationId);
+    if (error) {
+      setMessage(error.message, 'error');
+      return false;
+    }
+    setConversations((items) => items.filter((item) => item.id !== conversationId));
+    return true;
+  }
+
   // Returns { conversation_id, muted, member_count } for a project's room,
   // creating it (and syncing its members) on first use.
   async function openProjectConversation(projectId) {
@@ -221,6 +233,7 @@ export function ChatProvider({ children }) {
     loadConversations,
     createConversation,
     deleteConversation,
+    hideConversation,
     openProjectConversation,
     setConversationMuted,
     getMessages,

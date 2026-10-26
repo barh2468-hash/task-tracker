@@ -3,8 +3,10 @@ import {
   ArrowLeft,
   BellOff,
   Check,
+  EyeOff,
   FolderKanban,
   MessageCircle,
+  MoreHorizontal,
   Plus,
   Search,
   Trash2,
@@ -20,6 +22,8 @@ import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
 import ChatRoom from '../features/chat/components/ChatRoom.jsx';
+import DeleteChatDialog from '../features/chat/components/DeleteChatDialog.jsx';
+import { useMessage } from '../context/MessageContext.jsx';
 import { readDrafts, saveDraft } from '../features/chat/drafts.js';
 import { chatEventText } from '../features/chat/chatEvents.js';
 import { initials } from '../features/chat/initials.js';
@@ -32,7 +36,8 @@ export default function ChatPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { language } = useLanguage();
   const locale = localeForLanguage(language);
-  const { profile } = useAuth();
+  const { profile, isManager } = useAuth();
+  const { setMessage } = useMessage();
   const { workers, projects } = useProjects();
   const {
     conversations,
@@ -46,6 +51,7 @@ export default function ChatPage() {
     unreadProjectChatCount,
     createConversation,
     deleteConversation,
+    hideConversation,
   } = useChat();
   const activeConversationId = searchParams.get('conversation');
   // Personal chats and project rooms are kept in separate lists.
@@ -72,6 +78,11 @@ export default function ChatPage() {
   const [groupTitle, setGroupTitle] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [chatMenuOpen, setChatMenuOpen] = useState(false);
+  // Hiding needs the same migration as project rooms; until it is applied the
+  // option stays out of the menu instead of failing.
+  const canHideChats = projectChatAvailable;
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const directory = useMemo(
     () => workers.filter((worker) => worker.id !== profile?.id),
@@ -86,6 +97,11 @@ export default function ChatPage() {
   useEffect(() => {
     setDrafts(readDrafts(profile?.id));
   }, [profile?.id]);
+
+  useEffect(() => {
+    setChatMenuOpen(false);
+    setDeleteDialogOpen(false);
+  }, [activeConversationId]);
 
   function conversationName(conversation) {
     if (!conversation) return t('שיחה');
@@ -143,20 +159,25 @@ export default function ChatPage() {
     }
   }
 
+  // Everyone can hide a chat from their own list; it comes back with the next
+  // message. Deleting for everyone is for managers only (enforced in the DB).
+  async function handleHideConversation() {
+    setChatMenuOpen(false);
+    if (!activeConversation) return;
+    if (await hideConversation(activeConversation.id)) {
+      setActiveConversationId(null);
+      setMessage(t('השיחה הוסתרה. היא תחזור לרשימה כשתגיע הודעה חדשה.'), 'info');
+    }
+  }
+
   async function handleDeleteConversation() {
     if (!activeConversation || deleting) return;
-    const confirmed = window.confirm(
-      `${t('למחוק את השיחה')} "${conversationName(activeConversation)}"?\n${t(
-        'השיחה וכל ההודעות יימחקו אצל כל המשתתפים.',
-      )}`,
-    );
-    if (!confirmed) return;
-
     setDeleting(true);
     try {
       const deleted = await deleteConversation(activeConversation.id);
       if (deleted) {
         setDrafts(saveDraft(profile?.id, activeConversation.id, ''));
+        setDeleteDialogOpen(false);
         setActiveConversationId(null);
       }
     } finally {
@@ -446,22 +467,64 @@ export default function ChatPage() {
                     {(activeConversation.member_ids || []).length} {t('משתתפים')}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  className="chatDeleteButton"
-                  onClick={handleDeleteConversation}
-                  disabled={deleting}
-                  title={t('מחיקת שיחה')}
-                  aria-label={t('מחיקת שיחה')}
-                >
-                  <Trash2 size={17} />
-                  <span>{deleting ? t('מוחק...') : t('מחק')}</span>
-                </button>
+                {(canHideChats || isManager) && (
+                  <div
+                    className="projectMoreActions chatRoomActions"
+                    onBlur={(event) => {
+                      if (!event.currentTarget.contains(event.relatedTarget))
+                        setChatMenuOpen(false);
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="ghost smallBtn projectMoreActionsButton"
+                      aria-label={t('פעולות נוספות')}
+                      title={t('פעולות נוספות')}
+                      aria-haspopup="menu"
+                      aria-expanded={chatMenuOpen}
+                      onClick={() => setChatMenuOpen((open) => !open)}
+                    >
+                      <MoreHorizontal size={18} />
+                    </button>
+                    {chatMenuOpen && (
+                      <div className="projectMoreActionsMenu" role="menu">
+                        {canHideChats && (
+                          <button type="button" role="menuitem" onClick={handleHideConversation}>
+                            <EyeOff size={16} /> {t('הסתרת שיחה')}
+                          </button>
+                        )}
+                        {isManager && (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="danger"
+                            onClick={() => {
+                              setChatMenuOpen(false);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 size={16} /> {t('מחיקה לכולם')}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </header>
             }
           />
         )}
       </div>
+
+      {deleteDialogOpen && activeConversation && (
+        <DeleteChatDialog
+          name={conversationName(activeConversation)}
+          memberCount={(activeConversation.member_ids || []).length}
+          deleting={deleting}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={handleDeleteConversation}
+        />
+      )}
 
       {newChatOpen && (
         <div className="chatNewBackdrop" role="presentation">

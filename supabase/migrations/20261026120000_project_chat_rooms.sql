@@ -3,6 +3,8 @@
 -- project_workers incl. drafters) plus all managers. Project activity
 -- (status, photos, files, tasks) is posted into the room as silent "event"
 -- lines written by triggers; only people's own messages send a push.
+-- Personal chats: anyone can hide a chat for themselves (it returns on the
+-- next message); deleting a chat for everyone is limited to managers/admins.
 
 create schema if not exists private;
 revoke all on schema private from public, anon, authenticated;
@@ -14,7 +16,9 @@ alter table public.chat_conversations
     references public.projects(id) on delete cascade;
 
 alter table public.chat_members
-  add column if not exists muted boolean not null default false;
+  add column if not exists muted boolean not null default false,
+  -- "Hide chat" is per member and undone by the next new message.
+  add column if not exists hidden_at timestamptz;
 
 alter table public.chat_messages
   add column if not exists kind text not null default 'message',
@@ -481,8 +485,42 @@ as $$
   ) unread
   where mine.user_id = auth.uid()
     and c.project_id is null
+    -- A hidden chat comes back as soon as something new is posted in it.
+    and (mine.hidden_at is null or coalesce(latest.created_at, c.created_at) > mine.hidden_at)
   order by coalesce(latest.created_at, c.updated_at) desc;
 $$;
+
+-- Hides a personal chat from the caller's own list only, and marks it read so
+-- a hidden chat never leaves an invisible unread count behind.
+create or replace function public.hide_chat_conversation(p_conversation_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+set row_security = off
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  update public.chat_members cm
+  set hidden_at = now(),
+      last_read_at = greatest(coalesce(cm.last_read_at, cm.joined_at), now())
+  from public.chat_conversations c
+  where c.id = cm.conversation_id
+    and c.project_id is null
+    and cm.conversation_id = p_conversation_id
+    and cm.user_id = auth.uid();
+
+  if not found then
+    raise exception 'Conversation not found or access denied';
+  end if;
+end;
+$$;
+
+revoke all on function public.hide_chat_conversation(uuid) from public, anon;
+grant execute on function public.hide_chat_conversation(uuid) to authenticated;
 
 -- Project rooms with unread messages or recent activity, newest first.
 -- Events never count as unread; archived projects show only when unread.
@@ -575,6 +613,8 @@ grant execute on function public.chat_unread_count_for(uuid) to service_role;
 
 -- ---- Personal-chat functions must not touch project rooms --------------
 
+-- Deleting a chat removes it and its messages for everyone, so only managers
+-- and admins may do it; everyone else hides chats for themselves instead.
 create or replace function public.delete_chat_conversation(p_conversation_id uuid)
 returns void
 language plpgsql
@@ -587,6 +627,10 @@ declare
 begin
   if v_user_id is null then
     raise exception 'Authentication required';
+  end if;
+
+  if not public.is_manager() then
+    raise exception 'Only managers can delete conversations for everyone';
   end if;
 
   delete from public.chat_conversations c
@@ -654,6 +698,10 @@ begin
     limit 1;
 
     if v_conversation_id is not null then
+      -- Starting a chat with someone again brings a hidden chat back.
+      update public.chat_members
+      set hidden_at = null
+      where conversation_id = v_conversation_id and user_id = v_user_id;
       return v_conversation_id;
     end if;
   end if;

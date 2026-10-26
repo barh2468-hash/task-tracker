@@ -7,6 +7,7 @@ export function getTabTitle(pathname, searchParams, isManager) {
   if (pathname === '/app/attendance') return 'שעון נוכחות';
   if (pathname === '/app/my-attendance') return 'דוח הנוכחות שלי';
   if (pathname === '/app/my-notes') return 'ההערות שלי';
+  if (pathname === '/app/my-vehicle') return 'הרכב שלי';
   if (pathname === '/app/map') return 'מפה חיה';
   if (pathname === '/app/status-report') return 'דו״ח מצב פרויקטים';
   if (pathname === '/app/equipment') return 'ציוד עובדי שטח';
@@ -49,6 +50,7 @@ export function isHeroSuppressed(pathname) {
     pathname === '/app/recent-status-changes' ||
     pathname === '/app/equipment' ||
     pathname === '/app/vehicle-register' ||
+    pathname === '/app/my-vehicle' ||
     pathname.startsWith('/app/vehicles') ||
     pathname === '/app/manhole-layout' ||
     pathname === '/app/chat'

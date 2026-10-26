@@ -25,6 +25,8 @@ import VehicleFormModal from '../features/vehicles/components/VehicleFormModal.j
 import {
   AssignmentsPanel, DocumentsPanel, InspectionsPanel, InsurancePanel, OdometerPanel, TollsPanel,
 } from '../features/vehicles/components/VehiclePanels.jsx';
+import { FormsPanel, FuelPanel } from '../features/vehicles/components/worker/ManagerWorkerPanels.jsx';
+import { loadVehicleForms, loadVehicleFuelReports } from '../features/vehicles/workerApi.js';
 
 function Detail({ label, children }) {
   return (
@@ -43,6 +45,8 @@ export default function VehicleDetailPage() {
   const { setMessage } = useMessage();
   const [detail, setDetail] = useState(undefined);
   const [assignments, setAssignments] = useState([]);
+  const [forms, setForms] = useState([]);
+  const [fuelReports, setFuelReports] = useState([]);
   const [error, setError] = useState('');
   const [tab, setTab] = useState('overview');
   const [editing, setEditing] = useState(false);
@@ -55,6 +59,9 @@ export default function VehicleDetailPage() {
       setDetail(await loadVehicleDetail(vehicleId));
       // Assignments arrive with phase 2; the card still works before that migration runs.
       loadVehicleAssignments(vehicleId).then(setAssignments).catch(() => setAssignments([]));
+      // Worker forms and fuel reports arrive with the worker flow migration.
+      loadVehicleForms(vehicleId).then(setForms).catch(() => setForms([]));
+      loadVehicleFuelReports(vehicleId).then(setFuelReports).catch(() => setFuelReports([]));
       setError('');
     } catch (loadError) {
       setError(loadError?.message || t('הטעינה נכשלה.'));
@@ -77,6 +84,8 @@ export default function VehicleDetailPage() {
     ['quotes', `${t('הצעות ביטוח')}${quotes.some((quote) => quote.status === 'pending') ? ' •' : ''}`],
     ['inspections', t('טסט')],
     ['assignments', t('שיוכים')],
+    ['forms', `${t('טפסים')}${forms.some((form) => form.status === 'pending') ? ' •' : ''}`],
+    ['fuel', t('דלק')],
     ...(hasOdometer ? [['tolls', t('מנויים')], ['odometer', t('ק"מ')]] : []),
     ['documents', `${t('מסמכים')} (${documents.length})`],
   ];
@@ -225,6 +234,8 @@ export default function VehicleDetailPage() {
       {tab === 'tolls' && <TollsPanel {...panelProps} tolls={tolls} />}
       {tab === 'odometer' && <OdometerPanel {...panelProps} readings={readings} />}
       {tab === 'assignments' && <AssignmentsPanel assignments={assignments} />}
+      {tab === 'forms' && <FormsPanel {...panelProps} forms={forms} user={user} />}
+      {tab === 'fuel' && <FuelPanel reports={fuelReports} />}
       {tab === 'documents' && <DocumentsPanel {...panelProps} documents={documents} />}
 
       {editing && <VehicleFormModal vehicle={vehicle} onSave={handleSave} onClose={() => setEditing(false)} />}

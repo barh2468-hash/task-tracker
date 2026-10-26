@@ -63,7 +63,7 @@ const entries = [
   ['חזרה לרכבי החברה', 'Back to company vehicles', 'Πίσω στα εταιρικά οχήματα'],
   ['אין רכבים שלא בשימוש', 'No vehicles out of use', 'Δεν υπάρχουν οχήματα εκτός χρήσης'],
   ['הרכב שלי', 'My vehicle', 'Το όχημά μου'],
-  ['דיווח ק"מ ודלק, וקבלה, החלפה או החזרה של רכב', 'Report mileage and fuel, and receive, swap or return a vehicle', 'Δήλωση χιλιομέτρων και καυσίμου, παραλαβή, αλλαγή ή επιστροφή οχήματος'],
+  ['דיווח ק"מ, וקבלה, החלפה או החזרה של רכב', 'Report mileage, and receive, swap or return a vehicle', 'Δήλωση χιλιομέτρων, παραλαβή, αλλαγή ή επιστροφή οχήματος'],
   ['קבלתי רכב', 'I received a vehicle', 'Παρέλαβα όχημα'],
   ['החלפתי רכב', 'I swapped a vehicle', 'Άλλαξα όχημα'],
   ['החזרתי רכב', 'I returned a vehicle', 'Επέστρεψα όχημα'],

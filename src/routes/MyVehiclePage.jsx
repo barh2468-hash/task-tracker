@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Car, Fuel, Gauge, LogIn, LogOut, Repeat } from 'lucide-react';
+import { AlertTriangle, Car, Gauge, LogIn, LogOut, Repeat } from 'lucide-react';
 import { useMessage } from '../context/MessageContext.jsx';
 import { t } from '../features/language/LanguageContext.jsx';
 import PageHeader from '../components/ui/PageHeader.jsx';
@@ -11,13 +11,12 @@ import LoadingState from '../components/ui/LoadingState.jsx';
 import { isWorkerFlowMissing, loadMyVehicleOverview } from '../features/vehicles/workerApi.js';
 import { formatDate } from '../features/vehicles/utils/vehicleStatus.js';
 import DeclarationForm from '../features/vehicles/components/worker/DeclarationForm.jsx';
-import { FuelReportModal, OdometerReportModal } from '../features/vehicles/components/worker/ReportForms.jsx';
-import { formatMonth } from '../features/vehicles/utils/fuelMonths.js';
+import { OdometerReportModal } from '../features/vehicles/components/worker/ReportForms.jsx';
 
 const ACTION_LABELS = { received: 'קבלתי רכב', swapped: 'החלפתי רכב', returned: 'החזרתי רכב' };
 
 /**
- * "My vehicle" for every role: report the monthly odometer and fuel, and take, swap or return a vehicle
+ * "My vehicle" for every role: report the monthly odometer, and take, swap or return a vehicle
  * with the signed declaration. Data comes only through the worker RPCs (no direct fleet-table access).
  */
 export default function MyVehiclePage() {
@@ -44,20 +43,6 @@ export default function MyVehiclePage() {
     load();
   }, [load]);
 
-  // Vehicles the worker can report fuel for: the ones held now, plus any held in the last two months.
-  const fuelVehicles = useMemo(() => {
-    if (!data) return [];
-    const cutoff = new Date();
-    cutoff.setMonth(cutoff.getMonth() - 2);
-    const map = new Map(data.vehicles.map((vehicle) => [vehicle.vehicle_id, vehicle]));
-    for (const form of data.forms) {
-      if (!map.has(form.vehicle_id) && new Date(form.happened_at) >= cutoff) {
-        map.set(form.vehicle_id, { vehicle_id: form.vehicle_id, plate_number: form.plate_number, make_model: form.make_model });
-      }
-    }
-    return [...map.values()];
-  }, [data]);
-
   function done(message) {
     setDialog(null);
     setMessage(message);
@@ -71,7 +56,7 @@ export default function MyVehiclePage() {
     <>
       <PageHeader
         title={t('הרכב שלי')}
-        subtitle={t('דיווח ק"מ ודלק, וקבלה, החלפה או החזרה של רכב')}
+        subtitle={t('דיווח ק"מ, וקבלה, החלפה או החזרה של רכב')}
         actions={
           <>
             <Button onClick={() => setDialog({ type: 'declare', action: 'received' })}>
@@ -120,39 +105,9 @@ export default function MyVehiclePage() {
                   <Gauge size={16} /> {t('דיווח ק"מ')}
                 </Button>
               )}
-              <Button variant="secondary" onClick={() => setDialog({ type: 'fuel', vehicleId: vehicle.vehicle_id })}>
-                <Fuel size={16} /> {t('דיווח דלק חודשי')}
-              </Button>
             </div>
           </Card>
         ))
-      )}
-
-      {data.vehicles.length === 0 && fuelVehicles.length > 0 && (
-        <div className="uiModalActions">
-          <Button variant="secondary" onClick={() => setDialog({ type: 'fuel', vehicleId: fuelVehicles[0].vehicle_id })}>
-            <Fuel size={16} /> {t('דיווח דלק חודשי')}
-          </Button>
-        </div>
-      )}
-
-      {data.fuelReports.length > 0 && (
-        <Card>
-          <h2>{t('דיווחי הדלק שלי')}</h2>
-          <table className="equipmentTable">
-            <thead><tr><th>{t('חודש')}</th><th>{t('רכב')}</th><th className="num">{t('ליטרים')}</th><th className="num">{t('סכום (₪)')}</th></tr></thead>
-            <tbody>
-              {data.fuelReports.map((report) => (
-                <tr key={report.id}>
-                  <td>{formatMonth(String(report.report_month).slice(0, 7))}</td>
-                  <td><bdi>{report.plate_number}</bdi></td>
-                  <td className="num">{Number(report.liters).toLocaleString('he-IL')}</td>
-                  <td className="num">{report.amount_ils != null ? Number(report.amount_ils).toLocaleString('he-IL') : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
       )}
 
       {data.forms.length > 0 && (
@@ -185,15 +140,6 @@ export default function MyVehiclePage() {
       )}
       {dialog?.type === 'odometer' && (
         <OdometerReportModal vehicle={dialog.vehicle} onDone={done} onClose={() => setDialog(null)} />
-      )}
-      {dialog?.type === 'fuel' && (
-        <FuelReportModal
-          vehicles={fuelVehicles}
-          existing={data.fuelReports}
-          initialVehicleId={dialog.vehicleId}
-          onDone={done}
-          onClose={() => setDialog(null)}
-        />
       )}
     </>
   );

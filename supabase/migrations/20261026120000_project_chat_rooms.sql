@@ -295,20 +295,27 @@ begin
     return;
   end if;
 
-  -- Several photos or files uploaded together become one counted line.
+  -- Several photos or files uploaded together become one counted line, as
+  -- long as nothing else was posted after it. Rows saved in one transaction
+  -- share a timestamp, so ties count as "not after".
   if p_event_type in ('photo_added', 'document_added') then
-    select m.id, m.sender_id, m.event_type, m.created_at
+    select m.id
     into v_last
     from public.chat_messages m
     where m.conversation_id = v_conversation_id
+      and m.kind = 'event'
+      and m.event_type = p_event_type
+      and m.sender_id is not distinct from p_actor
+      and m.created_at > now() - interval '10 minutes'
+      and not exists (
+        select 1 from public.chat_messages newer
+        where newer.conversation_id = m.conversation_id
+          and newer.created_at > m.created_at
+      )
     order by m.created_at desc
     limit 1;
 
-    if v_last.id is not null
-      and v_last.event_type = p_event_type
-      and v_last.sender_id is not distinct from p_actor
-      and v_last.created_at > now() - interval '10 minutes'
-    then
+    if v_last.id is not null then
       update public.chat_messages m
       set event_data = jsonb_set(
         coalesce(m.event_data, '{}'::jsonb),

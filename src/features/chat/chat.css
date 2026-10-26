@@ -50,6 +50,10 @@
   color: #153b5c;
   font-weight: 800;
 }
+.chatConversationPreview .chatDraftLabel {
+  color: #a14b20;
+  font-weight: 850;
+}
 .chatConversationItem.unread.active {
   border-color: #176b93;
 }
@@ -139,6 +143,46 @@
   border: 1px solid #d4e0e9;
   border-radius: 99px;
   background: #fff;
+}
+.chatUnreadDivider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 2px;
+  color: #a14b20;
+  font-size: 11px;
+  font-weight: 800;
+}
+.chatUnreadDivider::before,
+.chatUnreadDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #f0b98a;
+}
+.chatUnreadDivider span {
+  padding: 4px 12px;
+  border-radius: 99px;
+  background: #fdf0e4;
+}
+.chatNewMessagesButton {
+  position: sticky;
+  bottom: 4px;
+  z-index: 2;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 99px;
+  background: #164a78;
+  color: #fff;
+  font-size: 12px;
+  box-shadow: 0 6px 18px rgba(7, 30, 65, 0.25);
+}
+.chatNewMessagesButton:hover {
+  background: #0f3a61;
+  transform: none;
 }
 @media (max-width: 760px) {
   .chatMessageRow .chatBubble {

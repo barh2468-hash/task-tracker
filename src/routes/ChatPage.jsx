@@ -1,5 +1,6 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
+  ArrowDown,
   Check,
   ExternalLink,
   FolderKanban,
@@ -19,6 +20,7 @@ import '../features/chat/chat.css';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
+import { firstUnreadIndex } from '../features/chat/unreadDivider.js';
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh.js';
 import { roleLabel } from '../services/supabase.js';
 import { projectDeepLinkPath } from '../utils/navigation.js';
@@ -39,6 +41,40 @@ function senderColor(id) {
     0,
   );
   return colors[hash % colors.length];
+}
+
+// Unsent text is kept per user and conversation, so switching chats never
+// carries a half-written message into the wrong conversation.
+function draftStorageKey(userId) {
+  return `maya-chat-drafts-${userId || 'guest'}`;
+}
+
+function readDrafts(userId) {
+  try {
+    return JSON.parse(localStorage.getItem(draftStorageKey(userId)) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveDraft(userId, conversationId, text) {
+  const drafts = readDrafts(userId);
+  if (!conversationId) return drafts;
+  if (text.trim()) drafts[conversationId] = text;
+  else delete drafts[conversationId];
+  try {
+    localStorage.setItem(draftStorageKey(userId), JSON.stringify(drafts));
+  } catch {
+    // Storage can be unavailable (private mode, quota); drafts are a convenience.
+  }
+  return drafts;
+}
+
+const NEAR_BOTTOM_PX = 80;
+
+// Phones and tablets type a newline with Enter and send with the button.
+function enterSendsMessage() {
+  return !window.matchMedia?.('(hover: none) and (pointer: coarse)').matches;
 }
 
 export default function ChatPage() {
@@ -79,9 +115,20 @@ export default function ChatPage() {
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const [projectSearch, setProjectSearch] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState(null);
-  const messagesEndRef = useRef(null);
+  const [drafts, setDrafts] = useState(() => readDrafts(profile?.id));
+  const [unreadMarker, setUnreadMarker] = useState(null);
+  const [hasNewBelow, setHasNewBelow] = useState(false);
+  const messagesContainerRef = useRef(null);
+  const unreadDividerRef = useRef(null);
+  const textareaRef = useRef(null);
+  const nearBottomRef = useRef(true);
+  const initialScrollDoneRef = useRef(false);
+  const lastMessageIdRef = useRef(null);
+  const unreadMarkerRef = useRef(null);
   const activeConversationRef = useRef(activeConversationId);
   activeConversationRef.current = activeConversationId;
+  const conversationsRef = useRef(conversations);
+  conversationsRef.current = conversations;
 
   const directory = useMemo(
     () => workers.filter((worker) => worker.id !== profile?.id),
@@ -117,6 +164,22 @@ export default function ChatPage() {
       const next = await getMessages(activeConversationId);
       if (activeConversationRef.current !== activeConversationId) return;
       setMessages(next);
+      // Remember the unread count before marking the conversation read, so the
+      // "unread messages" divider survives the read receipt. Until the
+      // conversation list has loaded (e.g. opened from a push) the count is
+      // unknown, so the read receipt waits for the next load.
+      if (unreadMarkerRef.current?.conversationId !== activeConversationId) {
+        const conversation = conversationsRef.current.find(
+          (item) => item.id === activeConversationId,
+        );
+        if (!conversation) return;
+        const marker = {
+          conversationId: activeConversationId,
+          count: Number(conversation.unread_count || 0),
+        };
+        unreadMarkerRef.current = marker;
+        setUnreadMarker(marker);
+      }
       if (document.visibilityState === 'visible' && document.hasFocus() && next.length) {
         await markConversationRead(activeConversationId, next.at(-1).created_at);
       }
@@ -129,7 +192,20 @@ export default function ChatPage() {
     setSelectedProjectId(null);
     setProjectPickerOpen(false);
     setProjectSearch('');
-  }, [activeConversationId]);
+    setMessageText(readDrafts(profile?.id)[activeConversationId] || '');
+    setHasNewBelow(false);
+    nearBottomRef.current = true;
+    initialScrollDoneRef.current = false;
+    lastMessageIdRef.current = null;
+  }, [activeConversationId, profile?.id]);
+
+  useEffect(() => {
+    setDrafts(readDrafts(profile?.id));
+  }, [profile?.id]);
+
+  function updateDraft(conversationId, text) {
+    setDrafts(saveDraft(profile?.id, conversationId, text));
+  }
 
   useEffect(() => {
     if (!newChatOpen) return undefined;
@@ -146,6 +222,16 @@ export default function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversationId, chatAvailable]);
 
+  // Opened before the conversation list arrived: reload once it is known, so
+  // the unread divider is captured and the conversation is marked read.
+  const activeConversationKnown = Boolean(activeConversation);
+  useEffect(() => {
+    if (activeConversationKnown && unreadMarkerRef.current?.conversationId !== activeConversationId) {
+      loadActiveMessages();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConversationKnown]);
+
   useRealtimeRefresh({
     enabled: Boolean(activeConversationId && chatAvailable),
     channelName: `infrastructure-tracker-chat-${profile?.id || 'guest'}`,
@@ -154,9 +240,69 @@ export default function ChatPage() {
     pollIntervalMs: 5000,
   });
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages]);
+  const markerForActive =
+    unreadMarker?.conversationId === activeConversationId ? unreadMarker : null;
+  const unreadIndex = useMemo(
+    () => firstUnreadIndex(messages, markerForActive?.count || 0, profile?.id),
+    [messages, markerForActive, profile?.id],
+  );
+
+  function scrollToBottom(behavior = 'smooth') {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior });
+    nearBottomRef.current = true;
+    setHasNewBelow(false);
+  }
+
+  function handleMessagesScroll() {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
+    nearBottomRef.current = distance < NEAR_BOTTOM_PX;
+    if (nearBottomRef.current) setHasNewBelow(false);
+  }
+
+  // Background refreshes never move the view. Opening a conversation lands on
+  // the first unread message; a new message follows only when the reader is
+  // already at the bottom or sent it, otherwise a "new messages" button shows.
+  useLayoutEffect(() => {
+    const container = messagesContainerRef.current;
+    const last = messages.at(-1);
+    if (!container || !last) return;
+    if (!initialScrollDoneRef.current) {
+      if (!markerForActive) return;
+      initialScrollDoneRef.current = true;
+      lastMessageIdRef.current = last.id;
+      const divider = unreadDividerRef.current;
+      if (divider) {
+        container.scrollTop +=
+          divider.getBoundingClientRect().top - container.getBoundingClientRect().top - 12;
+        handleMessagesScroll();
+      } else {
+        scrollToBottom('auto');
+      }
+      return;
+    }
+    if (last.id === lastMessageIdRef.current) return;
+    lastMessageIdRef.current = last.id;
+    if (last.sender_id === profile?.id || nearBottomRef.current) scrollToBottom();
+    else setHasNewBelow(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, markerForActive]);
+
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    // Grow with the text; the stylesheet's max-height caps it and then it scrolls.
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight + textarea.offsetHeight - textarea.clientHeight}px`;
+  }, [messageText, activeConversationId, activeConversationKnown]);
+
+  function handleMessageTextChange(event) {
+    setMessageText(event.target.value);
+    updateDraft(activeConversationId, event.target.value);
+  }
 
   function openNewChat() {
     setSelectedMemberIds([]);
@@ -203,6 +349,7 @@ export default function ChatPage() {
         : null;
       const sent = await sendMessage(activeConversationId, body, projectReference);
       if (sent) {
+        updateDraft(activeConversationId, '');
         if (activeConversationRef.current !== activeConversationId) return;
         setMessages((items) =>
           items.some((item) => item.id === sent.id) ? items : [...items, sent],
@@ -233,6 +380,7 @@ export default function ChatPage() {
     try {
       const deleted = await deleteConversation(activeConversation.id);
       if (deleted) {
+        updateDraft(activeConversation.id, '');
         setActiveConversationId(null);
         setMessages([]);
         setMessageText('');
@@ -300,6 +448,10 @@ export default function ChatPage() {
           {conversations.map((conversation) => {
             const name = conversationName(conversation);
             const unread = Number(conversation.unread_count || 0);
+            // Like WhatsApp: an unsent message shows in place of the last one,
+            // except for the chat that is open and already shows it in the box.
+            const draft =
+              conversation.id !== activeConversationId ? drafts[conversation.id]?.trim() : '';
             return (
               <button
                 type="button"
@@ -322,7 +474,15 @@ export default function ChatPage() {
                     </time>
                   </span>
                   <span className="chatConversationPreview">
-                    <small>{conversation.last_message_body || t('שיחה חדשה')}</small>
+                    <small>
+                      {draft ? (
+                        <>
+                          <span className="chatDraftLabel">{t('טיוטה:')}</span> {draft}
+                        </>
+                      ) : (
+                        conversation.last_message_body || t('שיחה חדשה')
+                      )}
+                    </small>
                     {unread > 0 && <em>{Math.min(unread, 99)}</em>}
                   </span>
                 </span>
@@ -375,7 +535,12 @@ export default function ChatPage() {
               </button>
             </header>
 
-            <div className="chatMessages" aria-live="polite">
+            <div
+              className="chatMessages"
+              aria-live="polite"
+              ref={messagesContainerRef}
+              onScroll={handleMessagesScroll}
+            >
               {messages.length === 0 && (
                 <div className="chatFirstMessage">
                   <MessageCircle size={28} />
@@ -404,6 +569,15 @@ export default function ChatPage() {
                             year: 'numeric',
                           })}
                         </time>
+                      </div>
+                    )}
+                    {index === unreadIndex && (
+                      <div className="chatUnreadDivider" ref={unreadDividerRef}>
+                        <span>
+                          {t('{{value0}} הודעות שלא נקראו', {
+                            value0: markerForActive.count.toLocaleString(locale),
+                          })}
+                        </span>
                       </div>
                     )}
                     <div
@@ -443,7 +617,16 @@ export default function ChatPage() {
                   </Fragment>
                 );
               })}
-              <div ref={messagesEndRef} />
+              {hasNewBelow && (
+                <button
+                  type="button"
+                  className="chatNewMessagesButton"
+                  onClick={() => scrollToBottom()}
+                >
+                  <ArrowDown size={15} />
+                  {t('הודעות חדשות')}
+                </button>
+              )}
             </div>
 
             <form className="chatMessageForm" onSubmit={handleSendMessage}>
@@ -524,13 +707,20 @@ export default function ChatPage() {
               </button>
               <textarea
                 id="chat-message"
+                ref={textareaRef}
                 rows="1"
                 maxLength="4000"
                 value={messageText}
                 placeholder={t('כתבו הודעה...')}
-                onChange={(event) => setMessageText(event.target.value)}
+                enterKeyHint={enterSendsMessage() ? 'send' : 'enter'}
+                onChange={handleMessageTextChange}
                 onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
+                  if (
+                    event.key === 'Enter' &&
+                    !event.shiftKey &&
+                    !event.nativeEvent.isComposing &&
+                    enterSendsMessage()
+                  ) {
                     event.preventDefault();
                     handleSendMessage();
                   }

@@ -49,3 +49,9 @@ export const SEED_VEHICLE_CARDS = {
   87446603: '8187',
   88393803: '8270',
 };
+
+// Road 6 (Derech Eretz Highways) toll invoices. The supplier is a BP card of its own;
+// vehicles, VAT recognition and trucks follow the fuel rules above.
+export const TOLL_SUPPLIER_CARD = '5214'; // כביש 6 — ספק
+export const TOLL_SUPPLIER_ACCOUNT_TYPE = 'BP';
+export const TOLL_REMARK_PREFIX = 'חש.כביש 6';

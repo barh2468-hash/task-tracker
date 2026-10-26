@@ -45,6 +45,7 @@ const VehicleRegisterPage = lazy(() => import('./routes/VehicleRegisterPage.jsx'
 const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
 const AccountingYearEndPage = lazy(() => import('./routes/AccountingYearEndPage.jsx'));
 const AccountingFuelPage = lazy(() => import('./routes/AccountingFuelPage.jsx'));
+const AccountingTollsPage = lazy(() => import('./routes/AccountingTollsPage.jsx'));
 const ManholeLayoutPage = lazy(() => import('./routes/ManholeLayoutPage.jsx'));
 const VehiclesPage = lazy(() => import('./routes/VehiclesPage.jsx'));
 const MyVehiclePage = lazy(() => import('./routes/MyVehiclePage.jsx'));
@@ -309,6 +310,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<LoadingScreen />}>
                       <AccountingFuelPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="accounting/tolls"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <AccountingTollsPage />
                     </Suspense>
                   }
                 />

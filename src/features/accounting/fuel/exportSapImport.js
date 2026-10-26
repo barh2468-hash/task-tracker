@@ -17,6 +17,7 @@ export function entriesToRows(entries) {
     h[4] = entry.document;
     h[5] = entry.remarks;
     h[10] = entry.ref2;
+    h[11] = entry.ref3 || '';
     h[12] = entry.vat;
     rows.push(h);
     for (const line of entry.lines) {

@@ -37,7 +37,9 @@ export default function DashboardLayout() {
   const { message, messageTone, setMessage } = useMessage();
   const ToastIcon = messageTone === 'error' ? AlertCircle : messageTone === 'info' ? Info : CheckCircle;
   const { unreadCount } = useNotifications();
-  const { unreadChatCount } = useChat();
+  const { unreadChatCount, unreadProjectChatCount } = useChat();
+  // The number counts personal chats only; project rooms add just a dot.
+  const onlyProjectChatUnread = unreadChatCount === 0 && unreadProjectChatCount > 0;
   const { language, setLanguage } = useLanguage();
   const { stats } = useProjectStats();
   const location = useLocation();
@@ -110,7 +112,7 @@ export default function DashboardLayout() {
           : '/app/attendance',
       );
     } else {
-      navigate('/app/chat', {
+      navigate(onlyProjectChatUnread ? '/app/chat?view=projects' : '/app/chat', {
         state: {
           chatReturnTo: `${location.pathname}${location.search}${location.hash}`,
         },
@@ -262,7 +264,9 @@ export default function DashboardLayout() {
             ? t('צ׳אט פנימי, {{value0}} הודעות חדשות', {
                 value0: unreadChatCount.toLocaleString(localeForLanguage(language)),
               })
-            : t('צ׳אט פנימי')
+            : onlyProjectChatUnread
+              ? t('צ׳אט פנימי, הודעות חדשות בפרויקטים')
+              : t('צ׳אט פנימי')
         }
         title={t('צ׳אט פנימי')}
       >
@@ -272,6 +276,7 @@ export default function DashboardLayout() {
             {unreadChatCount > 99 ? '99+' : unreadChatCount.toLocaleString(localeForLanguage(language))}
           </span>
         )}
+        {onlyProjectChatUnread && <span className="floatingChatDot" aria-hidden="true" />}
       </button>
 
       <MobileNavigation

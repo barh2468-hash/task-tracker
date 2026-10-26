@@ -46,6 +46,23 @@ export function insertChatMessage(conversationId, senderId, body, project) {
     .single();
 }
 
+export function getProjectChatInbox() {
+  return supabase.rpc('get_project_chat_inbox');
+}
+
+export async function getProjectConversation(projectId) {
+  const result = await supabase.rpc('get_project_conversation', { p_project_id: projectId });
+  return { ...result, data: result.data?.[0] || null };
+}
+
+export function setChatConversationMuted(conversationId, userId, muted) {
+  return supabase
+    .from('chat_members')
+    .update({ muted })
+    .eq('conversation_id', conversationId)
+    .eq('user_id', userId);
+}
+
 export function markChatConversationRead(
   conversationId,
   userId,

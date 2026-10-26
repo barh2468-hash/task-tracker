@@ -44,6 +44,8 @@ import ContinuationReportDialog from './ContinuationReportDialog.jsx';
 import DrawingBatchesPanel from './DrawingBatchesPanel.jsx';
 import ProjectHistoryPanel from './ProjectHistoryPanel.jsx';
 import ProjectSectionTabs from './ProjectSectionTabs.jsx';
+import { useChat } from '../../chat/ChatContext.jsx';
+import ProjectChatPanel from '../../chat/components/ProjectChatPanel.jsx';
 import useProjectDialog from '../hooks/useProjectDialog.js';
 import { isManagerRole } from '../../../utils/roles.js';
 import { getProjectTeamAssignments, isProjectTeamMember } from '../utils/assignments.js';
@@ -72,7 +74,9 @@ function buildEditForm(project) {
   };
 }
 
-export default function ProjectCard({ project, onBack }) {
+const DETAIL_TABS = ['overview', 'tasks', 'documents', 'drawing-batches', 'updates', 'discussion'];
+
+export default function ProjectCard({ project, onBack, initialTab }) {
   useTranslation();
   const { language } = useLanguage();
   const assignmentRef = useRef(null);
@@ -126,7 +130,11 @@ export default function ProjectCard({ project, onBack }) {
   const [editing, setEditing] = useState(false);
   const [editSnapshot, setEditSnapshot] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
-  const [activeDetailTab, setActiveDetailTab] = useState('overview');
+  const { projectChatAvailable, projectRoomsByProjectId } = useChat();
+  const [activeDetailTab, setActiveDetailTab] = useState(
+    DETAIL_TABS.includes(initialTab) ? initialTab : 'overview',
+  );
+  const discussionUnread = Number(projectRoomsByProjectId.get(project.id)?.unread_count || 0);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
   const [editMenuOpen, setEditMenuOpen] = useState(false);
   const [assets, setAssets] = useState({
@@ -711,6 +719,7 @@ export default function ProjectCard({ project, onBack }) {
                 assets.project_drawing_batches.length + assets.project_review_files.length,
               ],
               ['updates', t('פעילות הפרויקט'), null],
+              ...(projectChatAvailable ? [['discussion', t('דיון'), discussionUnread]] : []),
             ].map(([tab, label, count]) => (
               <button
                 type="button"
@@ -1099,6 +1108,9 @@ export default function ProjectCard({ project, onBack }) {
                 fallbackItems={projectHistory}
                 refreshKey={historyItems[0]?.id || ''}
               />
+            )}
+            {activeDetailTab === 'discussion' && projectChatAvailable && (
+              <ProjectChatPanel project={project} />
             )}
           </div>
         </div>

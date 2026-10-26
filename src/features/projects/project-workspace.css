@@ -894,3 +894,19 @@
     --project-control-height: 44px;
   }
 }
+
+/* Unread messages in the project's discussion room. */
+.projectListChatBadge {
+  margin-inline-start: 8px;
+  padding: 2px 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+  border-radius: 99px;
+  background: #f59e0b;
+  color: var(--navy);
+  font-size: 11px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}

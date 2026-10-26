@@ -2,16 +2,20 @@ import { useTranslation } from 'react-i18next';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft, MapPin, Search, ShieldAlert, UserRound } from 'lucide-react';
+import { ArrowLeft, MapPin, MessageCircle, Search, ShieldAlert, UserRound } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
+import { useChat } from '../features/chat/ChatContext.jsx';
 import { useMessage } from '../context/MessageContext.jsx';
 import { appStatuses } from '../services/supabase.js';
 import ProjectCard from '../features/projects/components/ProjectCard.jsx';
 import StatusPill, { getStatusClass } from '../components/StatusPill.jsx';
 import '../features/projects/project-workspace.css';
 import { getProjectPage } from '../features/projects/utils/projectPage.js';
-import { hasProjectAssignment, isProjectAssignedTo } from '../features/projects/utils/assignments.js';
+import {
+  hasProjectAssignment,
+  isProjectAssignedTo,
+} from '../features/projects/utils/assignments.js';
 
 const PROJECT_BATCH_SIZE = 20;
 const LOAD_MORE_DELAY_MS = 650;
@@ -20,6 +24,7 @@ export default function ProjectsPage() {
   useTranslation();
   const { isManager, session } = useAuth();
   const { projects, projectsLoaded } = useProjects();
+  const { projectRoomsByProjectId } = useChat();
   const { setMessage } = useMessage();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
@@ -86,6 +91,7 @@ export default function ProjectsPage() {
   function closeProject() {
     const next = new URLSearchParams(searchParams);
     next.delete('project');
+    next.delete('tab');
     setSearchParams(next);
   }
 
@@ -209,7 +215,12 @@ export default function ProjectsPage() {
         </div>
       )}
       {selectedProject && (
-        <ProjectCard key={selectedProject.id} project={selectedProject} onBack={closeProject} />
+        <ProjectCard
+          key={selectedProject.id}
+          project={selectedProject}
+          onBack={closeProject}
+          initialTab={searchParams.get('tab')}
+        />
       )}
       <div hidden={Boolean(selectedProject)}>
         <header className="projectListHeader">
@@ -262,35 +273,49 @@ export default function ProjectsPage() {
           {visibleProjects.length === 0 && (
             <div className="empty">{t('אין פרויקטים להצגה כרגע')}</div>
           )}
-          {pagedProjects.map((project) => (
-            <div key={project.id} id={`project-${project.id}`} className="projectListRow">
-              <button
-                type="button"
-                className={`projectListItem status-${getStatusClass(project.status)}`}
-                id={`open-project-${project.id}`}
-                onClick={() => openProject(project)}
-                aria-label={t('פתיחת פרויקט {{name}}', { name: project.name })}
-              >
-                <span className="projectListItemName">
-                  <b dir="auto">{project.name}</b>
-                  {project.location && (
-                    <span className="projectListLocation">
-                      <MapPin size={14} aria-hidden="true" />
-                      <bdi>{project.location}</bdi>
-                    </span>
-                  )}
-                </span>
-                <span className="projectListItemOwner">
-                  <UserRound size={15} aria-hidden="true" />
-                  <bdi>{project.profiles?.full_name || t('לא משויך')}</bdi>
-                </span>
-                <StatusPill status={project.status} />
-                <span className="projectListOpenIcon" aria-hidden="true">
-                  <ArrowLeft size={18} />
-                </span>
-              </button>
-            </div>
-          ))}
+          {pagedProjects.map((project) => {
+            const chatUnread = Number(projectRoomsByProjectId.get(project.id)?.unread_count || 0);
+            return (
+              <div key={project.id} id={`project-${project.id}`} className="projectListRow">
+                <button
+                  type="button"
+                  className={`projectListItem status-${getStatusClass(project.status)}`}
+                  id={`open-project-${project.id}`}
+                  onClick={() => openProject(project)}
+                  aria-label={t('פתיחת פרויקט {{name}}', { name: project.name })}
+                >
+                  <span className="projectListItemName">
+                    <b dir="auto">
+                      {project.name}
+                      {chatUnread > 0 && (
+                        <span
+                          className="projectListChatBadge"
+                          title={t('{{value0}} הודעות חדשות בדיון', { value0: chatUnread })}
+                        >
+                          <MessageCircle size={12} aria-hidden="true" />
+                          {chatUnread > 99 ? '99+' : chatUnread}
+                        </span>
+                      )}
+                    </b>
+                    {project.location && (
+                      <span className="projectListLocation">
+                        <MapPin size={14} aria-hidden="true" />
+                        <bdi>{project.location}</bdi>
+                      </span>
+                    )}
+                  </span>
+                  <span className="projectListItemOwner">
+                    <UserRound size={15} aria-hidden="true" />
+                    <bdi>{project.profiles?.full_name || t('לא משויך')}</bdi>
+                  </span>
+                  <StatusPill status={project.status} />
+                  <span className="projectListOpenIcon" aria-hidden="true">
+                    <ArrowLeft size={18} />
+                  </span>
+                </button>
+              </div>
+            );
+          })}
           {hasMoreProjects && (
             <div
               ref={loadMoreRef}

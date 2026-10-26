@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
 import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh.js';
@@ -14,6 +14,12 @@ export function ChatProvider({ children }) {
   const [conversations, setConversations] = useState([]);
   const [chatAvailable, setChatAvailable] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
+  // Project rooms live apart from personal chats: their own inbox, counts and
+  // badges. Unavailable until the project chat migration has been applied.
+  const [projectRooms, setProjectRooms] = useState([]);
+  const [projectRoomsLoaded, setProjectRoomsLoaded] = useState(false);
+  const [projectChatAvailable, setProjectChatAvailable] = useState(true);
+  const projectChatAvailableRef = useRef(true);
 
   async function loadConversations() {
     if (!profile) return [];
@@ -35,12 +41,42 @@ export function ChatProvider({ children }) {
     }
   }
 
+  async function loadProjectRooms() {
+    if (!profile || !projectChatAvailableRef.current) return [];
+    try {
+      const { data, error } = await chatApi.getProjectChatInbox();
+      if (error) throw error;
+      const next = data || [];
+      setProjectRooms(next);
+      return next;
+    } catch (error) {
+      // A missing function means the migration is not applied: stop asking
+      // until the next page load. Other errors keep the last known rooms.
+      if (error?.code === 'PGRST202') {
+        projectChatAvailableRef.current = false;
+        setProjectChatAvailable(false);
+        setProjectRooms([]);
+      } else {
+        console.warn('Project chat load failed:', error instanceof Error ? error.message : error);
+      }
+      return [];
+    } finally {
+      setProjectRoomsLoaded(true);
+    }
+  }
+
+  function refreshChat() {
+    return Promise.all([loadConversations(), loadProjectRooms()]);
+  }
+
   useEffect(() => {
     if (!profile) {
       setConversations([]);
+      setProjectRooms([]);
+      setProjectRoomsLoaded(false);
       return;
     }
-    loadConversations();
+    refreshChat();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
@@ -48,7 +84,7 @@ export function ChatProvider({ children }) {
     enabled: Boolean(profile && chatAvailable),
     channelName: 'infrastructure-tracker-chat-list',
     tables: ['chat_conversations', 'chat_members', 'chat_messages'],
-    onRefresh: loadConversations,
+    onRefresh: refreshChat,
     pollIntervalMs: 10000,
   });
 
@@ -70,6 +106,27 @@ export function ChatProvider({ children }) {
       return false;
     }
     setConversations((items) => items.filter((item) => item.id !== conversationId));
+    return true;
+  }
+
+  // Returns { conversation_id, muted, member_count } for a project's room,
+  // creating it (and syncing its members) on first use.
+  async function openProjectConversation(projectId) {
+    const { data, error } = await chatApi.getProjectConversation(projectId);
+    if (error) throw error;
+    return data;
+  }
+
+  async function setConversationMuted(conversationId, muted) {
+    if (!profile) return false;
+    const { error } = await chatApi.setChatConversationMuted(conversationId, profile.id, muted);
+    if (error) {
+      setMessage(error.message, 'error');
+      return false;
+    }
+    setProjectRooms((items) =>
+      items.map((item) => (item.conversation_id === conversationId ? { ...item, muted } : item)),
+    );
     return true;
   }
 
@@ -100,7 +157,7 @@ export function ChatProvider({ children }) {
         if (pushError) console.warn('Chat push failed:', pushError.message);
       })
       .catch((pushError) => console.warn('Chat push failed:', pushError.message));
-    await loadConversations();
+    await refreshChat();
     return data;
   }
 
@@ -111,16 +168,35 @@ export function ChatProvider({ children }) {
     setConversations((items) =>
       items.map((item) => (item.id === conversationId ? { ...item, unread_count: 0 } : item)),
     );
+    setProjectRooms((items) =>
+      items.map((item) =>
+        item.conversation_id === conversationId ? { ...item, unread_count: 0 } : item,
+      ),
+    );
   }
 
   const unreadChatCount = useMemo(
     () => conversations.reduce((total, item) => total + Number(item.unread_count || 0), 0),
     [conversations],
   );
+  // Muted rooms still show their own count on the project, but stay out of
+  // the totals.
+  const unreadProjectChatCount = useMemo(
+    () =>
+      projectRooms.reduce(
+        (total, item) => total + (item.muted ? 0 : Number(item.unread_count || 0)),
+        0,
+      ),
+    [projectRooms],
+  );
+  const projectRoomsByProjectId = useMemo(
+    () => new Map(projectRooms.map((item) => [item.project_id, item])),
+    [projectRooms],
+  );
 
   useEffect(() => {
     if (!('setAppBadge' in navigator) || !('clearAppBadge' in navigator)) return;
-    const count = unreadChatCount + unreadNotificationCount;
+    const count = unreadChatCount + unreadProjectChatCount + unreadNotificationCount;
     const updateBadge = async () => {
       try {
         if (profile && count > 0) await navigator.setAppBadge(Math.min(count, 99));
@@ -130,16 +206,23 @@ export function ChatProvider({ children }) {
       }
     };
     void updateBadge();
-  }, [profile, unreadChatCount, unreadNotificationCount]);
+  }, [profile, unreadChatCount, unreadProjectChatCount, unreadNotificationCount]);
 
   const value = {
     conversations,
     chatAvailable,
     chatLoading,
     unreadChatCount,
+    projectRooms,
+    projectRoomsLoaded,
+    projectChatAvailable,
+    projectRoomsByProjectId,
+    unreadProjectChatCount,
     loadConversations,
     createConversation,
     deleteConversation,
+    openProjectConversation,
+    setConversationMuted,
     getMessages,
     sendMessage,
     markConversationRead,

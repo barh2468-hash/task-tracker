@@ -44,6 +44,13 @@ For a production frontend, add its exact HTTPS origin to `GPR_M365_APP_ORIGINS`
 allows `http://localhost:5173` and `http://127.0.0.1:5173`. No wildcard redirect or
 arbitrary browser-provided return URL is accepted.
 
+Production origin `https://maya-tasks.online` was configured in
+`GPR_M365_APP_ORIGINS` on 2026-10-28. It previously received `origin_denied` on
+preflight while scheduled mailbox sync remained healthy. Verified afterward:
+production and local preflights return 200, untrusted origins remain blocked with
+403, and unauthenticated POSTs still require authentication (401). The signed-in
+production GPR page now displays the existing mailbox connection as connected.
+
 ## User setup and trial
 
 Initial registration (2026-10-26): `Maya GPR Mail Intake` was registered as a

@@ -1,0 +1,31 @@
+.projectListSearch.hasQuery input {
+  padding-inline-end: 43px;
+}
+.projectListSearch .projectSearchClear {
+  position: absolute;
+  inset-inline-end: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #64758a;
+  box-shadow: none;
+}
+.projectListSearch .projectSearchClear:hover {
+  transform: translateY(-50%);
+  background: #e5edf4;
+  box-shadow: none;
+}
+.projectListSearch .projectSearchClear:focus-visible {
+  outline: 2px solid #258fc4;
+  outline-offset: 2px;
+}
+.projectListSearch .projectSearchClear svg {
+  position: static;
+  transform: none;
+  color: currentColor;
+}

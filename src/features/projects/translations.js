@@ -1,5 +1,17 @@
 // Hebrew source keys with complete English and Greek translations.
 const entries = [
+  ['ניקוי חיפוש פרויקטים', 'Clear project search', 'Εκκαθάριση αναζήτησης έργων'],
+  ['חיפוש לפי עובד', 'Search by worker', 'Αναζήτηση ανά εργαζόμενο'],
+  ['סינון פרויקטים לפי סטטוס', 'Filter projects by status', 'Φιλτράρισμα έργων ανά κατάσταση'],
+  ['תמונת מצב של כל עובד שטח, כולל פרויקטים שבהם הוא אחראי ראשי או עובד נוסף.',
+    'An overview of each field worker, including projects where they are the lead or an additional worker.',
+    'Επισκόπηση κάθε εργαζομένου πεδίου, με έργα στα οποία είναι κύριος υπεύθυνος ή επιπλέον εργαζόμενος.'],
+  ['חיפוש עובד, פרויקט, לקוח או מיקום...', 'Search worker, project, client or location…', 'Αναζήτηση εργαζομένου, έργου, πελάτη ή τοποθεσίας…'],
+  ['הצג גם פרויקטים בארכיון', 'Include archived projects', 'Συμπερίληψη αρχειοθετημένων έργων'],
+  ['ללא כתובת מייל', 'No email address', 'Χωρίς διεύθυνση email'],
+  ['אחראי ראשי', 'Lead worker', 'Κύριος υπεύθυνος'],
+  ['עובד נוסף', 'Additional worker', 'Επιπλέον εργαζόμενος'],
+  ['{{progress}}% התקדמות', '{{progress}}% complete', '{{progress}}% πρόοδος'],
   [
     'ההגהה אושרה והפרויקט עבר לבקרה: {{name}}',
     'Review approved and project sent to control: {{name}}',

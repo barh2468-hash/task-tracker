@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft, MapPin, MessageCircle, Search, ShieldAlert, UserRound } from 'lucide-react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, MapPin, MessageCircle, Search, ShieldAlert, UserRound, X } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
@@ -11,11 +11,13 @@ import { appStatuses } from '../services/supabase.js';
 import ProjectCard from '../features/projects/components/ProjectCard.jsx';
 import StatusPill, { getStatusClass } from '../components/StatusPill.jsx';
 import '../features/projects/project-workspace.css';
+import '../features/projects/project-search.css';
 import { getProjectPage } from '../features/projects/utils/projectPage.js';
 import {
   hasProjectAssignment,
   isProjectAssignedTo,
 } from '../features/projects/utils/assignments.js';
+import { assignmentReturnLocation } from '../features/projects/utils/assignmentNavigation.js';
 
 const PROJECT_BATCH_SIZE = 20;
 const LOAD_MORE_DELAY_MS = 650;
@@ -27,6 +29,9 @@ export default function ProjectsPage() {
   const { projectRoomsByProjectId } = useChat();
   const { setMessage } = useMessage();
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchInputRef = useRef(null);
   const [query, setQuery] = useState('');
   const [visibleLimit, setVisibleLimit] = useState(PROJECT_BATCH_SIZE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -60,17 +65,18 @@ export default function ProjectsPage() {
       next.delete('project');
       setDeepLinkDenied(true);
       setMessage(t('אין לך הרשאה לצפות בפרויקט זה.'), 'error');
-      setSearchParams(next, { replace: true });
+      setSearchParams(next, { replace: true, state: location.state });
       return;
     }
     setDeepLinkDenied(false);
     const linkedFilter = selectedProject.is_archived ? 'archive' : isManager ? filter : 'mine';
     if (filter !== linkedFilter) {
       next.set('filter', linkedFilter);
-      setSearchParams(next, { replace: true });
+      setSearchParams(next, { replace: true, state: location.state });
     }
   }, [
     filter,
+    location.state,
     isManager,
     projectsLoaded,
     selectedProject,
@@ -89,6 +95,14 @@ export default function ProjectsPage() {
   }
 
   function closeProject() {
+    const origin = isManager && assignmentReturnLocation(location.state);
+    if (origin) {
+      navigate(
+        { pathname: origin.pathname, search: origin.search },
+        { replace: true, state: origin.state },
+      );
+      return;
+    }
     const next = new URLSearchParams(searchParams);
     next.delete('project');
     next.delete('tab');
@@ -240,17 +254,32 @@ export default function ProjectsPage() {
             </span>
           </div>
           <div className="projectListFilters">
-            <div className="projectListSearch">
+            <div className={`projectListSearch${query ? ' hasQuery' : ''}`}>
               <label htmlFor="project-search" className="visuallyHidden">
                 {t('חיפוש פרויקטים')}
               </label>
               <Search size={18} aria-hidden="true" />
               <input
                 id="project-search"
+                ref={searchInputRef}
                 placeholder={t('חיפוש לפי שם, לקוח או מיקום...')}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
+              {query && (
+                <button
+                  type="button"
+                  className="projectSearchClear"
+                  aria-label={t('ניקוי חיפוש פרויקטים')}
+                  title={t('ניקוי חיפוש פרויקטים')}
+                  onClick={() => {
+                    setQuery('');
+                    searchInputRef.current?.focus();
+                  }}
+                >
+                  <X size={15} aria-hidden="true" />
+                </button>
+              )}
             </div>
             <label htmlFor="project-status-filter" className="visuallyHidden">
               {t('סינון לפי סטטוס')}

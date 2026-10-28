@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { t } from '../../language/LanguageContext.jsx';
-import { useState } from 'react';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
+import { useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FolderKanban } from 'lucide-react';
 import { useProjects } from '../ProjectsContext.jsx';
 import { appStatuses, roleLabel } from '../../../services/supabase.js';
@@ -8,17 +10,44 @@ import StatusPill from '../../../components/StatusPill.jsx';
 import { isManagerRole } from '../../../utils/roles.js';
 import { isProjectAssignedTo } from '../utils/assignments.js';
 
-export default function WorkerAssignmentsPanel({ onOpenProject }) {
+export default function WorkerAssignmentsPanel({ onOpenProject, restoreState }) {
   useTranslation();
-  const { projects, workers } = useProjects();
-  const [search, setSearch] = useState('');
-  const [assignmentStatus, setAssignmentStatus] = useState('');
-  const [includeArchived, setIncludeArchived] = useState(false);
+  const { language } = useLanguage();
+  const locale = localeForLanguage(language);
+  const number = (value) => new Intl.NumberFormat(locale).format(value);
+  const { projects, workers, projectsLoaded } = useProjects();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const search = searchParams.get('q') || '';
+  const assignmentStatus = searchParams.get('status') || '';
+  const includeArchived = searchParams.get('archived') === '1';
+  const restoredRef = useRef(false);
+  function setFilter(key, value) {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (value) next.set(key, value);
+        else next.delete(key);
+        return next;
+      },
+      { replace: true },
+    );
+  }
+  useEffect(() => {
+    if (!restoreState || restoredRef.current || (!projectsLoaded && !projects.length)) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(restoreState.focusId)?.focus({ preventScroll: true });
+      window.scrollTo({ top: restoreState.scrollY || 0, behavior: 'instant' });
+      restoredRef.current = true;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [restoreState, projectsLoaded, projects.length]);
   const normalizedSearch = search.trim().toLowerCase();
   const fieldWorkers = workers.filter((worker) => worker.role === 'field_worker');
   const projectResponsibles = workers.filter(
-    (worker) => worker.role === 'field_worker' ||
-      (isManagerRole(worker.role) && projects.some((project) => isProjectAssignedTo(project, worker.id))),
+    (worker) =>
+      worker.role === 'field_worker' ||
+      (isManagerRole(worker.role) &&
+        projects.some((project) => isProjectAssignedTo(project, worker.id))),
   );
 
   const workerRows = projectResponsibles
@@ -39,7 +68,7 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
           const projectText = `${project.name} ${project.client_name || ''} ${project.location} ${project.status}`;
           return projectText.toLowerCase().includes(normalizedSearch);
         })
-        .sort((a, b) => a.name.localeCompare(b.name, 'he'));
+        .sort((a, b) => a.name.localeCompare(b.name, locale));
 
       return { worker, projects: assignedProjects, workerMatches };
     })
@@ -77,15 +106,15 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
 
       <div className="assignmentSummary">
         <div>
-          <strong>{fieldWorkers.length}</strong>
+          <strong>{number(fieldWorkers.length)}</strong>
           <span>{t('עובדי שטח')}</span>
         </div>
         <div>
-          <strong>{assignedActiveProjects}</strong>
+          <strong>{number(assignedActiveProjects)}</strong>
           <span>{t('פרויקטים פעילים משויכים')}</span>
         </div>
         <div>
-          <strong>{workersWithoutProjects}</strong>
+          <strong>{number(workersWithoutProjects)}</strong>
           <span>{t('עובדים ללא פרויקט פעיל')}</span>
         </div>
       </div>
@@ -93,13 +122,15 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
       <div className="toolbar assignmentToolbar">
         <input
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => setFilter('q', event.target.value)}
+          aria-label={t('חיפוש לפי עובד')}
           placeholder={t('חיפוש עובד, פרויקט, לקוח או מיקום...')}
         />
 
         <select
           value={assignmentStatus}
-          onChange={(event) => setAssignmentStatus(event.target.value)}
+          aria-label={t('סינון פרויקטים לפי סטטוס')}
+          onChange={(event) => setFilter('status', event.target.value)}
         >
           <option value="">{t('כל הסטטוסים')}</option>
           {appStatuses.map((status) => (
@@ -112,7 +143,7 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
           <input
             type="checkbox"
             checked={includeArchived}
-            onChange={(event) => setIncludeArchived(event.target.checked)}
+            onChange={(event) => setFilter('archived', event.target.checked ? '1' : '')}
           />
           <span>{t('הצג גם פרויקטים בארכיון')}</span>
         </label>
@@ -129,9 +160,9 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
                 <p>{worker.email || t('ללא כתובת מייל')}</p>
               </div>
               <span className="assignmentCount">
-                {assignedProjects.length}
-                {' '}
-                {t('פרויקטים')}
+                {assignedProjects.length === 1
+                  ? t('פרויקט אחד')
+                  : t('{{count}} פרויקטים', { count: number(assignedProjects.length) })}
               </span>
             </header>
 
@@ -154,8 +185,7 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
                         {isPrimary ? t('אחראי ראשי') : t('עובד נוסף')}
                       </span>
                       <span>
-                        {project.progress}
-                        {t('% התקדמות')}
+                        {t('{{progress}}% התקדמות', { progress: number(project.progress) })}
                       </span>
                       {project.is_archived && <span className="archiveBadge">{t('בארכיון')}</span>}
                     </div>
@@ -165,7 +195,10 @@ export default function WorkerAssignmentsPanel({ onOpenProject }) {
                     <button
                       type="button"
                       className="ghost smallBtn assignedProjectOpen"
-                      onClick={() => onOpenProject?.(project)}
+                      id={`assigned-project-${worker.id}-${project.id}`}
+                      onClick={() =>
+                        onOpenProject?.(project, `assigned-project-${worker.id}-${project.id}`)
+                      }
                     >
                       <FolderKanban size={16} />
                       {t('פתיחת פרויקט')}

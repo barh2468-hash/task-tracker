@@ -192,6 +192,8 @@ export default function VehiclesPage({ archive = false }) {
       />
 
       {!archive && (
+      <div className="statsGroups">
+      <section className="statsGroup" aria-label={t('סקירת הצי')}>
       <div className="grid">
         <Stat
           icon={<Car size={22} />}
@@ -230,6 +232,8 @@ export default function VehiclesPage({ archive = false }) {
           active={focus === 'odometer'}
           onClick={() => toggleFocus('odometer')}
         />
+      </div>
+      </section>
       </div>
       )}
 

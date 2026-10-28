@@ -8,6 +8,7 @@ export async function updateOrderProgress(order, change) {
     .update(progressPatch(order, change))
     .eq('id', order.id)
     .eq('updated_at', order.updated_at)
+    .is('deleted_at', null)
     .select()
     .single();
   if (error) throw error;
@@ -31,6 +32,7 @@ export async function saveOrder(form, userId) {
         .update(payload)
         .eq('id', form.id)
         .eq('updated_at', form.updated_at)
+        .is('deleted_at', null)
     : supabase.from('gpr_work_orders').insert({ ...payload, created_by: userId });
   const { data, error } = await query.select().single();
   if (error) throw error;
@@ -43,6 +45,7 @@ export async function linkOrderToProject(id, projectId, updatedAt) {
     .update({ project_id: projectId })
     .eq('id', id)
     .eq('updated_at', updatedAt)
+    .is('deleted_at', null)
     .select('id')
     .single();
   if (error) throw error;
@@ -61,6 +64,16 @@ export async function microsoftAction(action, payload = {}) {
     }
     throw Object.assign(new Error(code), { code });
   }
+  return data;
+}
+
+export async function setOrderDeleted(order, deleted) {
+  const { data, error } = await supabase.rpc('set_gpr_order_deleted', {
+    p_order_id: order.id,
+    p_updated_at: order.updated_at,
+    p_deleted: deleted,
+  });
+  if (error) throw error;
   return data;
 }
 

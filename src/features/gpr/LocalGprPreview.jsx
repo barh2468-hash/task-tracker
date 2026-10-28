@@ -109,6 +109,15 @@ export default function LocalGprPreview() {
         onSelect={setSelectedId}
         onOpenProject={() => {}}
         onRetry={() => {}}
+        onSetDeleted={async (order, deleted) => {
+          const row = {
+            ...order,
+            deleted_at: deleted ? new Date().toISOString() : null,
+            updated_at: new Date().toISOString(),
+          };
+          setOrders((current) => current.map((item) => (item.id === row.id ? row : item)));
+          return row;
+        }}
         onUpdate={async (order, change) => {
           const row = {
             ...order,

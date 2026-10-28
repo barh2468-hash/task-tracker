@@ -54,8 +54,8 @@ export default function Microsoft365Panel({
   }, [call, onStatus]);
   useEffect(() => {
     let active = true;
-    void load().catch(() => {
-      if (active) setError('gpr.microsoft.failed');
+    void load().catch((error) => {
+      if (active) setError(errorKey(error.code));
     });
     return () => {
       active = false;
@@ -82,6 +82,16 @@ export default function Microsoft365Panel({
     allowed_senders: senders.split(/[\s,;]+/).filter(Boolean),
   });
   const connected = status?.connection?.enabled;
+  useEffect(() => {
+    if (!connected || busy || settingsOpen) return undefined;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible')
+        void load().catch(() => {
+          /* Keep last verified status. */
+        });
+    }, 60000);
+    return () => window.clearInterval(timer);
+  }, [connected, busy, settingsOpen, load]);
   const sync = () =>
     void run('sync', async () => {
       const data = await call('sync');
@@ -117,7 +127,15 @@ export default function Microsoft365Panel({
         </div>
         <div className="gprMicrosoftToolbar">
           <span className={`gprMicrosoftBadge ${connected ? 'isConnected' : ''}`}>
-            {t(connected ? 'gpr.microsoft.connected' : 'gpr.microsoft.disconnected')}
+            {t(
+              !status
+                ? error
+                  ? 'gpr.connectionUnknown'
+                  : 'gpr.checkingConnection'
+                : connected
+                  ? 'gpr.microsoft.connected'
+                  : 'gpr.microsoft.disconnected',
+            )}
           </span>
           {connected && (
             <>

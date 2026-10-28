@@ -1,13 +1,34 @@
 import { supabase } from '../supabase.js';
 
-export function getNotifications() {
+export function getNotifications(userId) {
   return supabase
     .from('notifications')
     .select(
-      '*, profiles:created_by(full_name), projects:project_id(name), gpr_work_orders:gpr_order_id(title,order_number)',
+      '*, profiles:created_by(full_name), projects:project_id(name), gpr_work_orders:gpr_order_id(title,order_number,deleted_at)',
     )
+    .eq('recipient_id', userId)
     .order('created_at', { ascending: false })
     .limit(80);
+}
+
+export function getUnreadNotificationCount(userId) {
+  return supabase
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('recipient_id', userId)
+    .eq('is_read', false);
+}
+
+export function getUnreadGprNotifications(userId) {
+  return supabase
+    .from('notifications')
+    .select(
+      'id,type,title,body,gpr_order_id,is_read,created_at,gpr_work_orders:gpr_order_id(title,order_number,deleted_at)',
+    )
+    .eq('recipient_id', userId)
+    .eq('type', 'gpr_email_order_received')
+    .eq('is_read', false)
+    .order('created_at', { ascending: false });
 }
 
 export function markNotificationRead(notificationId) {

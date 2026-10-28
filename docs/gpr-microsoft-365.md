@@ -147,6 +147,16 @@ and no pending page, confirming that revisiting the window created no duplicates
   reading and marking as read to the recipient. The bell updates through the existing
   Realtime subscription, with polling as a fallback. Clicking opens `/app/gpr?order=…`.
   Text and action labels follow the selected Hebrew, English or Greek language.
+- The bell uses an exact unread count independently of its 80-row recent history.
+  Unread GPR imports also show a persistent private alert, including when the user
+  returns to the app after import. Opening it marks it read; closing only hides
+  the popup for that account in the current browser session, leaving the bell item.
+  Deleted work is excluded from these popups. Each remaining unread import can
+  appear in turn. This does not add Push or outbound email.
+- Connected settings refresh their sync status every minute while visible. Work
+  and notifications refresh through Realtime with a 30-second visible-tab fallback.
+  The server continues five-minute mailbox scans with the browser closed; a manual
+  Test sync is optional. Mail held for review does not create a new-work alert.
 
 ## Deployment and validation
 

@@ -2,8 +2,8 @@
 
 `/app/gpr` is available to the existing `admin` role only, including in the
 desktop sidebar and the mobile More menu. Database RLS also limits SELECT,
-INSERT and UPDATE to administrators. Browser clients cannot delete orders;
-use the Cancelled status to retain the order and its email.
+INSERT and UPDATE to administrators. Administrators can move orders to Deleted
+and restore them. Physical deletion remains unavailable to browser clients.
 
 ## Available now
 
@@ -57,6 +57,21 @@ database writes. Hebrew, English and Greek and the complete/reopen/undo workflow
 were checked visually on 2026-10-28. `supabase/tests/gpr_progress_test.sql` verifies
 persistence, optimistic concurrency and admin access in a rolled-back transaction.
 All 258 Node tests, targeted lint and the production build passed.
+
+## Recoverable deletion
+
+Each card has a Delete action with confirmation. Deleted orders leave active
+lists and summary counts, remain visible under the Deleted filter, and can be
+restored with their status, checklist, email history and project link intact.
+Outlook mail and linked projects are unaffected. Deleted work is read-only until
+restored; its private notifications are marked read for the deleting administrator.
+Email identifiers and matching records are retained so repeated scans and later
+matching email cannot recreate or restore a deleted order.
+
+The admin-only `set_gpr_order_deleted` RPC checks the saved update timestamp.
+Migration: `20261028112120_gpr_delete_and_notifications.sql`. The rolled-back
+`supabase/tests/gpr_delete_test.sql` covers deletion, restore, concurrency,
+authorization and incoming mail matching a deleted order.
 
 ## Direct Microsoft 365 connection
 

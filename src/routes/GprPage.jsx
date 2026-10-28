@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useRealtimeRefresh } from '../hooks/useRealtimeRefresh.js';
-import { getOrders, saveOrder, updateOrderProgress } from '../features/gpr/api.js';
+import { getOrders, saveOrder, updateOrderProgress, setOrderDeleted } from '../features/gpr/api.js';
 import GprWorkspace from '../features/gpr/GprWorkspace.jsx';
 import Microsoft365Panel from '../features/gpr/Microsoft365Panel.jsx';
 import OrderEmailsPanel from '../features/gpr/OrderEmailsPanel.jsx';
@@ -45,7 +45,7 @@ export default function GprPage() {
   return (
     <>
       <Microsoft365Panel
-        orders={orders}
+        orders={orders.filter((order) => !order.deleted_at)}
         onChanged={load}
         onStatus={setEmailConnected}
         result={params.get('m365_result')}
@@ -74,6 +74,16 @@ export default function GprPage() {
             return row;
           } catch (error) {
             if (error.code === 'PGRST116') void load();
+            throw error;
+          }
+        }}
+        onSetDeleted={async (order, deleted) => {
+          try {
+            const row = await setOrderDeleted(order, deleted);
+            setOrders((current) => current.map((item) => (item.id === row.id ? row : item)));
+            return row;
+          } catch (error) {
+            if (['PGRST116', '40001'].includes(error.code)) void load();
             throw error;
           }
         }}

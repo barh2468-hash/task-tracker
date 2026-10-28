@@ -20,6 +20,7 @@ import { roleLabel } from '../services/supabase.js';
 import { getTabTitle, getTabSubtitle, isHeroSuppressed } from './dashboardTabs.js';
 import DashboardHero from '../components/DashboardHero.jsx';
 import NotificationsPopover from '../features/notifications/components/NotificationsPopover.jsx';
+import GprInboxAlert from '../features/notifications/components/GprInboxAlert.jsx';
 import DashboardNavigation from '../components/DashboardNavigation.jsx';
 import MobileNavigation from '../components/MobileNavigation.jsx';
 import AttendanceEndDialog from '../features/attendance/components/AttendanceEndDialog.jsx';
@@ -195,6 +196,7 @@ export default function DashboardLayout() {
         {unreadCount > 0 && <span aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span>}
       </button>
 
+      <GprInboxAlert onNavigate={navigate} />
       {notificationsOpen && (
         <NotificationsPopover
           containerRef={notificationsPopoverRef}

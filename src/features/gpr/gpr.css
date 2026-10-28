@@ -2,6 +2,36 @@
   min-width: 0;
   container: gpr-workspace / inline-size;
 }
+.gprDeleteDialog {
+  max-width: 480px;
+}
+.gprDeleteDialog .gprDialogBody p {
+  margin: 0;
+  line-height: 1.8;
+  font-size: 14px;
+}
+.gprDeleteButton,
+.gprWorkCard footer .gprDeleteButton {
+  color: #b44949;
+}
+.gprWorkCard footer {
+  flex-wrap: wrap;
+}
+.gprDeletedNote {
+  color: #708194;
+  font-size: 13px;
+  line-height: 1.7;
+  margin-block: 18px;
+}
+.gprAutoSyncHint {
+  font-size: 11px;
+  color: #66877c;
+  line-height: 1.6;
+  margin: 7px 0 0;
+}
+.gprSavedProgress {
+  flex-wrap: wrap;
+}
 .gprHeader,
 .gprTitleLine {
   display: flex;

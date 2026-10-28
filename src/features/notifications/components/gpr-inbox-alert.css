@@ -1,0 +1,54 @@
+.gprInboxAlert {
+  position: fixed;
+  inset-block-start: 82px;
+  inset-inline-end: 20px;
+  width: min(390px, calc(100vw - 32px));
+  padding: 17px;
+  border: 1px solid #c5e1e8;
+  border-inline-start: 4px solid #238e9a;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 14px 45px #15374e26;
+  z-index: 400;
+  color: #183e55;
+}
+.gprInboxAlert header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.gprInboxAlert header span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #32828d;
+}
+.gprInboxAlert header button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: #f2f7fa;
+  color: #6d8293;
+  box-shadow: none;
+}
+.gprInboxAlert h3 {
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 9px 0;
+  overflow-wrap: anywhere;
+}
+.gprInboxAlert p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #658096;
+  margin: 0 0 13px;
+}
+button.gprInboxAlertOpen {
+  width: 100%;
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 9px;
+  box-shadow: none;
+}

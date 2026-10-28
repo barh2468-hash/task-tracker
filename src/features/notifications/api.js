@@ -1,14 +1,29 @@
 import * as notificationsApi from '../../services/api/notifications.js';
 import * as edgeFunctions from '../../services/api/edgeFunctions.js';
 
-export async function getNotifications() {
-  const { data, error } = await notificationsApi.getNotifications();
+export async function getNotifications(userId) {
+  const { data, error } = await notificationsApi.getNotifications(userId);
   if (error) {
     // The table may not exist until the SQL migration is run, so do not block the app.
     console.warn('Notifications load failed:', error.message);
     return [];
   }
   return data || [];
+}
+
+export async function getNotificationSnapshot(userId, includeGpr) {
+  const [notifications, unread, gpr] = await Promise.all([
+    getNotifications(userId),
+    notificationsApi.getUnreadNotificationCount(userId),
+    includeGpr ? notificationsApi.getUnreadGprNotifications(userId) : Promise.resolve({ data: [] }),
+  ]);
+  if (unread.error) console.warn('Unread notification count failed:', unread.error.code);
+  if (gpr.error) console.warn('GPR notification load failed:', gpr.error.code);
+  return {
+    notifications,
+    unreadCount: unread.error ? null : unread.count,
+    gprUnread: gpr.data || [],
+  };
 }
 
 export function markNotificationRead(notificationId) {
@@ -19,7 +34,13 @@ export function markAllNotificationsRead() {
   return notificationsApi.markAllNotificationsRead();
 }
 
-export async function sendPushNotification({ recipientUserId, recipientRole, title, body, projectId }) {
+export async function sendPushNotification({
+  recipientUserId,
+  recipientRole,
+  title,
+  body,
+  projectId,
+}) {
   const { error } = await edgeFunctions.sendPushNotification({
     recipientUserId,
     recipientRole,
@@ -32,7 +53,13 @@ export async function sendPushNotification({ recipientUserId, recipientRole, tit
 }
 
 export async function createManagerNotification(type, title, body, projectId, taskId) {
-  const { error } = await notificationsApi.createManagerNotifications({ type, title, body, projectId, taskId });
+  const { error } = await notificationsApi.createManagerNotifications({
+    type,
+    title,
+    body,
+    projectId,
+    taskId,
+  });
   if (error) {
     console.warn('Internal notification failed:', error.message);
     return;

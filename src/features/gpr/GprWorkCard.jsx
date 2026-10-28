@@ -1,11 +1,28 @@
-import { ArrowLeft, CalendarDays, Mail, MapPin, Pencil, UserRound } from 'lucide-react';
+import {
+  ArrowLeft,
+  CalendarDays,
+  Mail,
+  MapPin,
+  Pencil,
+  RotateCcw,
+  Trash2,
+  UserRound,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { t, useLanguage } from '../language/LanguageContext.jsx';
 import { localeForLanguage } from '../language/locale.js';
 import { orderName } from './model.js';
 import { GprChecklist, GprQuickStatus } from './GprProgress.jsx';
 
-export default function GprWorkCard({ order, busy, onChange, onOpen, onEdit }) {
+export default function GprWorkCard({
+  order,
+  busy,
+  onChange,
+  onOpen,
+  onEdit,
+  onDelete,
+  onRestore,
+}) {
   useTranslation();
   const { language } = useLanguage();
   return (
@@ -16,8 +33,10 @@ export default function GprWorkCard({ order, busy, onChange, onOpen, onEdit }) {
           {t(order.source_email ? 'gpr.fromEmail' : 'gpr.manual')}
           {order.order_number && <bdi>{t('gpr.orderCode', { number: order.order_number })}</bdi>}
         </span>
-        <span className={`pill gprStatus gprStatus-${order.status}`}>
-          {t(`gpr.status.${order.status}`)}
+        <span
+          className={`pill gprStatus gprStatus-${order.deleted_at ? 'cancelled' : order.status}`}
+        >
+          {t(order.deleted_at ? 'gpr.deletedLabel' : `gpr.status.${order.status}`)}
         </span>
       </header>
       <button
@@ -52,18 +71,43 @@ export default function GprWorkCard({ order, busy, onChange, onOpen, onEdit }) {
           {order.client_name}
         </p>
       )}
-      <GprChecklist order={order} busy={busy} onChange={onChange} />
-      <GprQuickStatus order={order} busy={busy} onChange={onChange} />
+      {order.deleted_at ? (
+        <p className="gprDeletedNote">{t('gpr.deletedInfo')}</p>
+      ) : (
+        <>
+          <GprChecklist order={order} busy={busy} onChange={onChange} />
+          <GprQuickStatus order={order} busy={busy} onChange={onChange} />
+        </>
+      )}
       <footer>
         <button className="ghost smallBtn" type="button" onClick={onOpen}>
           <Mail size={15} />
           {t('gpr.detailsAndMail')}
           <ArrowLeft size={14} className="gprDirectional" />
         </button>
-        <button className="ghost smallBtn" type="button" onClick={onEdit} disabled={busy}>
-          <Pencil size={14} />
-          {t('gpr.edit')}
-        </button>
+        {order.deleted_at ? (
+          <button className="ghost smallBtn" type="button" onClick={onRestore} disabled={busy}>
+            <RotateCcw size={14} />
+            {t('gpr.restore')}
+          </button>
+        ) : (
+          <>
+            <button className="ghost smallBtn" type="button" onClick={onEdit} disabled={busy}>
+              <Pencil size={14} />
+              {t('gpr.edit')}
+            </button>
+            <button
+              className="ghost smallBtn gprDeleteButton"
+              type="button"
+              onClick={onDelete}
+              disabled={busy}
+              aria-label={t('gpr.deleteNamed', { name: orderName(order, t) })}
+            >
+              <Trash2 size={14} />
+              {t('gpr.delete')}
+            </button>
+          </>
+        )}
       </footer>
     </article>
   );

@@ -14,6 +14,8 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  RotateCcw,
+  Trash2,
   UserRound,
 } from 'lucide-react';
 import { t, useLanguage } from '../language/LanguageContext.jsx';
@@ -22,6 +24,7 @@ import { GPR_STATUSES, isOpenOrder, orderName } from './model.js';
 import GprOrderForm from './GprOrderForm.jsx';
 import GprWorkCard from './GprWorkCard.jsx';
 import { GprChecklist, GprQuickStatus } from './GprProgress.jsx';
+import GprDeleteDialog from './GprDeleteDialog.jsx';
 import '../projects/project-workspace.css';
 import './gpr.css';
 
@@ -34,6 +37,7 @@ export default function GprWorkspace({
   onRetry,
   onSave,
   onUpdate,
+  onSetDeleted,
   renderEmails,
   onOpenProject,
   onNewProject,
@@ -51,6 +55,9 @@ export default function GprWorkspace({
   const pendingRef = useRef(new Set());
   const [progressMessage, setProgressMessage] = useState(null);
   const [progressError, setProgressError] = useState('');
+  const [deleteOrder, setDeleteOrder] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
+  const activeOrders = orders.filter((order) => !order.deleted_at);
   const selected = orders.find((order) => order.id === selectedId);
   const number = (value) => new Intl.NumberFormat(locale).format(value);
   const date = (value) =>
@@ -60,7 +67,11 @@ export default function GprWorkspace({
   const day = (value) => date(`${value}T12:00:00Z`);
   const filtered = orders.filter(
     (order) =>
-      (filter === '' || (filter === 'active' ? isOpenOrder(order) : order.status === filter)) &&
+      (filter === 'deleted'
+        ? Boolean(order.deleted_at)
+        : !order.deleted_at &&
+          (filter === '' ||
+            (filter === 'active' ? isOpenOrder(order) : order.status === filter))) &&
       [
         order.title,
         order.order_number,
@@ -81,7 +92,7 @@ export default function GprWorkspace({
     onSelect(result.id);
   }
   async function update(order, change) {
-    if (!onUpdate || pendingRef.current.has(order.id)) return;
+    if (!onUpdate || order.deleted_at || pendingRef.current.has(order.id)) return;
     pendingRef.current.add(order.id);
     setPending([...pendingRef.current]);
     setProgressError('');
@@ -103,6 +114,35 @@ export default function GprWorkspace({
       setPending([...pendingRef.current]);
     }
   }
+  async function changeDeleted(order, deleted) {
+    if (!onSetDeleted || pendingRef.current.has(order.id)) return;
+    pendingRef.current.add(order.id);
+    setPending([...pendingRef.current]);
+    setDeleteError('');
+    setProgressError('');
+    setProgressMessage(null);
+    setSaved(false);
+    try {
+      await onSetDeleted(order, deleted);
+      setDeleteOrder(null);
+      if (deleted && selectedId === order.id) onSelect(null);
+      setProgressMessage({
+        name: orderName(order, t),
+        key: deleted ? 'gpr.deletedSuccess' : 'gpr.restoredSuccess',
+      });
+    } catch (error) {
+      const key = ['PGRST116', '40001'].includes(error.code) ? 'gpr.conflict' : 'gpr.deleteError';
+      if (deleted) setDeleteError(key);
+      else setProgressError(key);
+    } finally {
+      pendingRef.current.delete(order.id);
+      setPending([...pendingRef.current]);
+    }
+  }
+  function askDelete(order) {
+    setDeleteError('');
+    setDeleteOrder(order);
+  }
   const status = (order) => (
     <span className={`pill gprStatus gprStatus-${order.status}`}>
       {t(`gpr.status.${order.status}`)}
@@ -116,6 +156,18 @@ export default function GprWorkspace({
         <p role="status" className="gprNotice gprSavedProgress">
           <CheckCircle2 size={16} aria-hidden="true" />
           {t(progressMessage.key, { name: progressMessage.name })}
+          {progressMessage.key === 'gpr.deletedSuccess' && (
+            <button
+              className="ghost tinyBtn"
+              type="button"
+              onClick={() => {
+                onSelect(null);
+                setFilter('deleted');
+              }}
+            >
+              {t('gpr.viewDeleted')}
+            </button>
+          )}
         </p>
       )}
       {progressError && (
@@ -162,9 +214,31 @@ export default function GprWorkspace({
             </div>
             <div className="actionsRow">
               {status(selected)}
+              {selected.deleted_at ? (
+                <button
+                  className="ghost smallBtn"
+                  type="button"
+                  disabled={pending.includes(selected.id)}
+                  onClick={() => changeDeleted(selected, false)}
+                >
+                  <RotateCcw size={16} />
+                  {t('gpr.restore')}
+                </button>
+              ) : (
+                <button
+                  className="ghost smallBtn gprDeleteButton"
+                  type="button"
+                  disabled={pending.includes(selected.id)}
+                  onClick={() => askDelete(selected)}
+                >
+                  <Trash2 size={16} />
+                  {t('gpr.delete')}
+                </button>
+              )}
               <button
                 className="ghost smallBtn"
                 type="button"
+                disabled={Boolean(selected.deleted_at) || pending.includes(selected.id)}
                 onClick={() => setEditor({ order: selected, mode: 'form' })}
               >
                 <Pencil size={16} />
@@ -172,10 +246,13 @@ export default function GprWorkspace({
               </button>
             </div>
           </header>
+          {selected.deleted_at && (
+            <p className="gprNotice gprDeletedNote">{t('gpr.deletedInfo')}</p>
+          )}
           <div className="gprDetailActions">
             <GprQuickStatus
               order={selected}
-              busy={pending.includes(selected.id)}
+              busy={Boolean(selected.deleted_at) || pending.includes(selected.id)}
               onChange={(change) => update(selected, change)}
             />
             <p>{t('gpr.autoSaveHelp')}</p>
@@ -208,7 +285,7 @@ export default function GprWorkspace({
               <section className="gprPanel gprTasksPanel">
                 <GprChecklist
                   order={selected}
-                  busy={pending.includes(selected.id)}
+                  busy={Boolean(selected.deleted_at) || pending.includes(selected.id)}
                   onChange={(change) => update(selected, change)}
                 />
               </section>
@@ -288,11 +365,12 @@ export default function GprWorkspace({
                     <button
                       className="ghost smallBtn"
                       type="button"
+                      disabled={Boolean(selected.deleted_at)}
                       onClick={() => setEditor({ order: selected, mode: 'form' })}
                     >
                       {t('gpr.project')}
                     </button>
-                    {onNewProject && (
+                    {onNewProject && !selected.deleted_at && (
                       <button
                         className="ghost smallBtn"
                         type="button"
@@ -324,6 +402,7 @@ export default function GprWorkspace({
                 </span>
               </div>
               <p className="muted">{t('gpr.workspaceHelp')}</p>
+              {emailIntakeConnected && <p className="gprAutoSyncHint">{t('gpr.autoSyncHint')}</p>}
             </div>
             <div className="actionsRow">
               <button
@@ -348,20 +427,20 @@ export default function GprWorkspace({
           {!error && (
             <div className="gprOverview" role="group" aria-label={t('gpr.overview')}>
               {[
-                ['active', 'toHandle', orders.filter(isOpenOrder).length, ClipboardList],
+                ['active', 'toHandle', activeOrders.filter(isOpenOrder).length, ClipboardList],
                 [
                   'scheduled',
                   'scheduledWork',
-                  orders.filter((order) => order.status === 'scheduled').length,
+                  activeOrders.filter((order) => order.status === 'scheduled').length,
                   CalendarDays,
                 ],
                 [
                   'completed',
                   'completedWork',
-                  orders.filter((order) => order.status === 'completed').length,
+                  activeOrders.filter((order) => order.status === 'completed').length,
                   CheckCircle2,
                 ],
-                ['', 'allWork', orders.length, FolderKanban],
+                ['', 'allWork', activeOrders.length, FolderKanban],
               ].map(([value, key, count, Icon]) => (
                 <button
                   type="button"
@@ -405,6 +484,11 @@ export default function GprWorkspace({
                   {t(`gpr.status.${status}`)}
                 </option>
               ))}
+              <option value="deleted">
+                {t('gpr.deletedOrders', {
+                  count: number(orders.filter((order) => order.deleted_at).length),
+                })}
+              </option>
             </select>
           </div>
           {error ? (
@@ -468,6 +552,8 @@ export default function GprWorkspace({
                     onSelect(order.id);
                   }}
                   onEdit={() => setEditor({ order, mode: 'form' })}
+                  onDelete={() => askDelete(order)}
+                  onRestore={() => changeDeleted(order, false)}
                 />
               ))}
             </div>
@@ -487,6 +573,15 @@ export default function GprWorkspace({
           projects={projects}
           onSave={save}
           onClose={() => setEditor(null)}
+        />
+      )}
+      {deleteOrder && (
+        <GprDeleteDialog
+          order={deleteOrder}
+          busy={pending.includes(deleteOrder.id)}
+          error={deleteError}
+          onClose={() => setDeleteOrder(null)}
+          onConfirm={() => changeDeleted(deleteOrder, true)}
         />
       )}
     </section>

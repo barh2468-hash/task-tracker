@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Archive, Car, ClipboardList, FileSpreadsheet, FileCheck2, Gauge, Plus, ShieldAlert, Upload, UserCheck, Users, Receipt } from 'lucide-react';
+import { AlertTriangle, Archive, Car, ClipboardList, FileSpreadsheet, FileCheck2, Gauge, Plus, ShieldAlert, Truck, Upload, UserCheck, Users, Receipt } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useMessage } from '../context/MessageContext.jsx';
 import { t } from '../features/language/LanguageContext.jsx';
@@ -286,19 +286,22 @@ export default function VehiclesPage({ archive = false }) {
                 return (
                   <tr key={vehicle.id}>
                     <td>
-                      <Link to={`/app/vehicles/${vehicle.id}`}>
-                        <bdi><b>{vehicle.plate_number}</b></bdi>
+                      <Link to={`/app/vehicles/${vehicle.id}`} className="fleetVehicle">
+                        <span className="equipmentWorkerAvatar" aria-hidden="true">
+                          {vehicle.kind === 'truck' || vehicle.kind === 'trailer' ? <Truck /> : <Car />}
+                        </span>
+                        <span className="fleetVehicleText">
+                          <bdi className="fleetPlate">{vehicle.plate_number}</bdi>
+                          <small>
+                            {[vehicle.make_model, vehicle.manufacture_year, t(VEHICLE_KINDS[vehicle.kind])]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </small>
+                          {vehicle.status !== 'in_use' && (
+                            <span className="pill neutral">{t(VEHICLE_STATUSES[vehicle.status])}</span>
+                          )}
+                        </span>
                       </Link>
-                      <div>
-                        <small className="muted">
-                          {[vehicle.make_model, vehicle.manufacture_year, t(VEHICLE_KINDS[vehicle.kind])]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </small>
-                      </div>
-                      {vehicle.status !== 'in_use' && (
-                        <span className="pill neutral">{t(VEHICLE_STATUSES[vehicle.status])}</span>
-                      )}
                     </td>
                     <td>
                       {vehicle.holder_type !== 'driver' && (

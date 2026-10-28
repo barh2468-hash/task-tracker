@@ -203,6 +203,54 @@ th.num {
   font-variant-numeric: tabular-nums;
 }
 
+/* Fleet table: vehicle identity cell (icon tile + plate + model line) */
+.fleetVehicle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--r-md);
+}
+.fleetVehicle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.fleetVehicle .equipmentWorkerAvatar svg {
+  width: 18px;
+  height: 18px;
+}
+.fleetVehicleText {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+.fleetVehicleText small {
+  color: var(--text-secondary);
+  font-size: var(--fs-label);
+  line-height: 1.4;
+}
+/* Israeli-style plate: yellow with the blue band on the left. */
+.fleetPlate {
+  direction: ltr;
+  padding: 3px 9px 3px 14px;
+  border: 1px solid #d9a900;
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, #1f4fa8 0 6px, #ffd23f 6px);
+  color: var(--gray-900);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: box-shadow 0.16s ease;
+}
+.fleetVehicle:hover .fleetPlate {
+  box-shadow: 0 3px 10px rgba(16, 33, 63, 0.16);
+}
+
 /* ---------- Badges ---------- */
 .pill {
   display: inline-flex;

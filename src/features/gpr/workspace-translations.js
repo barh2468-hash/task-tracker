@@ -1,0 +1,101 @@
+const entries = [
+  [
+    'noOpenWork',
+    'אין כרגע עבודות פתוחות',
+    'No open work right now',
+    'Δεν υπάρχουν ανοιχτές εργασίες αυτή τη στιγμή',
+  ],
+  [
+    'workspaceHelp',
+    'כל העבודות במקום אחד. סמנו פעולות שביצעתם והמשיכו לטפל במה שנותר.',
+    'All work in one place. Check off completed actions and focus on what remains.',
+    'Όλες οι εργασίες σε ένα σημείο. Σημειώστε όσα ολοκληρώσατε και εστιάστε στα υπόλοιπα.',
+  ],
+  [
+    'overview',
+    'סינון עבודות לפי התקדמות',
+    'Filter work by progress',
+    'Φιλτράρισμα εργασιών ανά πρόοδο',
+  ],
+  ['toHandle', 'לטיפול', 'To handle', 'Προς διαχείριση'],
+  ['scheduledWork', 'מתואמות לשטח', 'Scheduled for fieldwork', 'Προγραμματισμένες για το πεδίο'],
+  ['completedWork', 'הושלמו', 'Completed', 'Ολοκληρωμένες'],
+  ['allWork', 'כל העבודות', 'All work', 'Όλες οι εργασίες'],
+  ['actions', 'רשימת פעולות', 'Action checklist', 'Λίστα ενεργειών'],
+  [
+    'progressCount',
+    '{{done}} מתוך {{total}} בוצעו',
+    '{{done}} of {{total}} done',
+    '{{done}} από {{total}} ολοκληρώθηκαν',
+  ],
+  [
+    'progressFor',
+    'התקדמות הפעולות: {{name}}',
+    'Action progress: {{name}}',
+    'Πρόοδος ενεργειών: {{name}}',
+  ],
+  [
+    'reopenRequirement',
+    'ביטול סימון כהושלם: {{name}}',
+    'Mark as pending: {{name}}',
+    'Σήμανση ως εκκρεμές: {{name}}',
+  ],
+  ['statusFor', 'סטטוס העבודה: {{name}}', 'Work status: {{name}}', 'Κατάσταση εργασίας: {{name}}'],
+  ['completeWork', 'סיום טיפול', 'Complete work', 'Ολοκλήρωση εργασίας'],
+  ['reopenWork', 'החזרה לטיפול', 'Reopen work', 'Επαναφορά εργασίας'],
+  ['detailsAndMail', 'פרטים ומיילים', 'Details & emails', 'Στοιχεία και email'],
+  ['orderCode', 'מס׳ {{number}}', 'No. {{number}}', 'Αρ. {{number}}'],
+  [
+    'autoSaveHelp',
+    'הסימונים והסטטוס נשמרים אוטומטית. סיום טיפול אינו משנה את סימוני הפעולות.',
+    'Checks and status save automatically. Completing work leaves checklist selections unchanged.',
+    'Οι επιλογές και η κατάσταση αποθηκεύονται αυτόματα. Η ολοκλήρωση εργασίας δεν αλλάζει τις επιλογές της λίστας.',
+  ],
+  [
+    'progressSaved',
+    'ההתקדמות נשמרה: {{name}}',
+    'Progress saved: {{name}}',
+    'Η πρόοδος αποθηκεύτηκε: {{name}}',
+  ],
+  [
+    'workCompleted',
+    '{{name}} הועברה לעבודות שהושלמו.',
+    '{{name}} moved to completed work.',
+    'Η εργασία {{name}} μεταφέρθηκε στις ολοκληρωμένες.',
+  ],
+  [
+    'progressError',
+    'לא הצלחנו לשמור את השינוי. רעננו את הנתונים ונסו לסמן שוב.',
+    'The change could not be saved. Refresh the data and try again.',
+    'Η αλλαγή δεν αποθηκεύτηκε. Ανανεώστε τα δεδομένα και δοκιμάστε ξανά.',
+  ],
+  ['emailHistory', 'המיילים של העבודה', 'Work order emails', 'Email της εργασίας'],
+  [
+    'emailHistoryHelp',
+    'המייל המקורי והעדכונים שהתקבלו. לחצו על מייל לקריאת התוכן.',
+    'The original email and incoming updates. Select an email to read it.',
+    'Το αρχικό email και οι ενημερώσεις που ελήφθησαν. Επιλέξτε ένα email για ανάγνωση.',
+  ],
+  ['loadingEmails', 'טוענים את המיילים…', 'Loading emails…', 'Φόρτωση email…'],
+  ['emailUpdate', 'עדכון מהמייל', 'Email update', 'Ενημέρωση μέσω email'],
+  ['hasAttachments', 'יש קבצים מצורפים', 'Has attachments', 'Περιέχει συνημμένα'],
+  [
+    'noEmails',
+    'אין מיילים משויכים לעבודה זו.',
+    'No emails are linked to this work order.',
+    'Δεν υπάρχουν συνδεδεμένα email για αυτή την εργασία.',
+  ],
+  ['mailConnection', 'קליטה מהמייל', 'Email intake', 'Εισαγωγή από email'],
+  ['syncNow', 'בדיקת מיילים', 'Check emails', 'Έλεγχος email'],
+  ['connectionSettings', 'הגדרות חיבור', 'Connection settings', 'Ρυθμίσεις σύνδεσης'],
+  [
+    'reviewEmails',
+    'מיילים שדורשים בדיקה ({{count}})',
+    'Emails needing review ({{count}})',
+    'Email προς έλεγχο ({{count}})',
+  ],
+];
+
+export const heWorkspace = Object.fromEntries(entries.map(([key, he]) => [`gpr.${key}`, he]));
+export const enWorkspace = Object.fromEntries(entries.map(([key, , en]) => [`gpr.${key}`, en]));
+export const elWorkspace = Object.fromEntries(entries.map(([key, , , el]) => [`gpr.${key}`, el]));

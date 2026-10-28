@@ -18,7 +18,6 @@ import { useNotifications } from '../features/notifications/NotificationsContext
 import { useProjectStats } from '../features/projects/hooks/useProjectStats.js';
 import { roleLabel } from '../services/supabase.js';
 import { getTabTitle, getTabSubtitle, isHeroSuppressed } from './dashboardTabs.js';
-import { projectDeepLinkPath } from '../utils/navigation.js';
 import DashboardHero from '../components/DashboardHero.jsx';
 import NotificationsPopover from '../features/notifications/components/NotificationsPopover.jsx';
 import DashboardNavigation from '../components/DashboardNavigation.jsx';
@@ -205,9 +204,9 @@ export default function DashboardLayout() {
             openTab('/app/notifications');
             setNotificationsOpen(false);
           }}
-          onOpenProject={(projectId) => {
+          onNavigate={(path) => {
             setNotificationsOpen(false);
-            navigate(projectDeepLinkPath(projectId));
+            navigate(path);
           }}
         />
       )}

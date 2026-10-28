@@ -1,0 +1,240 @@
+.gprMicrosoft {
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+.gprMicrosoft.gprMicrosoftCompact {
+  padding: 17px 20px;
+  background: #fbfdff;
+}
+.gprMicrosoftCompact > header {
+  align-items: center;
+}
+.gprMicrosoftCompact h2 {
+  font-size: 14px;
+}
+.gprMicrosoftCompact header p {
+  margin: 5px 0 0;
+  font-size: 12px;
+}
+.gprMicrosoftToolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gprMicrosoftCompact > .muted {
+  font-size: 11px;
+  margin-block: 10px 0;
+  color: #7a8e9e;
+}
+.gprMicrosoftReview {
+  border-top: 1px solid #e6edf3;
+  margin-top: 13px;
+  padding-top: 12px;
+}
+.gprMicrosoftReview > summary {
+  cursor: pointer;
+  color: #9c711e;
+  font-size: 12px;
+  font-weight: 600;
+}
+.gprMicrosoftReview .gprMicrosoftPending {
+  border: 0;
+  padding-top: 3px;
+}
+.gprSpinning {
+  animation: gprSpin 1.2s linear infinite;
+}
+@keyframes gprSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gprSpinning {
+    animation: none;
+  }
+}
+.gprMicrosoft > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.gprMicrosoft h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  margin: 0;
+}
+.gprMicrosoft header p,
+.gprMicrosoftPermission,
+.gprMicrosoftAttachmentNote {
+  font-size: 13px;
+  color: #6d8095;
+  line-height: 1.7;
+}
+.gprMicrosoftBadge {
+  background: #f0f3f7;
+  color: #63778b;
+  font-size: 12px;
+  border-radius: 8px;
+  padding: 7px 10px;
+  white-space: normal;
+}
+.gprMicrosoftBadge.isConnected {
+  background: #e9f7ef;
+  color: #26724b;
+}
+.gprMicrosoftSetup {
+  border: 1px solid #dde7f0;
+  background: #f6f9fc;
+  padding: 14px 16px;
+  border-radius: 12px;
+  margin-block: 16px;
+  line-height: 1.7;
+}
+.gprMicrosoftSetup > p {
+  margin: 5px 0 10px;
+  font-size: 13px;
+}
+.gprMicrosoftSetup summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.gprMicrosoftSetup li {
+  padding-block: 5px;
+  overflow-wrap: anywhere;
+}
+.gprMicrosoftSetup a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #246b9a;
+}
+.gprMicrosoftSetup input {
+  margin-top: 9px;
+  font-size: 12px;
+}
+.gprMicrosoftFields {
+  border: 0;
+  padding: 0;
+  margin: 16px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  min-width: 0;
+}
+.gprMicrosoftFields label {
+  font-weight: 500;
+  font-size: 13px;
+}
+.gprMicrosoftFields input,
+.gprMicrosoftFields textarea {
+  font-weight: 400;
+  border-radius: 10px;
+}
+.gprMicrosoftSenders,
+.gprMicrosoftExisting {
+  grid-column: 1/-1;
+}
+.gprMicrosoftSenders textarea {
+  min-height: 104px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.gprMicrosoftSenders small {
+  color: #738599;
+  line-height: 1.6;
+}
+.gprMicrosoft .actionsRow {
+  gap: 10px;
+}
+.gprMicrosoft button {
+  font-size: 13px;
+  border-radius: 10px;
+  white-space: normal;
+}
+.gprMicrosoft .gprError,
+.gprMicrosoft .gprNotice {
+  margin-block: 12px;
+}
+.gprMicrosoftPending {
+  margin-top: 18px;
+  border-top: 1px solid #e2e9f0;
+  padding-top: 12px;
+}
+.gprMicrosoftPending h3 {
+  font-size: 14px;
+}
+.gprMicrosoftPending details,
+.gprMicrosoftEmails details {
+  border: 1px solid #e2e9f0;
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 10px;
+  overflow-wrap: anywhere;
+}
+.gprMicrosoftPending summary {
+  display: grid;
+  gap: 7px;
+  cursor: pointer;
+}
+.gprMicrosoftPending summary bdi {
+  font-size: 12px;
+  color: #708194;
+}
+.gprMicrosoftPending pre,
+.gprMicrosoftEmails pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 280px;
+  overflow: auto;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.gprMicrosoftPending button {
+  margin-top: 10px;
+}
+.gprMicrosoftEmails {
+  margin-top: 18px;
+}
+.gprMicrosoftEmails summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.gprMicrosoftEmails a {
+  color: #246b9a;
+}
+.gprMicrosoftEmails > h3 {
+  font-size: 14px;
+}
+.gprMicrosoft .gprCheck input {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+@media (max-width: 650px) {
+  .gprMicrosoftFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gprMicrosoft .actionsRow {
+    align-items: stretch;
+  }
+  .gprMicrosoft .actionsRow button {
+    flex: 1;
+    min-width: 120px;
+  }
+  .gprMicrosoftSetup {
+    padding: 12px;
+  }
+  .gprMicrosoftSetup ol {
+    padding-inline-start: 20px;
+  }
+  .gprMicrosoft h2 {
+    font-size: 17px;
+  }
+}

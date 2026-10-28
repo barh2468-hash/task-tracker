@@ -29,3 +29,8 @@ verify_jwt = true
 # Scheduled by pg_cron; authenticates with x-cron-secret.
 [functions.vehicle-alerts]
 verify_jwt = false
+
+# POST operations validate the Supabase session and admin role; scheduled calls
+# validate x-cron-secret. The GET OAuth callback validates a single-use PKCE state.
+[functions.gpr-microsoft]
+verify_jwt = false

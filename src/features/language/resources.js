@@ -4,14 +4,20 @@ import { enVehicles, elVehicles } from '../vehicles/translations.js';
 import { enDrafts, elDrafts } from '../drafts/translations.js';
 import { enPersonalWorkflow, elPersonalWorkflow } from '../attendance/translations.js';
 import { heWorkPlanning, enWorkPlanning, elWorkPlanning } from '../work-planning/translations.js';
+import { heGpr, enGpr, elGpr } from '../gpr/translations.js';
+import { heNotifications, enNotifications, elNotifications } from '../notifications/translations.js';
 
 export const heTranslations = {
+  ...heNotifications,
+  ...heGpr,
   ...heWorkPlanning,
   'ממתין לתיאום': 'ממתין לתיאום',
   'פתח {{value0}}': 'פתח {{value0}}',
 };
 
 export const enTranslations = {
+  ...enNotifications,
+  ...enGpr,
   ...enWorkPlanning,
   ...enProjectWorkspace,
   'אני': 'You',
@@ -1784,4 +1790,4 @@ const greekTranslations = {
     'Η εργασία "{{title}}" παραμένει ανοιχτή εδώ και {{days}} ημέρες.',
 };
 
-export const elTranslations = { ...enTranslations, ...elPersonalWorkflow, ...greekTranslations, ...elDrafts, ...elProjectWorkspace, ...elWorkPlanning };
+export const elTranslations = { ...enTranslations, ...elPersonalWorkflow, ...greekTranslations, ...elDrafts, ...elProjectWorkspace, ...elWorkPlanning, ...elGpr, ...elNotifications };

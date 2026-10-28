@@ -1,9 +1,9 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/useAuth.js';
 import { useRealtimeRefresh } from '../../hooks/useRealtimeRefresh.js';
 import * as notificationsFeatureApi from './api.js';
 
-const NotificationsContext = createContext(null);
+import { NotificationsContext } from './context.js';
 
 export function NotificationsProvider({ children }) {
   const { profile } = useAuth();

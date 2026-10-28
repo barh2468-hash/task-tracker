@@ -1,0 +1,1090 @@
+.gprPage {
+  min-width: 0;
+  container: gpr-workspace / inline-size;
+}
+.gprHeader,
+.gprTitleLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.gprHeader h2 {
+  margin: 0;
+  font-size: 24px;
+}
+.gprTitleLine {
+  justify-content: flex-start;
+}
+.gprHeader .actionsRow button {
+  font-size: 14px;
+  padding: 11px 15px;
+  border-radius: 12px;
+}
+.gprPrivate {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #64758a;
+  font-size: 12px;
+  font-weight: 500;
+}
+.gprCounters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 20px 0;
+}
+.gprCounters > span {
+  border: 1px solid #e2e9f0;
+  border-radius: 8px;
+  background: #f7f9fc;
+  padding: 7px 12px;
+  color: #566b82;
+  font-size: 13px;
+}
+.gprCounters > span:nth-child(2) {
+  background: #eef6fb;
+  color: #176687;
+}
+.gprFilters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding-block: 8px 18px;
+}
+.gprFilters .projectListSearch {
+  flex: 1;
+  max-width: 480px;
+  position: relative;
+}
+.gprFilters .projectListSearch svg {
+  position: absolute;
+  inset-inline-start: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #7e91a6;
+}
+.gprFilters input {
+  padding-inline-start: 38px;
+}
+.gprFilters select {
+  width: auto;
+  max-width: 230px;
+  font-weight: 500;
+}
+.gprOrders {
+  gap: 10px;
+}
+.gprListItem {
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.42fr) minmax(150px, 0.42fr) 32px;
+}
+.gprAccent-new {
+  --project-list-accent: #3998bb;
+}
+.gprAccent-clarification {
+  --project-list-accent: #e9a23b;
+}
+.gprAccent-interpretation {
+  --project-list-accent: #9c79d8;
+}
+.gprAccent-scanning {
+  --project-list-accent: #239d94;
+}
+.gprAccent-scheduled {
+  --project-list-accent: #3b82c4;
+}
+.gprAccent-completed {
+  --project-list-accent: #48a77e;
+}
+.gprAccent-cancelled {
+  --project-list-accent: #94a3b8;
+}
+.gprStatus-new {
+  background: #eaf5fb;
+  color: #176888;
+}
+.gprStatus-clarification {
+  background: #fff5df;
+  color: #946419;
+}
+.gprStatus-interpretation {
+  background: #f4edff;
+  color: #7652a1;
+}
+.gprStatus-scanning {
+  background: #e7f7f3;
+  color: #247b6e;
+}
+.gprStatus-scheduled {
+  background: #eaf1ff;
+  color: #305faa;
+}
+.gprStatus-completed {
+  background: #e9f7ef;
+  color: #26724b;
+}
+.gprStatus-cancelled {
+  background: #f0f2f5;
+  color: #657386;
+}
+.gprListState {
+  display: grid;
+  gap: 7px;
+}
+.gprListItem .projectListItemOwner {
+  display: flex;
+}
+.gprListState small {
+  color: #708194;
+  font-size: 12px;
+}
+.gprEmpty {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+.gprEmpty h3,
+.gprEmpty p {
+  margin: 0;
+}
+.gprMailSetup {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  color: #7b8999;
+  font-size: 12px;
+  line-height: 1.6;
+  border-top: 1px solid #e9eef4;
+  padding-top: 16px;
+  margin: 22px 0 0;
+}
+.gprMailSetup svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.gprDetailHeader {
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 20px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #e4eaf0;
+}
+.gprDetailHeader h2 {
+  margin: 7px 0 10px;
+  font-size: 26px;
+  overflow-wrap: anywhere;
+}
+.gprDetailHeader .muted {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.gprEyebrow {
+  font-size: 12px;
+  color: #72879a;
+}
+.gprDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 20px;
+  padding: 24px;
+}
+.gprDetailMain,
+.gprDetailAside {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+}
+.gprPanel {
+  border: 1px solid #e2e9f0;
+  border-radius: 12px;
+  padding: 18px;
+  min-width: 0;
+  background: #fff;
+}
+.gprPanel h3 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  margin: 0 0 15px;
+  color: var(--navy);
+}
+.gprPanel p {
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 8px 0;
+}
+.gprInfoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #edf1f5;
+}
+.gprInfoGrid > div {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.gprInfoGrid span {
+  color: #7c8da0;
+  font-size: 12px;
+}
+.gprInfoGrid b {
+  font-weight: 500;
+}
+.gprRequirements {
+  display: grid;
+  gap: 15px;
+  padding: 0;
+  list-style: none;
+  margin: 0;
+}
+.gprRequirements li {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.gprRequirements li > svg {
+  flex-shrink: 0;
+  color: #b69a60;
+  margin-top: 2px;
+}
+.gprRequirements li.isDone > svg {
+  color: #48a77e;
+}
+.gprRequirements li b {
+  font-weight: 600;
+}
+.gprRequirements li p {
+  font-size: 13px;
+  color: #708194;
+  margin: 5px 0 0;
+}
+.gprContactLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 13px;
+  color: #246b9a;
+  text-decoration: none;
+  font-size: 13px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.gprContactLink svg {
+  flex-shrink: 0;
+}
+.gprContactLink bdi {
+  min-width: 0;
+}
+.gprDetailAside button {
+  margin-top: 9px;
+  width: 100%;
+}
+.gprReceived {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #7c8da0;
+  padding: 2px 8px;
+}
+.gprOriginal summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+.gprOriginal pre {
+  font: inherit;
+  line-height: 1.8;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 420px;
+  overflow: auto;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 14px;
+}
+.gprDialog {
+  width: min(820px, calc(100vw - 28px));
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+  border: 1px solid #dce5ee;
+  border-radius: 18px;
+  color: var(--text);
+  box-shadow: 0 24px 80px #071e4130;
+  background: white;
+}
+.gprDialog::backdrop {
+  background: #071e4170;
+  backdrop-filter: blur(3px);
+}
+.gprDialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid #e4eaf0;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 2;
+}
+.gprDialogHeader h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.gprDialogBody {
+  padding: 22px;
+  display: grid;
+  gap: 16px;
+}
+.gprFields {
+  border: 0;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 18px;
+}
+.gprFields label {
+  font-weight: 500;
+  font-size: 13px;
+}
+.gprFields input,
+.gprFields select,
+.gprFields textarea {
+  font-weight: 400;
+  border-radius: 10px;
+  padding: 11px 12px;
+}
+.gprDialogFooter {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding: 16px 22px;
+  border-top: 1px solid #e4eaf0;
+}
+.gprDialogFooter button {
+  font-size: 14px;
+  border-radius: 10px;
+}
+.gprEmailInput {
+  min-height: 280px;
+  font-size: 14px;
+  line-height: 1.8;
+}
+.gprNotice,
+.gprError {
+  padding: 12px 15px;
+  border: 1px solid #d5e7f3;
+  border-radius: 10px;
+  background: #f0f7fc;
+  color: #24648b;
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0;
+}
+.gprError {
+  background: #fff4f3;
+  color: #a83b36;
+  border-color: #f3d9d6;
+}
+.gprRequirementEditor {
+  border: 1px solid #e2e9f0;
+  border-radius: 12px;
+  padding: 16px;
+}
+.gprRequirementEditor h3 {
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+.gprRequirementEditRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding-block: 11px;
+  border-top: 1px solid #edf1f5;
+}
+.gprCheck {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+}
+.gprCheck input {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  box-shadow: none;
+  padding: 0;
+  accent-color: #246b9a;
+}
+.gprRequirementDetailInput {
+  grid-column: 1/-1;
+}
+.gprComplete {
+  color: #418365;
+}
+.gprPreview {
+  max-width: 1160px;
+  margin: 30px auto;
+  padding: 0 20px;
+}
+.gprPreviewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.gprPreviewHeader label {
+  min-width: 170px;
+}
+.gprPreviewHeader p {
+  font-size: 13px;
+  color: #708194;
+}
+.gprDetail .projectBackButton {
+  font-size: 13px;
+}
+.gprPage > .gprNotice {
+  margin-bottom: 15px;
+}
+.gprOverview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-block: 22px 16px;
+}
+.gprOverview button {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 9px;
+  padding: 16px 13px;
+  border: 1px solid #e1e8ef;
+  border-radius: 12px;
+  background: #fff;
+  color: #65788b;
+  box-shadow: none;
+  text-align: start;
+  font-size: 13px;
+  font-weight: 500;
+}
+.gprOverview button b {
+  font-size: 24px;
+  font-weight: 700;
+  color: #203951;
+}
+.gprOverview button span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.gprCardSource bdi {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.gprOverview button.isActive {
+  background: #eef7fb;
+  border-color: #83b9cb;
+  color: #176687;
+}
+.gprOverview button.isActive b {
+  color: #176687;
+}
+.gprWorkGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.gprWorkCard {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #dfe7ef;
+  border-inline-start: 3px solid var(--project-list-accent, #3998bb);
+  border-radius: 14px;
+  box-shadow: 0 3px 10px #173c5d05;
+}
+.gprWorkCard > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: start;
+}
+.gprCardSource {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: #76889a;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.gprCardSource bdi {
+  padding-inline-start: 7px;
+  border-inline-start: 1px solid #dce5ed;
+  color: #50687f;
+}
+.gprWorkCard .gprStatus {
+  flex-shrink: 0;
+  max-width: 58%;
+  white-space: normal;
+  line-height: 1.5;
+  text-align: center;
+  font-size: 11px;
+  padding: 5px 8px;
+}
+button.gprCardTitle,
+button.gprCardTitle:hover {
+  display: block;
+  width: 100%;
+  background: transparent;
+  box-shadow: none;
+  color: var(--navy);
+  padding: 0;
+  margin-block: 14px 9px;
+  text-align: start;
+  transform: none;
+}
+.gprCardTitle h3 {
+  font-size: 17px;
+  line-height: 1.5;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.gprCardTitle:hover h3 {
+  color: #247798;
+}
+.gprCardMeta {
+  display: flex;
+  gap: 8px 15px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #718498;
+}
+.gprCardMeta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.gprCardMeta svg {
+  flex-shrink: 0;
+}
+.gprCardClient {
+  font-size: 12px;
+  color: #718498;
+  line-height: 1.6;
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+.gprChecklist {
+  margin-block: 20px 16px;
+}
+.gprProgressHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+.gprProgressHeading b {
+  font-weight: 600;
+  color: #40576f;
+}
+.gprProgressHeading span {
+  color: #6f8596;
+  font-size: 11px;
+}
+.gprChecklist progress {
+  display: block;
+  width: 100%;
+  height: 5px;
+  border: 0;
+  appearance: none;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #edf2f6;
+  margin-bottom: 12px;
+}
+.gprChecklist progress::-webkit-progress-bar {
+  background: #edf2f6;
+  border-radius: 10px;
+}
+.gprChecklist progress::-webkit-progress-value {
+  background: #389d90;
+  border-radius: 10px;
+  transition: width 0.2s;
+}
+.gprChecklist progress::-moz-progress-bar {
+  background: #389d90;
+}
+.gprActionList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 5px;
+}
+.gprActionList label {
+  position: relative;
+  display: flex;
+  align-items: start;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  cursor: pointer;
+  line-height: 1.5;
+}
+.gprActionList label:hover {
+  background: #f5f8fb;
+  border-color: #e5edf4;
+}
+.gprActionList input {
+  position: absolute;
+  opacity: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+}
+.gprCheckIcon {
+  display: flex;
+  flex-shrink: 0;
+  color: #b2bfcc;
+  padding-top: 1px;
+}
+.gprActionList input:focus-visible + .gprCheckIcon {
+  outline: 3px solid #72afca;
+  outline-offset: 3px;
+  border-radius: 50%;
+}
+.gprActionList input:disabled ~ span {
+  opacity: 0.6;
+}
+.gprActionCopy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.gprActionCopy b {
+  font-size: 13px;
+  font-weight: 500;
+  color: #40576f;
+}
+.gprActionCopy small {
+  font-size: 11px;
+  font-weight: 400;
+  color: #77899a;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.gprActionList .isDone label {
+  background: #f0f8f4;
+}
+.gprActionList .isDone .gprCheckIcon {
+  color: #359576;
+}
+.gprActionList .isDone b {
+  color: #3f7b66;
+}
+.gprQuickStatus {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  padding-block: 16px 0;
+  border-top: 1px solid #e9eef4;
+  margin-top: auto;
+}
+.gprQuickStatus label {
+  display: grid;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+.gprQuickStatus label > span {
+  font-size: 11px;
+  color: #72879a;
+  font-weight: 400;
+}
+.gprQuickStatus select {
+  padding: 10px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: none;
+}
+button.gprCompleteButton {
+  background: #eaf6f1;
+  border: 1px solid #bcded0;
+  color: #267b5d;
+  box-shadow: none;
+  padding: 11px 13px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+button.gprCompleteButton.isCompleted {
+  background: #f2f6f9;
+  border-color: #dce6ed;
+  color: #516b82;
+}
+.gprWorkCard footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+}
+.gprWorkCard footer button {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  color: #617b91;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 7px 0;
+}
+.gprWorkCard footer button:first-child {
+  color: #237395;
+}
+.gprSavedProgress {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #edf8f3;
+  border-color: #c7e6d6;
+  color: #287452;
+}
+.gprDetailActions {
+  padding: 18px 24px;
+  background: #f7fafc;
+  border-bottom: 1px solid #e3eaf1;
+}
+.gprDetailActions .gprQuickStatus {
+  border: 0;
+  padding: 0;
+  max-width: 470px;
+}
+.gprDetailActions p {
+  font-size: 11px;
+  color: #7c8da0;
+  line-height: 1.6;
+  margin: 9px 0 0;
+}
+.gprDetail .gprChecklist {
+  margin-block: 0;
+}
+.gprTasksPanel {
+  order: -2;
+}
+.gprDetailMain > .gprMicrosoftEmails {
+  order: -1;
+}
+.gprDetail .gprQuickStatus button {
+  white-space: normal;
+}
+.gprEmailEntry summary {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  line-height: 1.6;
+  font-size: 13px;
+}
+.gprEmailEntry summary > span[dir] {
+  flex: 1;
+}
+.gprEmailType {
+  color: #3c7b95;
+  font-size: 10px;
+  padding: 3px 6px;
+  background: #edf6fa;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.gprDetail .gprMicrosoftEmails {
+  margin: 0;
+}
+.gprEmailEntry > p {
+  color: #718498;
+  font-size: 11px;
+}
+.gprEmailEntry a {
+  font-size: 12px;
+}
+[dir='ltr'] .gprDirectional {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gprChecklist progress::-webkit-progress-value {
+    transition: none;
+  }
+}
+@media (max-width: 1100px) {
+  .gprWorkCard {
+    padding: 16px;
+  }
+  .gprOverview button {
+    grid-template-columns: auto 1fr;
+  }
+  .gprOverview button b {
+    grid-column: 2;
+  }
+}
+@media (max-width: 850px) {
+  .gprWorkGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@container gpr-workspace (max-width: 700px) {
+  .gprWorkGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gprOverview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gprOverview button {
+    grid-template-columns: auto 1fr auto;
+    padding: 13px 10px;
+    gap: 7px;
+  }
+  .gprOverview button b {
+    grid-column: auto;
+    font-size: 21px;
+  }
+  .gprHeader > .actionsRow {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .gprHeader .actionsRow button {
+    white-space: normal;
+  }
+  .gprFilters {
+    flex-wrap: wrap;
+  }
+  .gprFilters .projectListSearch {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .gprFilters select {
+    max-width: none;
+    width: 100%;
+  }
+  .gprQuickStatus {
+    flex-wrap: wrap;
+  }
+  .gprQuickStatus label {
+    flex-basis: 150px;
+  }
+  .gprCompleteButton {
+    flex: 1;
+    white-space: normal;
+  }
+  .gprDetailGrid {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px 0;
+  }
+  .gprDetailAside {
+    grid-row: auto;
+  }
+  .gprDetailActions {
+    padding: 16px 4px;
+  }
+  .gprDetailHeader {
+    padding: 18px 4px;
+  }
+  .gprDetailHeader h2 {
+    font-size: 23px;
+  }
+  .gprInfoGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gprEmailEntry summary {
+    flex-wrap: wrap;
+  }
+  .gprEmailEntry summary > span[dir] {
+    flex-basis: 100%;
+    order: 2;
+  }
+}
+@media (max-width: 900px) {
+  .gprDetailGrid {
+    grid-template-columns: minmax(0, 1fr) 230px;
+    padding: 16px;
+    gap: 14px;
+  }
+  .gprListItem {
+    grid-template-columns: minmax(0, 1fr) 120px minmax(130px, 0.4fr) 32px;
+    gap: 12px;
+  }
+}
+@media (max-width: 650px) {
+  .gprOverview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gprOverview button {
+    grid-template-columns: auto 1fr auto;
+    padding: 13px 10px;
+    gap: 7px;
+  }
+  .gprOverview button b {
+    grid-column: auto;
+    font-size: 21px;
+  }
+  .gprQuickStatus {
+    flex-wrap: wrap;
+  }
+  .gprQuickStatus label {
+    flex-basis: 150px;
+  }
+  .gprCompleteButton {
+    flex: 1;
+  }
+  .gprDetailActions {
+    padding: 16px 4px;
+  }
+  .gprEmailEntry summary {
+    flex-wrap: wrap;
+  }
+  .gprEmailEntry summary > span[dir] {
+    flex-basis: 100%;
+    order: 2;
+  }
+  .gprHeader {
+    align-items: stretch;
+    gap: 16px;
+  }
+  .gprHeader h2 {
+    font-size: 22px;
+  }
+  .gprHeader > .actionsRow {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .gprTitleLine {
+    gap: 8px;
+  }
+  .gprPrivate {
+    font-size: 11px;
+  }
+  .gprFilters {
+    flex-wrap: wrap;
+  }
+  .gprFilters .projectListSearch {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .gprFilters select {
+    max-width: none;
+    width: 100%;
+  }
+  .gprListItem {
+    grid-template-columns: minmax(0, 1fr) 32px;
+    gap: 12px;
+    padding: 16px;
+  }
+  .gprListItem .projectListItemName {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .gprListItem .projectListOpenIcon {
+    grid-column: 2;
+    grid-row: 1/4;
+  }
+  .gprListItem .projectListItemOwner {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .gprListState {
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .gprDetailHeader {
+    padding: 18px 4px;
+  }
+  .gprDetailHeader h2 {
+    font-size: 23px;
+  }
+  .gprDetailGrid {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px 0;
+  }
+  .gprDetailAside {
+    grid-row: auto;
+  }
+  .gprInfoGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .gprDialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    border-radius: 12px;
+  }
+  .gprDialogHeader,
+  .gprDialogBody,
+  .gprDialogFooter {
+    padding: 16px;
+  }
+  .gprFields .formGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gprDialogFooter button {
+    flex: 1;
+    white-space: normal;
+  }
+  .gprDialogHeader h2 {
+    font-size: 18px;
+  }
+  .gprRequirementEditRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gprPreview {
+    padding: 0 10px;
+    margin: 16px auto;
+  }
+  .gprPreviewHeader {
+    align-items: start;
+  }
+  .gprPreviewHeader label {
+    min-width: 110px;
+  }
+  .gprCounters {
+    gap: 6px;
+  }
+  .gprCounters > span {
+    font-size: 12px;
+  }
+}

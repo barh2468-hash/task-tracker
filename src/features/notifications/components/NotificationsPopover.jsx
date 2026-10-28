@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { t, useLanguage } from '../../language/LanguageContext.jsx';
 import { localeForLanguage } from '../../language/locale.js';
 import { notificationText } from '../notificationText.js';
+import { notificationLink } from '../notificationLink.js';
 import { X } from 'lucide-react';
 import { useNotifications } from '../NotificationsContext.jsx';
 
@@ -10,7 +11,7 @@ export default function NotificationsPopover({
   position,
   onClose,
   onOpenFullPage,
-  onOpenProject,
+  onNavigate,
 }) {
   useTranslation();
   const { language } = useLanguage();
@@ -21,13 +22,9 @@ export default function NotificationsPopover({
   function openNotification(notification) {
     if (!notification.is_read) markNotificationRead(notification.id);
 
-    if (!notification.project_id) {
-      onClose?.();
-      return;
-    }
-
+    const target = notificationLink(notification);
     onClose?.();
-    onOpenProject?.(notification.project_id);
+    if (target) onNavigate?.(target.path);
   }
 
   return (
@@ -63,21 +60,25 @@ export default function NotificationsPopover({
       </div>
       <div className="popoverList">
         {recent.length === 0 && <div className="popoverEmpty">{t('אין התראות כרגע')}</div>}
-        {recent.map((item) => (
-          <button
-            key={item.id}
-            className={`popoverItem ${item.is_read ? '' : 'unread'}`}
-            onClick={() => openNotification(item)}
-            title={item.project_id ? t('פתח פרויקט') : undefined}
-          >
-            <span className="dot" />
-            <span className="popoverText">
-              <b>{notificationText(item, t).title}</b>
-              {item.body && <small>{notificationText(item, t).body}</small>}
-              <em>{new Date(item.created_at).toLocaleString(localeForLanguage(language))}</em>
-            </span>
-          </button>
-        ))}
+        {recent.map((item) => {
+          const target = notificationLink(item);
+          const text = notificationText(item, t);
+          return (
+            <button
+              key={item.id}
+              className={`popoverItem ${item.is_read ? '' : 'unread'}`}
+              onClick={() => openNotification(item)}
+              title={target ? t(target.label) : undefined}
+            >
+              <span className="dot" />
+              <span className="popoverText">
+                <b>{text.title}</b>
+                {text.body && <small>{text.body}</small>}
+                <em>{new Date(item.created_at).toLocaleString(localeForLanguage(language))}</em>
+              </span>
+            </button>
+          );
+        })}
       </div>
       <div className="popoverActions">
         <button className="ghost tinyBtn" onClick={onOpenFullPage}>

@@ -32,6 +32,8 @@ const NewProjectPage = lazy(() => import('./routes/NewProjectPage.jsx'));
 const ProjectStatusReportPage = lazy(() => import('./routes/ProjectStatusReportPage.jsx'));
 const AssignmentsPage = lazy(() => import('./routes/AssignmentsPage.jsx'));
 const TasksPage = lazy(() => import('./routes/TasksPage.jsx'));
+const GprPage = lazy(() => import('./routes/GprPage.jsx'));
+const LocalGprPreview = import.meta.env.DEV ? lazy(() => import('./features/gpr/LocalGprPreview.jsx')) : null;
 const HistoryPage = lazy(() => import('./routes/HistoryPage.jsx'));
 const NotificationsPage = lazy(() => import('./routes/NotificationsPage.jsx'));
 const ExceptionsPage = lazy(() => import('./routes/ExceptionsPage.jsx'));
@@ -101,6 +103,9 @@ function AppRoot() {
 }
 
 export default function App() {
+  if (import.meta.env.DEV && window.location.pathname === '/local/gpr') {
+    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><LocalGprPreview /></Suspense></LanguageProvider>;
+  }
   // Preview only in the local Vite development server; the production auth flow is unchanged.
   if (import.meta.env.DEV && window.location.pathname === '/local/work-plan') {
     return <LanguageProvider><Suspense fallback={<LoadingScreen />}><LocalWorkPlanPreview /></Suspense></LanguageProvider>;
@@ -128,6 +133,7 @@ export default function App() {
                   }
                 />
                 <Route path="projects" element={<ProjectsPage />} />
+                <Route path="gpr" element={<Suspense fallback={<LoadingScreen />}><GprPage /></Suspense>} />
                 <Route path="my-attendance" element={<Suspense fallback={<LoadingScreen />}><PersonalAttendancePage /></Suspense>} />
                 <Route path="my-notes" element={<Suspense fallback={<LoadingScreen />}><PersonalNotesPage /></Suspense>} />
                 <Route path="my-vehicle" element={<Suspense fallback={<LoadingScreen />}><MyVehiclePage /></Suspense>} />

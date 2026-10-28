@@ -11,6 +11,8 @@ import { roleLabel } from '../../../services/supabase.js';
 import useFormDraft from '../../drafts/useFormDraft.js';
 import DraftNotice from '../../drafts/DraftNotice.jsx';
 import { isProjectTeamMember } from '../utils/assignments.js';
+import { linkOrderToProject } from '../../gpr/api.js';
+import { useMessage } from '../../../context/MessageContext.jsx';
 
 const emptyProject = {
   name: '',
@@ -26,12 +28,13 @@ const emptyProject = {
   boundary_sketch: null,
 };
 
-export default function NewProjectForm() {
+export default function NewProjectForm({ initialProject, gprOrderId, gprUpdatedAt }) {
   useTranslation();
   const { workers, createProject } = useProjects();
   const { isManager, session } = useAuth();
   const navigate = useNavigate();
-  const draft = useFormDraft({ userId: session?.user?.id, formId: 'new-project', initialValue: emptyProject });
+  const { setMessage } = useMessage();
+  const draft = useFormDraft({ userId: session?.user?.id, formId: gprOrderId ? `gpr-project-${gprOrderId}` : 'new-project', initialValue: { ...emptyProject, ...initialProject } });
   const { value: project, setValue: setProject } = draft;
   const [creating, setCreating] = useState(false);
 
@@ -44,7 +47,11 @@ export default function NewProjectForm() {
       const result = await createProject(project);
       if (result?.message?.startsWith('הפרויקט נוצר')) {
         await draft.clear();
-        navigate(`/app/projects?filter=${isManager ? 'all' : 'mine'}`);
+        if (gprOrderId && result.projectId) {
+          try { await linkOrderToProject(gprOrderId, result.projectId, gprUpdatedAt); }
+          catch { setMessage(t('gpr.linkError'), 'error'); }
+          navigate(`/app/gpr?order=${encodeURIComponent(gprOrderId)}`);
+        } else navigate(`/app/projects?filter=${isManager ? 'all' : 'mine'}`);
       }
     } finally {
       setCreating(false);

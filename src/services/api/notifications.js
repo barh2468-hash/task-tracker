@@ -3,7 +3,9 @@ import { supabase } from '../supabase.js';
 export function getNotifications() {
   return supabase
     .from('notifications')
-    .select('*, profiles:created_by(full_name), projects:project_id(name)')
+    .select(
+      '*, profiles:created_by(full_name), projects:project_id(name), gpr_work_orders:gpr_order_id(title,order_number)',
+    )
     .order('created_at', { ascending: false })
     .limit(80);
 }

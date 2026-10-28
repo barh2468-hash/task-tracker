@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Activity, AlertTriangle, Bell, Car, ChartNoAxesCombined, ChevronDown, ClipboardList,
   Clock, Download, FileText, FolderKanban, HardHat, History, LayoutDashboard,
-  Layers, MapPin, ShieldCheck, Wrench,
+  Layers, MapPin, Radar, ShieldCheck, Wrench,
 } from 'lucide-react';
 import { t } from '../features/language/LanguageContext.jsx';
 import AppPreferences from './AppPreferences.jsx';
@@ -96,6 +96,7 @@ export default function DashboardNavigation({
           <div className="sidebarNavGroup">
             <h2 className="sidebarGroupLabel">{t('ניהול מערכת')}</h2>
             {item('/app/users', 'ניהול משתמשים', ShieldCheck)}
+            {item('/app/gpr', 'gpr.title', Radar)}
           </div>
         )}
 

@@ -15,6 +15,7 @@ export function getTabTitle(pathname, searchParams, isManager) {
   if (pathname === '/app/recent-status-changes') return 'שינויי סטטוס';
   if (pathname === '/app/assignments') return 'פרויקטים משויכים';
   if (pathname === '/app/tasks') return 'משימות פתוחות';
+  if (pathname === '/app/gpr') return 'gpr.title';
   if (pathname === '/app/today') return 'היום בשטח';
   if (pathname === '/app/exceptions') return 'דוח חריגות';
   if (pathname === '/app/projects/new') return 'הוספת פרויקט';
@@ -43,6 +44,7 @@ export function isHeroSuppressed(pathname) {
   return (
     pathname === '/app/overview' ||
     pathname === '/app/work-plan' ||
+    pathname === '/app/gpr' ||
     pathname === '/app/attendance' ||
     pathname === '/app/map' ||
     pathname === '/app/status-report' ||

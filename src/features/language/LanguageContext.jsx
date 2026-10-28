@@ -18,6 +18,16 @@ if (!i18n.isInitialized) {
     interpolation: { escapeValue: false },
     react: { useSuspense: false },
   });
+} else {
+  // Vite preserves the i18next singleton during hot updates. Register the
+  // latest dictionaries too, so open tabs see newly added or changed keys.
+  for (const [language, translations] of Object.entries({
+    he: heTranslations,
+    en: enTranslations,
+    el: elTranslations,
+  })) {
+    i18n.addResourceBundle(language, 'translation', translations, true, true);
+  }
 }
 
 const translationEntries = {

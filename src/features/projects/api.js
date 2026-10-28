@@ -1066,11 +1066,13 @@ export async function createProject(newProject, profile) {
   const hasAssignedWorkers = !!newProject.assigned_to || assignedWorkers.length > 0;
   if (!boundarySketchUploaded) {
     return {
+      projectId: insertedProject?.id,
       message:
         'הפרויקט נוצר, אך העלאת סקיצת גבול העבודה נכשלה. ניתן להעלות אותה מכרטיסיית מסמכי הפרויקט.',
     };
   }
   return {
+    projectId: insertedProject?.id,
     message: hasAssignedWorkers
       ? assignmentEmailSent
         ? 'הפרויקט נוצר, שויך לעובדים והעובדים קיבלו התראה במערכת ומייל'

@@ -41,7 +41,6 @@ const AttendancePage = lazy(() => import('./routes/AttendancePage.jsx'));
 const PersonalAttendancePage = lazy(() => import('./routes/PersonalAttendancePage.jsx'));
 const PersonalNotesPage = lazy(() => import('./routes/PersonalNotesPage.jsx'));
 const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
-const VehicleRegisterPage = lazy(() => import('./routes/VehicleRegisterPage.jsx'));
 const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
 const AccountingYearEndPage = lazy(() => import('./routes/AccountingYearEndPage.jsx'));
 const AccountingFuelPage = lazy(() => import('./routes/AccountingFuelPage.jsx'));
@@ -229,16 +228,7 @@ export default function App() {
                     </Suspense>
                   }
                 />
-                <Route
-                  path="vehicle-register"
-                  element={
-                    <RequireVehicleAccess>
-                    <Suspense fallback={<LoadingScreen />}>
-                      <VehicleRegisterPage />
-                    </Suspense>
-                    </RequireVehicleAccess>
-                  }
-                />
+                <Route path="vehicle-register" element={<Navigate to="/app/vehicles" replace />} />
                 <Route
                   path="equipment"
                   element={

@@ -89,7 +89,6 @@ export default function DashboardNavigation({
             {item('/app/map', 'מפה חיה', MapPin)}
             {item('/app/equipment', 'ציוד עובדי שטח', Wrench)}
             {item('/app/vehicles', 'רכבי חברה', Car)}
-            {item('/app/vehicle-register', 'רכבים', Car)}
           </div>
         )}
 

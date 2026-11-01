@@ -46,6 +46,7 @@ export const statusProgress = {
 export const appStatuses = statuses;
 
 export const roleLabel = {
+  demo: 'demo.role',
   admin: 'מנהל ראשי',
   manager: 'מנהל מערכת',
   field_worker: 'עובד שטח',

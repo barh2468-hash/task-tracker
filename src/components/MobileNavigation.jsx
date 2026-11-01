@@ -1,20 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Check, ChevronDown, ClipboardList, Clock, Ellipsis, FolderKanban, History, Languages, LayoutDashboard,
+  BookOpen, Check, ChevronDown, ClipboardList, Clock, Ellipsis, FolderKanban, History, Languages, LayoutDashboard,
   LogOut, MessageCircle, X,
 } from 'lucide-react';
 import { t, useLanguage } from '../features/language/LanguageContext.jsx';
+import { languageOptions } from '../features/language/languages.js';
 import { useAttendance } from '../features/attendance/AttendanceContext.jsx';
 import DashboardNavigation from './DashboardNavigation.jsx';
 import AppPreferences from './AppPreferences.jsx';
 import '../styles/mobile-navigation.css';
-
-const languageOptions = [
-  { code: 'he', label: 'עברית' },
-  { code: 'en', label: 'English' },
-  { code: 'el', label: 'Ελληνικά' },
-];
 
 function AttendanceNavTimer({ startedAt }) {
   const [now, setNow] = useState(Date.now);
@@ -59,13 +54,21 @@ function AttendanceNavTimer({ startedAt }) {
   );
 }
 
-export default function MobileNavigation({
+export default function MobileNavigation(props) {
+  return props.isDemo ? <MobileNavigationView {...props} myAttendanceSessions={[]} /> : <StaffMobileNavigation {...props} />;
+}
+
+function StaffMobileNavigation(props) {
+  const { myAttendanceSessions } = useAttendance();
+  return <MobileNavigationView {...props} myAttendanceSessions={myAttendanceSessions} />;
+}
+
+function MobileNavigationView({
   role, displayName, isManager, isAdmin, isDrafter, pathname, isProjectWorkspace, stats,
-  unreadChatCount, onOpenTab, onOpenMore, onLogout,
+  unreadChatCount, onOpenTab, onOpenMore, onLogout, isDemo = false, myAttendanceSessions,
 }) {
   useTranslation();
   const { language, setLanguage } = useLanguage();
-  const { myAttendanceSessions } = useAttendance();
   const openAttendance = myAttendanceSessions.find((item) => !item.ended_at && !item.is_all_day);
   const hasOpenAttendance = Boolean(openAttendance);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -108,14 +111,18 @@ export default function MobileNavigation({
     path: `/app/projects?filter=${isManager ? 'all' : 'mine'}`, active: isProjectWorkspace,
   };
   // Drafters keep their existing access: overview replaces the attendance shortcut.
-  const tabs = isDrafter
+  const tabs = isDemo ? [
+    { ...projectTab, path: '/app/projects' },
+    { key: 'cases', label: 'demo.caseStudies', icon: BookOpen, path: '/app/projects?view=cases' },
+    { key: 'overview', label: 'סקירה', icon: LayoutDashboard, path: '/app/overview', center: true },
+  ] : isDrafter
     ? [projectTab,
       { key: 'history', label: 'היסטוריה', icon: History, path: '/app/history' },
       { key: 'overview', label: 'סקירה', icon: LayoutDashboard, path: '/app/overview', center: true }]
     : [projectTab,
       { key: 'tasks', label: 'משימות', icon: ClipboardList, path: '/app/tasks', count: stats.openTasks },
       { key: 'attendance', label: 'נוכחות', icon: Clock, path: '/app/attendance', center: true }];
-  tabs.push({ key: 'chat', label: 'צ׳אט', icon: MessageCircle, path: '/app/chat', count: unreadChatCount });
+  if (!isDemo) tabs.push({ key: 'chat', label: 'צ׳אט', icon: MessageCircle, path: '/app/chat', count: unreadChatCount });
   const isPrimaryPage = tabs.some((tab) => tab.active || tab.path === pathname);
   tabs.push({ key: 'more', label: 'עוד', icon: Ellipsis, active: moreOpen || (!isPrimaryPage && pathname !== '/app/notifications') });
 
@@ -130,7 +137,7 @@ export default function MobileNavigation({
 
   return (
     <>
-      <nav className="mobileBottomNav" aria-label={t('תפריט ראשי')}>
+      <nav className="mobileBottomNav" aria-label={t('תפריט ראשי')} style={isDemo ? { gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' } : undefined}>
         {tabs.map(({ key, label, icon: Icon, path, active, center, count }) => (
           <button
             key={key}
@@ -188,6 +195,7 @@ export default function MobileNavigation({
         </div>
         <div className="mobileMoreContent">
           <DashboardNavigation
+            isDemo={isDemo}
             secondaryOnly
             role={role}
             isManager={isManager}
@@ -214,12 +222,12 @@ export default function MobileNavigation({
                   <Languages size={19} aria-hidden="true" />
                   <span id="mobile-language-title">{t('שפה')}</span>
                   <span className="mobileMoreCurrentLanguage" lang={language} dir="auto">
-                    {languageOptions.find((option) => option.code === language)?.label}
+                    {t(languageOptions.find((option) => option.code === language)?.labelKey)}
                   </span>
                   <ChevronDown className="mobileMoreLanguageChevron" size={17} aria-hidden="true" />
                 </summary>
                 <div ref={languageOptionsRef} className="mobileLanguageChoices" role="group" aria-labelledby="mobile-language-title">
-                  {languageOptions.map(({ code, label }) => (
+                  {languageOptions.map(({ code, labelKey }) => (
                     <button
                       key={code}
                       type="button"
@@ -234,7 +242,7 @@ export default function MobileNavigation({
                         }
                       }}
                     >
-                      <span className="mobileLanguageChoiceLabel" dir="auto">{label}</span>
+                      <span className="mobileLanguageChoiceLabel" dir="auto">{t(labelKey)}</span>
                       {language === code && <Check size={18} aria-hidden="true" />}
                     </button>
                   ))}
@@ -249,9 +257,9 @@ export default function MobileNavigation({
               </button>
             </div>
           </section>
-          <footer className="mobileMorePreferences">
+          {!isDemo && <footer className="mobileMorePreferences">
             <AppPreferences />
-          </footer>
+          </footer>}
         </div>
       </dialog>
     </>

@@ -70,6 +70,9 @@ Deno.serve(async (req) => {
 
     if (workerError) throw workerError;
     if (!worker) throw new Error('Missing worker profile');
+    if (worker.role === 'demo') {
+      return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'demo_has_showcase_access_only' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     if (!worker.email) {
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'worker_has_no_email' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }

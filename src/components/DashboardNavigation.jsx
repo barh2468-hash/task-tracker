@@ -2,13 +2,15 @@ import { useTranslation } from 'react-i18next';
 import {
   Activity, AlertTriangle, Bell, Car, ChartNoAxesCombined, ChevronDown, ClipboardList,
   Clock, Download, FileText, FolderKanban, HardHat, History, LayoutDashboard,
-  Layers, MapPin, Radar, ShieldCheck, Wrench,
+  BookOpen, Eye, Layers, MapPin, Radar, ShieldCheck, Wrench,
 } from 'lucide-react';
-import { t } from '../features/language/LanguageContext.jsx';
+import { t, useLanguage } from '../features/language/LanguageContext.jsx';
+import { localeForLanguage } from '../features/language/locale.js';
 import AppPreferences from './AppPreferences.jsx';
 import '../styles/navigation.css';
 
 function NavigationItem({ label, icon: Icon, active, count, onClick }) {
+  const { language } = useLanguage();
   return (
     <button
       type="button"
@@ -18,14 +20,14 @@ function NavigationItem({ label, icon: Icon, active, count, onClick }) {
     >
       <Icon size={18} aria-hidden="true" />
       <span className="sidebarNavText">{t(label)}</span>
-      {count > 0 && <span className="navCountBadge">{count}</span>}
+      {count > 0 && <span className="navCountBadge">{count.toLocaleString(localeForLanguage(language))}</span>}
     </button>
   );
 }
 
 export default function DashboardNavigation({
   role, isManager, isAdmin, isDrafter, pathname, isProjectWorkspace, stats, unreadCount,
-  onOpenTab, secondaryOnly = false,
+  onOpenTab, secondaryOnly = false, isDemo = false,
 }) {
   useTranslation();
   const item = (path, label, icon, count) => (
@@ -40,6 +42,24 @@ export default function DashboardNavigation({
   );
   const reportPaths = ['/app/exceptions', '/app/status-report',
     '/app/recent-status-changes', '/app/history', '/app/report'];
+
+  if (isDemo) return <>
+    {!secondaryOnly && <header className="sidebarHeader">
+      <div className="sidebarIdentity"><img src="/logo-transparent.png" alt={t('לוגו')} /><div><b>{t('קבוצת מאיה')}</b><small>{role}</small></div></div>
+    </header>}
+    <nav className="sidebarNav" aria-label={t('תפריט ראשי')}>
+      <div className="sidebarNavGroup">
+        <h2 className="sidebarGroupLabel">{t('יום העבודה')}</h2>
+        {item('/app/overview', 'סקירה כללית', LayoutDashboard)}
+      </div>
+      <div className="sidebarNavGroup">
+        <h2 className="sidebarGroupLabel">{t('עבודה')}</h2>
+        <NavigationItem label="פרויקטים" icon={FolderKanban} active={isProjectWorkspace} count={stats.total} onClick={() => onOpenTab('/app/projects')} />
+        {item('/app/projects?view=cases', 'demo.caseStudies', BookOpen, stats.caseStudies)}
+      </div>
+    </nav>
+    {!secondaryOnly && <footer className="sidebarFooter demoSidebarNote"><Eye size={18} aria-hidden="true" /><span>{t('demo.readOnly')}</span></footer>}
+  </>;
 
   return (
     <>

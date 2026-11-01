@@ -2,18 +2,27 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { deliverFieldUpdate, escapeEmailHtml } from './delivery.js';
 
-function fixture({ sent = false, pushFails = false, rejected = false, missingEmail = false } = {}) {
+function fixture({ sent = false, pushFails = false, rejected = false, missingEmail = false, role = 'field_worker' } = {}) {
   const job = { id: 'event', claim_token: 'claim', recipient_id: 'worker', project_id: 'project', title: '<פרויקט>', body: 'a & b', email_sent_at: sent ? '2026-10-12' : null };
   const marks = [], mails = [];
   let pushes = 0;
   return {
     job, marks, mails, pushes: () => pushes,
     args: { job, appUrl: 'https://maya.example', client: {
-      from() { return { select() { return this; }, eq() { return this; }, async single() { return { data: { email: missingEmail ? null : 'worker@example.com', full_name: 'Worker' } }; } }; },
+      from() { return { select() { return this; }, eq() { return this; }, async single() { return { data: { role, email: missingEmail ? null : 'worker@example.com', full_name: 'Worker' } }; } }; },
       async rpc(_name, payload) { marks.push(payload); return {}; },
     }, async sendEmail(mail) { mails.push(mail); return { accepted: rejected ? [] : ['worker@example.com'], rejected: rejected ? ['worker@example.com'] : [] }; }, async sendPush() { pushes++; if (pushFails) throw new Error('Push unavailable'); } },
   };
 }
+test('queued internal updates are discarded when the recipient becomes a demo client', async () => {
+  for (const sent of [false, true]) {
+    const f = fixture({ role: 'demo', sent });
+    assert.equal((await deliverFieldUpdate(f.args)).skipped, true);
+    assert.equal(f.mails.length, 0);
+    assert.equal(f.pushes(), 0);
+    assert.equal(f.marks.at(-1).p_done, true);
+  }
+});
 test('SMTP success is persisted before Push; delivered event is finished', async () => {
   const f = fixture();
   assert.equal((await deliverFieldUpdate(f.args)).ok, true);

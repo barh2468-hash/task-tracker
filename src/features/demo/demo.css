@@ -1,0 +1,313 @@
+.demoPage {
+  direction: inherit;
+}
+.demoPreviewControls {
+  max-width: 1400px;
+  margin: 24px auto;
+  padding: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.demoPreviewControls summary {
+  cursor: pointer;
+}
+.demoActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.demoActions select {
+  width: auto;
+  max-width: 160px;
+}
+.demoText {
+  white-space: pre-wrap;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.demoStudies {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.demoStudies h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 18px;
+}
+.demoStudy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.demoStudy p {
+  margin: 8px 0;
+}
+.demoStudy small,
+.demoCheck small {
+  display: block;
+  color: var(--muted);
+  margin-top: 5px;
+  font-weight: normal;
+}
+.demoStudy button {
+  font-size: 13px;
+  padding: 10px 13px;
+}
+.demoManager {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: white;
+  overflow: hidden;
+}
+.demoManagerToggle {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 20px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  white-space: normal;
+  text-align: start;
+}
+.demoManagerBody {
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+}
+.demoForm fieldset,
+.demoAccess {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px;
+  min-width: 0;
+}
+.demoForm legend,
+.demoAccess legend {
+  padding-inline: 8px;
+  font-weight: bold;
+}
+.demoForm button {
+  justify-self: start;
+}
+.demoCheck {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  line-height: 1.6;
+}
+.demoCheck input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  box-shadow: none;
+}
+.demoConfirm {
+  padding: 20px;
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  border-radius: 16px;
+}
+.demoConfirm button {
+  margin-inline-end: 8px;
+}
+.demoPage :focus-visible,
+.demoManager :focus-visible {
+  outline: 3px solid #258fc4;
+  outline-offset: 3px;
+}
+
+.demoSidebarNote {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #afc0d7;
+  line-height: 1.6;
+}
+.demoAccessWidget {
+  min-width: 230px;
+  padding: 18px 24px;
+  border: 1px solid #ffffff26;
+  border-radius: 18px;
+  background: #ffffff10;
+  display: grid;
+  gap: 7px;
+  color: #fff;
+}
+.demoAccessWidget > span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  color: #d6e8f7;
+}
+.demoAccessWidget strong {
+  font-size: 30px;
+  line-height: 1;
+}
+.demoAccessWidget small {
+  color: #d6e8f7;
+}
+.demoAccessNote,
+.demoReadOnlyLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.demoAccessNote {
+  margin: 18px 4px;
+}
+.demoStudyPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eef5fb;
+  color: #365c7c;
+  border: 1px solid #dce7f1;
+  box-shadow: none;
+}
+.demoProjectListItem {
+  --project-list-accent: #258fc4;
+}
+.demoAppPage .projectViewLink {
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+  font-weight: 600;
+  transform: none;
+}
+.demoAppPage .projectViewLink.active {
+  background: #edf5fb;
+  color: var(--navy);
+  box-shadow: inset 0 -3px 0 var(--orange);
+}
+.demoAppPage .projectViewLink:hover {
+  background: #f3f7fb;
+  color: var(--navy);
+}
+.demoProjectWorkspace .projectWorkspaceHeader {
+  padding-bottom: 20px;
+}
+.demoProjectWorkspace .projectDocumentsPanel {
+  margin: 0;
+}
+.demoProjectWorkspace .projectDocumentInfo b {
+  white-space: normal;
+}
+.demoWorkspaceEmpty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 32px;
+}
+.demoOverviewStats {
+  margin-bottom: 24px;
+}
+.caseArticle { min-width: 0; margin-top: 20px; }
+.caseArticleBack { margin-bottom: 18px; white-space: normal; }
+[dir="rtl"] .caseArticleBack svg { transform: rotate(180deg); }
+.caseArticleHero {
+  padding: clamp(24px, 4vw, 44px);
+  border-radius: 22px;
+  background: linear-gradient(125deg, #102a43, #173e54 65%, #176b71);
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+.caseArticleEyebrow { display: flex; align-items: center; gap: 9px; color: #93e1d4; font-size: 13px; font-weight: 700; }
+.caseArticle .caseArticleHero h3 { margin: 18px 0 12px; font-size: clamp(25px, 3vw, 36px); line-height: 1.4; color: #fff; display: block; }
+.caseArticleHero p { max-width: 780px; color: #dce8f0; margin-bottom: 28px; font-size: 16px; }
+.caseArticleSteps { display: grid; grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: 20px; padding-top: 23px; border-top: 1px solid #ffffff26; }
+.caseArticleSteps span { display: grid; gap: 6px; font-size: 13px; color: #e4eff3; }
+.caseArticleSteps b { color: #80d7c9; font-size: 22px; }
+.caseArticleLayout { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 34px; margin-top: 30px; align-items: start; }
+.caseArticleNav { position: sticky; top: 22px; display: grid; gap: 5px; padding: 12px 0; }
+.caseArticleNav strong { color: #73818f; font-size: 12px; padding: 0 12px 12px; }
+.caseArticleNav a { color: #415770; text-decoration: none; padding: 11px 12px; border-inline-start: 2px solid #dbe5ed; border-radius: 0; font-size: 14px; }
+.caseArticleNav a:hover { color: #15645c; background: #f0f8f6; border-color: #2c9d8e; }
+.caseArticleSections { display: grid; gap: 22px; min-width: 0; }
+.caseArticleSection { border: 1px solid #e3eaf0; background: #fff; border-radius: 18px; padding: clamp(20px, 3vw, 30px); scroll-margin-top: 24px; }
+.caseArticleSectionHeading { display: flex; align-items: center; gap: 12px; }
+.caseArticleSectionHeading h4 { margin: 0; font-size: 20px; color: #193751; }
+.caseArticleSectionIcon { display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0; border-radius: 13px; color: #2c6b89; background: #edf5f9; }
+.caseArticleNumber { margin-inline-start: auto; color: #7a8c9d; font-size: 13px; }
+.caseArticleSection p { color: #41546a; font-size: 15px; line-height: 1.95; margin: 20px 0 0; }
+.caseArticleSection--outcome { background: #f0f9f6; border-color: #cce7dd; }
+.caseArticleSection--outcome .caseArticleSectionIcon { color: #176c54; background: #d9f0e6; }
+.caseArticleSource { margin-top: 28px; border: 1px solid #e0e7ee; border-radius: 16px; padding: 18px; background: #f8fafc; }
+.caseArticleSource summary { cursor: pointer; color: #3c536d; font-size: 14px; font-weight: 600; }
+.caseArticleSource summary svg { display: inline-block; vertical-align: middle; margin-inline-end: 8px; }
+.caseArticleHero .caseArticleClient { font-size: 13px; margin: 0 0 22px; }
+.caseGallery { margin: 28px 0; }
+.caseGallery > h4 { display: flex; align-items: center; gap: 9px; font-size: 17px; color: #23445c; }
+.caseGalleryGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.caseGalleryGrid figure { margin: 0; overflow: hidden; border: 1px solid #dfe7ee; border-radius: 16px; background: #fff; }
+.caseGalleryGrid figure > button { position: relative; display: block; border: 0; padding: 12px; width: 100%; height: 260px; background: #edf2f6; border-radius: 0; box-shadow: none; transform: none; }
+.caseGalleryGrid img { width: 100%; height: 100%; object-fit: contain; }
+.caseGalleryGrid button > span { position: absolute; inset-inline-end: 14px; bottom: 14px; padding: 8px; border-radius: 9px; color: #23445c; background: #fffffff0; display: grid; }
+.caseGalleryGrid figcaption { font-size: 13px; line-height: 1.7; padding: 14px 17px; color: #53677b; overflow-wrap: anywhere; }
+.caseImageDialog { width: min(1100px, 94vw); max-height: 92vh; padding: 18px; border: 1px solid #dce5ed; border-radius: 18px; color: #314b61; }
+.caseImageDialog::backdrop { background: #071a2ed9; }
+.caseImageDialog figure { margin: 18px 0 0; }
+.caseImageDialog img { width: 100%; height: 70vh; object-fit: contain; }
+.caseImageDialog figcaption { padding: 12px; line-height: 1.6; }
+.caseArticleTechnical { margin-top: 24px; padding: 22px 26px; border-radius: 16px; background: #f5f8fb; border: 1px solid #e1e8ee; }
+.caseArticleTechnical h4 { margin: 0 0 12px; color: #294962; }
+.caseArticleTechnical p { font-size: 13px; color: #586e81; margin: 0; }
+.caseLibraryPreviewBar { display: flex; gap: 16px; align-items: center; justify-content: space-between; padding: 14px 22px; background: #fff7e8; color: #6d501d; flex-wrap: wrap; font-size: 13px; }
+@media (max-width: 600px) { .caseGalleryGrid { grid-template-columns: minmax(0, 1fr); } .caseGalleryGrid figure > button { height: 230px; } }
+.casePdfViewer { display: grid; gap: 24px; margin-top: 20px; }
+.casePdfPage { min-height: 180px; min-width: 0; position: relative; }
+.casePdfPage small { display: block; color: #617185; padding: 8px 0; }
+.casePdfCanvas { position: relative; width: 100%; background: #fff; }
+.casePdfCanvas > p { position: absolute; inset: 20px; }
+.casePdfCanvas canvas { position: absolute; inset: 0; }
+.casePdfPage canvas { display: block; width: 100%; height: auto; box-shadow: 0 3px 12px #16364d14; }
+.casePdfPage canvas[hidden] { display: none; }
+.casePdfAccessibleText { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#case-study-editor { scroll-margin-top: 24px; }
+@media (max-width: 760px) {
+  .caseArticleLayout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .caseArticleNav { position: static; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; }
+  .caseArticleNav strong { width: 100%; padding: 4px 0; }
+  .caseArticleNav a { border: 1px solid #dbe5ed; border-radius: 9px; padding: 8px 10px; font-size: 12px; }
+  .caseArticleSteps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .caseArticleSource { padding: 12px; }
+  .caseArticleSectionHeading h4 { font-size: 18px; }
+}
+@media (max-width: 1180px) {
+  .demoAppPage > .container {
+    margin-top: 18px;
+  }
+  .demoAccessWidget {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .demoManagerBody {
+    padding: 14px;
+  }
+  .demoForm fieldset,
+  .demoAccess {
+    padding: 14px;
+  }
+  .demoProjectListItem .projectListItemOwner {
+    display: none;
+  }
+  .demoProjectWorkspace .projectWorkspaceTop {
+    align-items: flex-start;
+  }
+  .demoProjectWorkspace .projectDocumentActions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .demoActions button {
+    white-space: normal;
+  }
+}

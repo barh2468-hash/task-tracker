@@ -65,6 +65,13 @@ test('without an assigned drafter, managers still receive the assignment request
   assert.equal(result.awaitingDrafterAssignment, true);
 });
 
+test('a demo client with a legacy drafter name never receives internal status emails', async () => {
+  const f = fixture({ workers: [{ id: 'demo', role: 'demo', full_name: 'Dudi Client', email: 'client@example.com' }] });
+  const result = await getStatusEmailRecipients(f.client, 'project', f.status);
+  assert.deepEqual(result.recipients, ['manager@example.com']);
+  assert.deepEqual(result.drafterIds, []);
+});
+
 test('other statuses keep management recipients and do not query drafter assignments', async () => {
   const f = fixture({ status: 'בעבודה בשטח' });
   const result = await getStatusEmailRecipients(f.client, 'project', f.status);

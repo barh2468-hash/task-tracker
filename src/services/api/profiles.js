@@ -17,9 +17,9 @@ export function createProfile({ id, email, fullName, role }) {
 }
 
 export function getAllProfiles() {
-  return supabase.from('profiles').select('*').order('full_name');
+  return supabase.from('profiles').select('*').neq('role', 'demo').order('full_name');
 }
 
 export function getWorkerDirectory() {
-  return supabase.rpc('get_worker_directory');
+  return supabase.rpc('get_worker_directory').neq('role', 'demo');
 }

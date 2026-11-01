@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { envReady } from './services/supabase.js';
 import { AuthProvider } from './features/auth/AuthContext.jsx';
 import { MessageProvider } from './context/MessageContext.jsx';
@@ -26,14 +26,18 @@ import { useAuth } from './features/auth/useAuth.js';
 // projects list that most sessions land on.
 const TodayPage = lazy(() => import('./routes/TodayPage.jsx'));
 const WorkPlanPage = lazy(() => import('./routes/WorkPlanPage.jsx'));
-const LocalWorkPlanPreview = import.meta.env.DEV ? lazy(() => import('./features/work-planning/LocalWorkPlanPreview.jsx')) : null;
+const LocalWorkPlanPreview = import.meta.env.DEV
+  ? lazy(() => import('./features/work-planning/LocalWorkPlanPreview.jsx'))
+  : null;
 const LiveMapPage = lazy(() => import('./routes/LiveMapPage.jsx'));
 const NewProjectPage = lazy(() => import('./routes/NewProjectPage.jsx'));
 const ProjectStatusReportPage = lazy(() => import('./routes/ProjectStatusReportPage.jsx'));
 const AssignmentsPage = lazy(() => import('./routes/AssignmentsPage.jsx'));
 const TasksPage = lazy(() => import('./routes/TasksPage.jsx'));
 const GprPage = lazy(() => import('./routes/GprPage.jsx'));
-const LocalGprPreview = import.meta.env.DEV ? lazy(() => import('./features/gpr/LocalGprPreview.jsx')) : null;
+const LocalGprPreview = import.meta.env.DEV
+  ? lazy(() => import('./features/gpr/LocalGprPreview.jsx'))
+  : null;
 const HistoryPage = lazy(() => import('./routes/HistoryPage.jsx'));
 const NotificationsPage = lazy(() => import('./routes/NotificationsPage.jsx'));
 const ExceptionsPage = lazy(() => import('./routes/ExceptionsPage.jsx'));
@@ -67,10 +71,16 @@ function RequireVehicleAccess({ children }) {
   return children;
 }
 const UserManagementPage = lazy(() => import('./routes/UserManagementPage.jsx'));
+const DemoPortal = lazy(() => import('./features/demo/DemoPortal.jsx'));
+const ClientLibraryPreview = lazy(() => import('./features/demo/ClientLibraryPreview.jsx'));
+const LocalDemoPreview = import.meta.env.DEV
+  ? lazy(() => import('./features/demo/LocalDemoPreview.jsx'))
+  : null;
 
 function AppLanding() {
   const { isAccounting, isAccountingMain, isDrafter } = useAuth();
-  if (isAccounting) return <Navigate to={isAccountingMain ? 'accounting/year-end' : 'accounting/fuel'} replace />;
+  if (isAccounting)
+    return <Navigate to={isAccountingMain ? 'accounting/year-end' : 'accounting/fuel'} replace />;
   return <Navigate to={isDrafter ? 'projects' : 'attendance'} replace />;
 }
 
@@ -92,8 +102,16 @@ function AppProviders({ children }) {
 // Accounting has its own mini layout/routes — it doesn't need the dashboard's
 // projects/attendance/chat/notifications providers.
 function AppRoot() {
-  const { isAccounting } = useAuth();
+  const { isAccounting, isDemo } = useAuth();
+  const location = useLocation();
+  if (isDemo)
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <DemoPortal />
+      </Suspense>
+    );
   if (isAccounting) return <AccountingLayout />;
+  if (location.pathname === '/app/client-preview') return <Suspense fallback={<LoadingScreen />}><ClientLibraryPreview /></Suspense>;
   return (
     <AppProviders>
       <DashboardLayout />
@@ -102,12 +120,33 @@ function AppRoot() {
 }
 
 export default function App() {
+  if (import.meta.env.DEV && window.location.pathname === '/local/demo') {
+    return (
+      <LanguageProvider>
+        <Suspense fallback={<LoadingScreen />}>
+          <LocalDemoPreview />
+        </Suspense>
+      </LanguageProvider>
+    );
+  }
   if (import.meta.env.DEV && window.location.pathname === '/local/gpr') {
-    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><LocalGprPreview /></Suspense></LanguageProvider>;
+    return (
+      <LanguageProvider>
+        <Suspense fallback={<LoadingScreen />}>
+          <LocalGprPreview />
+        </Suspense>
+      </LanguageProvider>
+    );
   }
   // Preview only in the local Vite development server; the production auth flow is unchanged.
   if (import.meta.env.DEV && window.location.pathname === '/local/work-plan') {
-    return <LanguageProvider><Suspense fallback={<LoadingScreen />}><LocalWorkPlanPreview /></Suspense></LanguageProvider>;
+    return (
+      <LanguageProvider>
+        <Suspense fallback={<LoadingScreen />}>
+          <LocalWorkPlanPreview />
+        </Suspense>
+      </LanguageProvider>
+    );
   }
   if (!envReady) return <SetupPage />;
 
@@ -132,12 +171,48 @@ export default function App() {
                   }
                 />
                 <Route path="projects" element={<ProjectsPage />} />
-                <Route path="gpr" element={<Suspense fallback={<LoadingScreen />}><GprPage /></Suspense>} />
-                <Route path="my-attendance" element={<Suspense fallback={<LoadingScreen />}><PersonalAttendancePage /></Suspense>} />
-                <Route path="my-notes" element={<Suspense fallback={<LoadingScreen />}><PersonalNotesPage /></Suspense>} />
-                <Route path="my-vehicle" element={<Suspense fallback={<LoadingScreen />}><MyVehiclePage /></Suspense>} />
+                <Route path="client-preview" element={null} />
+                <Route
+                  path="gpr"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <GprPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="my-attendance"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <PersonalAttendancePage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="my-notes"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <PersonalNotesPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="my-vehicle"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <MyVehiclePage />
+                    </Suspense>
+                  }
+                />
                 <Route path="overview" element={<OverviewPage />} />
-                <Route path="work-plan" element={<Suspense fallback={<LoadingScreen />}><WorkPlanPage /></Suspense>} />
+                <Route
+                  path="work-plan"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <WorkPlanPage />
+                    </Suspense>
+                  }
+                />
                 <Route
                   path="manhole-layout"
                   element={

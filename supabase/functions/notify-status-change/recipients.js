@@ -1,5 +1,6 @@
 // Match the drafter candidates supported by the project assignment workflow.
 function isDrafter(profile) {
+  if (profile?.role === 'demo') return false;
   return profile?.role === 'drafter' ||
     /(^|\s)(דודי|dudi|dudy)(\s|$)/i.test(String(profile?.full_name || '').trim());
 }

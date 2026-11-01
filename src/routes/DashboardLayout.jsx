@@ -19,6 +19,7 @@ import { useProjectStats } from '../features/projects/hooks/useProjectStats.js';
 import { roleLabel } from '../services/supabase.js';
 import { getTabTitle, getTabSubtitle, isHeroSuppressed } from './dashboardTabs.js';
 import DashboardHero from '../components/DashboardHero.jsx';
+import AppBrand from '../components/AppBrand.jsx';
 import NotificationsPopover from '../features/notifications/components/NotificationsPopover.jsx';
 import GprInboxAlert from '../features/notifications/components/GprInboxAlert.jsx';
 import DashboardNavigation from '../components/DashboardNavigation.jsx';
@@ -30,6 +31,7 @@ import ProjectWorkspaceNavigation from '../features/projects/components/ProjectW
 import { useLanguage } from '../features/language/LanguageContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
 import { localeForLanguage } from '../features/language/locale.js';
+import { languageOptions } from '../features/language/languages.js';
 
 export default function DashboardLayout() {
   useTranslation();
@@ -61,7 +63,7 @@ export default function DashboardLayout() {
 
       const viewportPadding = isMobile ? 12 : 14;
       const width = Math.min(380, window.innerWidth - viewportPadding * 2);
-      const preferredLeft = !isMobile && language === 'en' ? bellRect.right - width : bellRect.left;
+      const preferredLeft = !isMobile && language !== 'he' ? bellRect.right - width : bellRect.left;
       const left = Math.max(
         viewportPadding,
         Math.min(preferredLeft, window.innerWidth - width - viewportPadding),
@@ -138,24 +140,18 @@ export default function DashboardLayout() {
       }`}
     >
       <header className="topbar">
-        <div className="brand">
-          <img src="/logo.png" alt={t('לוגו')} />
-          <div>
-            <h1>{t('מערכת איתור תשתיות')}</h1>
-            <p>{t('מעקב פרויקטים לעובדי שטח, שרטוט, GPR והיתרים')}</p>
-          </div>
-        </div>
+        <AppBrand />
         <div className="userRow">
-          <label className="languageToggle" title={t('Language / שפה / Γλώσσα')}>
+          <label className="languageToggle" title={t('שפה')}>
             <Languages size={18} />
             <select
               value={language}
               onChange={(event) => setLanguage(event.target.value)}
-              aria-label={t('Language / שפה / Γλώσσα')}
+              aria-label={t('שפה')}
             >
-              <option value="he">{t('עברית')}</option>
-              <option value="en">English</option>
-              <option value="el">Ελληνικά</option>
+              {languageOptions.map(({ code, labelKey }) => (
+                <option key={code} value={code} lang={code}>{t(labelKey)}</option>
+              ))}
             </select>
           </label>
           <div className="notificationWrap">
@@ -178,7 +174,7 @@ export default function DashboardLayout() {
           </div>
           <button className="secondary" onClick={logout}>
             <LogOut size={16} />{' '}
-            {language === 'he' ? t('יציאה') : language === 'el' ? 'Αποσύνδεση' : 'Log out'}
+            {t('התנתקות')}
           </button>
         </div>
       </header>

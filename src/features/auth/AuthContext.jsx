@@ -53,6 +53,7 @@ export function AuthProvider({ children }) {
       const nextUserId = s?.user?.id ?? null;
       const userChanged = nextUserId !== sessionUserIdRef.current;
       sessionUserIdRef.current = nextUserId;
+      if (userChanged) setProfile(null);
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && userChanged) {
         setProfileLoading(Boolean(s?.user));
       } else if (event === 'SIGNED_OUT') {
@@ -121,14 +122,17 @@ export function AuthProvider({ children }) {
   async function login(email, password) {
     setAuthMessage('');
     if (!email || !password) {
-      setAuthMessage(t('יש למלא מייל וסיסמה.'));
+      setAuthMessage('clientLogin.required');
       return;
     }
     if (authBusy) return;
     setAuthBusy(true);
     try {
       const { error } = await authFeatureApi.signIn(email, password);
-      setAuthMessage(error ? translateAuthError(error.message) : t('התחברת בהצלחה.'));
+      setAuthMessage(error
+        ? error.message.toLowerCase().includes('invalid login credentials')
+          ? 'clientLogin.invalidCredentials' : translateAuthError(error.message)
+        : t('התחברת בהצלחה.'));
     } catch (error) {
       setAuthMessage(
         error?.name === 'AbortError'
@@ -181,6 +185,7 @@ export function AuthProvider({ children }) {
   const isManager = isManagerRole(profile?.role);
   const isAdmin = isAdminRole(profile?.role);
   const isDrafter = profile?.role === 'drafter';
+  const isDemo = profile?.role === 'demo';
   const isAccountingMain = profile?.role === 'accounting_main';
   const isAccounting = isAccountingMain || profile?.role === 'accounting';
 
@@ -195,6 +200,7 @@ export function AuthProvider({ children }) {
     isManager,
     isAdmin,
     isDrafter,
+    isDemo,
     isAccounting,
     isAccountingMain,
     login,

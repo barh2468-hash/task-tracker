@@ -17,7 +17,7 @@ export default function LoginForm({ passwordReset = false }) {
       <section className="card">
         <img src="/logo.png" alt={t('לוגו')} />
         <h1>{t('מערכת איתור תשתיות')}</h1>
-        <p className="muted">{t('כניסה מאובטחת עם מייל וסיסמה לעובדי שטח ומנהלים')}</p>
+        <p className="muted">{t('clientLogin.subtitle')}</p>
         <form
           className="form"
           style={{ marginTop: 22 }}
@@ -32,11 +32,16 @@ export default function LoginForm({ passwordReset = false }) {
             </p>
           )}
           <label>
-            {t('מייל ארגוני')}
+            {t('clientLogin.identifier')}
 
             <input
-              type="email"
-              placeholder="name@company.com"
+              type="text"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              dir="ltr"
+              required
+              placeholder={t('clientLogin.placeholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -47,7 +52,8 @@ export default function LoginForm({ passwordReset = false }) {
             <span className="loginPasswordField">
               <input
                 type={showLoginPassword ? 'text' : 'password'}
-                placeholder={t('לפחות 6 תווים')}
+                placeholder={t('סיסמה')}
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
@@ -64,17 +70,18 @@ export default function LoginForm({ passwordReset = false }) {
               </button>
             </span>
           </label>
-          <button
-            type="submit"
-            className="loginSubmit"
-            disabled={authBusy}
-          >
+          <button type="submit" className="loginSubmit" disabled={authBusy}>
             {authBusy ? t('מתחבר…') : t('כניסה למערכת')}
           </button>
           <Link className="authTextLink" to="/forgot-password">
             {t('שכחתי סיסמה')}
           </Link>
-          {authMessage && <p className="muted">{authMessage}</p>}
+          <p className="muted">{t('clientLogin.recoveryHelp')}</p>
+          {authMessage && (
+            <p className="muted" role="status">
+              {t(authMessage)}
+            </p>
+          )}
         </form>
       </section>
     </main>

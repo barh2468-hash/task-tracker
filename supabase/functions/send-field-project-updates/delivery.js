@@ -11,9 +11,13 @@ export async function deliverFieldUpdate({ job, client, sendEmail, sendPush, app
     if (result.error) throw result.error;
   }
   try {
+    const { data: worker, error } = await client.from('profiles').select('email,full_name,role').eq('id', job.recipient_id).single();
+    if (error) throw error;
+    if (worker?.role === 'demo') {
+      await finish(true);
+      return { ok: true, skipped: true };
+    }
     if (!emailSent) {
-      const { data: worker, error } = await client.from('profiles').select('email,full_name').eq('id', job.recipient_id).single();
-      if (error) throw error;
       if (!worker?.email) throw new Error('Employee email address is missing');
       const projectUrl = appUrl ? `${appUrl.replace(/\/$/, '')}/app/projects?project=${encodeURIComponent(job.project_id)}` : '';
       const result = await sendEmail({

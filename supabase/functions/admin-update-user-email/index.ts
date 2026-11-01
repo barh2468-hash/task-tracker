@@ -1,6 +1,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { ClientUserError, createClientUser } from './client-users.js';
 
 type AdminAction =
+  | 'create-client-user'
   | 'list-users'
   | 'update-user'
   | 'invite-user'
@@ -8,6 +10,7 @@ type AdminAction =
   | 'set-user-status';
 
 type Payload = {
+  username?: string;
   action?: AdminAction;
   userId?: string;
   email?: string;
@@ -39,10 +42,10 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const allowedRoles = new Set(['admin', 'manager', 'field_worker', 'drafter', 'accounting', 'accounting_main']);
+const allowedRoles = new Set(['admin', 'manager', 'field_worker', 'drafter', 'accounting', 'accounting_main', 'demo']);
 
 const json = (body: unknown, status = 200) =>
-  Response.json(body, { status, headers: corsHeaders });
+  Response.json(body, { status, headers: { ...corsHeaders, 'Cache-Control': 'no-store' } });
 
 const isUuid = (value: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -142,6 +145,7 @@ Deno.serve(async (req) => {
 
     // Older clients omitted the action because this function originally updated email only.
     const action = payload.action || 'update-user';
+    if (action === 'create-client-user') return json(await createClientUser(adminClient, payload));
 
     if (action === 'list-users') {
       const [{ data: profileRows, error: profilesError }, { data: authUsers, error: usersError }] =
@@ -330,7 +334,7 @@ Deno.serve(async (req) => {
 
     return json({ ok: true, profile: updatedProfile });
   } catch (error) {
-    const status = error instanceof HttpError ? error.status : 500;
+    const status = error instanceof HttpError || error instanceof ClientUserError ? error.status : 500;
     const message = error instanceof Error ? error.message : 'Unexpected error';
     if (status >= 500) console.error('Admin user operation failed', message);
     return json({ error: message }, status);

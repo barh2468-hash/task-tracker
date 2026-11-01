@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { elTranslations, enTranslations, heTranslations } from './resources.js';
+import { elTranslations, enTranslations, heTranslations, ptTranslations } from './resources.js';
+import { supportedLanguages } from './languages.js';
 
 const LanguageContext = createContext(null);
 
@@ -11,20 +12,25 @@ if (!i18n.isInitialized) {
       he: { translation: heTranslations },
       en: { translation: enTranslations },
       el: { translation: elTranslations },
+      pt: { translation: ptTranslations },
     },
     lng: localStorage.getItem('maya-language') || 'he',
     fallbackLng: 'he',
     keySeparator: false,
+    nsSeparator: false,
     interpolation: { escapeValue: false },
     react: { useSuspense: false },
   });
 } else {
+  // Full translation keys may contain literal colons, including after hot updates.
+  i18n.options.nsSeparator = false;
   // Vite preserves the i18next singleton during hot updates. Register the
   // latest dictionaries too, so open tabs see newly added or changed keys.
   for (const [language, translations] of Object.entries({
     he: heTranslations,
     en: enTranslations,
     el: elTranslations,
+    pt: ptTranslations,
   })) {
     i18n.addResourceBundle(language, 'translation', translations, true, true);
   }
@@ -62,7 +68,7 @@ function applyDocumentLanguage(language) {
 
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState(() =>
-    ['he', 'en', 'el'].includes(localStorage.getItem('maya-language'))
+    supportedLanguages.includes(localStorage.getItem('maya-language'))
       ? localStorage.getItem('maya-language')
       : 'he',
   );
@@ -72,7 +78,7 @@ export function LanguageProvider({ children }) {
   }, [language]);
 
   const changeLanguage = useCallback(async (nextLanguage) => {
-    if (!['he', 'en', 'el'].includes(nextLanguage) || nextLanguage === i18n.language) return;
+    if (!supportedLanguages.includes(nextLanguage) || nextLanguage === i18n.language) return;
     await i18n.changeLanguage(nextLanguage);
     applyDocumentLanguage(nextLanguage);
     setLanguage(nextLanguage);

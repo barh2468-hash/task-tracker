@@ -1,5 +1,6 @@
 import * as authApi from '../../services/api/auth.js';
 import * as profilesApi from '../../services/api/profiles.js';
+import { clientUsernameFromEmail } from '../../../supabase/functions/_shared/client-login.js';
 
 export function signIn(email, password) {
   return authApi.signInWithPassword(email, password);
@@ -42,6 +43,9 @@ export async function getOrCreateProfile(user) {
   }
 
   if (!prof && !error) {
+    if (clientUsernameFromEmail(user.email)) {
+      return { profile: null, error: { message: 'clientLogin.profileMissing' } };
+    }
     const fullNameFromAuth = user.user_metadata?.full_name || user.email?.split('@')[0] || 'עובד שטח';
     const created = await profilesApi.createProfile({
       id: user.id,

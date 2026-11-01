@@ -52,6 +52,10 @@ export function inviteManagedUser(body) {
   return invoke('admin-update-user-email', { action: 'invite-user', ...body });
 }
 
+export function createManagedClientUser(username) {
+  return invoke('admin-update-user-email', { action: 'create-client-user', username });
+}
+
 export function sendManagedUserPasswordReset(body) {
   return invoke('admin-update-user-email', { action: 'send-password-reset', ...body });
 }

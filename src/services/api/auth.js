@@ -1,4 +1,5 @@
 import { supabase } from '../supabase.js';
+import { resolveLoginIdentifier } from '../../../supabase/functions/_shared/client-login.js';
 
 export function getSession() {
   return supabase.auth.getSession();
@@ -14,7 +15,9 @@ export async function getCurrentUser() {
 }
 
 export function signInWithPassword(email, password) {
-  return supabase.auth.signInWithPassword({ email, password });
+  const identifier = resolveLoginIdentifier(email);
+  if (!identifier) return Promise.resolve({ data: { user: null, session: null }, error: { message: 'Invalid login credentials' } });
+  return supabase.auth.signInWithPassword({ email: identifier, password });
 }
 
 export function requestPasswordReset(email, redirectTo) {

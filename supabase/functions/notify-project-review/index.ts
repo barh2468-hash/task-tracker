@@ -36,6 +36,7 @@ function uniqueEmails(rows: Array<{ email?: string | null }>) {
 }
 
 function isDrafterCandidate(profile: { role?: string | null; full_name?: string | null }) {
+  if (profile.role === 'demo') return false;
   if (profile.role === 'drafter') return true;
   return /(^|\s)(דודי|dudi|dudy)(\s|$)/i.test(String(profile.full_name || '').trim());
 }

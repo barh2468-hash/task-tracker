@@ -40,6 +40,12 @@ Deno.serve(async (req) => {
     const { data: userData, error: userError } = await userClient.auth.getUser();
     if (userError || !userData.user) throw new Error('Unauthorized');
 
+    const { data: requester, error: requesterError } = await userClient
+      .from('profiles').select('role').eq('id', userData.user.id).maybeSingle();
+    if (requesterError || !requester || requester.role === 'demo') {
+      return Response.json({ error: 'Staff access required' }, { status: 403, headers: corsHeaders });
+    }
+
     const payload = (await req.json()) as Payload;
     let title = String(payload.title || '')
       .trim()

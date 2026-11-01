@@ -1,3 +1,3 @@
 export function localeForLanguage(language) {
-  return language === 'he' ? 'he-IL' : language === 'el' ? 'el-GR' : 'en-GB';
+  return { he: 'he-IL', en: 'en-GB', el: 'el-GR', pt: 'pt-PT' }[language] || 'en-GB';
 }

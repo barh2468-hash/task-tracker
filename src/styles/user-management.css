@@ -314,3 +314,11 @@ html[dir='ltr'] .userManagementEmailSummary bdi { justify-self: stretch; text-al
   .userManagementRowActions,
   .userManagementEditActions { width: 100%; justify-self: stretch; }
 }
+.clientUserCreatePanel h3{display:flex;align-items:center;gap:10px}
+.clientUserCreatePanel form{display:grid;gap:14px;max-width:680px}
+.clientUserCreatePanel form button{justify-self:start}
+.clientUserCredentials{padding:18px;background:#edf7f2;border:1px solid #c3dfd0;border-radius:14px;overflow-wrap:anywhere}
+.clientUserCredentials dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px 20px;line-height:1.6}
+.clientUserCredentials dd{margin:0;min-width:0;user-select:all}
+.clientUserCredentials code{display:inline-block;overflow-wrap:anywhere;font-size:14px}
+@media(max-width:600px){.clientUserCredentials dl{grid-template-columns:1fr;gap:5px}.clientUserCredentials dd{margin-bottom:10px}}

@@ -26,6 +26,9 @@ import {
   updateManagedUser,
 } from '../services/api/edgeFunctions.js';
 import { roleLabel } from '../services/supabase.js';
+import DemoManagement from '../features/demo/DemoManagement.jsx';
+import CreateClientUser from '../features/users/CreateClientUser.jsx';
+import { clientUsernameFromEmail } from '../../supabase/functions/_shared/client-login.js';
 import '../styles/user-management.css';
 
 const roleOptions = Object.keys(roleLabel);
@@ -297,6 +300,11 @@ export default function UserManagementPage() {
 
   return (
     <div className="userManagementPage">
+      <DemoManagement usersRevision={profiles} />
+      <CreateClientUser onCreated={(created) => {
+        setProfiles((current) => sortProfiles([...current, created]));
+        setDrafts((current) => ({ ...current, [created.id]: createProfileDraft(created) }));
+      }} />
       <section className="userManagementIntro">
         <span className="userManagementIntroIcon"><ShieldCheck size={26} aria-hidden="true" /></span>
         <div>
@@ -411,6 +419,7 @@ export default function UserManagementPage() {
             const busy = busyId === profile.id;
             const editing = editingId === profile.id;
             const editingSelf = signedInProfile?.id === profile.id;
+            const clientUsername = clientUsernameFromEmail(profile.email);
             return (
               <form
                 className={`userManagementCard${editing ? ' editing' : ''}`}
@@ -447,7 +456,9 @@ export default function UserManagementPage() {
                     </div>
                   </div>
                 </div>
-                {editing ? (
+                {clientUsername ? (
+                  <div className="userManagementEmailSummary"><span><UserRound size={16} aria-hidden="true" />{t('clientLogin.username')}</span><bdi dir="ltr">{clientUsername}</bdi></div>
+                ) : editing ? (
                   <label className="userManagementEmail">
                     <span><Mail size={16} aria-hidden="true" /> {t('כתובת דוא״ל')}</span>
                     <input
@@ -475,13 +486,14 @@ export default function UserManagementPage() {
                     <select
                       value={draft.role}
                       onChange={(event) => updateDraft(profile.id, 'role', event.target.value)}
-                      disabled={busy || editingSelf}
+                      disabled={busy || editingSelf || Boolean(clientUsername)}
                     >
                       {roleOptions.map((role) => (
                         <option key={role} value={role}>{t(roleLabel[role])}</option>
                       ))}
                     </select>
                     {editingSelf && <small>{t('לא ניתן לשנות את התפקיד של החשבון שלך.')}</small>}
+                    {clientUsername && <small>{t('clientLogin.fixedRole')}</small>}
                   </label>
                 ) : (
                   <div className="userManagementRoleSummary">
@@ -517,7 +529,8 @@ export default function UserManagementPage() {
                       type="button"
                       className="secondary userManagementResetButton"
                       onClick={() => sendPasswordReset(profile)}
-                      disabled={Boolean(busyId) || !profile.email || profile.account_status !== 'active'}
+                      disabled={Boolean(busyId) || !profile.email || profile.account_status !== 'active' || Boolean(clientUsername)}
+                      title={clientUsername ? t('clientLogin.recoveryHelp') : undefined}
                     >
                       <KeyRound size={15} aria-hidden="true" />
                       {busy ? t('שולח…') : t('איפוס סיסמה')}

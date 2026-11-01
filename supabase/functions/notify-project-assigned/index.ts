@@ -1,5 +1,14 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sendEmail } from '../_shared/smtp.ts';
+import { getStatusEmailTheme } from '../_shared/status-email-theme.ts';
+import {
+  escapeHtml,
+  executionStartLine,
+  getExecutionStartDate,
+  highlightBlock,
+  noteBlock,
+  renderProjectEmail,
+} from '../_shared/project-email.ts';
 
 type Payload = {
   workerId: string;
@@ -18,15 +27,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
-
-function escapeHtml(value: unknown) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -78,29 +78,44 @@ Deno.serve(async (req) => {
     }
 
     const isDrafterAssignment = worker.role === 'drafter';
-    const subject = isDrafterAssignment
-      ? `שויך אליך פרויקט לשרטוט: ${payload.projectName}`
-      : `שויך אליך פרויקט חדש: ${payload.projectName}`;
+    const title = isDrafterAssignment ? 'שויך אליך פרויקט לשרטוט' : 'שויך אליך פרויקט חדש';
+    const subject = `${title}: ${payload.projectName}`;
     const assignedBy = payload.assignedByName || requester.full_name || 'מנהל מערכת';
-    const html = `
-      <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.7;color:#0b1b3a">
-        <h2 style="margin:0 0 12px">${isDrafterAssignment ? 'שויך אליך פרויקט לשרטוט' : 'שויך אליך פרויקט חדש'}</h2>
-        <p>שלום ${escapeHtml(worker.full_name || worker.email)},</p>
-        <p>מנהל המערכת ${escapeHtml(assignedBy)} שייך אליך ${isDrafterAssignment ? 'פרויקט לטיפול בשרטוט' : 'פרויקט'} במערכת איתור התשתיות.</p>
-        <p><b>פרויקט:</b> ${escapeHtml(payload.projectName)}</p>
-        <p><b>לקוח:</b> ${escapeHtml(payload.clientName || 'לא צוין')}</p>
-        <p><b>מיקום:</b> ${escapeHtml(payload.location || 'לא צוין')}</p>
-        ${payload.description ? `<p><b>תיאור:</b> ${escapeHtml(payload.description)}</p>` : ''}
-        ${payload.dueDate ? `<p><b>תאריך יעד:</b> ${escapeHtml(payload.dueDate)}</p>` : ''}
-        ${payload.appUrl ? `<p><a href="${escapeHtml(payload.appUrl)}" style="color:#0b5fff">פתיחת המערכת</a></p>` : ''}
-      </div>`;
+    const executionStartDate = isDrafterAssignment
+      ? await getExecutionStartDate(adminClient, payload.projectId)
+      : null;
+    const theme = getStatusEmailTheme(isDrafterAssignment ? 'עבר לשרטוט' : 'בעבודה בשטח');
+
+    const html = renderProjectEmail({
+      theme,
+      title,
+      projectName: payload.projectName,
+      clientName: payload.clientName,
+      location: payload.location,
+      blocks: [
+        highlightBlock(
+          theme,
+          `<b>שלום ${escapeHtml(worker.full_name || worker.email)}</b><br/>
+                      ${escapeHtml(assignedBy)} שייך אליך ${isDrafterAssignment ? 'פרויקט לטיפול בשרטוט' : 'פרויקט'} במערכת איתור התשתיות.
+                      ${isDrafterAssignment ? `<br/><span style="font-size:13px">${escapeHtml(executionStartLine(executionStartDate))}</span>` : ''}`,
+        ),
+        payload.description ? noteBlock('תיאור הפרויקט', escapeHtml(payload.description)) : '',
+      ],
+      details: [
+        { label: 'שויך על ידי', value: requester.email ? `${assignedBy} · ${requester.email}` : assignedBy },
+        ...(payload.dueDate ? [{ label: 'תאריך יעד', value: payload.dueDate }] : []),
+      ],
+      appUrl: payload.appUrl,
+    });
 
     const text = [
-      isDrafterAssignment ? 'שויך אליך פרויקט לשרטוט' : 'שויך אליך פרויקט חדש',
+      title,
       `פרויקט: ${payload.projectName}`,
       `לקוח: ${payload.clientName || 'לא צוין'}`,
       `מיקום: ${payload.location || 'לא צוין'}`,
+      isDrafterAssignment ? executionStartLine(executionStartDate) : '',
       payload.description ? `תיאור: ${payload.description}` : '',
+      `שויך על ידי: ${assignedBy}`,
       payload.dueDate ? `תאריך יעד: ${payload.dueDate}` : '',
       payload.appUrl ? `מערכת: ${payload.appUrl}` : ''
     ].filter(Boolean).join('\n');

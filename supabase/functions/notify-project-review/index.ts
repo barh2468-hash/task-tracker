@@ -1,5 +1,14 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sendEmail } from '../_shared/smtp.ts';
+import { getStatusEmailTheme } from '../_shared/status-email-theme.ts';
+import {
+  escapeHtml,
+  executionStartLine,
+  getExecutionStartDate,
+  highlightBlock,
+  noteBlock,
+  renderProjectEmail,
+} from '../_shared/project-email.ts';
 
 type Payload = {
   projectId: string;
@@ -21,15 +30,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
-
-function escapeHtml(value: unknown) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
 
 function uniqueEmails(rows: Array<{ email?: string | null }>) {
   return Array.from(new Set(rows.map((row) => row.email).filter(Boolean))) as string[];
@@ -131,39 +131,54 @@ Deno.serve(async (req) => {
       reviewFileLinks.push({ name: file.name, url: signed?.signedUrl || '' });
     }
 
-    const htmlFileLinks = reviewFileLinks.length
-      ? `<div><b>קובצי PDF:</b><ul>${reviewFileLinks
-          .map(
-            (file) =>
-              `<li>${
-                file.url
-                  ? `<a href="${escapeHtml(file.url)}" style="color:#0b5fff">${escapeHtml(file.name)}</a>`
-                  : escapeHtml(file.name)
-              }</li>`,
-          )
-          .join('')}</ul></div>`
-      : '';
+    const htmlFileLinks = reviewFileLinks
+      .map(
+        (file) =>
+          `<div style="padding:3px 0">📄 ${
+            file.url
+              ? `<a href="${escapeHtml(file.url)}" style="color:#0b5fff;font-weight:700;text-decoration:none">${escapeHtml(file.name)}</a>`
+              : escapeHtml(file.name)
+          }</div>`,
+      )
+      .join('');
 
     const subject = `נשלח להגהה: ${payload.projectName}`;
     const changedBy = payload.changedByName || requester.full_name || 'שרטט';
-    const html = `
-      <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.7;color:#0b1b3a">
-        <h2 style="margin:0 0 12px">פרויקט נשלח להגהה</h2>
-        <p>${escapeHtml(changedBy)} העביר את הפרויקט לסטטוס <b>נשלח להגהה</b>.</p>
-        <p><b>פרויקט:</b> ${escapeHtml(payload.projectName)}</p>
-        <p><b>לקוח:</b> ${escapeHtml(payload.clientName || project.client_name || 'לא צוין')}</p>
-        <p><b>מיקום:</b> ${escapeHtml(payload.location || project.location || 'לא צוין')}</p>
-        ${payload.contactPhone || project.contact_phone ? `<p><b>טלפון איש קשר:</b> ${escapeHtml(payload.contactPhone || project.contact_phone)}</p>` : ''}
-        ${htmlFileLinks}
-        ${payload.note ? `<p><b>הערה:</b> ${escapeHtml(payload.note)}</p>` : ''}
-        ${payload.appUrl ? `<p><a href="${escapeHtml(payload.appUrl)}" style="color:#0b5fff">פתיחת המערכת</a></p>` : ''}
-      </div>`;
+    const clientName = payload.clientName || project.client_name;
+    const location = payload.location || project.location;
+    const contactPhone = payload.contactPhone || project.contact_phone;
+    const executionStartDate = await getExecutionStartDate(adminClient, payload.projectId);
+    const theme = getStatusEmailTheme('נשלח להגהה');
+
+    const html = renderProjectEmail({
+      theme,
+      title: 'פרויקט נשלח להגהה',
+      projectName: payload.projectName,
+      clientName,
+      location,
+      blocks: [
+        highlightBlock(
+          theme,
+          `<b>${escapeHtml(changedBy)} העביר את הפרויקט לסטטוס נשלח להגהה</b><br/>
+                      <span style="font-size:13px">${escapeHtml(executionStartLine(executionStartDate))}</span>`,
+        ),
+        htmlFileLinks ? noteBlock('קובצי PDF להגהה', htmlFileLinks) : '',
+        payload.note ? noteBlock('הערה', escapeHtml(payload.note)) : '',
+      ],
+      details: [
+        { label: 'הועבר על ידי', value: payload.changedByEmail ? `${changedBy} · ${payload.changedByEmail}` : changedBy },
+        ...(contactPhone ? [{ label: 'טלפון איש קשר', value: contactPhone }] : []),
+      ],
+      appUrl: payload.appUrl,
+    });
 
     const text = [
       'פרויקט נשלח להגהה',
       `פרויקט: ${payload.projectName}`,
-      `לקוח: ${payload.clientName || project.client_name || 'לא צוין'}`,
-      `מיקום: ${payload.location || project.location || 'לא צוין'}`,
+      `לקוח: ${clientName || 'לא צוין'}`,
+      `מיקום: ${location || 'לא צוין'}`,
+      executionStartLine(executionStartDate),
+      contactPhone ? `טלפון איש קשר: ${contactPhone}` : '',
       `הועבר על ידי: ${changedBy}`,
       ...reviewFileLinks.map((file) => `PDF: ${file.name}${file.url ? ` — ${file.url}` : ''}`),
       payload.note ? `הערה: ${payload.note}` : '',

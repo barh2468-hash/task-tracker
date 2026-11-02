@@ -51,6 +51,7 @@ const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesP
 const AccountingYearEndPage = lazy(() => import('./routes/AccountingYearEndPage.jsx'));
 const AccountingFuelPage = lazy(() => import('./routes/AccountingFuelPage.jsx'));
 const AccountingTollsPage = lazy(() => import('./routes/AccountingTollsPage.jsx'));
+const AccountingIturanPage = lazy(() => import('./routes/AccountingIturanPage.jsx'));
 const ManholeLayoutPage = lazy(() => import('./routes/ManholeLayoutPage.jsx'));
 const VehiclesPage = lazy(() => import('./routes/VehiclesPage.jsx'));
 const MyVehiclePage = lazy(() => import('./routes/MyVehiclePage.jsx'));
@@ -389,6 +390,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<LoadingScreen />}>
                       <AccountingTollsPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="accounting/ituran"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <AccountingIturanPage />
                     </Suspense>
                   }
                 />

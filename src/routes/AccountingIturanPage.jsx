@@ -1,0 +1,115 @@
+import { useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { AlertTriangle, MapPin, Upload } from 'lucide-react';
+import { t } from '../features/language/LanguageContext.jsx';
+import AccountingGuide from '../features/accounting/components/AccountingGuide.jsx';
+import JournalView from '../features/accounting/components/JournalView.jsx';
+import { ITURAN_GUIDE } from '../features/accounting/guides.js';
+import { extractPdfLines } from '../features/accounting/fuel/parseDelekReport.js';
+import { parseIturanPages } from '../features/accounting/ituran/parseIturanInvoice.js';
+import { buildIturanJournal } from '../features/accounting/ituran/buildIturanJournal.js';
+import { loadManualMap, saveManualMap } from '../features/accounting/fuel/cardMap.js';
+import { SEED_VEHICLE_CARDS } from '../features/accounting/fuel/fuelConfig.js';
+
+export default function AccountingIturanPage() {
+  useTranslation();
+  const inputRef = useRef(null);
+  const [invoices, setInvoices] = useState([]);
+  const [sapNumbers, setSapNumbers] = useState({});
+  const [manualMap, setManualMap] = useState(loadManualMap);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const journals = useMemo(() => {
+    const cardFor = (plateDigits) => manualMap[plateDigits] || SEED_VEHICLE_CARDS[plateDigits] || '';
+    return invoices.map(({ fileName, invoice }) => ({
+      fileName,
+      journal: buildIturanJournal(invoice, cardFor, sapNumbers[invoice.invoiceNumber]),
+    }));
+  }, [invoices, manualMap, sapNumbers]);
+
+  async function onFiles(event) {
+    const files = [...(event.target.files || [])];
+    if (!files.length) return;
+    setBusy(true);
+    setError('');
+    setInvoices([]);
+    try {
+      const parsed = [];
+      for (const file of files) {
+        if (!/\.pdf$/i.test(file.name)) throw new Error(`${file.name}: יש לבחור קובצי PDF של חשבוניות איתוראן.`);
+        try {
+          parsed.push({ fileName: file.name, invoice: parseIturanPages(await extractPdfLines(file)) });
+        } catch (caught) {
+          throw new Error(`${file.name}: ${caught.message || 'שגיאה בקריאת הקובץ.'}`);
+        }
+      }
+      const seen = new Set();
+      for (const { fileName, invoice } of parsed) {
+        if (seen.has(invoice.invoiceNumber)) throw new Error(`חשבונית ${invoice.invoiceNumber} הועלתה פעמיים (${fileName}).`);
+        seen.add(invoice.invoiceNumber);
+      }
+      setInvoices(parsed);
+    } catch (caught) {
+      setError(caught.message || 'שגיאה בקריאת הקובץ.');
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  }
+
+  function saveCard(plateDigits, card) {
+    const next = { ...manualMap, [plateDigits]: card };
+    setManualMap(next);
+    saveManualMap(next);
+  }
+
+  return (
+    <div className="equipmentPage">
+      <section className="equipmentHero">
+        <div className="equipmentHeroCopy">
+          <span className="equipmentHeroIcon"><MapPin size={26} /></span>
+          <div>
+            <h2>{t('איתוראן — יבוא תנועות יומן לסאפ')}</h2>
+            <p>{t('מעלים את חשבונית המס של איתוראן (PDF), אפשר כמה חשבוניות יחד, ומקבלים את קבצי היבוא לסאפ.')}</p>
+          </div>
+        </div>
+        <label className={`equipmentImportButton${busy ? ' importing' : ''}`}>
+          <Upload size={18} />
+          <span>{busy ? t('מעבד...') : t('העלאת חשבוניות איתוראן')}</span>
+          <input ref={inputRef} type="file" accept=".pdf,application/pdf" multiple disabled={busy} onChange={onFiles} />
+        </label>
+      </section>
+
+      <AccountingGuide guide={ITURAN_GUIDE} />
+
+      {error && (
+        <div className="equipmentNotice error" role="alert">
+          <AlertTriangle size={20} />
+          <div>
+            <b>{t('לא ניתן להשלים את הפעולה')}</b>
+            <span>{error}</span>
+          </div>
+        </div>
+      )}
+
+      {journals.map(({ fileName, journal }) => (
+        <div key={journal.invoiceNumber} style={{ display: 'contents' }}>
+          <section className="card" style={{ padding: 18, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <label htmlFor={`sap-${journal.invoiceNumber}`}>
+              <b>{t('מספר החשבונית בסאפ')}</b> ({t('חשבונית')} {journal.invoiceNumber}) — {t('אסמכתא')} 2
+            </label>
+            <input
+              id={`sap-${journal.invoiceNumber}`}
+              value={sapNumbers[journal.invoiceNumber] || ''}
+              onChange={(event) => setSapNumbers({ ...sapNumbers, [journal.invoiceNumber]: event.target.value.replace(/\D/g, '') })}
+              inputMode="numeric"
+              style={{ width: 160 }}
+            />
+          </section>
+          <JournalView journal={journal} fileName={fileName} onSaveCard={saveCard} />
+        </div>
+      ))}
+    </div>
+  );
+}

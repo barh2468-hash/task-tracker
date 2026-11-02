@@ -55,3 +55,8 @@ export const SEED_VEHICLE_CARDS = {
 export const TOLL_SUPPLIER_CARD = '5214'; // כביש 6 — ספק
 export const TOLL_SUPPLIER_ACCOUNT_TYPE = 'BP';
 export const TOLL_REMARK_PREFIX = 'חש.כביש 6';
+
+// Ituran (vehicle tracking subscriptions). Same vehicle/VAT/truck rules as the tolls.
+export const ITURAN_SUPPLIER_CARD = '5931'; // איתוראן — ספק
+export const ITURAN_SUPPLIER_ACCOUNT_TYPE = 'BP';
+export const ITURAN_REMARK = 'חשבונית איתורן';

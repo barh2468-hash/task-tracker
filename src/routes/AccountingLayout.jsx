@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, Car, LogOut, FileSpreadsheet, Fuel, Route, X } from 'lucide-react';
+import { CheckCircle, Car, LogOut, FileSpreadsheet, Fuel, MapPin, Route, X } from 'lucide-react';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useAuth } from '../features/auth/useAuth.js';
 import { MessageProvider, useMessage } from '../context/MessageContext.jsx';
@@ -36,6 +36,9 @@ function AccountingLayoutContent() {
         </NavLink>
         <NavLink to="/app/accounting/tolls" className={({ isActive }) => `accountingTab${isActive ? ' active' : ''}`}>
           <Route size={16} /> {t('כביש 6 — יבוא לסאפ')}
+        </NavLink>
+        <NavLink to="/app/accounting/ituran" className={({ isActive }) => `accountingTab${isActive ? ' active' : ''}`}>
+          <MapPin size={16} /> {t('איתוראן — יבוא לסאפ')}
         </NavLink>
         <NavLink to="/app/my-vehicle" className={({ isActive }) => `accountingTab${isActive ? ' active' : ''}`}>
           <Car size={16} /> {t('הרכב שלי')}

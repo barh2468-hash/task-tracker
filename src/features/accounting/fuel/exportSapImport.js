@@ -16,6 +16,7 @@ export function entriesToRows(entries) {
     h[3] = entry.due;
     h[4] = entry.document;
     h[5] = entry.remarks;
+    h[9] = entry.ref1 || '';
     h[10] = entry.ref2;
     h[11] = entry.ref3 || '';
     h[12] = entry.vat;

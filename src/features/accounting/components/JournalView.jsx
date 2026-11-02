@@ -11,6 +11,7 @@ const JOURNAL_LABELS = {
   fuel: { heading: 'דלק', invoice: 'חשבונית ריכוז דלק', total: 'סה"כ ריכוז דלק', file: 'fuel' },
   wash: { heading: 'שטיפומט — שטיפות', invoice: 'חשבונית שטיפומט', total: 'סה"כ חשבונית שטיפומט', file: 'wash' },
   toll: { heading: 'כביש 6 — חשבונית מס', invoice: 'חשבונית מס', total: 'סה"כ כולל מע"מ', file: 'toll' },
+  ituran: { heading: 'איתוראן — חשבונית מס', invoice: 'חשבונית איתוראן', total: 'סה"כ לתשלום', file: 'ituran' },
 };
 
 // Several invoices of the same kind can be open at once (journal.fileTag keeps their files apart).
@@ -136,7 +137,7 @@ export default function JournalView({ journal, fileName, onSaveCard }) {
             <span>
               <b>{index + 1}. {t('שלב')} {entry.step} · {entry.title}</b>
               <small style={{ display: 'block', color: '#52677d' }}>
-                {t('אסמכתא')} 2: {entry.ref2}{entry.ref3 ? ` · ${t('אסמכתא')} 3 (${t('הקצאה')}): ${entry.ref3}` : ''} · {entry.remarks} · {entry.posting} → {entry.due}
+                {entry.ref1 ? `${t('אסמכתא')} 1: ${entry.ref1} · ` : ''}{t('אסמכתא')} 2: {entry.ref2}{entry.ref3 ? ` · ${t('אסמכתא')} 3 (${t('הקצאה')}): ${entry.ref3}` : ''} · {entry.remarks} · {entry.posting} → {entry.due}
               </small>
             </span>
             <span style={{ display: 'inline-flex', gap: 6 }}>

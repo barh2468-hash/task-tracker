@@ -19,11 +19,24 @@ import { balanceCheck, money, pad, sapDate } from '../fuel/journalCommon.js';
  * alone with the full VAT, then the general-vehicle card is split over the
  * vehicles (the last vehicle takes the balance).
  */
-export function buildTollJournal(invoice, cardFor) {
-  const { invoiceNumber, allocationNumber, issueDate, taxableCents, vatCents, totalCents, vehicles } = invoice;
+const TOLL_OPTIONS = {
+  kind: 'toll',
+  supplierName: 'כביש 6 (דרך ארץ הייווייז) — ספק',
+  supplierCard: TOLL_SUPPLIER_CARD,
+  supplierType: TOLL_SUPPLIER_ACCOUNT_TYPE,
+  remark: (issueDate) => `${TOLL_REMARK_PREFIX} ${pad(issueDate.month)}.${String(issueDate.year).slice(2)}`,
+  // Reference 2 = invoice number (trucks: its last digits), reference 3 = allocation number.
+  refs: ({ invoiceNumber, allocationNumber }, truckCfg) => ({
+    ref2: truckCfg ? invoiceNumber.replace(/\D/g, '').slice(-truckCfg.refDigits) : invoiceNumber,
+    ref3: allocationNumber,
+  }),
+};
+
+export function buildTollJournal(invoice, cardFor, options = TOLL_OPTIONS) {
+  const { invoiceNumber, issueDate, taxableCents, vatCents, totalCents, vehicles } = invoice;
   const dateText = sapDate(issueDate);
-  const remark = `${TOLL_REMARK_PREFIX} ${pad(issueDate.month)}.${String(issueDate.year).slice(2)}`;
-  const header = (ref2) => ({ posting: dateText, due: dateText, document: dateText, vat: dateText, remarks: remark, ref2, ref3: allocationNumber });
+  const remark = options.remark(issueDate);
+  const header = (truckCfg) => ({ posting: dateText, due: dateText, document: dateText, vat: dateText, remarks: remark, ...options.refs(invoice, truckCfg) });
   const invoiceDigits = invoiceNumber.replace(/\D/g, '');
 
   // A vehicle can appear on more than one row; sum per vehicle, keeping invoice order.
@@ -48,17 +61,17 @@ export function buildTollJournal(invoice, cardFor) {
   const generalVatCents = Math.round((vatCents - truckVatCents) * RECOGNIZED_VAT_FRACTION);
   const generalExpenseCents = generalInclCents - generalVatCents;
 
-  const supplierName = 'כביש 6 (דרך ארץ הייווייז) — ספק';
+  const { supplierName, supplierCard, supplierType } = options;
   const entries = [
     {
       step: 1,
       key: 'general',
       title: 'פקודה כללית — רכבים כלליים',
-      ...header(invoiceNumber),
+      ...header(null),
       lines: [
         { type: 'GL', code: GENERAL_VEHICLE_CARD, name: 'רכב כללי', debit: generalExpenseCents },
         { type: 'GL', code: VAT_INPUT_CARD, name: 'מע"מ תשומות', debit: generalVatCents },
-        { type: TOLL_SUPPLIER_ACCOUNT_TYPE, code: TOLL_SUPPLIER_CARD, name: supplierName, credit: generalInclCents },
+        { type: supplierType, code: supplierCard, name: supplierName, credit: generalInclCents },
       ],
     },
   ];
@@ -69,11 +82,11 @@ export function buildTollJournal(invoice, cardFor) {
       step: 1,
       key: `truck-${truck.plateDigits}`,
       title: `${cfg.name} — ${truck.plate}`,
-      ...header(invoiceDigits.slice(-cfg.refDigits)),
+      ...header(cfg),
       lines: [
         { type: 'GL', code: cfg.card, name: cfg.name, debit: truck.exVatCents },
         { type: 'GL', code: VAT_INPUT_CARD, name: 'מע"מ תשומות', debit: truck.vatCents },
-        { type: TOLL_SUPPLIER_ACCOUNT_TYPE, code: TOLL_SUPPLIER_CARD, name: supplierName, credit: truck.inclVatCents },
+        { type: supplierType, code: supplierCard, name: supplierName, credit: truck.inclVatCents },
       ],
     });
   }
@@ -93,7 +106,7 @@ export function buildTollJournal(invoice, cardFor) {
     step: 2,
     key: 'split',
     title: 'פיצול רכב כללי לכרטיסי הרכבים',
-    ...header(invoiceNumber),
+    ...header(null),
     lines: [
       { type: 'GL', code: GENERAL_VEHICLE_CARD, name: 'רכב כללי', debit: -generalExpenseCents },
       ...rows.map((row) => ({ type: 'GL', code: row.code, name: `רכב ${row.plate}`, debit: row.cents })),
@@ -116,6 +129,7 @@ export function buildTollJournal(invoice, cardFor) {
       label: `המע"מ בחשבונית (${money(vatCents)}) = ${VAT_RATE_PERCENT}% מהסכום לפני מע"מ (${money(expectedVat)})`,
     },
     ...entries.map(balanceCheck),
+    ...(options.extraChecks ? options.extraChecks(invoice) : []),
     {
       ok: unmappedPlates.length === 0,
       label: unmappedPlates.length ? `${unmappedPlates.length} רכבים ללא כרטיס` : 'לכל הרכבים יש כרטיס',
@@ -124,7 +138,7 @@ export function buildTollJournal(invoice, cardFor) {
   if (lastRow && lastRow.cents < 0) checks.push({ ok: false, label: 'הרכב האחרון יצא בסכום שלילי' });
 
   return {
-    kind: 'toll',
+    kind: options.kind,
     fileTag: invoiceDigits,
     entries,
     checks,

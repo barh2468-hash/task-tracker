@@ -19,6 +19,7 @@ export default function AccountingIturanPage() {
   const [manualMap, setManualMap] = useState(loadManualMap);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [dragging, setDragging] = useState(false);
 
   const journals = useMemo(() => {
     const cardFor = (plateDigits) => manualMap[plateDigits] || SEED_VEHICLE_CARDS[plateDigits] || '';
@@ -28,8 +29,7 @@ export default function AccountingIturanPage() {
     }));
   }, [invoices, manualMap, sapNumbers]);
 
-  async function onFiles(event) {
-    const files = [...(event.target.files || [])];
+  async function loadFiles(files) {
     if (!files.length) return;
     setBusy(true);
     setError('');
@@ -58,6 +58,15 @@ export default function AccountingIturanPage() {
     }
   }
 
+  const onFiles = (event) => loadFiles([...(event.target.files || [])]);
+
+  // Dragging an attachment straight from Outlook into the page works like choosing the file.
+  function onDrop(event) {
+    event.preventDefault();
+    setDragging(false);
+    if (!busy) loadFiles([...event.dataTransfer.files]);
+  }
+
   function saveCard(plateDigits, card) {
     const next = { ...manualMap, [plateDigits]: card };
     setManualMap(next);
@@ -66,12 +75,21 @@ export default function AccountingIturanPage() {
 
   return (
     <div className="equipmentPage">
-      <section className="equipmentHero">
+      <section
+        className="equipmentHero"
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+        style={dragging ? { outline: '3px dashed #087c66', outlineOffset: -6 } : undefined}
+      >
         <div className="equipmentHeroCopy">
           <span className="equipmentHeroIcon"><MapPin size={26} /></span>
           <div>
             <h2>{t('איתוראן — יבוא תנועות יומן לסאפ')}</h2>
-            <p>{t('מעלים את חשבונית המס של איתוראן (PDF), אפשר כמה חשבוניות יחד, ומקבלים את קבצי היבוא לסאפ.')}</p>
+            <p>{t('מעלים את חשבונית המס של איתוראן (PDF) — בלחיצה על הכפתור או בגרירה ישירות מ-Outlook לאזור הזה — אפשר כמה חשבוניות יחד, ומקבלים את קבצי היבוא לסאפ.')}</p>
           </div>
         </div>
         <label className={`equipmentImportButton${busy ? ' importing' : ''}`}>

@@ -16,6 +16,7 @@ import { collectMatchWarnings, matchPayrollToBalances } from '../features/accoun
 import { parseVehiclePayrollExport } from '../features/accounting/utils/parseVehiclePayrollExport.js';
 import { parseSapBalanceExport } from '../features/accounting/utils/parseSapBalanceExport.js';
 import { exportYearEndWorkbook } from '../features/accounting/utils/exportYearEndWorkbook.js';
+import useFileDrop from '../hooks/useFileDrop.js';
 import {
   buildReconciliationRows,
   RECONCILIATION_TITLE,
@@ -153,9 +154,7 @@ export default function AccountingYearEndPage() {
     }
   }
 
-  async function importPayrollFile(event) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
+  async function importPayrollFile(file) {
     if (!file) return;
 
     setImportingPayroll(true);
@@ -172,9 +171,7 @@ export default function AccountingYearEndPage() {
     }
   }
 
-  async function importBalanceFile(event) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
+  async function importBalanceFile(file) {
     if (!file) return;
 
     setImportingBalance(true);
@@ -190,6 +187,15 @@ export default function AccountingYearEndPage() {
       setImportingBalance(false);
     }
   }
+
+  // Choosing a file and dragging one onto the row (e.g. from Outlook) do the same thing.
+  const pickFile = (importFile) => (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    importFile(file);
+  };
+  const payrollDrop = useFileDrop((files) => importPayrollFile(files[0]), importingPayroll);
+  const balanceDrop = useFileDrop((files) => importBalanceFile(files[0]), importingBalance);
 
   function handleResolve(record, resolution) {
     setMatchedRecords((current) =>
@@ -257,7 +263,7 @@ export default function AccountingYearEndPage() {
       <AccountingGuide guide={YEAR_END_GUIDE} />
 
       <section className="card accountingUploadPanel">
-        <div className="accountingUploadRow">
+        <div className="accountingUploadRow" style={payrollDrop.dropStyle} {...payrollDrop.dropProps}>
           <div>
             <b>{t('שלב 1: טבלת שכר/רכבים')}</b>
             <span>{payrollFile ? `${payrollFile.fileName} — ${payrollFile.records.length} ${t('רכבים')}` : t('טרם הועלה קובץ')}</span>
@@ -265,10 +271,10 @@ export default function AccountingYearEndPage() {
           <label className={`equipmentImportButton${importingPayroll ? ' importing' : ''}`}>
             <Upload size={18} />
             <span>{importingPayroll ? t('מעבד...') : t('העלאת קובץ שכר/רכבים')}</span>
-            <input ref={payrollInputRef} type="file" accept=".xls,.xlsx" disabled={importingPayroll} onChange={importPayrollFile} />
+            <input ref={payrollInputRef} type="file" accept=".xls,.xlsx" disabled={importingPayroll} onChange={pickFile(importPayrollFile)} />
           </label>
         </div>
-        <div className="accountingUploadRow">
+        <div className="accountingUploadRow" style={balanceDrop.dropStyle} {...balanceDrop.dropProps}>
           <div>
             <b>{t('שלב 2: טבלת הכנה/יתרות')}</b>
             <span>{balanceFile ? `${balanceFile.fileName} — ${balanceFile.records.length} ${t('כרטיסים')}` : t('טרם הועלה קובץ')}</span>
@@ -276,7 +282,7 @@ export default function AccountingYearEndPage() {
           <label className={`equipmentImportButton${importingBalance ? ' importing' : ''}`}>
             <Upload size={18} />
             <span>{importingBalance ? t('מעבד...') : t('העלאת קובץ הכנה/יתרות')}</span>
-            <input ref={balanceInputRef} type="file" accept=".xls,.xlsx" disabled={importingBalance} onChange={importBalanceFile} />
+            <input ref={balanceInputRef} type="file" accept=".xls,.xlsx" disabled={importingBalance} onChange={pickFile(importBalanceFile)} />
           </label>
         </div>
       </section>

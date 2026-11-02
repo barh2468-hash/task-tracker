@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Route, Upload } from 'lucide-react';
 import { t } from '../features/language/LanguageContext.jsx';
+import useFileDrop from '../hooks/useFileDrop.js';
 import AccountingGuide from '../features/accounting/components/AccountingGuide.jsx';
 import JournalView from '../features/accounting/components/JournalView.jsx';
 import { TOLLS_GUIDE } from '../features/accounting/guides.js';
@@ -24,8 +25,7 @@ export default function AccountingTollsPage() {
     return invoices.map(({ fileName, invoice }) => ({ fileName, journal: buildTollJournal(invoice, cardFor) }));
   }, [invoices, manualMap]);
 
-  async function onFiles(event) {
-    const files = [...(event.target.files || [])];
+  async function loadFiles(files) {
     if (!files.length) return;
     setBusy(true);
     setError('');
@@ -54,6 +54,9 @@ export default function AccountingTollsPage() {
     }
   }
 
+  const onFiles = (event) => loadFiles([...(event.target.files || [])]);
+  const { dropProps, dropStyle } = useFileDrop(loadFiles, busy);
+
   function saveCard(plateDigits, card) {
     const next = { ...manualMap, [plateDigits]: card };
     setManualMap(next);
@@ -62,7 +65,7 @@ export default function AccountingTollsPage() {
 
   return (
     <div className="equipmentPage">
-      <section className="equipmentHero">
+      <section className="equipmentHero" style={dropStyle} {...dropProps}>
         <div className="equipmentHeroCopy">
           <span className="equipmentHeroIcon"><Route size={26} /></span>
           <div>

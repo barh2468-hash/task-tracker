@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, MapPin, Upload } from 'lucide-react';
 import { t } from '../features/language/LanguageContext.jsx';
+import useFileDrop from '../hooks/useFileDrop.js';
 import AccountingGuide from '../features/accounting/components/AccountingGuide.jsx';
 import JournalView from '../features/accounting/components/JournalView.jsx';
 import { ITURAN_GUIDE } from '../features/accounting/guides.js';
@@ -19,7 +20,6 @@ export default function AccountingIturanPage() {
   const [manualMap, setManualMap] = useState(loadManualMap);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [dragging, setDragging] = useState(false);
 
   const journals = useMemo(() => {
     const cardFor = (plateDigits) => manualMap[plateDigits] || SEED_VEHICLE_CARDS[plateDigits] || '';
@@ -60,12 +60,7 @@ export default function AccountingIturanPage() {
 
   const onFiles = (event) => loadFiles([...(event.target.files || [])]);
 
-  // Dragging an attachment straight from Outlook into the page works like choosing the file.
-  function onDrop(event) {
-    event.preventDefault();
-    setDragging(false);
-    if (!busy) loadFiles([...event.dataTransfer.files]);
-  }
+  const { dropProps, dropStyle } = useFileDrop(loadFiles, busy);
 
   function saveCard(plateDigits, card) {
     const next = { ...manualMap, [plateDigits]: card };
@@ -75,16 +70,7 @@ export default function AccountingIturanPage() {
 
   return (
     <div className="equipmentPage">
-      <section
-        className="equipmentHero"
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={onDrop}
-        style={dragging ? { outline: '3px dashed #087c66', outlineOffset: -6 } : undefined}
-      >
+      <section className="equipmentHero" style={dropStyle} {...dropProps}>
         <div className="equipmentHeroCopy">
           <span className="equipmentHeroIcon"><MapPin size={26} /></span>
           <div>

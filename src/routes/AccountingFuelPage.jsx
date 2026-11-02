@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Fuel, Info, Upload } from 'lucide-react';
 import { t } from '../features/language/LanguageContext.jsx';
+import useFileDrop from '../hooks/useFileDrop.js';
 import AccountingGuide from '../features/accounting/components/AccountingGuide.jsx';
 import { FUEL_GUIDE } from '../features/accounting/guides.js';
 import { extractPdfLines, parseDelekPages } from '../features/accounting/fuel/parseDelekReport.js';
@@ -26,8 +27,7 @@ export default function AccountingFuelPage() {
     return { fuel: buildFuelJournal(report, cardFor), wash: buildWashJournal(report, cardFor) };
   }, [report, manualMap]);
 
-  async function onFile(event) {
-    const file = event.target.files?.[0];
+  async function loadFile(file) {
     if (!file) return;
     setBusy(true);
     setError('');
@@ -45,6 +45,9 @@ export default function AccountingFuelPage() {
     }
   }
 
+  const onFile = (event) => loadFile(event.target.files?.[0]);
+  const { dropProps, dropStyle } = useFileDrop((files) => loadFile(files[0]), busy);
+
   function saveCard(plateDigits, card) {
     const next = { ...manualMap, [plateDigits]: card };
     setManualMap(next);
@@ -53,7 +56,7 @@ export default function AccountingFuelPage() {
 
   return (
     <div className="equipmentPage">
-      <section className="equipmentHero">
+      <section className="equipmentHero" style={dropStyle} {...dropProps}>
         <div className="equipmentHeroCopy">
           <span className="equipmentHeroIcon"><Fuel size={26} /></span>
           <div>

@@ -39,11 +39,11 @@ export function executionStartLine(executionStartDate: string | null) {
 }
 
 // A colored callout with a thick right border, like the drafting box in the status email.
-export function highlightBlock(theme: StatusEmailTheme, innerHtml: string) {
+export function highlightBlock(theme: StatusEmailTheme, innerHtml: string, direction = 'rtl') {
   return `
                 <tr>
                   <td style="padding:0 30px 18px">
-                    <div style="padding:15px 17px;border-right:5px solid ${theme.accent};border-radius:12px;background:${theme.background};color:${theme.text};font-size:14px;line-height:1.65">
+                    <div style="padding:15px 17px;border-${direction === 'rtl' ? 'right' : 'left'}:5px solid ${theme.accent};border-radius:12px;background:${theme.background};color:${theme.text};font-size:14px;line-height:1.65">
                       ${innerHtml}
                     </div>
                   </td>
@@ -64,6 +64,7 @@ export function noteBlock(title: string, innerHtml: string) {
 }
 
 type ProjectEmailOptions = {
+  language?: 'he' | 'en' | 'el';
   theme: StatusEmailTheme;
   title: string;
   icon?: string;
@@ -74,13 +75,46 @@ type ProjectEmailOptions = {
   blocks?: string[];
   details?: Array<{ label: string; value: string }>;
   appUrl?: string | null;
+  actionLabel?: string;
+};
+
+const emailLabels = {
+  he: {
+    subtitle: 'כל הפרטים החשובים, במקום אחד',
+    project: 'פרויקט',
+    client: 'לקוח לא צוין',
+    location: 'מיקום לא צוין',
+    action: 'פתיחת הפרויקט במערכת',
+    footer: 'ההודעה נשלחה אוטומטית ממערכת MAYA לניהול פרויקטי תשתיות',
+  },
+  en: {
+    subtitle: 'All the important details in one place',
+    project: 'Project',
+    client: 'Client not specified',
+    location: 'Location not specified',
+    action: 'Open project in the app',
+    footer: 'This message was sent automatically by MAYA Infrastructure Project Management',
+  },
+  el: {
+    subtitle: 'Όλες οι σημαντικές λεπτομέρειες σε ένα μέρος',
+    project: 'Έργο',
+    client: 'Δεν έχει οριστεί πελάτης',
+    location: 'Δεν έχει οριστεί τοποθεσία',
+    action: 'Άνοιγμα έργου στην εφαρμογή',
+    footer: 'Αυτό το μήνυμα στάλθηκε αυτόματα από το MAYA για διαχείριση έργων υποδομής',
+  },
 };
 
 export function renderProjectEmail(options: ProjectEmailOptions) {
   const { theme } = options;
+  const language = options.language || 'he';
+  const labels = emailLabels[language];
+  const direction = language === 'he' ? 'rtl' : 'ltr';
+  const align = direction === 'rtl' ? 'right' : 'left';
+  const opposite = direction === 'rtl' ? 'left' : 'right';
   const details = options.details || [];
   return `
-      <div dir="rtl" style="margin:0;padding:24px 12px;background:#eef4fa;font-family:Arial,Helvetica,sans-serif;color:#10213f">
+      <div lang="${language}" dir="${direction}" style="margin:0;padding:24px 12px;background:#eef4fa;font-family:Arial,Helvetica,sans-serif;color:#10213f">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse">
           <tr>
             <td align="center">
@@ -90,12 +124,12 @@ export function renderProjectEmail(options: ProjectEmailOptions) {
                   <td style="padding:26px 30px;background:#0b2a55;color:#ffffff">
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse">
                       <tr>
-                        <td style="text-align:right">
+                        <td style="text-align:${align}">
                           <div style="font-size:12px;font-weight:700;letter-spacing:1.6px;color:#9bd8ff">MAYA TRACKER</div>
                           <h1 style="margin:7px 0 5px;font-size:25px;line-height:1.3;color:#ffffff">${escapeHtml(options.title)}</h1>
-                          <p style="margin:0;color:#d7e8f7;font-size:14px">כל הפרטים החשובים, במקום אחד</p>
+                          <p style="margin:0;color:#d7e8f7;font-size:14px">${escapeHtml(labels.subtitle)}</p>
                         </td>
-                        <td width="58" valign="middle" style="width:58px;text-align:left">
+                        <td width="58" valign="middle" style="width:58px;text-align:${opposite}">
                           <div style="width:48px;height:48px;border-radius:15px;background:${theme.accent};color:#ffffff;font-size:25px;font-weight:700;line-height:48px;text-align:center">${options.icon || '✓'}</div>
                         </td>
                       </tr>
@@ -104,9 +138,9 @@ export function renderProjectEmail(options: ProjectEmailOptions) {
                 </tr>
                 <tr>
                   <td style="padding:28px 30px 18px">
-                    <div style="font-size:13px;font-weight:700;color:#64748b">פרויקט</div>
+                    <div style="font-size:13px;font-weight:700;color:#64748b">${escapeHtml(labels.project)}</div>
                     <h2 style="margin:4px 0 6px;color:#0b2545;font-size:23px;line-height:1.35">${escapeHtml(options.projectName)}</h2>
-                    <p style="margin:0;color:#64748b;font-size:14px">${escapeHtml(options.clientName || 'לקוח לא צוין')} · ${escapeHtml(options.location || 'מיקום לא צוין')}</p>
+                    <p style="margin:0;color:#64748b;font-size:14px">${escapeHtml(options.clientName || labels.client)} · ${escapeHtml(options.location || labels.location)}</p>
                   </td>
                 </tr>
                 ${(options.blocks || []).join('')}
@@ -121,7 +155,7 @@ export function renderProjectEmail(options: ProjectEmailOptions) {
                           (row, index) => `
                       <tr>
                         <td style="padding:12px 15px;${index < details.length - 1 ? 'border-bottom:1px solid #edf2f7;' : ''}color:#64748b;font-size:13px">${escapeHtml(row.label)}</td>
-                        <td style="padding:12px 15px;${index < details.length - 1 ? 'border-bottom:1px solid #edf2f7;' : ''}text-align:left;color:#0b2545;font-size:13px;font-weight:700">${escapeHtml(row.value)}</td>
+                        <td style="padding:12px 15px;${index < details.length - 1 ? 'border-bottom:1px solid #edf2f7;' : ''}text-align:${opposite};color:#0b2545;font-size:13px;font-weight:700">${escapeHtml(row.value)}</td>
                       </tr>`,
                         )
                         .join('')}
@@ -135,14 +169,14 @@ export function renderProjectEmail(options: ProjectEmailOptions) {
                     ? `
                 <tr>
                   <td align="center" style="padding:0 30px 30px">
-                    <a href="${escapeHtml(options.appUrl)}" style="display:inline-block;padding:13px 24px;border-radius:12px;background:#0b2a55;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none">פתיחת הפרויקט במערכת</a>
+                    <a href="${escapeHtml(options.appUrl)}" style="display:inline-block;padding:13px 24px;border-radius:12px;background:#0b2a55;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none">${escapeHtml(options.actionLabel || labels.action)}</a>
                   </td>
                 </tr>`
                     : ''
                 }
                 <tr>
                   <td style="padding:16px 30px;background:#f7fafc;border-top:1px solid #e6edf4;text-align:center;color:#7b8aa0;font-size:11px;line-height:1.6">
-                    ההודעה נשלחה אוטומטית ממערכת MAYA לניהול פרויקטי תשתיות
+                    ${escapeHtml(labels.footer)}
                   </td>
                 </tr>
               </table>

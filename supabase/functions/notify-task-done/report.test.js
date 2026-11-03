@@ -43,6 +43,16 @@ test('emails distinguish the request from actual results, preserve text and labe
     assert.match(mail.html, /&lt;script&gt;/);
     assert.match(mail.html, /&amp;y=2/);
     assert.match(mail.html, /project=project&amp;tab=tasks/);
+    assert.match(mail.html, /MAYA TRACKER/);
+    assert.match(mail.html, /max-width:640px/);
+    assert.match(mail.html, /background:#0b2a55/);
+    assert.match(mail.html, /background:#eef4fa/);
+    assert.match(mail.html, /role="presentation"/);
+    assert.ok(
+      mail.text.includes(
+        { he: 'כל המנהלים', en: 'All managers', el: 'Όλοι οι διαχειριστές' }[language],
+      ),
+    );
   }
 });
 test('failed email delivery remains retryable and finish calls use the claimed token', async () => {

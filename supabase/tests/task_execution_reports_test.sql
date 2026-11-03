@@ -5,11 +5,12 @@ set local role authenticated;
 do $$
 <<test>>
 declare
- admin_id uuid:=auth.uid(); worker_id uuid; outsider_id uuid; pr_id uuid; task_id uuid; other_task uuid; doc_id uuid:=gen_random_uuid();
+ admin_id uuid:=auth.uid(); worker_id uuid; manager_id uuid; outsider_id uuid; pr_id uuid; task_id uuid; other_task uuid; doc_id uuid:=gen_random_uuid();
  report_id uuid:=gen_random_uuid(); complete_id uuid:=gen_random_uuid(); reopened_id uuid:=gen_random_uuid();
  result public.project_task_reports; data jsonb;
 begin
  select id into strict worker_id from public.profiles where role='field_worker' order by id limit 1;
+ select id into strict manager_id from public.profiles where role='manager' order by id limit 1;
  select id into strict outsider_id from public.profiles where role='field_worker' and id<>worker_id order by id limit 1;
  insert into public.notification_preferences(user_id,category,enabled) values(admin_id,'completed_tasks',false)
    on conflict(user_id,category) do update set enabled=false;
@@ -55,7 +56,9 @@ begin
  exception when no_data_found or insufficient_privilege then null; end;
  perform set_config('request.jwt.claims',jsonb_build_object('sub',admin_id,'role','authenticated')::text,true);
  assert exists(select 1 from public.notifications n where n.task_id=test.task_id and n.recipient_id=admin_id and n.type='task_done'), 'Requester/manager must receive the report notification';
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',manager_id,'role','authenticated')::text,true);
  perform public.submit_task_report(jsonb_build_object('id',gen_random_uuid(),'task_id',other_task,'outcome','completed','summary','Manager completed this task'));
+ assert exists(select 1 from public.notifications n where n.task_id=other_task and n.recipient_id=manager_id), 'A reporting manager must receive their own report notification too';
  delete from public.project_tasks where id=other_task;
  assert not exists(select 1 from public.project_tasks where id=other_task), 'Managers must still be able to delete a completed task';
  perform set_config('task_report_test.report_id',report_id::text,true);
@@ -63,6 +66,8 @@ end $$;
 reset role;
 do $$ begin
  assert exists(select 1 from private.task_report_email_outbox), 'Reports must queue durable email jobs';
+ assert not exists(select 1 from public.profiles p where p.role in ('manager','admin') and not exists(
+   select 1 from private.task_report_email_outbox j where j.report_id=current_setting('task_report_test.report_id')::uuid and j.recipient_id=p.id)), 'Every ordinary manager and administrator must have an email delivery job';
  assert exists(select 1 from private.task_report_email_outbox j join public.notifications n on n.recipient_id=j.recipient_id
    where j.report_id=current_setting('task_report_test.report_id')::uuid and not n.delivery_enabled), 'In-app switches must preserve independent report email delivery';
  assert not has_function_privilege('authenticated','public.claim_task_report_emails(uuid)','EXECUTE'), 'Only service role can claim email jobs';
@@ -74,6 +79,7 @@ begin
  jobs:=public.claim_task_report_emails(current_setting('task_report_test.report_id')::uuid);
  assert jsonb_array_length(jobs)>0, 'Email delivery must be claimable';
  job:=jobs->0;
+ assert job ? 'client_name' and job ? 'location', 'Email project details must be resolved canonically on the server';
  perform public.finish_task_report_email((job->>'report_id')::uuid,(job->>'recipient_id')::uuid,gen_random_uuid(),null);
  assert not exists(select 1 from private.task_report_email_outbox j where j.report_id=(job->>'report_id')::uuid and j.recipient_id=(job->>'recipient_id')::uuid and j.sent_at is not null), 'Wrong claim token cannot acknowledge delivery';
  perform public.finish_task_report_email((job->>'report_id')::uuid,(job->>'recipient_id')::uuid,(job->>'claim_token')::uuid,'SMTP unavailable');

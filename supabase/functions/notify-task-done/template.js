@@ -1,3 +1,12 @@
+import {
+  escapeHtml,
+  highlightBlock,
+  noteBlock,
+  renderProjectEmail,
+} from '../_shared/project-email.ts';
+import { getStatusEmailTheme } from '../_shared/status-email-theme.ts';
+export { escapeHtml } from '../_shared/project-email.ts';
+
 const words = {
   he: [
     'דיווח ביצוע משימה',
@@ -17,6 +26,10 @@ const words = {
     'קישורי הקבצים זמינים ל־7 ימים. לאחר מכן ניתן לפתוח את הקבצים מתוך הפרויקט.',
     'המשימה נשארת פתוחה להמשך טיפול.',
     'הקובץ אינו זמין כעת. יש לבדוק במסמכי הפרויקט.',
+    'מצב הביצוע',
+    'דווח בתאריך',
+    'תפוצה',
+    'כל המנהלים — עותק נפרד לכל נמען',
   ],
   en: [
     'Task execution report',
@@ -36,6 +49,10 @@ const words = {
     'File links are valid for 7 days. After that, open files from the project.',
     'The task remains open for follow-up.',
     'The file is currently unavailable. Check project documents.',
+    'Execution status',
+    'Reported at',
+    'Recipients',
+    'All managers — a separate copy for each recipient',
   ],
   el: [
     'Αναφορά εκτέλεσης εργασίας',
@@ -55,17 +72,21 @@ const words = {
     'Οι σύνδεσμοι ισχύουν για 7 ημέρες. Έπειτα ανοίξτε τα αρχεία από το έργο.',
     'Η εργασία παραμένει ανοιχτή για συνέχεια.',
     'Το αρχείο δεν είναι διαθέσιμο. Ελέγξτε τα έγγραφα του έργου.',
+    'Κατάσταση εκτέλεσης',
+    'Ημερομηνία αναφοράς',
+    'Παραλήπτες',
+    'Όλοι οι διαχειριστές — ξεχωριστό αντίγραφο για κάθε παραλήπτη',
   ],
 };
-export function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-export function taskReportEmail({ report, project_name, worker_name, links = [], appUrl = '' }) {
+export function taskReportEmail({
+  report,
+  project_name,
+  client_name,
+  location,
+  worker_name,
+  links = [],
+  appUrl = '',
+}) {
   const language = Object.hasOwn(words, report.language) ? report.language : 'en',
     w = words[language],
     direction = language === 'he' ? 'rtl' : 'ltr';
@@ -95,18 +116,76 @@ export function taskReportEmail({ report, project_name, worker_name, links = [],
   ]
     .filter(Boolean)
     .join('\n\n');
-  const html = `<!doctype html><html lang="${language}" dir="${direction}"><head><meta charset="utf-8"><title>${escapeHtml(w[0])}</title></head><body><div lang="${language}" dir="${direction}" style="font-family:Arial,sans-serif;line-height:1.7;color:#0b2348;max-width:680px;margin:auto;padding:24px">
- <h1 style="font-size:24px">${escapeHtml(w[0])} — ${escapeHtml(status)}</h1>
- ${fields.map(([key, value]) => `<h2 style="font-size:16px;margin-bottom:4px">${escapeHtml(key)}</h2><p style="white-space:pre-wrap;margin-top:0">${escapeHtml(value)}</p>`).join('')}
- ${report.ready_for_drafting ? `<p><strong>${escapeHtml(w[10])}</strong></p>` : ''}${report.outcome !== 'completed' ? `<p>${escapeHtml(w[15])}</p>` : ''}
- ${links.length ? `<h2 style="font-size:16px">${escapeHtml(w[11])}</h2><ul>${links.map((link) => (link.url ? `<li><a href="${escapeHtml(link.url)}">${escapeHtml(link.name)}</a></li>` : `<li>${escapeHtml(link.name)} — ${escapeHtml(w[16])}</li>`)).join('')}</ul><p>${escapeHtml(w[14])}</p>` : ''}
- ${url ? `<p><a href="${escapeHtml(url)}">${escapeHtml(w[13])}</a></p>` : ''}</div></body></html>`;
+  const theme = getStatusEmailTheme(
+    { completed: 'הושלם', partial: 'בעבודה בשטח', blocked: 'נשלח להגהה', reopened: 'ממתין לתיאום' }[
+      report.outcome
+    ],
+  );
+  const content = (value) =>
+    `<div dir="auto" style="white-space:pre-wrap;overflow-wrap:anywhere">${escapeHtml(value).replace(/\r?\n/g, '<br/>')}</div>`;
+  const blocks = [
+    highlightBlock(
+      theme,
+      `<div style="margin-bottom:8px;font-size:12px;font-weight:700">${escapeHtml(w[17])}</div><span style="display:inline-block;padding:7px 12px;border:1px solid ${theme.border};border-radius:999px;background:${theme.background};color:${theme.text};font-weight:700">${escapeHtml(status)}</span>${report.outcome !== 'completed' ? `<p style="margin:9px 0 0">${escapeHtml(w[15])}</p>` : ''}`,
+      direction,
+    ),
+    noteBlock(
+      w[6],
+      `<strong>${escapeHtml(report.request_title)}</strong>${report.request_description ? content(report.request_description) : ''}`,
+    ),
+    noteBlock(w[7], content(report.summary)),
+    ...(report.next_steps ? [noteBlock(w[8], content(report.next_steps))] : []),
+    ...(report.file_reference ? [noteBlock(w[9], content(report.file_reference))] : []),
+    ...(report.ready_for_drafting
+      ? [
+          highlightBlock(
+            getStatusEmailTheme('עבר לשרטוט'),
+            `<strong>${escapeHtml(w[10])}</strong>`,
+            direction,
+          ),
+        ]
+      : []),
+    ...(links.length
+      ? [
+          noteBlock(
+            w[11],
+            `<ul style="margin:0;padding-inline-start:20px">${links.map((link) => (link.url ? `<li><a style="color:#0b5fa5" href="${escapeHtml(link.url)}">${escapeHtml(link.name)}</a></li>` : `<li>${escapeHtml(link.name)} — ${escapeHtml(w[16])}</li>`)).join('')}</ul><p style="margin:8px 0 0;font-size:12px">${escapeHtml(w[14])}</p>`,
+          ),
+        ]
+      : []),
+  ];
+  const reportedAt =
+    report.created_at && Number.isFinite(Date.parse(report.created_at))
+      ? new Intl.DateTimeFormat({ he: 'he-IL', en: 'en-GB', el: 'el-GR' }[language], {
+          timeZone: 'Asia/Jerusalem',
+          dateStyle: 'short',
+          timeStyle: 'short',
+        }).format(new Date(report.created_at))
+      : '';
+  const card = renderProjectEmail({
+    language,
+    theme,
+    title: w[0],
+    icon: report.outcome === 'reopened' ? '↻' : '✓',
+    projectName: project_name,
+    clientName: client_name,
+    location,
+    blocks,
+    details: [
+      { label: w[12], value: worker_name },
+      ...(reportedAt ? [{ label: w[18], value: reportedAt }] : []),
+      { label: w[19], value: w[20] },
+    ],
+    appUrl: url,
+    actionLabel: w[13],
+  });
+  const html = `<!doctype html><html lang="${language}" dir="${direction}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(w[0])}</title></head><body style="margin:0;padding:0;background:#eef4fa">${card}</body></html>`;
   return {
     subject: `${w[0]} — ${status}: ${project_name} — ${report.request_title}`.replace(
       /[\r\n]+/g,
       ' ',
     ),
     html,
-    text,
+    text: `${text}\n\n${w[19]}: ${w[20]}`,
   };
 }

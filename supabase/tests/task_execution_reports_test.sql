@@ -11,6 +11,8 @@ declare
 begin
  select id into strict worker_id from public.profiles where role='field_worker' order by id limit 1;
  select id into strict outsider_id from public.profiles where role='field_worker' and id<>worker_id order by id limit 1;
+ insert into public.notification_preferences(user_id,category,enabled) values(admin_id,'completed_tasks',false)
+   on conflict(user_id,category) do update set enabled=false;
  insert into public.projects(name,location,created_by,assigned_to) values('Task report regression','Test',admin_id,worker_id) returning id into pr_id;
  insert into public.project_tasks(project_id,title,description,created_by) values(pr_id,'Original request','Explain both pipes',admin_id) returning id into task_id;
  insert into public.project_tasks(project_id,title,created_by) values(pr_id,'Still open',admin_id) returning id into other_task;
@@ -61,6 +63,8 @@ end $$;
 reset role;
 do $$ begin
  assert exists(select 1 from private.task_report_email_outbox), 'Reports must queue durable email jobs';
+ assert exists(select 1 from private.task_report_email_outbox j join public.notifications n on n.recipient_id=j.recipient_id
+   where j.report_id=current_setting('task_report_test.report_id')::uuid and not n.delivery_enabled), 'In-app switches must preserve independent report email delivery';
  assert not has_function_privilege('authenticated','public.claim_task_report_emails(uuid)','EXECUTE'), 'Only service role can claim email jobs';
 end $$;
 set local role service_role;

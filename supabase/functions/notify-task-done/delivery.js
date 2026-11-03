@@ -2,15 +2,7 @@ import { taskReportEmail } from './template.js';
 export async function deliverTaskReport(job, { client, sendEmail, appUrl }) {
   let error = null;
   try {
-    const { data: preference, error: preferenceError } = await client
-      .from('notification_preferences')
-      .select('enabled')
-      .eq('user_id', job.recipient_id)
-      .eq('category', 'completed_tasks')
-      .maybeSingle();
-    if (preferenceError && !['42P01', 'PGRST205'].includes(preferenceError.code))
-      throw preferenceError;
-    if (job.recipient_email && preference?.enabled !== false) {
+    if (job.recipient_email) {
       const links = [];
       for (const file of job.report.attachments || []) {
         if (!file.file_path.startsWith(`${job.report.project_id}/`))

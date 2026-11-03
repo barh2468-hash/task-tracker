@@ -111,7 +111,7 @@ test('an attachment outside the project is never emailed', async () => {
   assert.equal(failure, 'Invalid attachment path');
 });
 
-test('disabled task report notifications are not emailed and are acknowledged', async () => {
+test('in-app notification switches preserve task report email delivery', async () => {
   let sent = false,
     finished;
   const query = {
@@ -120,7 +120,11 @@ test('disabled task report notifications are not emailed and are acknowledged', 
     maybeSingle: async () => ({ data: { enabled: false } }),
   };
   const result = await deliverTaskReport(
-    { report, recipient_id: 'manager', recipient_email: 'manager@example.com' },
+    {
+      report: { ...report, attachments: [] },
+      recipient_id: 'manager',
+      recipient_email: 'manager@example.com',
+    },
     {
       client: {
         from: () => query,
@@ -135,7 +139,7 @@ test('disabled task report notifications are not emailed and are acknowledged', 
     },
   );
   assert.equal(result.ok, true);
-  assert.equal(sent, false);
+  assert.equal(sent, true);
   assert.equal(finished.p_error, null);
 });
 

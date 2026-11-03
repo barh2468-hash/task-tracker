@@ -1287,8 +1287,10 @@ export async function addProjectTask(projectId, title, description, profile, pro
 }
 
 export async function submitTaskExecutionReport(task, project, report, profile) {
-  const user = await authApi.getCurrentUser();
-  if (!user || !profile) return { ok: false, message: t('אין הרשאה לדווח ביצוע במשימה זו.') };
+  // The persistence layer verifies the signed-in account once before uploads;
+  // the cached profile also lets an offline report be queued without a request.
+  const user = profile?.id ? { id: profile.id } : null;
+  if (!user) return { ok: false, message: t('אין הרשאה לדווח ביצוע במשימה זו.') };
   const validation = validateTaskReport(report);
   if (validation) return { ok: false, message: t(validation) };
   const payload = { userId: user.id, projectId: project.id, expectedReportId: task.latest_report_id || null, report };
@@ -1302,8 +1304,12 @@ export async function submitTaskExecutionReport(task, project, report, profile) 
       return { ok: true, offline: true, optimistic, message: t('הדיווח והקבצים נשמרו במכשיר ויסונכרנו עם החיבור לאינטרנט.') };
     }
     const saved = await persistTaskReport(payload);
-    await resolveLegacyTaskActions(task.id, user.id);
-    return { ok: true, report: saved, message: t('דיווח הביצוע נשמר. עדכון במייל ממתין לשליחה.') };
+    void resolveLegacyTaskActions(task.id, user.id).catch(() => console.warn('Legacy task queue cleanup failed'));
+    return { ok: true, report: saved, optimistic: {
+      is_done: saved.outcome === 'completed', latest_report_id: saved.id, pending_sync: false,
+      project_task_reports: [...(task.project_task_reports || []).filter((item) => item.id !== saved.id),
+        {...saved, reporter: {full_name:profile.full_name}}],
+    }, message: t('דיווח הביצוע נשמר. עדכון במייל ממתין לשליחה.') };
   } catch (error) {
     const errorKey = error.code === '40001'
       ? 'המשימה השתנתה מאז פתיחת החלון. יש לרענן ולבדוק את הדיווח האחרון לפני שליחה.'

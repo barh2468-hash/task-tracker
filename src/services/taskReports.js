@@ -49,5 +49,13 @@ export async function persistTaskReport(payload) {
     p_expected_report_id: payload.expectedReportId,
   });
   if (error) throw error;
+  // The durable queue is the fallback. Kick delivery now without extending
+  // the save operation or waiting for the next pg_cron worker to start.
+  void supabase.functions
+    .invoke('notify-task-done', { body: { reportId: saved.id } })
+    .then(({ error: deliveryError }) => {
+      if (deliveryError) console.warn('Task report delivery remains queued');
+    })
+    .catch(() => console.warn('Task report delivery remains queued'));
   return saved;
 }

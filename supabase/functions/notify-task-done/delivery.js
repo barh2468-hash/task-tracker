@@ -1,8 +1,30 @@
 import { taskReportEmail } from './template.js';
-export async function deliverTaskReport(job, { client, sendEmail, appUrl }) {
-  let error = null;
+export async function deliverTaskReport(job, { client, sendEmail, appUrl, sendPush }) {
+  let emailSent = Boolean(job.sent_at),
+    pushDone = Boolean(job.push_sent_at);
+  const errors = [];
+  async function checkpoint(error = null) {
+    const { error: finishError } = await client.rpc('finish_task_report_delivery', {
+      p_report_id: job.report_id,
+      p_recipient_id: job.recipient_id,
+      p_token: job.claim_token,
+      p_email_sent: emailSent,
+      p_push_done: pushDone,
+      p_error: error,
+    });
+    if (finishError) throw finishError;
+  }
+  if (!pushDone) {
+    try {
+      await sendPush(job);
+      pushDone = true;
+      await checkpoint();
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+  }
   try {
-    if (job.recipient_email) {
+    if (!emailSent && job.recipient_email) {
       const links = [];
       for (const file of job.report.attachments || []) {
         if (!file.file_path.startsWith(`${job.report.project_id}/`))
@@ -30,15 +52,10 @@ export async function deliverTaskReport(job, { client, sendEmail, appUrl }) {
       )
         throw new Error('Email recipient was rejected');
     }
+    emailSent = true;
   } catch (failure) {
-    error = failure instanceof Error ? failure.message : String(failure);
+    errors.push(failure instanceof Error ? failure.message : String(failure));
   }
-  const { error: finishError } = await client.rpc('finish_task_report_email', {
-    p_report_id: job.report_id,
-    p_recipient_id: job.recipient_id,
-    p_token: job.claim_token,
-    p_error: error,
-  });
-  if (finishError) throw finishError;
-  return { ok: !error };
+  await checkpoint(errors.join('; ') || null);
+  return { ok: !errors.length };
 }

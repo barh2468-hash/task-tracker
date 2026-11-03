@@ -86,5 +86,23 @@ begin
  assert exists(select 1 from private.task_report_email_outbox j where j.report_id=(job->>'report_id')::uuid and j.recipient_id=(job->>'recipient_id')::uuid and j.sent_at is not null), 'Delivered emails must be acknowledged';
 end $$;
 reset role;
+set local role service_role;
+do $$
+declare job jsonb; jobs jsonb; recipient uuid;
+begin
+  select recipient_id into recipient from private.task_report_email_outbox
+    where report_id=current_setting('task_report_test.report_id')::uuid order by recipient_id limit 1;
+  update private.task_report_email_outbox set sent_at=now(),push_sent_at=null,claimed_until=null,next_attempt_at=now()
+    where report_id=current_setting('task_report_test.report_id')::uuid and recipient_id=recipient;
+  jobs:=public.claim_task_report_emails(current_setting('task_report_test.report_id')::uuid);
+  select value into job from jsonb_array_elements(jobs) where value->>'recipient_id'=recipient::text;
+  assert job->>'sent_at' is not null and job->>'notification_id' is not null, 'Push-only retries must retain email and canonical notification checkpoints';
+  perform public.finish_task_report_delivery((job->>'report_id')::uuid,recipient,(job->>'claim_token')::uuid,true,false,'Push unavailable');
+  assert exists(select 1 from private.task_report_email_outbox j where j.report_id=(job->>'report_id')::uuid and j.recipient_id=recipient and j.sent_at is not null and j.push_sent_at is null), 'Push failure must never erase accepted email';
+  perform public.finish_task_report_delivery((job->>'report_id')::uuid,recipient,(job->>'claim_token')::uuid,true,true,null);
+  assert exists(select 1 from private.task_report_email_outbox j where j.report_id=(job->>'report_id')::uuid and j.recipient_id=recipient and j.sent_at is not null and j.push_sent_at is not null), 'Both delivery channels must be checkpointed';
+  assert not has_function_privilege('authenticated','public.finish_task_report_delivery(uuid,uuid,uuid,boolean,boolean,text)','EXECUTE'), 'Delivery checkpoints must remain service-only';
+end $$;
+reset role;
 rollback;
 select 'Task reports: required detail, partial follow-up, attachments, drawing handoff, unchanged project status, idempotency, stale edits, completion guard, reopening, history and durable notifications verified; fixtures rolled back' as result;

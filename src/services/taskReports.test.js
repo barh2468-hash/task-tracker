@@ -6,6 +6,7 @@ const objects = new Set(),
 let userId = 'worker',
   failUpload = false;
 const client = {
+  functions: { invoke: () => new Promise(() => {}) },
   auth: { getUser: async () => ({ data: { user: { id: userId } } }) },
   storage: {
     from: () => ({

@@ -9,6 +9,7 @@ import * as projectsFeatureApi from './api.js';
 import { useNotifications } from '../notifications/NotificationsContext.jsx';
 import { cacheOfflineData, getOfflineData } from '../../services/offlineStore.js';
 import TaskExecutionDialog from './task-reports/TaskExecutionDialog.jsx';
+import { finishProjectMutation } from './mutations.js';
 
 const ProjectsContext = createContext(null);
 
@@ -124,15 +125,12 @@ export function ProjectsProvider({ children }) {
     return () => window.removeEventListener('maya-data-synced', reload);
   });
 
-  async function runMutation(promise, applyOptimistic) {
-    const result = await promise;
-    if (result?.message) setMessage(result.message, resultTone(result));
-    if (result?.offline) {
-      applyOptimistic?.(result);
-      return result;
-    }
-    await Promise.all([loadProjects(), loadHistory(), loadNotifications()]);
-    return result;
+  function runMutation(promise, applyOptimistic, background = false) {
+    return finishProjectMutation(promise, {
+      notify: (result) => setMessage(result.message, resultTone(result)),
+      refresh: () => Promise.all([loadProjects(), loadHistory(), loadNotifications()]),
+      applyOptimistic, background,
+    });
   }
 
   async function runStatusMutation(project, newStatus, note) {
@@ -233,13 +231,15 @@ export function ProjectsProvider({ children }) {
     const result = await runMutation(projectsFeatureApi.submitTaskExecutionReport(task, project, report, profile),
       (queued) => setProjects((items) => items.map((item) => item.id === project.id ? {
         ...item, project_tasks: item.project_tasks.map((entry) => entry.id === task.id ? { ...entry, ...queued.optimistic } : entry),
-      } : item)));
+      } : item)), true);
     if (result?.ok) {
       setReportTarget(null);
       if (!result.offline && report.outcome === 'completed' && project.project_tasks.every((item) => item.id === task.id || item.is_done)
-        && ['בעבודה בשטח','נדרש GPR','מחכה להיתרים'].includes(project.status)
-        && window.confirm(t('כל המשימות בפרויקט הושלמו. אם כל עבודת השטח הסתיימה, האם להעביר את הפרויקט לשרטוט?'))) {
-        await runStatusMutation(project, 'עבר לשרטוט', report.summary);
+        && ['בעבודה בשטח','נדרש GPR','מחכה להיתרים'].includes(project.status)) {
+        window.setTimeout(() => {
+          if (window.confirm(t('כל המשימות בפרויקט הושלמו. אם כל עבודת השטח הסתיימה, האם להעביר את הפרויקט לשרטוט?')))
+            void runStatusMutation(project, 'עבר לשרטוט', report.summary);
+        }, 0);
       }
     }
     return result;

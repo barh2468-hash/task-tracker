@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { taskReportEmail } from './template.js';
-import { deliverTaskReport } from './delivery.js';
+import { deliverTaskReport as deliver } from './delivery.js';
+const deliverTaskReport = (job, services) =>
+  deliver(job, { sendPush: async () => {}, ...services });
 const enabledPreference = () => ({
   select: () => ({
     eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { enabled: true } }) }) }),
@@ -74,7 +76,7 @@ test('failed email delivery remains retryable and finish calls use the claimed t
     },
   });
   assert.equal(failed.ok, false);
-  assert.equal(finishes[0].args.p_error, 'SMTP down');
+  assert.equal(finishes.at(-1).args.p_error, 'SMTP down');
   assert.equal(finishes[0].args.p_token, 'lease');
   const delivered = await deliverTaskReport(job, {
     client,
@@ -84,7 +86,7 @@ test('failed email delivery remains retryable and finish calls use the claimed t
   });
   assert.equal(delivered.ok, true);
   assert.equal(deliveries, 1);
-  assert.equal(finishes[1].args.p_error, null);
+  assert.equal(finishes.at(-1).args.p_error, null);
 });
 test('an attachment outside the project is never emailed', async () => {
   let sent = false;
@@ -167,4 +169,83 @@ test('a removed attachment does not block the report email', async () => {
   assert.equal(result.ok, true);
   assert.match(email.html, /unavailable/);
   assert.doesNotMatch(email.html, /href="null"|href=""/);
+});
+
+test('retrying failed Push preserves an accepted email and never sends it again', async () => {
+  let emailCount = 0;
+  const checkpoints = [];
+  const job = {
+    report: { ...report, attachments: [] },
+    report_id: 'r',
+    recipient_id: 'recipient',
+    recipient_email: 'manager@example.com',
+    claim_token: 'lease',
+  };
+  const client = {
+    rpc: async (_name, args) => {
+      checkpoints.push(args);
+      return {};
+    },
+  };
+  const first = await deliverTaskReport(job, {
+    client,
+    sendPush: async () => {
+      throw new Error('Push unavailable');
+    },
+    sendEmail: async () => {
+      emailCount++;
+    },
+  });
+  assert.equal(first.ok, false);
+  assert.equal(checkpoints.at(-1).p_email_sent, true);
+  assert.equal(checkpoints.at(-1).p_push_done, false);
+  const second = await deliverTaskReport(
+    { ...job, sent_at: 'accepted' },
+    {
+      client,
+      sendPush: async () => {},
+      sendEmail: async () => {
+        emailCount++;
+      },
+    },
+  );
+  assert.equal(second.ok, true);
+  assert.equal(emailCount, 1);
+  assert.equal(checkpoints.at(-1).p_push_done, true);
+});
+
+test('an email failure does not repeat Push after its checkpoint', async () => {
+  let pushes = 0;
+  const client = { rpc: async () => ({}) };
+  const job = { report: { ...report, attachments: [] }, recipient_email: 'manager@example.com' };
+  assert.equal(
+    (
+      await deliverTaskReport(job, {
+        client,
+        sendPush: async () => {
+          pushes++;
+        },
+        sendEmail: async () => {
+          throw new Error('SMTP unavailable');
+        },
+      })
+    ).ok,
+    false,
+  );
+  assert.equal(
+    (
+      await deliverTaskReport(
+        { ...job, push_sent_at: 'accepted' },
+        {
+          client,
+          sendPush: async () => {
+            pushes++;
+          },
+          sendEmail: async () => {},
+        },
+      )
+    ).ok,
+    true,
+  );
+  assert.equal(pushes, 1);
 });

@@ -1,6 +1,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sendEmail } from '../_shared/smtp.ts';
 import { deliverTaskReport } from './delivery.js';
+import { deliverTaskReportPush } from './push.js';
+import webpush from 'npm:web-push@3.6.7';
 const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization,x-client-info,apikey,content-type,x-cron-secret',
@@ -45,20 +47,63 @@ Deno.serve(async (req) => {
       reportId = report.id;
     }
     const client = createClient(url, service);
-    const { data: jobs, error } = await client.rpc('claim_task_report_emails', {
-      p_report_id: reportId,
-    });
-    if (error) throw error;
-    const results = await Promise.all(
-      (jobs || []).map((job: Record<string, unknown>) =>
-        deliverTaskReport(job, { client, sendEmail, appUrl: Deno.env.get('APP_URL') || '' }),
-      ),
-    );
-    return reply({
-      ok: true,
-      processed: results.length,
-      delivered: results.filter((result: { ok: boolean }) => result.ok).length,
-    });
+    const publicKey = Deno.env.get('VAPID_PUBLIC_KEY'),
+      privateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+    if (publicKey && privateKey)
+      webpush.setVapidDetails(
+        Deno.env.get('VAPID_SUBJECT') || 'mailto:office@maya-tm.com',
+        publicKey,
+        privateKey,
+      );
+    async function deliver() {
+      try {
+        const { data: jobs, error } = await client.rpc('claim_task_report_emails', {
+          p_report_id: reportId,
+        });
+        if (error) throw error;
+        // Bound SMTP connections while draining all recipients from this claim.
+        const results = [];
+        for (let offset = 0; offset < (jobs || []).length; offset += 5) {
+          results.push(
+            ...(await Promise.all(
+              jobs.slice(offset, offset + 5).map((job: Record<string, unknown>) =>
+                deliverTaskReport(job, {
+                  client,
+                  sendEmail,
+                  appUrl: Deno.env.get('APP_URL') || '',
+                  sendPush: (notice: Record<string, unknown>) =>
+                    deliverTaskReportPush(notice, {
+                      client,
+                      sendPush: webpush.sendNotification.bind(webpush),
+                      configured: Boolean(publicKey && privateKey),
+                    }),
+                }).catch((error: unknown) => {
+                  console.error(
+                    'Task report recipient remains queued:',
+                    error instanceof Error ? error.message : String(error),
+                  );
+                  return { ok: false };
+                }),
+              ),
+            )),
+          );
+        }
+        console.log(
+          JSON.stringify({
+            event: 'task_report_delivery',
+            processed: results.length,
+            delivered: results.filter((result: { ok: boolean }) => result.ok).length,
+          }),
+        );
+      } catch (error) {
+        console.error(
+          'Task report delivery remains queued:',
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    }
+    EdgeRuntime.waitUntil(deliver());
+    return reply({ ok: true, queued: true }, 202);
   } catch (error) {
     return reply({ error: error instanceof Error ? error.message : String(error) }, 500);
   }

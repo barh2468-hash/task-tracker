@@ -17,6 +17,10 @@
   scrollbar-gutter: stable;
 }
 .crewEditModal .attendanceEndActions { flex-shrink: 0; }
+.crewEditNote { display: grid; gap: 8px; }
+.crewEditNote textarea { width: 100%; min-height: 100px; resize: vertical; }
+.personalEntry > div { min-width: 0; }
+.personalEntry .personalNoteText { margin-bottom: 0; }
 @media (max-width: 680px) {
   .crewEditModal { max-height: calc(100dvh - 20px); }
 }

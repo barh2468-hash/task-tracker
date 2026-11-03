@@ -1,4 +1,158 @@
+import {
+  heNotificationPreferences,
+  enNotificationPreferences,
+  elNotificationPreferences,
+  ptNotificationPreferences,
+} from './preferenceTranslations.js';
+
 const entries = [
+  ['notifications.manage', 'ניהול התראות', 'Manage notifications', 'Διαχείριση ειδοποιήσεων'],
+  [
+    'notifications.description',
+    'חיפוש, סינון וסידור ההתראות שלך במקום אחד.',
+    'Search, filter and organize your notifications in one place.',
+    'Αναζητήστε, φιλτράρετε και οργανώστε τις ειδοποιήσεις σας σε ένα σημείο.',
+  ],
+  [
+    'notifications.markAll',
+    'סמן את כל ההתראות כנקראו',
+    'Mark all notifications as read',
+    'Σήμανση όλων των ειδοποιήσεων ως αναγνωσμένων',
+  ],
+  ['notifications.unreadTotal', 'לא נקראו בסך הכול', 'unread in total', 'μη αναγνωσμένες συνολικά'],
+  [
+    'notifications.loadedTotal',
+    'התראות שנטענו',
+    'notifications loaded',
+    'ειδοποιήσεις που φορτώθηκαν',
+  ],
+  [
+    'notifications.deviceSettings',
+    'התראות במכשיר הזה',
+    'Notifications on this device',
+    'Ειδοποιήσεις σε αυτή τη συσκευή',
+  ],
+  [
+    'notifications.deviceHint',
+    'אפשר להפעיל או לכבות התראות Push במכשיר הזה. ההתראות בתוך האפליקציה נשארות זמינות כאן.',
+    'Enable or disable push notifications on this device. In-app notifications remain available here.',
+    'Ενεργοποιήστε ή απενεργοποιήστε τις ειδοποιήσεις push σε αυτή τη συσκευή. Οι ειδοποιήσεις στην εφαρμογή παραμένουν διαθέσιμες εδώ.',
+  ],
+  [
+    'notifications.statusFilter',
+    'סינון לפי מצב קריאה',
+    'Filter by read status',
+    'Φιλτράρισμα κατά κατάσταση ανάγνωσης',
+  ],
+  ['notifications.status.all', 'הכול', 'All', 'Όλες'],
+  ['notifications.status.unread', 'לא נקראו', 'Unread', 'Μη αναγνωσμένες'],
+  ['notifications.status.read', 'נקראו', 'Read', 'Αναγνωσμένες'],
+  ['notifications.search', 'חיפוש התראות', 'Search notifications', 'Αναζήτηση ειδοποιήσεων'],
+  [
+    'notifications.searchPlaceholder',
+    'חיפוש לפי תוכן, פרויקט או שם…',
+    'Search by content, project or name…',
+    'Αναζήτηση κατά περιεχόμενο, έργο ή όνομα…',
+  ],
+  [
+    'notifications.searchHint',
+    'החיפוש והסינון חלים על ההתראות שנטענו. אפשר לטעון התראות ישנות נוספות בתחתית הרשימה.',
+    'Search and filters apply to loaded notifications. Load older notifications at the bottom of the list.',
+    'Η αναζήτηση και τα φίλτρα εφαρμόζονται στις ειδοποιήσεις που φορτώθηκαν. Φορτώστε παλαιότερες ειδοποιήσεις στο κάτω μέρος της λίστας.',
+  ],
+  ['notifications.category', 'סוג התראה', 'Notification category', 'Κατηγορία ειδοποίησης'],
+  ['notifications.allCategories', 'כל הסוגים', 'All categories', 'Όλες οι κατηγορίες'],
+  ['notifications.category.projects', 'עדכוני פרויקטים', 'Project updates', 'Ενημερώσεις έργων'],
+  ['notifications.category.tasks', 'משימות', 'Tasks', 'Καθήκοντα'],
+  [
+    'notifications.category.attendance',
+    'נוכחות ועבודה',
+    'Attendance and work',
+    'Παρουσίες και εργασία',
+  ],
+  ['notifications.category.drawings', 'שרטוט והגהה', 'Drawings and reviews', 'Σχέδια και έλεγχοι'],
+  ['notifications.category.gpr', 'הזמנות GPR', 'GPR orders', 'Παραγγελίες GPR'],
+  ['notifications.category.vehicles', 'רכבים', 'Vehicles', 'Οχήματα'],
+  ['notifications.category.other', 'אחר', 'Other', 'Άλλες'],
+  [
+    'notifications.selectVisible',
+    'בחר את כל המוצגות',
+    'Select all shown',
+    'Επιλογή όλων των εμφανιζόμενων',
+  ],
+  ['notifications.selectedCount', '{{count}} נבחרו', '{{count}} selected', '{{count}} επιλεγμένες'],
+  ['notifications.markRead', 'סמן כנקרא', 'Mark as read', 'Σήμανση ως αναγνωσμένης'],
+  ['notifications.markUnread', 'סמן כלא נקרא', 'Mark as unread', 'Σήμανση ως μη αναγνωσμένης'],
+  ['notifications.clearSelection', 'בטל בחירה', 'Clear selection', 'Εκκαθάριση επιλογής'],
+  ['notifications.resetFilters', 'נקה מסננים', 'Clear filters', 'Εκκαθάριση φίλτρων'],
+  [
+    'notifications.selectItem',
+    'בחר התראה: {{title}}',
+    'Select notification: {{title}}',
+    'Επιλογή ειδοποίησης: {{title}}',
+  ],
+  [
+    'notifications.markItemRead',
+    'סמן כנקראה: {{title}}',
+    'Mark as read: {{title}}',
+    'Σήμανση ως αναγνωσμένης: {{title}}',
+  ],
+  [
+    'notifications.markItemUnread',
+    'סמן כלא נקראה: {{title}}',
+    'Mark as unread: {{title}}',
+    'Σήμανση ως μη αναγνωσμένης: {{title}}',
+  ],
+  [
+    'notifications.loadError',
+    'לא ניתן לטעון את ההתראות. נסה שוב.',
+    'Could not load notifications. Please try again.',
+    'Δεν ήταν δυνατή η φόρτωση των ειδοποιήσεων. Δοκιμάστε ξανά.',
+  ],
+  [
+    'notifications.updateError',
+    'לא ניתן לעדכן את מצב הקריאה. נסה שוב.',
+    'Could not update the read status. Please try again.',
+    'Δεν ήταν δυνατή η ενημέρωση της κατάστασης ανάγνωσης. Δοκιμάστε ξανά.',
+  ],
+  ['notifications.retry', 'נסה שוב', 'Try again', 'Δοκιμάστε ξανά'],
+  ['notifications.loading', 'טוען התראות…', 'Loading notifications…', 'Φόρτωση ειδοποιήσεων…'],
+  [
+    'notifications.noMatches',
+    'אין התראות התואמות לחיפוש',
+    'No matching notifications',
+    'Δεν βρέθηκαν ειδοποιήσεις',
+  ],
+  [
+    'notifications.noMatchesHint',
+    'נסה לשנות את החיפוש או המסננים, או לטעון התראות נוספות.',
+    'Try changing your search or filters, or load more notifications.',
+    'Δοκιμάστε να αλλάξετε την αναζήτηση ή τα φίλτρα, ή φορτώστε περισσότερες ειδοποιήσεις.',
+  ],
+  [
+    'notifications.empty',
+    'אין התראות כרגע',
+    'No notifications yet',
+    'Δεν υπάρχουν ακόμα ειδοποιήσεις',
+  ],
+  [
+    'notifications.emptyHint',
+    'עדכונים חדשים יופיעו כאן כשהם יתקבלו.',
+    'New updates will appear here as they arrive.',
+    'Οι νέες ενημερώσεις θα εμφανίζονται εδώ όταν λαμβάνονται.',
+  ],
+  [
+    'notifications.results',
+    'מוצגות {{count}} מתוך {{total}} התראות שנטענו',
+    'Showing {{count}} of {{total}} loaded notifications',
+    'Εμφανίζονται {{count}} από {{total}} ειδοποιήσεις που φορτώθηκαν',
+  ],
+  [
+    'notifications.loadMore',
+    'טען התראות ישנות יותר',
+    'Load older notifications',
+    'Φόρτωση παλαιότερων ειδοποιήσεων',
+  ],
   ['סמן כנקרא', 'סמן כנקרא', 'Mark as read', 'Σήμανση ως αναγνωσμένου'],
   [
     'התראות פנימיות על שינויי סטטוס, התחלת/סיום עבודה ומשימות.',
@@ -9,6 +163,64 @@ const entries = [
   ['{{value0}} חדשות', '{{value0}} חדשות', '{{value0}} new', '{{value0}} νέες'],
 ];
 
-export const heNotifications = Object.fromEntries(entries.map(([key, he]) => [key, he]));
-export const enNotifications = Object.fromEntries(entries.map(([key, , en]) => [key, en]));
-export const elNotifications = Object.fromEntries(entries.map(([key, , , el]) => [key, el]));
+export const heNotifications = {
+  ...heNotificationPreferences,
+  ...Object.fromEntries(entries.map(([key, he]) => [key, he])),
+};
+export const enNotifications = {
+  ...enNotificationPreferences,
+  ...Object.fromEntries(entries.map(([key, , en]) => [key, en])),
+};
+export const elNotifications = {
+  ...elNotificationPreferences,
+  ...Object.fromEntries(entries.map(([key, , , el]) => [key, el])),
+};
+
+export const ptNotifications = {
+  ...ptNotificationPreferences,
+  'notifications.manage': 'Gerir notificações',
+  'notifications.description': 'Pesquise, filtre e organize as suas notificações num só lugar.',
+  'notifications.markAll': 'Marcar todas as notificações como lidas',
+  'notifications.unreadTotal': 'não lidas no total',
+  'notifications.loadedTotal': 'notificações carregadas',
+  'notifications.deviceSettings': 'Notificações neste dispositivo',
+  'notifications.deviceHint':
+    'Ative ou desative as notificações push neste dispositivo. As notificações na aplicação continuam disponíveis aqui.',
+  'notifications.statusFilter': 'Filtrar por estado de leitura',
+  'notifications.status.all': 'Todas',
+  'notifications.status.unread': 'Não lidas',
+  'notifications.status.read': 'Lidas',
+  'notifications.search': 'Pesquisar notificações',
+  'notifications.searchPlaceholder': 'Pesquisar por conteúdo, projeto ou nome…',
+  'notifications.searchHint':
+    'A pesquisa e os filtros aplicam-se às notificações carregadas. Carregue notificações mais antigas no final da lista.',
+  'notifications.category': 'Categoria da notificação',
+  'notifications.allCategories': 'Todas as categorias',
+  'notifications.category.projects': 'Atualizações de projetos',
+  'notifications.category.tasks': 'Tarefas',
+  'notifications.category.attendance': 'Presenças e trabalho',
+  'notifications.category.drawings': 'Desenhos e revisões',
+  'notifications.category.gpr': 'Ordens GPR',
+  'notifications.category.vehicles': 'Veículos',
+  'notifications.category.other': 'Outras',
+  'notifications.selectVisible': 'Selecionar todas as apresentadas',
+  'notifications.selectedCount': '{{count}} selecionadas',
+  'notifications.markRead': 'Marcar como lida',
+  'notifications.markUnread': 'Marcar como não lida',
+  'notifications.clearSelection': 'Limpar seleção',
+  'notifications.resetFilters': 'Limpar filtros',
+  'notifications.selectItem': 'Selecionar notificação: {{title}}',
+  'notifications.markItemRead': 'Marcar como lida: {{title}}',
+  'notifications.markItemUnread': 'Marcar como não lida: {{title}}',
+  'notifications.loadError': 'Não foi possível carregar as notificações. Tente novamente.',
+  'notifications.updateError': 'Não foi possível atualizar o estado de leitura. Tente novamente.',
+  'notifications.retry': 'Tentar novamente',
+  'notifications.loading': 'A carregar notificações…',
+  'notifications.noMatches': 'Nenhuma notificação corresponde à pesquisa',
+  'notifications.noMatchesHint':
+    'Experimente alterar a pesquisa ou os filtros, ou carregar mais notificações.',
+  'notifications.empty': 'Ainda não existem notificações',
+  'notifications.emptyHint': 'As novas atualizações serão apresentadas aqui à medida que chegam.',
+  'notifications.results': 'A mostrar {{count}} de {{total}} notificações carregadas',
+  'notifications.loadMore': 'Carregar notificações mais antigas',
+};

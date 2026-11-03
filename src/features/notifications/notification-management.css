@@ -1,0 +1,419 @@
+.notificationManagement {
+  min-width: 0;
+  text-align: start;
+}
+.notificationManagementHeader,
+.notificationManagementTitle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.notificationManagementHeader {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.notificationManagementTitle {
+  flex: 1;
+  min-width: 230px;
+}
+.notificationManagementTitle h2 {
+  margin: 0 0 5px;
+  font-size: 25px;
+}
+.notificationManagementIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  color: var(--blue);
+  background: var(--blue2);
+}
+.notificationSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.notificationSummary > span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f4f8fc;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 18px;
+  color: var(--muted);
+}
+.notificationSummary strong {
+  font-size: 25px;
+  color: var(--navy);
+}
+.notificationSettings {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+.notificationSettings summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  font-weight: 800;
+}
+.notificationSettings summary::after {
+  content: '+';
+  margin-inline-start: auto;
+}
+.notificationSettings[open] summary::after {
+  content: '−';
+}
+.notificationSettings .muted {
+  margin: 12px 0;
+}
+.notificationSettings .pwaControls {
+  padding: 0;
+  margin: 0;
+}
+.notificationSettings .pwaControlButton {
+  color: var(--navy);
+  background: #f4f8fc;
+  border: 1px solid var(--line);
+  width: auto;
+}
+.notificationFilters {
+  padding: 18px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+.notificationStatusFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.notificationStatusFilters button {
+  min-height: 42px;
+  padding: 9px 18px;
+}
+.notificationStatusFilters button[aria-pressed='true'] {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+.notificationSearchFilters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.55fr);
+  gap: 14px;
+}
+.notificationSearchFilters label {
+  min-width: 0;
+}
+.notificationSearchInput {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline-start: 13px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: white;
+  color: var(--muted);
+}
+.notificationSearchInput:focus-within {
+  outline: 2px solid var(--blue);
+}
+.notificationSearchInput input {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding-inline-start: 0;
+}
+.notificationSearchInput input:focus {
+  box-shadow: none;
+}
+.notificationFilters > .muted {
+  margin-top: 10px;
+  font-size: 12px;
+}
+.notificationBulkActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding-block: 14px;
+}
+.notificationSelectAll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.notificationManagement input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+.notificationManagement .notificationManagedItem {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+  padding: 18px;
+}
+.notificationManagedItem::before {
+  right: auto;
+  inset-inline-start: 0;
+}
+.notificationCheckbox {
+  margin-top: 4px !important;
+}
+.notificationContent {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.notificationItemLabels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.notificationItemLabels > span:first-child {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #eaf0f6;
+  color: var(--navy);
+}
+.notificationUnreadLabel {
+  color: #12658b;
+  font-weight: 800;
+}
+.notificationManagement .notificationTitleButton {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--navy);
+  text-align: start;
+  line-height: 1.5;
+  font-size: 16px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.notificationManagement .notificationTitleButton:hover {
+  color: #12658b;
+  text-decoration: underline;
+  transform: none;
+  box-shadow: none;
+}
+.notificationManagement :is(button, summary, input[type='checkbox']):focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+.notificationMetadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 8px;
+}
+.notificationReadAction {
+  max-width: 175px;
+  white-space: normal;
+}
+.notificationManagementFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.notificationEmpty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding-block: 35px;
+  text-align: center;
+}
+.notificationEmpty h3,
+.notificationEmpty p {
+  margin: 0;
+}
+.notificationLoadError {
+  padding: 15px;
+  border: 1px solid #f2b8be;
+  border-radius: 16px;
+  background: #fff5f5;
+}
+@media (max-width: 640px) {
+  .notificationManagement {
+    padding: 16px;
+  }
+  .notificationManagementTitle {
+    min-width: 0;
+    width: 100%;
+    flex-basis: 100%;
+    align-items: flex-start;
+  }
+  .notificationManagementTitle h2 {
+    font-size: 22px;
+  }
+  .notificationManagementHeader > button {
+    width: 100%;
+  }
+  .notificationSummary > span {
+    flex: 1 1 135px;
+    padding: 10px 12px;
+  }
+  .notificationSearchFilters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .notificationFilters {
+    padding: 12px;
+  }
+  .notificationStatusFilters button {
+    flex: 1 1 auto;
+    padding-inline: 12px;
+  }
+  .notificationManagement .notificationManagedItem {
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: 10px;
+    padding: 14px;
+  }
+  .notificationReadAction {
+    grid-column: 2;
+    justify-self: start;
+    max-width: 100%;
+  }
+}
+.notificationSettingsPage {
+  display: grid;
+  gap: 18px;
+}
+.notificationPreferences {
+  text-align: start;
+}
+.notificationPreferencesHint {
+  border-radius: 14px;
+  background: #eef6fc;
+  padding: 14px;
+  margin: 20px 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #38536c;
+}
+.notificationPreferenceList {
+  display: grid;
+  margin-bottom: 20px;
+}
+.notificationPreferenceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.notificationPreferenceRow > div {
+  min-width: 0;
+}
+.notificationPreferenceRow h3 {
+  font-size: 16px;
+  margin: 0 0 5px;
+}
+.notificationPreferenceRow p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0;
+}
+.notificationPreferenceSwitch {
+  flex-shrink: 0;
+  min-width: 115px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: #f1f5f9;
+  color: var(--text);
+  box-shadow: none;
+}
+.notificationPreferenceSwitch.isOn {
+  background: #e6f6ee;
+  color: #12663a;
+  border-color: #b9e1cb;
+}
+.notificationPreferenceTrack {
+  width: 38px;
+  padding: 3px;
+  height: 23px;
+  border-radius: 20px;
+  background: #8292a4;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  direction: ltr;
+}
+.notificationPreferenceTrack > span {
+  width: 17px;
+  height: 17px;
+  background: #fff;
+  border-radius: 50%;
+}
+.isOn .notificationPreferenceTrack {
+  background: #198653;
+  justify-content: flex-end;
+}
+.notificationPreferenceSwitch:focus-visible,
+.notificationHistory > summary:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+.notificationPreferenceError {
+  color: #a82432;
+}
+.notificationPreferenceFeedback {
+  color: #12663a;
+}
+.notificationHistory > summary {
+  font-weight: 800;
+  cursor: pointer;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: white;
+}
+.notificationHistory[open] > summary {
+  margin-bottom: 14px;
+}
+@media (max-width: 640px) {
+  .notificationPreferences {
+    padding: 16px;
+  }
+  .notificationPreferenceRow {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .notificationPreferenceRow > div {
+    flex: 1 1 210px;
+  }
+  .notificationPreferenceSwitch {
+    margin-inline-start: auto;
+  }
+}

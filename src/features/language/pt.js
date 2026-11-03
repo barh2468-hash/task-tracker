@@ -1,11 +1,24 @@
 // Portuguese (Portugal). Keep full keys and interpolation tokens in sync with resources.js.
 import { languageNames } from './languages.js';
+import { ptNotifications } from '../notifications/translations.js';
 import { ptAdditional } from './additionalTranslations.js';
 import { ptDemo } from '../demo/translations.js';
 import { ptArticles } from '../demo/articleTranslations.js';
 import { ptClientLogin } from '../auth/translations.js';
 
 export const ptTranslations = {
+  'עדכון הצוות והערות לעבודה': 'Atualizar equipa e notas de trabalho',
+  'אפשר לעדכן את הצוות ולהוסיף או לערוך הערות לעבודה. שעות העבודה וסגירת היום נשמרות.': 'Pode atualizar a equipa e adicionar ou editar notas de trabalho. As horas de trabalho e o encerramento da sessão são mantidos.',
+  'הערות לעבודה (לא חובה)': 'Notas de trabalho (opcional)',
+  'אפשר להוסיף פרטים על העבודה שבוצעה או מידע נוסף למנהל': 'Adicione detalhes sobre o trabalho realizado ou informações adicionais para o responsável',
+  'ההערה נשמרת עם רישום העבודה ומופיעה בדוחות ובהיסטוריית הפרויקט.': 'A nota é guardada com o registo de trabalho e aparece nos relatórios e no histórico do projeto.',
+  'שמירת הצוות וההערות נכשלה: {{message}}': 'Não foi possível guardar a equipa e as notas: {{message}}',
+  'שמירת הצוות וההערות': 'Guardar equipa e notas',
+  'עבודה בפרויקטים ועדכון הצוות וההערות לאחר סגירה': 'Trabalho em projetos e atualização da equipa e das notas após o encerramento',
+  'עריכת הצוות וההערות': 'Editar equipa e notas',
+  'הערות לעבודה: {{note}}': 'Notas de trabalho: {{note}}',
+  'עודכנה הערת סיום לאחר סגירה': 'Nota de trabalho atualizada após o encerramento',
+  ...ptNotifications,
   ...ptArticles,
   ...ptClientLogin,
   ...ptDemo,

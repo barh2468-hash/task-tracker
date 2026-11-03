@@ -10,7 +10,7 @@ function isStandalone() {
   return window.matchMedia('(display-mode: standalone)').matches || Boolean(navigator.standalone);
 }
 
-export default function PwaControls() {
+export default function PwaControls({ notificationsOnly = false }) {
   useTranslation();
   const { setMessage } = useMessage();
   const { profile } = useAuth();
@@ -148,11 +148,16 @@ export default function PwaControls() {
   }
 
   return (
-    <section className="pwaControls" aria-label={t('התקנה והתראות')}>
-      <button className="pwaControlButton" onClick={installApp} disabled={installed}>
-        <Download size={16} />
-        <span>{installed ? t('האפליקציה מותקנת') : t('התקנת האפליקציה')}</span>
-      </button>
+    <section
+      className="pwaControls"
+      aria-label={t(notificationsOnly ? 'notifications.deviceSettings' : 'התקנה והתראות')}
+    >
+      {!notificationsOnly && (
+        <button className="pwaControlButton" onClick={installApp} disabled={installed}>
+          <Download size={16} />
+          <span>{installed ? t('האפליקציה מותקנת') : t('התקנת האפליקציה')}</span>
+        </button>
+      )}
       <button
         className={`pwaControlButton ${subscribed ? 'enabled' : ''}`}
         onClick={subscribed ? disablePush : enablePush}

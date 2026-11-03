@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 import { resolveChatNotification, unreadChatCount } from './chat.js';
+import { filterEnabledNotifications } from '../_shared/notificationPreferences.js';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,12 +70,15 @@ Deno.serve(async (req) => {
         payload.chatMessageId,
       );
       ({ title, body, url, tag, recipientIds } = chat);
+      recipientIds = (await filterEnabledNotifications(adminClient,
+        recipientIds.map((recipient_id) => ({ recipient_id, type: 'chat_message' }))))
+        .map((notice) => notice.recipient_id);
     } else {
       if (!title || !body) throw new Error('Missing notification content');
 
       let notificationQuery = adminClient
         .from('notifications')
-        .select('recipient_id')
+        .select('recipient_id,type,delivery_enabled')
         .eq('created_by', userData.user.id)
         .eq('title', title)
         .gte('created_at', new Date(Date.now() - 2 * 60 * 1000).toISOString());
@@ -97,18 +101,20 @@ Deno.serve(async (req) => {
 
       const { data: matchingNotifications, error: notificationError } = await notificationQuery;
       if (notificationError) throw notificationError;
+      if (!matchingNotifications?.length) throw new Error('No matching internal notification');
+      const enabledNotifications = await filterEnabledNotifications(adminClient, matchingNotifications);
       recipientIds = Array.from(
-        new Set((matchingNotifications || []).map((item) => item.recipient_id)),
+        new Set(enabledNotifications.map((item) => item.recipient_id)),
       );
-      if (!recipientIds.length) throw new Error('No matching internal notification');
     }
     if (!recipientIds.length)
-      return Response.json({ ok: true, sent: 0, reason: 'already_read' }, { headers: corsHeaders });
+      return Response.json({ ok: true, sent: 0, reason: 'read_or_disabled' }, { headers: corsHeaders });
 
     const { data: unreadNotifications, error: unreadError } = await adminClient
       .from('notifications')
       .select('recipient_id')
       .in('recipient_id', recipientIds)
+      .eq('delivery_enabled', true)
       .eq('is_read', false);
     if (unreadError) throw unreadError;
 

@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 import { buildAlerts, type Alert } from './alerts.ts';
+import { filterEnabledNotifications } from '../_shared/notificationPreferences.js';
 
 // Daily fleet alerts: insurance / inspection / lease expiry, weekly digest of
 // missing data, monthly odometer reminder + escalation, overdue forms.
@@ -124,13 +125,16 @@ async function sendPush(db: ReturnType<typeof createClient>, alerts: Alert[]) {
   const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
   if (!vapidPublicKey || !vapidPrivateKey) return;
 
+  const enabled = await filterEnabledNotifications(db, alerts.map((alert) => ({ ...alert, recipient_id: alert.recipientId })));
+  if (!enabled.length) return;
+
   const byRecipient = new Map<string, Alert[]>();
-  for (const alert of alerts) byRecipient.set(alert.recipientId, [...(byRecipient.get(alert.recipientId) || []), alert]);
+  for (const alert of enabled) byRecipient.set(alert.recipientId, [...(byRecipient.get(alert.recipientId) || []), alert]);
   const recipientIds = [...byRecipient.keys()];
 
   const [{ data: subscriptions }, { data: unread }] = await Promise.all([
     db.from('push_subscriptions').select('id,user_id,endpoint,p256dh,auth').in('user_id', recipientIds),
-    db.from('notifications').select('recipient_id').in('recipient_id', recipientIds).eq('is_read', false),
+    db.from('notifications').select('recipient_id').in('recipient_id', recipientIds).eq('delivery_enabled', true).eq('is_read', false),
   ]);
   const counts = new Map<string, number>();
   for (const item of unread || []) counts.set(item.recipient_id, (counts.get(item.recipient_id) || 0) + 1);

@@ -15,7 +15,7 @@ export default function NotificationsPopover({
 }) {
   useTranslation();
   const { language } = useLanguage();
-  const { notifications, unreadCount, markNotificationRead, markAllNotificationsRead } =
+  const { notifications, unreadCount, markNotificationRead, markAllNotificationsRead, busy } =
     useNotifications();
   const recent = notifications.slice(0, 6);
 
@@ -82,12 +82,12 @@ export default function NotificationsPopover({
       </div>
       <div className="popoverActions">
         <button className="ghost tinyBtn" onClick={onOpenFullPage}>
-          {t('לכל ההתראות')}
+          {t('notifications.settingsTitle')}
         </button>
         <button
           className="ghost tinyBtn"
           onClick={markAllNotificationsRead}
-          disabled={unreadCount === 0}
+          disabled={busy || unreadCount === 0}
         >
           {t('סמן הכל כנקרא')}
         </button>

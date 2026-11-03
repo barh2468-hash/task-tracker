@@ -40,6 +40,9 @@ const LocalGprPreview = import.meta.env.DEV
   : null;
 const HistoryPage = lazy(() => import('./routes/HistoryPage.jsx'));
 const NotificationsPage = lazy(() => import('./routes/NotificationsPage.jsx'));
+const LocalNotificationsPreview = import.meta.env.DEV
+  ? lazy(() => import('./features/notifications/LocalNotificationsPreview.jsx'))
+  : null;
 const ExceptionsPage = lazy(() => import('./routes/ExceptionsPage.jsx'));
 const WorkReportPage = lazy(() => import('./routes/WorkReportPage.jsx'));
 const ChatPage = lazy(() => import('./routes/ChatPage.jsx'));
@@ -145,6 +148,15 @@ export default function App() {
       <LanguageProvider>
         <Suspense fallback={<LoadingScreen />}>
           <LocalWorkPlanPreview />
+        </Suspense>
+      </LanguageProvider>
+    );
+  }
+  if (import.meta.env.DEV && window.location.pathname === '/local/notifications') {
+    return (
+      <LanguageProvider>
+        <Suspense fallback={<LoadingScreen />}>
+          <LocalNotificationsPreview />
         </Suspense>
       </LanguageProvider>
     );

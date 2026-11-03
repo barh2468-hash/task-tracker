@@ -47,3 +47,30 @@ test('rejected or missing mail stays pending without sending Push', async () => 
   }
   assert.equal(escapeEmailHtml('"<a>&'), '&quot;&lt;a&gt;&amp;');
 });
+
+test('continuation email preserves full notes and skips an already requested Push', async () => {
+  const f = fixture();
+  f.job.skip_push = true;
+  f.job.body = 'הערות לשרטוט:\nלהזיז את קו הפרטנר שמאלה\nKeep <existing> & new lines';
+  assert.equal((await deliverFieldUpdate(f.args)).ok, true);
+  assert.equal(f.mails.length, 1);
+  assert.equal(f.pushes(), 0);
+  assert.ok(f.mails[0].text.includes(f.job.body));
+  assert.match(f.mails[0].html, /Keep &lt;existing&gt; &amp; new lines/);
+  assert.equal(f.marks.at(-1).p_done, true);
+  assert.equal(f.marks.at(-1).p_email_sent, true);
+});
+
+test('continuation SMTP failures retry and never resend an accepted email', async () => {
+  const rejected = fixture({ rejected: true });
+  rejected.job.skip_push = true;
+  assert.equal((await deliverFieldUpdate(rejected.args)).ok, false);
+  assert.equal(rejected.marks.at(-1).p_done, false);
+  assert.equal(rejected.marks.at(-1).p_email_sent, false);
+  const accepted = fixture({ sent: true });
+  accepted.job.skip_push = true;
+  assert.equal((await deliverFieldUpdate(accepted.args)).ok, true);
+  assert.equal(accepted.mails.length, 0);
+  assert.equal(accepted.pushes(), 0);
+  assert.equal(accepted.marks.at(-1).p_done, true);
+});

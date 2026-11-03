@@ -30,7 +30,9 @@ export async function deliverFieldUpdate({ job, client, sendEmail, sendPush, app
       // Persist mail success before Push. A failed Push must never resend mail.
       await finish(false);
     }
-    await sendPush(job);
+    // Continuation reports request Push when creating their in-app notification.
+    // Their queued email must not send a second Push for the same report.
+    if (!job.skip_push) await sendPush(job);
     await finish(true);
     return { ok: true };
   } catch (error) {

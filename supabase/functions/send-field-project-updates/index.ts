@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
 import { sendEmail } from '../_shared/smtp.ts';
 import { deliverFieldUpdate } from './delivery.js';
+import { filterEnabledNotifications } from '../_shared/notificationPreferences.js';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -45,9 +46,13 @@ Deno.serve(async (req) => {
       job, client, sendEmail, appUrl,
       sendPush: async () => {
         if (!vapidPublic || !vapidPrivate) return;
+        const { data: notice, error: noticeError } = await client.from('notifications')
+          .select('recipient_id,type,delivery_enabled').eq('id', job.id).maybeSingle();
+        if (noticeError) throw noticeError;
+        if (!notice || !(await filterEnabledNotifications(client, [notice])).length) return;
         const { data: subscriptions, error: loadError } = await client.from('push_subscriptions').select('id,endpoint,p256dh,auth').eq('user_id', job.recipient_id);
         if (loadError) throw loadError;
-        const { count, error: countError } = await client.from('notifications').select('id', { count: 'exact', head: true }).eq('recipient_id', job.recipient_id).eq('is_read', false);
+        const { count, error: countError } = await client.from('notifications').select('id', { count: 'exact', head: true }).eq('recipient_id', job.recipient_id).eq('delivery_enabled', true).eq('is_read', false);
         if (countError) throw countError;
         await Promise.all((subscriptions || []).map(async (subscription) => {
           try {

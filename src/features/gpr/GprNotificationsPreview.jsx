@@ -23,6 +23,10 @@ export default function GprNotificationsPreview({ order, onOpen }) {
         unreadCount: isRead ? 0 : 1,
         markNotificationRead: () => setIsRead(true),
         markAllNotificationsRead: () => setIsRead(true),
+        setNotificationsRead: async (_ids, read) => {
+          setIsRead(read);
+          return true;
+        },
         gprNotification: isRead || order.deleted_at ? null : notifications[0],
         dismissGprAlert: () => setIsRead(true),
       }}

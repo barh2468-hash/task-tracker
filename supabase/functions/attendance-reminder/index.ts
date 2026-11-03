@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
+import { filterEnabledNotifications } from '../_shared/notificationPreferences.js';
 
 const headers = { 'Content-Type': 'application/json' };
 const APP_URL = 'https://infrastructure-tracker.vercel.app/app';
@@ -105,16 +106,18 @@ Deno.serve(async (req) => {
     }
 
     if (newNotifications.length && vapidPublicKey && vapidPrivateKey) {
-      const recipientIds = [...new Set(newNotifications.map((item) => item.recipient_id))];
+      const enabled = await filterEnabledNotifications(db, newNotifications.map((notice) => ({ ...notice, type: phase.type })));
+      const recipientIds = [...new Set(enabled.map((item) => item.recipient_id))];
+      if (!recipientIds.length) return new Response(JSON.stringify({ ok: true, phase: phase.type, sent: 0 }), { headers });
       const [{ data: subscriptions }, { data: unread }] = await Promise.all([
         db.from('push_subscriptions').select('id,user_id,endpoint,p256dh,auth').in('user_id', recipientIds),
-        db.from('notifications').select('recipient_id').in('recipient_id', recipientIds).eq('is_read', false),
+        db.from('notifications').select('recipient_id').in('recipient_id', recipientIds).eq('delivery_enabled', true).eq('is_read', false),
       ]);
       const counts = new Map<string, number>();
       for (const item of unread || []) counts.set(item.recipient_id, (counts.get(item.recipient_id) || 0) + 1);
       webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
       await Promise.all((subscriptions || []).map(async (subscription) => {
-        const notice = newNotifications.find((item) => item.recipient_id === subscription.user_id)!;
+        const notice = enabled.find((item) => item.recipient_id === subscription.user_id)!;
         try {
           await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } }, JSON.stringify({
             title: notice.title, body: notice.body, url: APP_URL, tag: phase.type,

@@ -1,11 +1,22 @@
 import { supabase } from '../supabase.js';
 import { getDrawingBatches } from './drawingBatches.js';
 import { readProjectPages } from './readProjectPages.js';
+import { hydrateProjectTasks } from './projectGraph.js';
 
-// Kept as one literal string (not built dynamically) so the exact shape of
-// what the UI receives is easy to diff against the previous page.tsx query.
+// Avoid recursively embedding tasks/reports into every project/team row.
+// The independent reads below retain RLS and reconstruct the same UI shape.
 const PROJECT_SELECT =
-  '*, profiles:assigned_to(full_name), project_workers(worker_id,profiles:worker_id(full_name,email,role)), project_tasks!project_tasks_project_id_fkey(id,project_id,title,description,is_done,latest_report_id,created_by,created_at,updated_at,profiles:created_by(full_name),project_task_reports!project_task_reports_task_id_fkey(*,reporter:created_by(full_name)))';
+  '*, profiles:assigned_to(full_name), project_workers(worker_id,profiles:worker_id(full_name,email,role))';
+const TASK_SELECT = 'id,project_id,title,description,is_done,latest_report_id,created_by,created_at,updated_at,profiles:created_by(full_name)';
+
+async function readProjects(buildRequest) {
+  return hydrateProjectTasks(await readProjectPages(buildRequest),
+    (projectIds) => readProjectPages(() => supabase.from('project_tasks').select(TASK_SELECT)
+      .in('project_id', projectIds).order('created_at', { ascending: false }).order('id')),
+    (taskIds) => readProjectPages(() => supabase.from('project_task_reports')
+      .select('*,reporter:created_by(full_name)').in('task_id', taskIds)
+      .order('created_at', { ascending: false }).order('id')));
+}
 
 export async function getProjectAssets(projectId) {
   let [photos, reviewFiles, documents, drawingBatches] = await Promise.all([
@@ -56,12 +67,12 @@ export function getProjectIdsForWorker(workerId) {
 }
 
 export function getProjectsForManager() {
-  return readProjectPages(() => supabase.from('projects').select(PROJECT_SELECT)
+  return readProjects(() => supabase.from('projects').select(PROJECT_SELECT)
     .order('updated_at', { ascending: false }).order('id'));
 }
 
 export function getProjectsByIds(ids) {
-  return readProjectPages(() => supabase
+  return readProjects(() => supabase
     .from('projects')
     .select(PROJECT_SELECT)
     .order('updated_at', { ascending: false })
@@ -69,7 +80,7 @@ export function getProjectsByIds(ids) {
 }
 
 export function getProjectsByIdsAndStatuses(ids, statuses) {
-  return readProjectPages(() => supabase
+  return readProjects(() => supabase
     .from('projects')
     .select(PROJECT_SELECT)
     .order('updated_at', { ascending: false })
@@ -78,7 +89,7 @@ export function getProjectsByIdsAndStatuses(ids, statuses) {
 }
 
 export function getProjectsByAssignmentOr(filters) {
-  return readProjectPages(() => supabase
+  return readProjects(() => supabase
     .from('projects')
     .select(PROJECT_SELECT)
     .order('updated_at', { ascending: false })

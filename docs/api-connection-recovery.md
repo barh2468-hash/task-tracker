@@ -27,6 +27,12 @@ correlate the first `57014` error with later `25P02` errors in the same session.
 Inspect the original query timeout separately: the recovery limits bound the
 impact of a failed connection but do not make an expensive query faster.
 
+Project reads also retrieve the permitted project/team list, tasks and execution
+reports in separate bounded requests. This avoids expanding the full RLS
+dependency tree through a deeply nested project/task/report embed. The frontend
+reconstructs the same project response only after every required read succeeds;
+the database policies and role privileges are unchanged.
+
 Emergency recovery for this specific read-only pool state:
 
 ```sql

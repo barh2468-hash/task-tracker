@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { t } from '../../language/LanguageContext.jsx';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
+import TaskReportHistory from '../task-reports/TaskReportHistory.jsx';
 import { useState } from 'react';
 import {
   CheckCircle,
@@ -19,7 +21,8 @@ import { getProjectTeamAssignments } from '../utils/assignments.js';
 
 export default function OpenTasksPanel({ onOpenProject }) {
   useTranslation();
-  const { isManager } = useAuth();
+  const { language } = useLanguage();
+  const { isManager, profile } = useAuth();
   const { projects, updateProjectTask, toggleProjectTask, deleteProjectTask } = useProjects();
   const activeProjects = projects.filter((p) => !p.is_archived);
 
@@ -149,6 +152,7 @@ export default function OpenTasksPanel({ onOpenProject }) {
                   <div className="openTaskContent">
                     <h3>{task.title}</h3>
                     {task.description && <p>{task.description}</p>}
+                    <TaskReportHistory task={task} />
                   </div>
                 )}
 
@@ -160,7 +164,7 @@ export default function OpenTasksPanel({ onOpenProject }) {
                     <Users size={14} /> {assignedNames.join(', ') || t('ללא עובד משויך')}
                   </span>
                   <span>
-                    <Clock size={14} /> {new Date(task.created_at).toLocaleDateString('he-IL')}
+                    <Clock size={14} /> {new Date(task.created_at).toLocaleDateString(localeForLanguage(language), { timeZone: 'Asia/Jerusalem' })}
                   </span>
                 </div>
               </div>
@@ -188,10 +192,10 @@ export default function OpenTasksPanel({ onOpenProject }) {
                     <button className="ghost smallBtn" onClick={() => openProject(project)}>
                       {t('פתיחת פרויקט')}
                     </button>
-                    {!isManager && (
-                      <button className="smallBtn" onClick={() => toggleProjectTask(task, project)}>
+                    {!isManager && profile?.role === 'field_worker' && (
+                      <button className="smallBtn" disabled={task.pending_sync} onClick={() => toggleProjectTask(task, project)}>
                         <CheckCircle size={15} />
-                        {t('סמן כבוצע')}
+                        {t('דיווח ביצוע')}
                       </button>
                     )}
                     {isManager && (
@@ -202,10 +206,11 @@ export default function OpenTasksPanel({ onOpenProject }) {
                         </button>
                         <button
                           className="smallBtn"
+                          disabled={task.pending_sync}
                           onClick={() => toggleProjectTask(task, project)}
                         >
                           <CheckCircle size={15} />
-                          {t('סמן כבוצע')}
+                          {t('דיווח ביצוע')}
                         </button>
                         <button
                           className="danger ghost smallBtn"

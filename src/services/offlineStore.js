@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js';
+import { persistTaskReport } from './taskReports.js';
 
 const DB_NAME = 'maya-offline-v1';
 const QUEUE_STORE = 'queue';
@@ -53,6 +54,12 @@ async function removeAction(id) {
   await withStore(QUEUE_STORE, 'readwrite', (store) => store.delete(id));
 }
 
+export async function resolveLegacyTaskActions(taskId, userId) {
+  for (const action of await getOfflineQueue()) {
+    if (action.type === 'project_task_toggle' && action.payload.taskId === taskId && action.payload.history?.changed_by === userId) await removeAction(action.id);
+  }
+}
+
 async function requireSuccess(result) {
   if (result?.error) throw result.error;
   return result;
@@ -69,9 +76,12 @@ async function executeAction(action) {
     delete taskRow.profiles;
     await requireSuccess(await supabase.from('project_tasks').insert(taskRow));
     await requireSuccess(await supabase.from('status_history').insert(p.history));
+  } else if (action.type === 'project_task_report') {
+    await persistTaskReport(p);
   } else if (action.type === 'project_task_toggle') {
-    await requireSuccess(await supabase.from('project_tasks').update({ is_done: p.isDone }).eq('id', p.taskId));
-    await requireSuccess(await supabase.from('status_history').insert(p.history));
+    const error = new Error('A task execution report is required for this queued change');
+    error.code = 'TASK_REPORT_REQUIRED';
+    throw error;
   } else if (action.type === 'project_photo') {
     const path = `${p.projectId}/${Date.now()}-${p.fileName.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
     await requireSuccess(await supabase.storage.from('project-photos').upload(path, p.file, { upsert: false }));
@@ -104,6 +114,7 @@ export async function flushOfflineQueue() {
       await removeAction(action.id);
       synced += 1;
     } catch (error) {
+      if (error.code === 'TASK_REPORT_REQUIRED') window.dispatchEvent(new CustomEvent('maya-task-report-required', { detail: action.payload }));
       // Keep authorization/data errors visible and retry on the next connection.
       console.warn('Offline sync paused:', error instanceof Error ? error.message : error);
       break;

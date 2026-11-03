@@ -1,109 +1,65 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sendEmail } from '../_shared/smtp.ts';
-
-type Payload = {
-  projectId: string;
-  projectName: string;
-  clientName?: string | null;
-  location?: string | null;
-  taskId: string;
-  taskTitle: string;
-  taskDescription?: string | null;
-  changedByName?: string;
-  changedByEmail?: string | null;
-  appUrl?: string;
-};
-
-const corsHeaders = {
+import { deliverTaskReport } from './delivery.js';
+const headers = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  'Access-Control-Allow-Headers': 'authorization,x-client-info,apikey,content-type,x-cron-secret',
+  'Access-Control-Allow-Methods': 'POST,OPTIONS',
 };
-
-function escapeHtml(value: unknown) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+const reply = (body: unknown, status = 200) => Response.json(body, { status, headers });
+function secureEquals(a: string, b: string) {
+  const left = new TextEncoder().encode(a),
+    right = new TextEncoder().encode(b);
+  if (!left.length || left.length !== right.length) return false;
+  let difference = 0;
+  for (let i = 0; i < left.length; i++) difference |= left[i] ^ right[i];
+  return difference === 0;
 }
-
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  }
-
+  if (req.method === 'OPTIONS') return new Response('ok', { headers });
+  if (req.method !== 'POST') return reply({ error: 'Method not allowed' }, 405);
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !anonKey || !serviceRoleKey) throw new Error('Missing Supabase Edge Function secrets');
-
-    const authHeader = req.headers.get('Authorization') || '';
-    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-
-    const { data: userData, error: userError } = await userClient.auth.getUser();
-    if (userError || !userData.user) throw new Error('Unauthorized');
-
-    const payload = await req.json() as Payload;
-    if (!payload.projectId || !payload.projectName || !payload.taskId || !payload.taskTitle) throw new Error('Missing required task payload');
-
-    const { data: changer, error: changerError } = await adminClient
-      .from('profiles')
-      .select('id,email,full_name,role')
-      .eq('id', userData.user.id)
-      .maybeSingle();
-
-    if (changerError) throw changerError;
-    if (!changer) throw new Error('Missing changer profile');
-
-    if (changer.role !== 'field_worker') {
-      return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'changed_by_is_not_field_worker' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const url = Deno.env.get('SUPABASE_URL')!,
+      anon = Deno.env.get('SUPABASE_ANON_KEY')!,
+      service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    let reportId: string | null = null;
+    if (!secureEquals(Deno.env.get('CRON_SECRET') || '', req.headers.get('x-cron-secret') || '')) {
+      const caller = createClient(url, anon, {
+        global: { headers: { Authorization: req.headers.get('Authorization') || '' } },
+      });
+      const { data: auth, error } = await caller.auth.getUser();
+      if (error || !auth.user) return reply({ error: 'Unauthorized' }, 401);
+      const payload = await req.json();
+      if (!payload.reportId)
+        return reply(
+          { error: 'An execution report is required. Refresh the app before completing a task.' },
+          409,
+        );
+      const { data: report, error: readError } = await caller
+        .from('project_task_reports')
+        .select('id,created_by')
+        .eq('id', payload.reportId)
+        .single();
+      if (readError || !report || report.created_by !== auth.user.id)
+        return reply({ error: 'Report access denied' }, 403);
+      reportId = report.id;
     }
-
-    const { data: managers, error: managersError } = await adminClient
-      .from('profiles')
-      .select('email,full_name')
-      .in('role', ['manager', 'admin'])
-      .not('email', 'is', null);
-
-    if (managersError) throw managersError;
-
-    const recipients = Array.from(new Set((managers || []).map((m) => m.email).filter(Boolean))) as string[];
-    if (!recipients.length) {
-      return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'no_manager_emails' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    const subject = `משימה בוצעה: ${payload.projectName} - ${payload.taskTitle}`;
-    const html = `
-      <div dir="rtl" style="font-family:Arial,sans-serif;line-height:1.7;color:#0b1b3a">
-        <h2 style="margin:0 0 12px">משימה סומנה כבוצעה</h2>
-        <p><b>פרויקט:</b> ${escapeHtml(payload.projectName)}</p>
-        <p><b>לקוח:</b> ${escapeHtml(payload.clientName || 'לא צוין')}</p>
-        <p><b>מיקום:</b> ${escapeHtml(payload.location || 'לא צוין')}</p>
-        <p><b>משימה:</b> ${escapeHtml(payload.taskTitle)}</p>
-        ${payload.taskDescription ? `<p><b>פירוט:</b> ${escapeHtml(payload.taskDescription)}</p>` : ''}
-        <p><b>בוצע על ידי:</b> ${escapeHtml(changer.full_name)} (${escapeHtml(changer.email)})</p>
-        ${payload.appUrl ? `<p><a href="${escapeHtml(payload.appUrl)}" style="color:#0b5fff">פתיחת המערכת</a></p>` : ''}
-      </div>`;
-
-    const text = [
-      'משימה סומנה כבוצעה',
-      `פרויקט: ${payload.projectName}`,
-      `לקוח: ${payload.clientName || 'לא צוין'}`,
-      `מיקום: ${payload.location || 'לא צוין'}`,
-      `משימה: ${payload.taskTitle}`,
-      payload.taskDescription ? `פירוט: ${payload.taskDescription}` : '',
-      `בוצע על ידי: ${changer.full_name} (${changer.email})`,
-      payload.appUrl ? `מערכת: ${payload.appUrl}` : ''
-    ].filter(Boolean).join('\n');
-
-    const result = await sendEmail({ to: recipients, subject, html, text });
-    return new Response(JSON.stringify({ ok: true, sentTo: recipients.length, result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const client = createClient(url, service);
+    const { data: jobs, error } = await client.rpc('claim_task_report_emails', {
+      p_report_id: reportId,
+    });
+    if (error) throw error;
+    const results = await Promise.all(
+      (jobs || []).map((job: Record<string, unknown>) =>
+        deliverTaskReport(job, { client, sendEmail, appUrl: Deno.env.get('APP_URL') || '' }),
+      ),
+    );
+    return reply({
+      ok: true,
+      processed: results.length,
+      delivered: results.filter((result: { ok: boolean }) => result.ok).length,
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return reply({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 });

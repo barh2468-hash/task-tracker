@@ -1,0 +1,188 @@
+.taskReportBackdrop {
+  z-index: 1300;
+  overflow: hidden;
+}
+.taskReportDialog {
+  display: flex;
+  flex-direction: column;
+  width: min(680px, 100%);
+  max-height: calc(100dvh - 32px);
+  background: var(--surface, #fff);
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 20px 80px #08213c40;
+}
+.taskReportDialog header {
+  padding: 20px 24px;
+  background: linear-gradient(110deg, #0b2348, #007b86);
+  color: #fff;
+}
+.taskReportDialog h2 {
+  font-size: 22px;
+  margin: 0;
+}
+.taskReportDialog header p {
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+.taskReportBody {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
+}
+.taskReportBody label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.taskReportBody textarea {
+  resize: vertical;
+  min-height: 95px;
+}
+.taskReportBody :is(input, select, textarea) {
+  max-width: 100%;
+  min-width: 0;
+}
+.taskReportBody small {
+  display: block;
+  color: var(--muted, #536a81);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.taskReportRequest {
+  background: var(--surface-soft, #eef6fa);
+  padding: 14px;
+  border-radius: 12px;
+}
+.taskReportRequest h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.taskReportRequest p,
+.taskReportHistory p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.taskReportBody .taskReportCheck {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  padding: 8px 0;
+}
+.taskReportCheck input {
+  flex: 0 0 auto;
+  margin-top: 5px;
+}
+.taskReportDrafting {
+  background: #edf8f6;
+  padding: 14px !important;
+  border-radius: 12px;
+}
+.taskReportFile {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+}
+.taskReportFile span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.taskReportDialog footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--line, #dce7ee);
+  flex-shrink: 0;
+}
+.taskReportDialog footer button {
+  flex: 1;
+}
+.taskReportHistory {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--surface-soft, #f0f6fa);
+  border-radius: 10px;
+  min-width: 0;
+}
+.taskReportHistory summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.taskReportHistory article {
+  border-top: 1px solid var(--line, #dce7ee);
+  padding: 12px 0;
+}
+.taskReportHistory article:first-of-type {
+  margin-top: 10px;
+}
+.taskReportHistory a {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.taskReportState {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+  margin-block: 8px;
+  background: #e5f2f6;
+  border-radius: 8px;
+}
+@media (max-width: 600px) {
+  .taskReportBackdrop {
+    padding: 10px;
+  }
+  .taskReportDialog {
+    max-height: calc(100dvh - 20px);
+  }
+  .taskReportDialog header {
+    padding: 18px;
+  }
+  .taskReportBody {
+    padding: 16px;
+  }
+  .taskReportDialog footer {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+  .taskReportDialog footer button {
+    flex: 1 1 160px;
+  }
+  .taskReportDialog h2 {
+    font-size: 20px;
+  }
+}
+.taskReportDialog header {
+  flex-shrink: 0;
+}
+.taskReportBody fieldset {
+  min-inline-size: 0;
+  max-width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line, #dce7ee);
+  border-radius: 10px;
+}
+.taskReportBody .taskReportCheck input {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+}
+.taskReportCheck span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.taskReportBody legend {
+  max-width: 100%;
+  white-space: normal;
+}
+.taskReportBody > label > input,
+.taskReportBody select,
+.taskReportBody textarea {
+  width: 100%;
+}

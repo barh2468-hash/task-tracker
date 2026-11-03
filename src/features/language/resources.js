@@ -3,6 +3,7 @@ import { enProjectWorkspace, elProjectWorkspace } from '../projects/translations
 import { enVehicles, elVehicles } from '../vehicles/translations.js';
 import { enDrafts, elDrafts } from '../drafts/translations.js';
 import { enPersonalWorkflow, elPersonalWorkflow } from '../attendance/translations.js';
+import { heTaskReports, enTaskReports, elTaskReports } from '../projects/task-reports/translations.js';
 import { heWorkPlanning, enWorkPlanning, elWorkPlanning } from '../work-planning/translations.js';
 import { heGpr, enGpr, elGpr } from '../gpr/translations.js';
 import { heNotifications, enNotifications, elNotifications } from '../notifications/translations.js';
@@ -14,6 +15,7 @@ import { heAdditional, enAdditional, elAdditional } from './additionalTranslatio
 export { ptTranslations } from './pt.js';
 
 export const heTranslations = {
+  ...heTaskReports,
   ...heArticles,
   ...heClientLogin,
   ...heDemo,
@@ -27,6 +29,7 @@ export const heTranslations = {
 };
 
 export const enTranslations = {
+  ...enTaskReports,
   ...enArticles,
   ...enClientLogin,
   ...enDemo,
@@ -1806,4 +1809,4 @@ const greekTranslations = {
     'Η εργασία "{{title}}" παραμένει ανοιχτή εδώ και {{days}} ημέρες.',
 };
 
-export const elTranslations = { ...enTranslations, ...elAdditional, ...elPersonalWorkflow, ...greekTranslations, ...elDrafts, ...elProjectWorkspace, ...elWorkPlanning, ...elGpr, ...elNotifications, ...elDemo, ...elClientLogin, ...elArticles };
+export const elTranslations = { ...enTranslations, ...elAdditional, ...elPersonalWorkflow, ...greekTranslations, ...elDrafts, ...elProjectWorkspace, ...elWorkPlanning, ...elGpr, ...elNotifications, ...elDemo, ...elClientLogin, ...elArticles, ...elTaskReports };

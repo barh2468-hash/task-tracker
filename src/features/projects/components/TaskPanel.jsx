@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { t, useLanguage } from '../../language/LanguageContext.jsx';
 import { localeForLanguage } from '../../language/locale.js';
 import { PlusCircle } from 'lucide-react';
+import TaskReportHistory from '../task-reports/TaskReportHistory.jsx';
 
 export default function TaskPanel({
   tasks,
@@ -70,11 +71,12 @@ export default function TaskPanel({
               {t('נוצר על ידי')} {task.profiles?.full_name || t('מנהל')} ·{' '}
               {new Date(task.created_at).toLocaleDateString(localeForLanguage(language))}
             </span>
+            <TaskReportHistory task={task} />
           </div>
           {canCompleteTasks && (
             <div className="taskActions">
-              <button className="ghost tinyBtn" onClick={() => onToggle(task)}>
-                {task.is_done ? t('פתח') : t('בוצע')}
+              <button className="ghost tinyBtn" disabled={task.pending_sync} onClick={() => onToggle(task)}>
+                {task.is_done ? t('פתיחת משימה מחדש') : t('דיווח ביצוע')}
               </button>
               {isManager && (
                 <button className="danger ghost tinyBtn" onClick={() => onDelete(task)}>

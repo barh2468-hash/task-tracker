@@ -4,7 +4,7 @@ import { getDrawingBatches } from './drawingBatches.js';
 // Kept as one literal string (not built dynamically) so the exact shape of
 // what the UI receives is easy to diff against the previous page.tsx query.
 const PROJECT_SELECT =
-  '*, profiles:assigned_to(full_name), project_workers(worker_id,profiles:worker_id(full_name,email,role)), project_tasks(id,project_id,title,description,is_done,created_by,created_at,updated_at,profiles:created_by(full_name))';
+  '*, profiles:assigned_to(full_name), project_workers(worker_id,profiles:worker_id(full_name,email,role)), project_tasks!project_tasks_project_id_fkey(id,project_id,title,description,is_done,latest_report_id,created_by,created_at,updated_at,profiles:created_by(full_name),project_task_reports!project_task_reports_task_id_fkey(*,reporter:created_by(full_name)))';
 
 export async function getProjectAssets(projectId) {
   let [photos, reviewFiles, documents, drawingBatches] = await Promise.all([

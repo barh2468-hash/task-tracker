@@ -8,6 +8,16 @@ Deployment order: apply `supabase/migrations/20261101125128_notification_event_p
 
 Verification: `node --test src/features/notifications/*.test.js supabase/functions/_shared/notificationPreferences.test.js supabase/functions/send-push-notification/*.test.js`. For isolated PostgreSQL integration, install `@electric-sql/pglite@0.3.14` under `tmp/notification-runtime` with `npm install --prefix tmp/notification-runtime --no-save --package-lock=false @electric-sql/pglite@0.3.14`, then run `node supabase/tests/notification-preferences.integration.mjs`. This test never connects to the application database. The development preview is `/local/notifications`; `?preferences=load-error`, `?preferences=save-error` and `?preferences=loading` exercise failure and loading states using in-memory data.
 
+## דיווח ביצוע משימות
+
+- השלמת משימה ופתיחתה מחדש נעשות דרך דיווח מפורט שנשמר בהיסטוריית המשימה.
+- ביצוע חלקי או חסימה מחייבים פירוט המשך טיפול ומשאירים את המשימה פתוחה.
+- אפשר לצרף תמונות/PDF, לבחור מסמכים קיימים או להפנות לתמונה בפרויקט. דיווחים וקבצים נשמרים גם באופליין ומסונכרנים עם מזהים קבועים למניעת כפילויות.
+- סימון מוכנות לשרטוט יוצר מנת שרטוט עם הדיווח וההפניות לקבצים, גם בביצוע חלקי. סטטוס הפרויקט נשמר; אחרי השלמת כל המשימות מוצעת העברה לשרטוט באישור המשתמש.
+- המייל מציג את הבקשה המקורית, תשובת העובד, המשך הטיפול וקישורי קבצים לשבעה ימים. נמענים: מנהלים, יוצר המשימה והשרטטים המשויכים כשהדיווח מוכן לשרטוט. נשמרות העדפות התראות ביצוע משימות.
+- נדרשים המיגרציה `task_execution_reports` והפונקציה `notify-task-done`. המיילים נשמרים בתור פרטי ונשלחים באמצעות cron עם אימות `x-cron-secret`; כשל במייל אינו מבטל דיווח שנשמר.
+- בדיקות שרת: `supabase/tests/task_execution_reports_test.sql` (הנתונים מתבטלים בסוף הבדיקה). בדיקות JavaScript כוללות תרגומים, HTML במייל, ניסיונות חוזרים, קבצים וסנכרון בין חשבונות.
+
 ## עדכון: אנגלית ויוונית בתהליכי הדיווח האישיים
 
 - ההערות שלי, דוח הנוכחות שלי ועריכת הצוות כוללים תרגום של שדות, פעולות, אישורים, שגיאות וסיכומים. תאריכים, שעות ומשך העבודה מוצגים לפי השפה שנבחרה.

@@ -225,11 +225,12 @@ export default function ProjectCard({ project, onBack, initialTab }) {
     }
   }
 
+  const reportAssetKey = (project.project_tasks || []).map((task) => `${task.latest_report_id || ''}:${Boolean(task.pending_sync)}`).join(',');
   useEffect(() => {
     if (!navigator.onLine) return;
     refreshAssets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project.id]);
+  }, [project.id, reportAssetKey]);
 
   const isAssignedFieldWorker =
     profile?.role === 'field_worker' &&
@@ -1046,6 +1047,7 @@ export default function ProjectCard({ project, onBack, initialTab }) {
                   </div>
                 )}
                 <DrawingBatchesPanel
+                  taskReports={(project.project_tasks || []).flatMap((task) => task.project_task_reports || [])}
                   batches={assets.project_drawing_batches}
                   documents={assets.project_documents}
                   reviewFiles={assets.project_review_files}

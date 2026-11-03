@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import TaskReportHistory from '../task-reports/TaskReportHistory.jsx';
 import { t, useLanguage } from '../../language/LanguageContext.jsx';
 import { localeForLanguage } from '../../language/locale.js';
 import { useMemo, useState } from 'react';
@@ -48,6 +49,7 @@ function eventDescription(event) {
 
 export default function DrawingBatchesPanel({
   batches,
+  taskReports = [],
   documents,
   reviewFiles,
   currentUserId,
@@ -137,6 +139,8 @@ export default function DrawingBatchesPanel({
               </header>
 
               <p className="drawingBatchSummary">{batch.summary}</p>
+              {taskReports.filter((report) => report.drawing_batch_id === batch.id).map((report) =>
+                <TaskReportHistory key={report.id} task={{title:report.request_title,latest_report_id:report.id,project_task_reports:[report]}} />)}
 
               <div className="drawingBatchMeta">
                 <span

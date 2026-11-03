@@ -1,5 +1,10 @@
 project_id = "qopsdkmzvncamjrxjwni"
 
+# Scheduled report emails use x-cron-secret; manual calls validate the session
+# and require that the caller created the requested report.
+[functions.notify-task-done]
+verify_jwt = false
+
 [functions.send-manhole-layouts]
 verify_jwt = true
 

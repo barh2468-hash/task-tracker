@@ -17,7 +17,7 @@ import {
   REVIEW_STATUS,
 } from '../../services/supabase.js';
 import { createManagerNotification, createUserNotification } from '../notifications/api.js';
-import { enqueueOfflineAction } from '../../services/offlineStore.js';
+import { enqueueOfflineAction, resolveLegacyTaskActions } from '../../services/offlineStore.js';
 import { findAssignedDrafter, isDrafterCandidate } from './utils/drafters.js';
 import {
   documentTypeAllowsImages,
@@ -29,6 +29,8 @@ import {
 import { isManagerRole } from '../../utils/roles.js';
 import { getProjectAssignmentChanges } from './utils/assignments.js';
 import { t } from '../language/LanguageContext.jsx';
+import { persistTaskReport } from '../../services/taskReports.js';
+import { validateTaskReport } from './task-reports/model.js';
 
 // ---- Loading ----------------------------------------------------------
 
@@ -1284,63 +1286,34 @@ export async function addProjectTask(projectId, title, description, profile, pro
   return { message: 'המשימה נוספה לפרויקט' };
 }
 
-export async function toggleProjectTask(task, project, profile, isManager) {
+export async function submitTaskExecutionReport(task, project, report, profile) {
   const user = await authApi.getCurrentUser();
-  if (!user || !profile) return { message: '' };
-
-  const isAssignedWorker =
-    profile.role === 'field_worker' &&
-    (project.assigned_to === user.id || (project.project_workers || []).some((assignment) => assignment.worker_id === user.id));
-  if (!isManager && !isAssignedWorker) return { message: '' };
-
-  const nextDone = !task.is_done;
-  if (!navigator.onLine) {
-    await enqueueOfflineAction('project_task_toggle', {
-      taskId: task.id, isDone: nextDone,
-      history: { project_id: project.id, old_status: null, new_status: nextDone ? 'משימה בוצעה' : 'משימה נפתחה מחדש', changed_by: user.id, note: `${task.title} · נשמר במצב אופליין` },
-    });
-    return { message: 'אין חיבור. מצב המשימה נשמר ויסונכרן אוטומטית.', offline: true, optimistic: { is_done: nextDone } };
-  }
-  const { error } = await projectTasksApi.updateProjectTask(task.id, { is_done: nextDone });
-  if (error) return { message: error.message };
-
-  await statusHistoryApi.insertStatusHistory({
-    project_id: project.id,
-    old_status: null,
-    new_status: nextDone ? 'משימה בוצעה' : 'משימה נפתחה מחדש',
-    changed_by: user.id,
-    note: task.title,
-  });
-
-  if (nextDone && profile.role === 'field_worker') {
-    await createManagerNotification(
-      'task_done',
-      `משימה בוצעה: ${project.name}`,
-      `${profile.full_name} סימן משימה כבוצעה בפרויקט ${project.name}: ${task.title}`,
-      project.id,
-      task.id,
-    );
-
-    const { error: notifyError } = await edgeFunctions.notifyTaskDone({
-      projectId: project.id,
-      projectName: project.name,
-      clientName: project.client_name,
-      location: project.location,
-      taskId: task.id,
-      taskTitle: task.title,
-      taskDescription: task.description,
-      changedByName: profile.full_name,
-      changedByEmail: profile.email,
-      appUrl: typeof window !== 'undefined' ? window.location.origin : '',
-    });
-
-    if (notifyError) {
-      console.warn('Task email notification failed:', notifyError.message);
-      return { message: `המשימה סומנה כבוצעה. שים לב: התראת המייל לא נשלחה (${notifyError.message}).` };
+  if (!user || !profile) return { ok: false, message: t('אין הרשאה לדווח ביצוע במשימה זו.') };
+  const validation = validateTaskReport(report);
+  if (validation) return { ok: false, message: t(validation) };
+  const payload = { userId: user.id, projectId: project.id, expectedReportId: task.latest_report_id || null, report };
+  const optimisticReport = { ...report, created_at: new Date().toISOString(), created_by: user.id, reporter: { full_name: profile.full_name }, pending_sync: true };
+  const optimistic = { is_done: report.outcome === 'completed', latest_report_id: report.id,
+    project_task_reports: [...(task.project_task_reports || []), optimisticReport], pending_sync: true };
+  try {
+    if (!navigator.onLine) {
+      await enqueueOfflineAction('project_task_report', payload);
+      await resolveLegacyTaskActions(task.id, user.id);
+      return { ok: true, offline: true, optimistic, message: t('הדיווח והקבצים נשמרו במכשיר ויסונכרנו עם החיבור לאינטרנט.') };
     }
+    const saved = await persistTaskReport(payload);
+    await resolveLegacyTaskActions(task.id, user.id);
+    return { ok: true, report: saved, message: t('דיווח הביצוע נשמר. עדכון במייל ממתין לשליחה.') };
+  } catch (error) {
+    const errorKey = error.code === '40001'
+      ? 'המשימה השתנתה מאז פתיחת החלון. יש לרענן ולבדוק את הדיווח האחרון לפני שליחה.'
+      : 'שמירת דיווח הביצוע נכשלה. הפרטים נשארו בחלון וניתן לנסות שוב.';
+    return { ok: false, errorKey, message: t(errorKey) };
   }
+}
 
-  return { message: nextDone ? 'המשימה סומנה כבוצעה' : 'המשימה סומנה כפתוחה' };
+export function toggleProjectTask() {
+  return { message: t('יש למלא דיווח ביצוע כדי להשלים משימה.'), ok: false };
 }
 
 export async function updateProjectTask(task, project, title, description, profile) {

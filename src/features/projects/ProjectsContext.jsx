@@ -8,6 +8,7 @@ import * as profilesApi from '../../services/api/profiles.js';
 import * as projectsFeatureApi from './api.js';
 import { useNotifications } from '../notifications/NotificationsContext.jsx';
 import { cacheOfflineData, getOfflineData } from '../../services/offlineStore.js';
+import TaskExecutionDialog from './task-reports/TaskExecutionDialog.jsx';
 
 const ProjectsContext = createContext(null);
 
@@ -19,6 +20,20 @@ export function ProjectsProvider({ children }) {
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [workers, setWorkers] = useState([]);
   const [historyItems, setHistoryItems] = useState([]);
+  const [reportTarget, setReportTarget] = useState(null);
+  useEffect(() => {
+    const requireReport = (event) => {
+      if (event.detail.history?.changed_by !== profile?.id) return;
+      const project = projects.find((item) => item.project_tasks?.some((task) => task.id === event.detail.taskId));
+      const task = project?.project_tasks.find((item) => item.id === event.detail.taskId);
+      if (task) {
+        setMessage(t('יש למלא דיווח ביצוע כדי להשלים משימה.'), 'info');
+        setReportTarget((current) => current || { project, task });
+      }
+    };
+    window.addEventListener('maya-task-report-required', requireReport);
+    return () => window.removeEventListener('maya-task-report-required', requireReport);
+  }, [profile?.id, projects, setMessage]);
 
   async function loadProjects() {
     setProjectsLoaded(false);
@@ -207,29 +222,32 @@ export function ProjectsProvider({ children }) {
           ),
       );
     },
-    toggleProjectTask: (task, project) =>
-      runMutation(
-        projectsFeatureApi.toggleProjectTask(task, project, profile, isManager),
-        (result) =>
-          setProjects((items) =>
-            items.map((item) =>
-              item.id === project.id
-                ? {
-                    ...item,
-                    project_tasks: (item.project_tasks || []).map((entry) =>
-                      entry.id === task.id ? { ...entry, ...result.optimistic } : entry,
-                    ),
-                  }
-                : item,
-            ),
-          ),
-      ),
+    toggleProjectTask: (task, project) => setReportTarget({ task, project }),
     updateProjectTask: (task, project, title, description) =>
       runMutation(projectsFeatureApi.updateProjectTask(task, project, title, description, profile)),
     deleteProjectTask: (task) => runMutation(projectsFeatureApi.deleteProjectTask(task, profile)),
   };
 
-  return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>;
+  async function submitReport(report) {
+    const { task, project } = reportTarget;
+    const result = await runMutation(projectsFeatureApi.submitTaskExecutionReport(task, project, report, profile),
+      (queued) => setProjects((items) => items.map((item) => item.id === project.id ? {
+        ...item, project_tasks: item.project_tasks.map((entry) => entry.id === task.id ? { ...entry, ...queued.optimistic } : entry),
+      } : item)));
+    if (result?.ok) {
+      setReportTarget(null);
+      if (!result.offline && report.outcome === 'completed' && project.project_tasks.every((item) => item.id === task.id || item.is_done)
+        && ['בעבודה בשטח','נדרש GPR','מחכה להיתרים'].includes(project.status)
+        && window.confirm(t('כל המשימות בפרויקט הושלמו. אם כל עבודת השטח הסתיימה, האם להעביר את הפרויקט לשרטוט?'))) {
+        await runStatusMutation(project, 'עבר לשרטוט', report.summary);
+      }
+    }
+    return result;
+  }
+  return <ProjectsContext.Provider value={value}>{children}
+    {reportTarget && <TaskExecutionDialog key={reportTarget.task.id} {...reportTarget} loadAssets={projectsFeatureApi.getProjectAssets}
+      onClose={() => setReportTarget(null)} onSubmit={submitReport} />}
+  </ProjectsContext.Provider>;
 }
 
 export function useProjects() {

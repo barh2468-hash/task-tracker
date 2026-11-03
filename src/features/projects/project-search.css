@@ -29,3 +29,24 @@
   transform: none;
   color: currentColor;
 }
+.projectLoadNotice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-block-end: 16px;
+  padding: 16px;
+  border: 1px solid #e8c68b;
+  border-radius: 12px;
+  background: #fff9ed;
+  color: #715018;
+}
+.projectLoadNotice > div {
+  display: grid;
+  flex: 1 1 190px;
+  min-width: 0;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.projectLoadNotice span { font-size: 13px; }
+.projectLoadNotice button { white-space: normal; }

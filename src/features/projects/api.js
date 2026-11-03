@@ -35,11 +35,15 @@ import { validateTaskReport } from './task-reports/model.js';
 // ---- Loading ----------------------------------------------------------
 
 export async function getProjects(profile) {
-  const user = await authApi.getCurrentUser();
-  if (!user || !profile) return [];
+  if (!profile?.id) return [];
+  // The authenticated provider already resolved this profile. Revalidating
+  // /auth/v1/user on every poll turned temporary auth failures into empty lists.
+  // Database RLS remains the authority for every query below.
+  const user = { id: profile.id };
 
   if (profile.role === 'drafter') {
-    const { data: drafterAssignments } = await projectsApi.getProjectIdsForWorker(user.id);
+    const { data: drafterAssignments, error: assignmentError } = await projectsApi.getProjectIdsForWorker(user.id);
+    if (assignmentError) throw assignmentError;
     const drafterProjectIds = Array.from(
       new Set((drafterAssignments || []).map((row) => row.project_id).filter(Boolean)),
     );
@@ -53,7 +57,8 @@ export async function getProjects(profile) {
   }
 
   if (!isManagerRole(profile.role)) {
-    const { data: extraAssignments } = await projectsApi.getProjectIdsForWorker(user.id);
+    const { data: extraAssignments, error: assignmentError } = await projectsApi.getProjectIdsForWorker(user.id);
+    if (assignmentError) throw assignmentError;
     const extraIds = Array.from(new Set((extraAssignments || []).map((row) => row.project_id).filter(Boolean)));
     const filters = [`assigned_to.eq.${user.id}`];
     if (extraIds.length) filters.push(`id.in.(${extraIds.join(',')})`);

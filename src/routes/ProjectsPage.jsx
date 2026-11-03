@@ -2,11 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, MapPin, MessageCircle, Search, ShieldAlert, UserRound, X } from 'lucide-react';
+import { ArrowLeft, MapPin, MessageCircle, Search, ShieldAlert, UserRound, X, RefreshCw } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth.js';
 import { useProjects } from '../features/projects/ProjectsContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
-import { useMessage } from '../context/MessageContext.jsx';
 import { appStatuses } from '../services/supabase.js';
 import ProjectCard from '../features/projects/components/ProjectCard.jsx';
 import StatusPill, { getStatusClass } from '../components/StatusPill.jsx';
@@ -18,6 +17,7 @@ import {
   isProjectAssignedTo,
 } from '../features/projects/utils/assignments.js';
 import { assignmentReturnLocation } from '../features/projects/utils/assignmentNavigation.js';
+import { resolveProjectLink } from '../features/projects/projectLoader.js';
 
 const PROJECT_BATCH_SIZE = 20;
 const LOAD_MORE_DELAY_MS = 650;
@@ -25,9 +25,8 @@ const LOAD_MORE_DELAY_MS = 650;
 export default function ProjectsPage() {
   useTranslation();
   const { isManager, session } = useAuth();
-  const { projects, projectsLoaded } = useProjects();
+  const { projects, projectsLoaded, projectsLoading, projectsVerified, projectsError, loadProjects } = useProjects();
   const { projectRoomsByProjectId } = useChat();
-  const { setMessage } = useMessage();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -59,12 +58,13 @@ export default function ProjectsPage() {
 
   // Resolve links against the permitted project list before showing any details.
   useEffect(() => {
-    if (!projectsLoaded || !selectedProjectId) return;
+    const linkState = resolveProjectLink(selectedProjectId, projects, projectsVerified);
+    if (linkState === 'none' || linkState === 'pending') return;
     const next = new URLSearchParams(searchParams);
-    if (!selectedProject) {
+    if (linkState === 'unavailable') {
       next.delete('project');
+      next.delete('tab');
       setDeepLinkDenied(true);
-      setMessage(t('אין לך הרשאה לצפות בפרויקט זה.'), 'error');
       setSearchParams(next, { replace: true, state: location.state });
       return;
     }
@@ -78,15 +78,16 @@ export default function ProjectsPage() {
     filter,
     location.state,
     isManager,
-    projectsLoaded,
+    projects,
+    projectsVerified,
     selectedProject,
     selectedProjectId,
     searchParams,
-    setMessage,
     setSearchParams,
   ]);
 
   function openProject(project) {
+    setDeepLinkDenied(false);
     listScrollRef.current = window.scrollY;
     lastOpenedProjectRef.current = project.id;
     const next = new URLSearchParams(searchParams);
@@ -197,10 +198,12 @@ export default function ProjectsPage() {
         : filter === 'mine'
           ? t('הפרויקטים שלי')
           : t('כל הפרויקטים');
-  const listLoading = !projectsLoaded && !projects.length;
+  const listLoading = projectsLoading && !projects.length;
   const countLabel = listLoading
     ? t('טוען...')
-    : query || statusFilter
+    : projectsError && !projects.length
+      ? t('טעינת הפרויקטים נכשלה')
+      : query || statusFilter
       ? t(
           categoryProjects.length === 1
             ? '{{count}} מתוך פרויקט אחד'
@@ -216,15 +219,29 @@ export default function ProjectsPage() {
 
   return (
     <section className={`card projectsPage${selectedProject ? ' projectsPageDetail' : ''}`}>
-      {deepLinkDenied && (
+      {deepLinkDenied && !selectedProjectId && !projectsError && (
         <div className="projectDeepLinkNotice" role="alert">
           <ShieldAlert size={22} />
           <div>
-            <b>{t('אין לך הרשאה לצפות בפרויקט זה')}</b>
-            <span>{t('הפרויקט אינו משויך אליך ולכן פרטיו אינם זמינים עבורך.')}</span>
+            <b>{t('הפרויקט אינו זמין לצפייה')}</b>
+            <span>{t('ייתכן שהפרויקט הוסר או שאין לך הרשאה לצפות בו.')}</span>
           </div>
           <button type="button" onClick={() => setDeepLinkDenied(false)} aria-label={t('סגירה')}>
             ×
+          </button>
+        </div>
+      )}
+      {projectsError && (
+        <div className="projectLoadNotice" role="alert">
+          <div>
+            <b>{t('לא ניתן לעדכן את רשימת הפרויקטים כרגע.')}</b>
+            <span>{t(projects.length
+              ? 'מוצגים הנתונים האחרונים שנטענו. בדוק את החיבור ונסה שוב.'
+              : 'בדוק את החיבור ונסה שוב. הקישור לפרויקט נשמר.')}</span>
+          </div>
+          <button type="button" className="ghost smallBtn" onClick={loadProjects} disabled={projectsLoading}>
+            <RefreshCw size={16} aria-hidden="true" />
+            {t(projectsLoading ? 'טוען...' : 'נסה שוב')}
           </button>
         </div>
       )}
@@ -298,8 +315,9 @@ export default function ProjectsPage() {
             </select>
           </div>
         </header>
-        <div className="projects" aria-busy={isLoadingMore}>
-          {visibleProjects.length === 0 && (
+        <div className="projects" aria-busy={projectsLoading || isLoadingMore}>
+          {listLoading && <div className="empty" role="status">{t('טוען פרויקטים...')}</div>}
+          {projectsLoaded && !projectsError && !listLoading && visibleProjects.length === 0 && (
             <div className="empty">{t('אין פרויקטים להצגה כרגע')}</div>
           )}
           {pagedProjects.map((project) => {

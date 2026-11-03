@@ -1,5 +1,11 @@
 // Hebrew source keys with complete English and Greek translations.
 const entries = [
+  ['טעינת הפרויקטים נכשלה', 'Projects could not be loaded', 'Δεν ήταν δυνατή η φόρτωση των έργων'],
+  ['לא ניתן לעדכן את רשימת הפרויקטים כרגע.', 'The project list cannot be refreshed right now.', 'Δεν είναι δυνατή η ανανέωση της λίστας έργων αυτή τη στιγμή.'],
+  ['מוצגים הנתונים האחרונים שנטענו. בדוק את החיבור ונסה שוב.', 'Showing the last loaded data. Check your connection and try again.', 'Εμφανίζονται τα τελευταία δεδομένα που φορτώθηκαν. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.'],
+  ['בדוק את החיבור ונסה שוב. הקישור לפרויקט נשמר.', 'Check your connection and try again. Your project link has been kept.', 'Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά. Ο σύνδεσμος του έργου έχει διατηρηθεί.'],
+  ['הפרויקט אינו זמין לצפייה', 'This project is unavailable', 'Αυτό το έργο δεν είναι διαθέσιμο'],
+  ['ייתכן שהפרויקט הוסר או שאין לך הרשאה לצפות בו.', 'The project may have been removed or you may not have access to it.', 'Το έργο ενδέχεται να έχει καταργηθεί ή να μην έχετε πρόσβαση σε αυτό.'],
   ['ניקוי חיפוש פרויקטים', 'Clear project search', 'Εκκαθάριση αναζήτησης έργων'],
   ['חיפוש לפי עובד', 'Search by worker', 'Αναζήτηση ανά εργαζόμενο'],
   ['סינון פרויקטים לפי סטטוס', 'Filter projects by status', 'Φιλτράρισμα έργων ανά κατάσταση'],

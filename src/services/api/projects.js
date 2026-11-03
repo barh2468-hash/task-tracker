@@ -1,5 +1,6 @@
 import { supabase } from '../supabase.js';
 import { getDrawingBatches } from './drawingBatches.js';
+import { readProjectPages } from './readProjectPages.js';
 
 // Kept as one literal string (not built dynamically) so the exact shape of
 // what the UI receives is easy to diff against the previous page.tsx query.
@@ -50,36 +51,38 @@ export async function getProjectAssets(projectId) {
 }
 
 export function getProjectIdsForWorker(workerId) {
-  return supabase.from('project_workers').select('project_id').eq('worker_id', workerId);
+  return readProjectPages(() => supabase.from('project_workers').select('project_id')
+    .eq('worker_id', workerId).order('project_id'));
 }
 
 export function getProjectsForManager() {
-  return supabase.from('projects').select(PROJECT_SELECT).order('updated_at', { ascending: false });
+  return readProjectPages(() => supabase.from('projects').select(PROJECT_SELECT)
+    .order('updated_at', { ascending: false }).order('id'));
 }
 
 export function getProjectsByIds(ids) {
-  return supabase
+  return readProjectPages(() => supabase
     .from('projects')
     .select(PROJECT_SELECT)
     .order('updated_at', { ascending: false })
-    .in('id', ids);
+    .in('id', ids).order('id'));
 }
 
 export function getProjectsByIdsAndStatuses(ids, statuses) {
-  return supabase
+  return readProjectPages(() => supabase
     .from('projects')
     .select(PROJECT_SELECT)
     .order('updated_at', { ascending: false })
     .in('id', ids)
-    .in('status', statuses);
+    .in('status', statuses).order('id'));
 }
 
 export function getProjectsByAssignmentOr(filters) {
-  return supabase
+  return readProjectPages(() => supabase
     .from('projects')
     .select(PROJECT_SELECT)
     .order('updated_at', { ascending: false })
-    .or(filters.join(','));
+    .or(filters.join(',')).order('id'));
 }
 
 export function insertProject(payload) {

@@ -10,6 +10,7 @@ import { useNotifications } from '../notifications/NotificationsContext.jsx';
 import { cacheOfflineData, getOfflineData } from '../../services/offlineStore.js';
 import TaskExecutionDialog from './task-reports/TaskExecutionDialog.jsx';
 import { finishProjectMutation } from './mutations.js';
+import { createProjectLoader, emptyProjectSnapshot, projectOwner } from './projectLoader.js';
 
 const ProjectsContext = createContext(null);
 
@@ -17,8 +18,16 @@ export function ProjectsProvider({ children }) {
   const { profile, isManager } = useAuth();
   const { setMessage } = useMessage();
   const { loadNotifications } = useNotifications();
-  const [projects, setProjects] = useState([]);
-  const [projectsLoaded, setProjectsLoaded] = useState(false);
+  const [projectSnapshot, setProjectSnapshot] = useState(emptyProjectSnapshot);
+  const [projectLoader] = useState(() => createProjectLoader({
+    read: projectsFeatureApi.getProjects, readCache: getOfflineData,
+    writeCache: cacheOfflineData, publish: setProjectSnapshot,
+  }));
+  const currentSnapshot = projectSnapshot.owner === projectOwner(profile)
+    ? projectSnapshot : emptyProjectSnapshot;
+  const { projects, loading: projectsLoading, settled: projectsLoaded,
+    verified: projectsVerified, error: projectsError } = currentSnapshot;
+  const setProjects = projectLoader.setProjects;
   const [workers, setWorkers] = useState([]);
   const [historyItems, setHistoryItems] = useState([]);
   const [reportTarget, setReportTarget] = useState(null);
@@ -36,24 +45,8 @@ export function ProjectsProvider({ children }) {
     return () => window.removeEventListener('maya-task-report-required', requireReport);
   }, [profile?.id, projects, setMessage]);
 
-  async function loadProjects() {
-    setProjectsLoaded(false);
-    try {
-      const data = await projectsFeatureApi.getProjects(profile);
-      setProjects(data);
-      await cacheOfflineData(`projects:${profile?.id}`, data);
-    } catch (error) {
-      const cached = await getOfflineData(`projects:${profile?.id}`);
-      if (cached) {
-        setProjects(cached);
-        if (!navigator.onLine)
-          setMessage(t('אין חיבור. מוצגים נתוני הפרויקטים האחרונים שנשמרו במכשיר.'), 'info');
-      } else {
-        setMessage(error instanceof Error ? error.message : String(error), 'error');
-      }
-    } finally {
-      setProjectsLoaded(true);
-    }
+  function loadProjects() {
+    return projectLoader.load(profile);
   }
 
   async function loadWorkers() {
@@ -85,9 +78,8 @@ export function ProjectsProvider({ children }) {
   }
 
   useEffect(() => {
+    projectLoader.activate(profile);
     if (!profile) {
-      setProjects([]);
-      setProjectsLoaded(false);
       setWorkers([]);
       setHistoryItems([]);
       return;
@@ -95,6 +87,7 @@ export function ProjectsProvider({ children }) {
     loadProjects();
     loadWorkers();
     loadHistory();
+    return () => projectLoader.cancel();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
@@ -152,6 +145,9 @@ export function ProjectsProvider({ children }) {
   const value = {
     projects,
     projectsLoaded,
+    projectsLoading,
+    projectsVerified,
+    projectsError,
     workers,
     historyItems,
     loadProjects,

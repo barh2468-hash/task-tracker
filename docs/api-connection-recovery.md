@@ -33,6 +33,13 @@ dependency tree through a deeply nested project/task/report embed. The frontend
 reconstructs the same project response only after every required read succeeds;
 the database policies and role privileges are unchanged.
 
+The light parent/team read uses pages of at most 500 rows. Task and report ID
+filters stay limited to 80 IDs, with at most three independent batch reads in
+flight. This removes the serial request waterfall while retaining pagination,
+deterministic result order and all-or-error response handling. An authenticated
+read of 343 projects, 55 tasks and 6 reports measured 3.7–4.3 seconds before the
+change and 1.8 seconds after it; the complete response SHA-256 was identical.
+
 Emergency recovery for this specific read-only pool state:
 
 ```sql

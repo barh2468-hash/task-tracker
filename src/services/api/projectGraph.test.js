@@ -43,3 +43,38 @@ test('empty project and task lists do not issue unnecessary child queries', asyn
   const result = await hydrateProjectTasks({ data: [{ id:'p' }] },async () => ({ data: [] }),unexpected);
   assert.deepEqual(result.data, [{ id:'p',project_tasks: [] }]);
 });
+
+test('task reads run at most three at once and retain order when responses finish out of order', async () => {
+  const projects = Array.from({ length: 260 }, (_, id) => ({ id: `p-${id}` }));
+  const pending = [];
+  let running = 0, maximum = 0;
+  const resultPromise = hydrateProjectTasks({ data: projects }, (ids) => {
+    running += 1;
+    maximum = Math.max(maximum,running);
+    return new Promise((resolve) => pending.push(() => {
+      running -= 1;
+      resolve({ data: ids.map((id) => ({ id:`t-${id}`,project_id:id })) });
+    }));
+  }, async () => ({ data: [] }));
+  assert.equal(pending.length,3);
+  pending[2]();
+  await Promise.resolve();
+  assert.equal(pending.length,4);
+  pending[3](); pending[1](); pending[0]();
+  const result = await resultPromise;
+  assert.equal(maximum,3);
+  assert.deepEqual(result.data.map((project) => project.project_tasks[0].id),projects.map((project) => `t-${project.id}`));
+});
+
+test('a concurrent failure stops unscheduled reads and never publishes a partial graph', async () => {
+  const projects = Array.from({ length: 500 }, (_, id) => ({ id }));
+  let calls = 0;
+  const error = new Error('offline');
+  const result = await hydrateProjectTasks({ data: projects }, async () => {
+    calls += 1;
+    throw error;
+  }, () => { throw new Error('Reports must not load after a task failure'); });
+  assert.equal(calls,3);
+  assert.equal(result.data,null);
+  assert.equal(result.error,error);
+});

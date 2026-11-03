@@ -10,7 +10,9 @@ const PROJECT_SELECT =
 const TASK_SELECT = 'id,project_id,title,description,is_done,latest_report_id,created_by,created_at,updated_at,profiles:created_by(full_name)';
 
 async function readProjects(buildRequest) {
-  return hydrateProjectTasks(await readProjectPages(buildRequest),
+  // The parent query no longer embeds tasks or reports, so it can use a larger
+  // bounded page without the former recursive RLS expansion.
+  return hydrateProjectTasks(await readProjectPages(buildRequest, { pageSize: 500 }),
     (projectIds) => readProjectPages(() => supabase.from('project_tasks').select(TASK_SELECT)
       .in('project_id', projectIds).order('created_at', { ascending: false }).order('id')),
     (taskIds) => readProjectPages(() => supabase.from('project_task_reports')

@@ -36,3 +36,15 @@ test('temporary server failures retry the same page once; access errors are prop
   assert.equal(calls, 1);
   assert.equal(denied.error.code, '42501');
 });
+
+test('light parent reads can use 500 rows per page and still load beyond the API cap', async () => {
+  const rows = Array.from({ length: 1101 }, (_, id) => ({ id }));
+  const calls = [];
+  const result = await readProjectPages(() => ({ range: async (from, to) => {
+    calls.push([from,to]);
+    return { data: rows.slice(from,to+1) };
+  } }), { pageSize: 500 });
+  assert.deepEqual(result.data, rows);
+  assert.deepEqual(calls, [[0,499],[500,999],[1000,1499]]);
+  await assert.rejects(readProjectPages(() => {}, { pageSize: 1001 }), RangeError);
+});

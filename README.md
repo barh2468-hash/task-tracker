@@ -2,7 +2,7 @@
 
 ## Notification event preferences
 
-The Notifications screen now opens account-wide switches for 15 event categories, including separate choices for work starting/finishing and new/completed tasks. Choices control future in-app and Push alerts; existing history, chat messages and email delivery are preserved. Missing preferences default to enabled. Failed loads disable editing, and failed saves retain the previous setting.
+The Notifications screen shows the notification list by default. The Notification settings button opens a separate window with account-wide switches for 15 event categories, including separate choices for work starting/finishing and new/completed tasks. Closing settings returns to the same list and filters. Choices control future in-app and Push alerts; existing history, chat messages and email delivery are preserved. Missing preferences default to enabled. Failed loads disable editing, and failed saves retain the previous setting.
 
 Deployment order: apply `supabase/migrations/20261101125128_notification_event_preferences.sql`, deploy `send-push-notification`, `send-field-project-updates`, `attendance-reminder` and `vehicle-alerts` (including their shared module), then deploy the frontend. The migration adds private per-user settings and marks suppressed event rows so existing email queue references remain valid. **Deploy the migration before the frontend**, which filters on the new `delivery_enabled` column.
 

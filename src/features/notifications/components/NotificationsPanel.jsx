@@ -13,7 +13,7 @@ import {
 import { useNotifications } from '../NotificationsContext.jsx';
 import '../notification-management.css';
 
-export default function NotificationsPanel({ onNavigate, settings }) {
+export default function NotificationsPanel({ onNavigate, settings, headerActions }) {
   useTranslation();
   const { language } = useLanguage();
   const locale = localeForLanguage(language);
@@ -75,18 +75,21 @@ export default function NotificationsPanel({ onNavigate, settings }) {
             <Bell size={24} aria-hidden="true" />
           </span>
           <div>
-            <h2 id="notification-management-title">{t('notifications.manage')}</h2>
+            <h2 id="notification-management-title">{t('התראות')}</h2>
             <p className="muted">{t('notifications.description')}</p>
           </div>
         </div>
-        <button
-          className="ghost"
-          onClick={() => void markAllNotificationsRead()}
-          disabled={busy || unreadCount === 0}
-        >
-          <CheckCheck size={17} aria-hidden="true" />
-          {t('notifications.markAll')}
-        </button>
+        <div className="notificationManagementActions">
+          {headerActions}
+          <button
+            className="ghost"
+            onClick={() => void markAllNotificationsRead()}
+            disabled={busy || unreadCount === 0}
+          >
+            <CheckCheck size={17} aria-hidden="true" />
+            {t('notifications.markAll')}
+          </button>
+        </div>
       </header>
 
       <div className="notificationSummary" aria-live="polite">

@@ -82,7 +82,7 @@ export default function NotificationsPopover({
       </div>
       <div className="popoverActions">
         <button className="ghost tinyBtn" onClick={onOpenFullPage}>
-          {t('notifications.settingsTitle')}
+          {t('לכל ההתראות')}
         </button>
         <button
           className="ghost tinyBtn"

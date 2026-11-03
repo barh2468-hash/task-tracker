@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { t, useLanguage } from '../language/LanguageContext.jsx';
 import { languageOptions } from '../language/languages.js';
 import { NotificationsContext } from './context.js';
-import NotificationsPanel from './components/NotificationsPanel.jsx';
-import NotificationPreferences from './components/NotificationPreferences.jsx';
+import NotificationsWorkspace from './components/NotificationsWorkspace.jsx';
 
 // DEV-only fixture. Every action stays in memory and never calls a backend.
 export default function LocalNotificationsPreview() {
@@ -108,17 +107,13 @@ export default function LocalNotificationsPreview() {
           },
         }}
       >
-        <NotificationPreferences
+        <NotificationsWorkspace
           deviceControls={
             <button className="ghost" aria-pressed={push} onClick={() => setPush(!push)}>
               {t(push ? 'כיבוי התראות' : 'הפעלת התראות')}
             </button>
           }
         />
-        <details className="notificationHistory">
-          <summary>{t('notifications.history')}</summary>
-          <NotificationsPanel />
-        </details>
       </NotificationsContext.Provider>
     </main>
   );

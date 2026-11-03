@@ -2,6 +2,54 @@
   min-width: 0;
   text-align: start;
 }
+.notificationManagementActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+}
+.notificationSettingsDialog {
+  width: min(800px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  color: var(--text);
+  background: white;
+  overflow: auto;
+  box-shadow: var(--shadow);
+}
+.notificationSettingsDialog::backdrop {
+  background: rgba(7, 30, 65, 0.55);
+}
+.notificationSettingsDialogActions {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 16px;
+  background: white;
+  border-bottom: 1px solid var(--line);
+}
+.notificationSettingsDialog .notificationPreferences {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+@media (max-width: 640px) {
+  .notificationManagementActions {
+    width: 100%;
+  }
+  .notificationManagementActions > button {
+    flex: 1 1 180px;
+  }
+  .notificationSettingsDialog {
+    width: calc(100% - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+}
 .notificationManagementHeader,
 .notificationManagementTitle {
   display: flex;

@@ -10,22 +10,25 @@ const PROJECT_SELECT =
 const TASK_SELECT = 'id,project_id,title,description,is_done,latest_report_id,created_by,created_at,updated_at,profiles:created_by(full_name)';
 
 async function readProjects(buildRequest) {
-  // The parent query no longer embeds tasks or reports, so it can use a larger
-  // bounded page without the former recursive RLS expansion.
   return hydrateProjectTasks(await readProjectPages(buildRequest, { pageSize: 500 }),
     (projectIds) => readProjectPages(() => supabase.from('project_tasks').select(TASK_SELECT)
       .in('project_id', projectIds).order('created_at', { ascending: false }).order('id')),
-    (taskIds) => readProjectPages(() => supabase.from('project_task_reports')
-      .select('*,reporter:created_by(full_name)').in('task_id', taskIds)
-      .order('created_at', { ascending: false }).order('id')));
+    (_taskIds, reportIds) => reportIds.length
+      ? readProjectPages(() => supabase.from('project_task_reports')
+        .select('*,reporter:created_by(full_name)').in('id', reportIds)
+        .order('created_at', { ascending: false }).order('id'))
+      : Promise.resolve({ data: [] }));
 }
 
 export async function getProjectAssets(projectId) {
-  let [photos, reviewFiles, documents, drawingBatches] = await Promise.all([
+  let [photos, reviewFiles, documents, drawingBatches, taskReports] = await Promise.all([
     supabase.from('project_photos').select('id,file_path,category,created_at').eq('project_id', projectId).order('created_at', { ascending: false }),
     supabase.from('project_review_files').select('id,project_id,drawing_batch_id,uploaded_by,file_path,file_name,created_at,profiles:uploaded_by(full_name)').eq('project_id', projectId).order('created_at', { ascending: false }),
     supabase.from('project_documents').select('id,project_id,drawing_batch_id,uploaded_by,file_path,file_name,file_size,mime_type,document_type,created_at,profiles:uploaded_by(full_name)').eq('project_id', projectId).order('created_at', { ascending: false }),
     getDrawingBatches(projectId),
+    readProjectPages(() => supabase.from('project_task_reports')
+      .select('*,reporter:created_by(full_name)').eq('project_id', projectId)
+      .order('created_at', { ascending: false }).order('id')),
   ]);
   if (photos.error) throw photos.error;
   const schemaUnavailableCodes = new Set(['42P01', '42703', 'PGRST204', 'PGRST205']);
@@ -55,11 +58,13 @@ export async function getProjectAssets(projectId) {
   if (reviewFiles.error) throw reviewFiles.error;
   if (documents.error) throw documents.error;
   if (drawingBatches.error) throw drawingBatches.error;
+  if (taskReports.error) throw taskReports.error;
   return {
     project_photos: photos.data || [],
     project_review_files: reviewFiles.data || [],
     project_documents: documents.data || [],
     project_drawing_batches: drawingBatches.data || [],
+    project_task_reports: taskReports.data || [],
   };
 }
 

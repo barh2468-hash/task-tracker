@@ -48,6 +48,7 @@ import { useChat } from '../../chat/ChatContext.jsx';
 import useProjectDialog from '../hooks/useProjectDialog.js';
 import { isManagerRole } from '../../../utils/roles.js';
 import { getProjectTeamAssignments, isProjectTeamMember } from '../utils/assignments.js';
+import { tasksWithReportHistory } from '../task-reports/model.js';
 
 const photoCategories = [
   'תמונת שטח',
@@ -144,7 +145,9 @@ export default function ProjectCard({ project, onBack, initialTab }) {
     project_review_files: [],
     project_documents: [],
     project_drawing_batches: [],
+    project_task_reports: [],
   });
+  const detailTasks = tasksWithReportHistory(project.project_tasks || [], assets.project_task_reports || []);
   const [assetsLoading, setAssetsLoading] = useState(false);
   const [assetsError, setAssetsError] = useState(false);
   const assignedDrafterId = findAssignedDrafter(project)?.worker_id || '';
@@ -743,12 +746,12 @@ export default function ProjectCard({ project, onBack, initialTab }) {
           </ProjectSectionTabs>
           {assetsLoading && (
             <p className="projectAssetLoading" role="status">
-              <LoaderCircle size={16} className="spinIcon" /> {t('טוען תמונות וקבצים...')}
+              <LoaderCircle size={16} className="spinIcon" /> {t('טוען פרטי פרויקט...')}
             </p>
           )}
           {assetsError && (
             <div className="projectAssetLoading" role="alert">
-              {t('טעינת קובצי הפרויקט נכשלה.')}{' '}
+              {t('טעינת פרטי הפרויקט נכשלה.')}{' '}
               <button type="button" className="ghost smallBtn" onClick={refreshAssets}>
                 {t('נסה שוב')}
               </button>
@@ -1004,7 +1007,7 @@ export default function ProjectCard({ project, onBack, initialTab }) {
             {activeDetailTab === 'tasks' && (
               <div className="projectTabPanel">
                 <TaskPanel
-                  tasks={project.project_tasks || []}
+                  tasks={detailTasks}
                   isManager={isManager}
                   canAddTasks={canEditFieldData}
                   canCompleteTasks={
@@ -1047,7 +1050,7 @@ export default function ProjectCard({ project, onBack, initialTab }) {
                   </div>
                 )}
                 <DrawingBatchesPanel
-                  taskReports={(project.project_tasks || []).flatMap((task) => task.project_task_reports || [])}
+                  taskReports={detailTasks.flatMap((task) => task.project_task_reports || [])}
                   batches={assets.project_drawing_batches}
                   documents={assets.project_documents}
                   reviewFiles={assets.project_review_files}

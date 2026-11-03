@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateTaskReport, latestTaskReport } from './model.js';
+import { validateTaskReport, latestTaskReport, tasksWithReportHistory } from './model.js';
 import { heTaskReports, enTaskReports, elTaskReports } from './translations.js';
 
 const report = {
@@ -11,6 +11,18 @@ const report = {
   files: [],
   document_ids: [],
 };
+
+test('open project history preserves earlier reports, the latest pointer and pending offline reports', () => {
+  const pending = { id: 'queued', task_id: 'task', pending_sync: true, summary: 'User text unchanged' };
+  const latest = { id: 'latest', task_id: 'task', created_at: '2026-11-03' };
+  const tasks = [{ id: 'task', latest_report_id: 'queued', project_task_reports: [latest, pending] }, { id: 'empty' }];
+  const old = { id: 'old', task_id: 'task', created_at: '2026-11-01' };
+  const merged = tasksWithReportHistory(tasks, [old, latest, { id: 'other', task_id: 'hidden' }]);
+  assert.deepEqual(merged[0].project_task_reports, [old, latest, pending]);
+  assert.equal(latestTaskReport(merged[0]), pending);
+  assert.deepEqual(merged[1].project_task_reports, []);
+  assert.equal(tasks[0].project_task_reports.length, 2);
+});
 test('partial and blocked reports require follow-up and cannot be mistaken for completion', () => {
   for (const outcome of ['partial', 'blocked']) {
     assert.ok(validateTaskReport({ ...report, outcome }));

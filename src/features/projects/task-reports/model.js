@@ -38,3 +38,18 @@ export function latestTaskReport(task) {
     )[0]
   );
 }
+
+// Project lists retain the latest report for summaries and offline use. Open
+// project details add the full server history without dropping queued reports.
+export function tasksWithReportHistory(tasks, reports) {
+  const byTask = new Map();
+  for (const report of reports) {
+    if (!byTask.has(report.task_id)) byTask.set(report.task_id, new Map());
+    byTask.get(report.task_id).set(report.id, report);
+  }
+  return tasks.map((task) => {
+    const history = new Map(byTask.get(task.id));
+    for (const report of task.project_task_reports || []) history.set(report.id, report);
+    return { ...task, project_task_reports: [...history.values()] };
+  });
+}

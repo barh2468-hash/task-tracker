@@ -44,6 +44,19 @@ test('empty project and task lists do not issue unnecessary child queries', asyn
   assert.deepEqual(result.data, [{ id:'p',project_tasks: [] }]);
 });
 
+test('report reads receive only the current batch latest report pointers', async () => {
+  const result = await hydrateProjectTasks({ data: [{ id: 'p' }] }, async () => ({ data: [
+    { id: 't1', project_id: 'p', latest_report_id: 'latest' },
+    { id: 't2', project_id: 'p', latest_report_id: null },
+  ] }), async (taskIds, reportIds) => {
+    assert.deepEqual(taskIds, ['t1', 't2']);
+    assert.deepEqual(reportIds, ['latest']);
+    return { data: [{ id: 'latest', task_id: 't1' }] };
+  });
+  assert.equal(result.data[0].project_tasks[0].project_task_reports.length, 1);
+});
+
+
 test('task reads run at most three at once and retain order when responses finish out of order', async () => {
   const projects = Array.from({ length: 260 }, (_, id) => ({ id: `p-${id}` }));
   const pending = [];

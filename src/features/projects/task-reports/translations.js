@@ -1,4 +1,6 @@
 const entries = [
+  ['טוען פרטי פרויקט...', 'Loading project details...', 'Φόρτωση λεπτομερειών έργου...'],
+  ['טעינת פרטי הפרויקט נכשלה.', 'Could not load project details.', 'Δεν ήταν δυνατή η φόρτωση των λεπτομερειών έργου.'],
   [
     'מנת השרטוט תיווצר לאחר הסנכרון.',
     'The drawing batch will be created after syncing.',

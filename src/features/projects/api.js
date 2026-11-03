@@ -17,7 +17,7 @@ import {
   REVIEW_STATUS,
 } from '../../services/supabase.js';
 import { createManagerNotification, createUserNotification } from '../notifications/api.js';
-import { enqueueOfflineAction, resolveLegacyTaskActions } from '../../services/offlineStore.js';
+import { cacheOfflineData, getOfflineData, enqueueOfflineAction, resolveLegacyTaskActions } from '../../services/offlineStore.js';
 import { findAssignedDrafter, isDrafterCandidate } from './utils/drafters.js';
 import {
   documentTypeAllowsImages,
@@ -91,8 +91,18 @@ export async function getProjectHistory(projectId, options) {
   };
 }
 
-export function getProjectAssets(projectId) {
-  return projectsApi.getProjectAssets(projectId);
+export async function getProjectAssets(projectId, userId) {
+  const cacheKey = userId ? `project-assets:${userId}:${projectId}` : null;
+  if (cacheKey && navigator.onLine === false) {
+    const cached = await getOfflineData(cacheKey);
+    if (cached) return cached;
+    throw new Error('Offline project details unavailable');
+  }
+  const assets = await projectsApi.getProjectAssets(projectId);
+  // Keep full report history available after an online visit. Storage failure
+  // must not turn a valid server response into a failed project load.
+  if (cacheKey) void Promise.resolve().then(() => cacheOfflineData(cacheKey, assets)).catch(() => {});
+  return assets;
 }
 
 export function getProjectFieldWorkerIds(project) {

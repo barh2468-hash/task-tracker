@@ -16,8 +16,11 @@ export default function OrderEmailsPanel({ order, loadEmails = getOrderEmails, l
   useRealtimeRefresh({
     enabled: live,
     channelName: `gpr-order-emails-${order.id}`,
-    tables: ['gpr_order_emails'],
+    // Observe published parent orders; the raw email table is not in the
+    // publication. A one-minute safety read also catches email-only links.
+    tables: ['gpr_work_orders'],
     onRefresh: () => setReload((value) => value + 1),
+    safetyIntervalMs: 60000,
   });
   useEffect(() => {
     let active = true;

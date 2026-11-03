@@ -1,5 +1,5 @@
 import { t } from '../language/LanguageContext.jsx';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useAuth } from '../auth/useAuth.js';
 import { useMessage } from '../../context/MessageContext.jsx';
 import { resultTone } from '../../context/messageTone.js';
@@ -31,6 +31,9 @@ export function ProjectsProvider({ children }) {
   const [workers, setWorkers] = useState([]);
   const [historyItems, setHistoryItems] = useState([]);
   const [reportTarget, setReportTarget] = useState(null);
+  const loadProjectAssets = useCallback(
+    (projectId) => projectsFeatureApi.getProjectAssets(projectId, profile?.id), [profile?.id],
+  );
   useEffect(() => {
     const requireReport = (event) => {
       if (event.detail.history?.changed_by !== profile?.id) return;
@@ -154,7 +157,7 @@ export function ProjectsProvider({ children }) {
     loadWorkers,
     loadHistory,
     loadProjectHistory: projectsFeatureApi.getProjectHistory,
-    loadProjectAssets: projectsFeatureApi.getProjectAssets,
+    loadProjectAssets,
     createProject: (newProject) =>
       runMutation(projectsFeatureApi.createProject(newProject, profile)),
     saveProject: (projectId, changes) => {

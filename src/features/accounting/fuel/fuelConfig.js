@@ -60,3 +60,8 @@ export const TOLL_REMARK_PREFIX = 'חש.כביש 6';
 export const ITURAN_SUPPLIER_CARD = '5931'; // איתוראן — ספק
 export const ITURAN_SUPPLIER_ACCOUNT_TYPE = 'BP';
 export const ITURAN_REMARK = 'חשבונית איתורן';
+
+// Carmel Tunnels (tolls). Same vehicle/VAT/truck rules as the tolls and Ituran.
+export const CARMEL_SUPPLIER_CARD = '5968'; // מנהרות הכרמל — ספק
+export const CARMEL_SUPPLIER_ACCOUNT_TYPE = 'BP';
+export const CARMEL_REMARK = 'חשבונית מנהרות הכרמל';

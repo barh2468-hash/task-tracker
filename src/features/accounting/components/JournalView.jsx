@@ -12,6 +12,7 @@ const JOURNAL_LABELS = {
   wash: { heading: 'שטיפומט — שטיפות', invoice: 'חשבונית שטיפומט', total: 'סה"כ חשבונית שטיפומט', file: 'wash' },
   toll: { heading: 'כביש 6 — חשבונית מס', invoice: 'חשבונית מס', total: 'סה"כ כולל מע"מ', file: 'toll' },
   ituran: { heading: 'איתוראן — חשבונית מס', invoice: 'חשבונית איתוראן', total: 'סה"כ לתשלום', file: 'ituran' },
+  carmel: { heading: 'מנהרות הכרמל — חשבונית מס', invoice: 'חשבונית מנהרות הכרמל', total: 'סה"כ כולל מע"מ', file: 'carmel' },
 };
 
 // Several invoices of the same kind can be open at once (journal.fileTag keeps their files apart).

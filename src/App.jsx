@@ -56,6 +56,7 @@ const AccountingFuelPage = lazy(() => import('./routes/AccountingFuelPage.jsx'))
 const AccountingTollsPage = lazy(() => import('./routes/AccountingTollsPage.jsx'));
 const AccountingIturanPage = lazy(() => import('./routes/AccountingIturanPage.jsx'));
 const AccountingCarmelPage = lazy(() => import('./routes/AccountingCarmelPage.jsx'));
+const AccountingCrossNorthPage = lazy(() => import('./routes/AccountingCrossNorthPage.jsx'));
 const ManholeLayoutPage = lazy(() => import('./routes/ManholeLayoutPage.jsx'));
 const VehiclesPage = lazy(() => import('./routes/VehiclesPage.jsx'));
 const MyVehiclePage = lazy(() => import('./routes/MyVehiclePage.jsx'));
@@ -419,6 +420,14 @@ export default function App() {
                   element={
                     <Suspense fallback={<LoadingScreen />}>
                       <AccountingCarmelPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="accounting/cross-north"
+                  element={
+                    <Suspense fallback={<LoadingScreen />}>
+                      <AccountingCrossNorthPage />
                     </Suspense>
                   }
                 />

@@ -65,3 +65,8 @@ export const ITURAN_REMARK = 'חשבונית איתורן';
 export const CARMEL_SUPPLIER_CARD = '5968'; // מנהרות הכרמל — ספק
 export const CARMEL_SUPPLIER_ACCOUNT_TYPE = 'BP';
 export const CARMEL_REMARK = 'חשבונית מנהרות הכרמל';
+
+// Cross-North Highway (כביש 6 חוצה צפון). Same vehicle/VAT/truck rules as the tolls, Ituran and Carmel.
+export const CROSS_NORTH_SUPPLIER_CARD = '5494'; // חוצה צפון — ספק
+export const CROSS_NORTH_SUPPLIER_ACCOUNT_TYPE = 'BP';
+export const CROSS_NORTH_REMARK = 'חשבונית חוצה צפון';

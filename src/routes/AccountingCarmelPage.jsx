@@ -16,7 +16,6 @@ export default function AccountingCarmelPage() {
   useTranslation();
   const inputRef = useRef(null);
   const [invoices, setInvoices] = useState([]);
-  const [sapNumbers, setSapNumbers] = useState({});
   const [manualMap, setManualMap] = useState(loadManualMap);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -25,9 +24,9 @@ export default function AccountingCarmelPage() {
     const cardFor = (plateDigits) => manualMap[plateDigits] || SEED_VEHICLE_CARDS[plateDigits] || '';
     return invoices.map(({ fileName, invoice }) => ({
       fileName,
-      journal: buildCarmelJournal(invoice, cardFor, sapNumbers[invoice.invoiceNumber]),
+      journal: buildCarmelJournal(invoice, cardFor),
     }));
-  }, [invoices, manualMap, sapNumbers]);
+  }, [invoices, manualMap]);
 
   async function loadFiles(files) {
     if (!files.length) return;
@@ -99,18 +98,6 @@ export default function AccountingCarmelPage() {
 
       {journals.map(({ fileName, journal }) => (
         <div key={journal.invoiceNumber} style={{ display: 'contents' }}>
-          <section className="card" style={{ padding: 18, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <label htmlFor={`sap-${journal.invoiceNumber}`}>
-              <b>{t('מספר החשבונית בסאפ')}</b> ({t('חשבונית')} {journal.invoiceNumber}) — {t('אסמכתא')} 2
-            </label>
-            <input
-              id={`sap-${journal.invoiceNumber}`}
-              value={sapNumbers[journal.invoiceNumber] || ''}
-              onChange={(event) => setSapNumbers({ ...sapNumbers, [journal.invoiceNumber]: event.target.value.replace(/\D/g, '') })}
-              inputMode="numeric"
-              style={{ width: 160 }}
-            />
-          </section>
           <JournalView journal={journal} fileName={fileName} onSaveCard={saveCard} />
         </div>
       ))}

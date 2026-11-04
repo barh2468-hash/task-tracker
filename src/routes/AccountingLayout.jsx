@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, Car, LogOut, CalendarClock, FileSpreadsheet, Fuel, MapPin, Mountain, Route, X } from 'lucide-react';
+import { CheckCircle, Car, LogOut, FileSpreadsheet, Fuel, MapPin, Mountain, Route, X } from 'lucide-react';
 import { t } from '../features/language/LanguageContext.jsx';
 import { useAuth } from '../features/auth/useAuth.js';
 import { MessageProvider, useMessage } from '../context/MessageContext.jsx';
@@ -29,11 +29,6 @@ function AccountingLayoutContent() {
         {isAccountingMain && (
           <NavLink to="/app/accounting/year-end" className={({ isActive }) => `accountingTab${isActive ? ' active' : ''}`}>
             <FileSpreadsheet size={16} /> {t('טבלת סוף שנה')}
-          </NavLink>
-        )}
-        {isAccountingMain && (
-          <NavLink to="/app/accounting/payments" className={({ isActive }) => `accountingTab${isActive ? ' active' : ''}`}>
-            <CalendarClock size={16} /> {t('מעקב תשלומים')}
           </NavLink>
         )}
         <NavLink to="/app/accounting/fuel" className={({ isActive }) => `accountingTab${isActive ? ' active' : ''}`}>

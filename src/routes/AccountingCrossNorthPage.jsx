@@ -65,7 +65,7 @@ export default function AccountingCrossNorthPage() {
         const key = digitsOf(invoice.invoiceNumber);
         if (seen.has(key)) throw new Error(`חשבונית ${invoice.invoiceNumber} הועלתה פעמיים (${fileName}).`);
         seen.add(key);
-        const vehicles = summaries.get(key);
+        const vehicles = summaries.get(key) || invoice.tripVehicles;
         if (!vehicles) throw new Error(`${fileName}: לא נמצא קובץ אקסל מסכם לחשבונית ${invoice.invoiceNumber}. יש לבחור יחד את ה-PDF ואת האקסל.`);
         return { fileName, invoice: combineCrossNorth(invoice, vehicles) };
       });

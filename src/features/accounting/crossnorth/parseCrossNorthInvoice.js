@@ -5,11 +5,15 @@
 //      ["926003405253","חשבונית מס:"] -> invoice number
 //      ["02/11/2026","תאריך הפקה:"] -> issue date
 //      ["₪299.75","סכומים חייבים במע"מ"], [...,"₪53.95",...,"סה"כ מע"מ"], ["₪353.70","סה"כ כולל מע"מ"] -> totals
+//    Some invoices (typically with few trips) have no Excel: the PDF then lists every trip
+//    [amount incl. VAT, segment, "dd/mm/yyyy hh:mm", plate] (discount rows are negative) on all pages,
+//    and the totals sit on the last page. The per-vehicle amounts are then summed and converted to ex-VAT.
 //  - the summary Excel (…_sum…xlsx): one row per vehicle with the amount EXCLUDING VAT.
 //      columns: מספר_חשבונית | מספר_רכב | מספר_נסיעות | סהכ_ללא_מעמ | מספר_הקצאה
 
 import { toCents } from '../fuel/parseDelekReport.js';
 import { formatPlate } from '../tolls/parseTollInvoice.js';
+import { VAT_RATE_PERCENT } from '../fuel/fuelConfig.js';
 
 const DECIMAL_PATTERN = /^-?\d{1,3}(?:,\d{3})*\.\d{2}$|^-?\d+\.\d{2}$/;
 const DATE_PATTERN = /^(\d{2})\/(\d{2})\/(\d{4})$/;
@@ -19,7 +23,7 @@ const money = (token) => token.replace(/^₪/, '');
 
 /** pages: string[][][] from extractPdfLines. Throws a Hebrew message if the layout is not recognised. */
 export function parseCrossNorthPages(pages) {
-  const lines = (pages[0] || []).map((tokens) => ({ tokens, text: tokens.join(' ') }));
+  const lines = pages.flat().map((tokens) => ({ tokens, text: tokens.join(' ') }));
 
   if (!lines.some((line) => line.text.includes('חוצה צפון'))) {
     throw new Error('הקובץ לא זוהה כחשבונית של כביש 6 חוצה צפון — לא נמצאה הכותרת "חשבונית חודשית - כביש 6 חוצה צפון".');
@@ -52,6 +56,19 @@ export function parseCrossNorthPages(pages) {
   if (total === null) missing.push('סה"כ כולל מע"מ');
   if (missing.length) throw new Error(`הקובץ לא זוהה כחשבונית של כביש 6 חוצה צפון — לא נמצא: ${missing.join(', ')}.`);
 
+  // Trip rows (only when the PDF carries the trip-by-trip detail): amounts include VAT.
+  const inclByPlate = new Map();
+  for (const { tokens } of lines) {
+    const [amount, , when, plate] = tokens;
+    if (tokens.length !== 4 || !DECIMAL_PATTERN.test(amount) || !/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/.test(when) || !PLATE_PATTERN.test(plate)) continue;
+    inclByPlate.set(plate, (inclByPlate.get(plate) || 0) + toCents(amount));
+  }
+  const tripVehicles = [...inclByPlate].map(([plateDigits, inclVatCents]) => ({
+    plate: formatPlate(plateDigits),
+    plateDigits,
+    exVatCents: Math.round((inclVatCents * 100) / (100 + VAT_RATE_PERCENT)),
+  }));
+
   return {
     invoiceNumber,
     allocationNumber: '',
@@ -59,6 +76,7 @@ export function parseCrossNorthPages(pages) {
     taxableCents: toCents(taxable),
     vatCents: toCents(vat),
     totalCents: toCents(total),
+    tripVehicles: tripVehicles.length ? tripVehicles : null, // null = a summary Excel is required
   };
 }
 
@@ -105,7 +123,7 @@ export async function parseCrossNorthSummary(file) {
  * Joins the PDF totals with the Excel vehicle rows. Per-row rounding in the Excel can leave the
  * rows a cent off the invoice's taxable total: the largest row absorbs the gap (a real mismatch still fails the checks).
  */
-export function combineCrossNorth(invoice, vehicles) {
+export function combineCrossNorth(invoice, vehicles = invoice.tripVehicles) {
   const rows = vehicles.map((v) => ({ ...v }));
   const gap = invoice.taxableCents - rows.reduce((sum, v) => sum + v.exVatCents, 0);
   if (gap !== 0 && Math.abs(gap) <= rows.length) {

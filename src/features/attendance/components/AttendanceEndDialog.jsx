@@ -8,7 +8,9 @@ import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useAttendance } from '../AttendanceContext.jsx';
 import { attendanceTypeLabel } from '../api.js';
-import { helperNames } from '../crewOptions.js';
+import { helperCrew } from '../../helpers/crew.js';
+import { useCrewHelpers } from '../../helpers/useCrewHelpers.js';
+import HelperDirectoryStatus from '../../helpers/HelperDirectoryStatus.jsx';
 import { statuses } from '../../../services/supabase.js';
 import '../end-dialog.css';
 
@@ -31,6 +33,7 @@ export default function AttendanceEndDialog() {
     finishAttendance,
     openWorkDiary,
   } = useAttendance();
+  const helperDirectory = useCrewHelpers(attendanceEndDialogOpen);
   const [selectedWorkerIds, setSelectedWorkerIds] = useState([]);
   const [selectedHelpers, setSelectedHelpers] = useState([]);
   const [markReadyForDrafting, setMarkReadyForDrafting] = useState(false);
@@ -86,8 +89,7 @@ export default function AttendanceEndDialog() {
     const systemCrew = availableWorkers
       .filter((worker) => selectedWorkerIds.includes(worker.id))
       .map((worker) => ({ id: worker.id, name: worker.full_name, source: 'system' }));
-    const helperCrew = selectedHelpers.map((name) => ({ id: null, name, source: 'helper' }));
-    const result = await finishAttendance(note, [...systemCrew, ...helperCrew], dailyDraftingReady);
+    const result = await finishAttendance(note, [...systemCrew, ...helperCrew(selectedHelpers)], dailyDraftingReady);
     if (result?.success && result.projectSessionClosed && markReadyForDrafting && canMarkReadyForDrafting) {
       void updateStatus(linkedProject, DRAFTING_STATUS, t('סומן כניתן להתחיל לשרטט בסיום העבודה בשטח.'));
     }
@@ -172,8 +174,9 @@ export default function AttendanceEndDialog() {
                   <Users size={17} />
                   {t('עוזרים שהיו איתי')}
                 </legend>
+                <HelperDirectoryStatus directory={helperDirectory} />
                 <div className="crewOptions">
-                  {helperNames.map((name) => (
+                  {helperDirectory.helpers.map(({ name }) => (
                     <label className="crewOption" key={name}>
                       <input
                         type="checkbox"

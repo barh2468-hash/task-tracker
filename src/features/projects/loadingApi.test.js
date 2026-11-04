@@ -23,7 +23,8 @@ test('managers load with the authenticated profile without a second auth network
 });
 
 test('full project details are cached per account and remain available offline', async (context) => {
-  const assets = { project_task_reports: [{ id: 'older', summary: 'Original notes' }] };
+  const assets = { project_task_reports: [{ id: 'older', summary: 'Original notes' }],
+    work_sessions: [{ id: 'session', end_note: 'Current work note', profiles: { full_name: 'Reporter' } }] };
   const cache = new Map();
   let reads = 0;
   const api = loadingApi({ getProjectAssets: async () => { reads += 1; return assets; } }, {

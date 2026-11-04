@@ -1,0 +1,29 @@
+.userManagementSections { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 16px 24px; }
+.userManagementSections button { white-space: normal; text-align: start; }
+.userManagementSections button[aria-pressed='false'] { background: #fff; color: var(--navy); border: 1px solid #dce5ee; }
+.helpersManagement { background: #fff; padding: 24px; border: 1px solid #dce5ee; border-radius: 16px; min-width: 0; }
+.helpersHeading, .helpersToolbar, .helpersActions, .helperIdentity { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.helpersHeading { justify-content: space-between; align-items: start; }
+.helpersHeading h2, .helpersEditor h3 { margin-block: 0 8px; }
+.helpersHeading p { color: #60748a; max-width: 60ch; line-height: 1.7; margin-block: 0 16px; }
+.helpersToolbar { margin-block: 16px 24px; }
+.helpersSearch { display: flex; gap: 8px; align-items: center; flex: 1 1 220px; min-width: 0; }
+.helpersSearch input { width: 100%; min-width: 0; }
+.helpersInactive { display: flex; align-items: center; gap: 8px; }
+.helpersInactive input { width: auto; }
+.helpersList { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.helpersList li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; border: 1px solid #dce5ee; border-radius: 12px; padding: 16px; min-width: 0; }
+.helperIdentity { flex: 1 1 200px; min-width: 0; }
+.helperIdentity bdi { overflow-wrap: anywhere; font-weight: 600; }
+.helperBadge { background: #e7f4ec; color: #236944; padding: 4px 10px; border-radius: 30px; font-size: 13px; }
+.helperInactive .helperBadge { background: #eef1f5; color: #56657b; }
+.helpersActions button { display: inline-flex; align-items: center; gap: 6px; white-space: normal; text-align: start; }
+.helpersEditor, .helperStatusConfirmation { background: #f5f8fb; border-radius: 12px; padding: 16px; margin-block: 12px; }
+.helpersEditor label { display: grid; gap: 8px; max-width: 480px; }
+.helpersEditor input { min-width: 0; width: 100%; }
+.helperStatusConfirmation { flex-basis: 100%; margin: 0; }
+.helperStatusConfirmation p { overflow-wrap: anywhere; }
+.helpersError { color: #a32c35; }
+.helpersNotice { color: #236944; }
+.helpersEmpty { padding-block: 20px; color: #60748a; }
+@media (max-width: 600px) { .helpersManagement { padding: 16px; } .helpersList li { padding: 12px; } .helpersActions { width: 100%; } .helpersActions button { flex: 1 1 120px; justify-content: center; } }

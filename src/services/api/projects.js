@@ -21,7 +21,7 @@ async function readProjects(buildRequest) {
 }
 
 export async function getProjectAssets(projectId) {
-  let [photos, reviewFiles, documents, drawingBatches, taskReports] = await Promise.all([
+  let [photos, reviewFiles, documents, drawingBatches, taskReports, workSessions] = await Promise.all([
     supabase.from('project_photos').select('id,file_path,category,created_at').eq('project_id', projectId).order('created_at', { ascending: false }),
     supabase.from('project_review_files').select('id,project_id,drawing_batch_id,uploaded_by,file_path,file_name,created_at,profiles:uploaded_by(full_name)').eq('project_id', projectId).order('created_at', { ascending: false }),
     supabase.from('project_documents').select('id,project_id,drawing_batch_id,uploaded_by,file_path,file_name,file_size,mime_type,document_type,created_at,profiles:uploaded_by(full_name)').eq('project_id', projectId).order('created_at', { ascending: false }),
@@ -29,6 +29,9 @@ export async function getProjectAssets(projectId) {
     readProjectPages(() => supabase.from('project_task_reports')
       .select('*,reporter:created_by(full_name)').eq('project_id', projectId)
       .order('created_at', { ascending: false }).order('id')),
+    readProjectPages(() => supabase.from('work_sessions')
+      .select('id,project_id,worker_id,started_at,ended_at,end_note,crew_members,started_lat,started_lng,ended_lat,ended_lng,profiles:worker_id(full_name)')
+      .eq('project_id', projectId).order('started_at', { ascending: false }).order('id')),
   ]);
   if (photos.error) throw photos.error;
   const schemaUnavailableCodes = new Set(['42P01', '42703', 'PGRST204', 'PGRST205']);
@@ -59,12 +62,14 @@ export async function getProjectAssets(projectId) {
   if (documents.error) throw documents.error;
   if (drawingBatches.error) throw drawingBatches.error;
   if (taskReports.error) throw taskReports.error;
+  if (workSessions.error) throw workSessions.error;
   return {
     project_photos: photos.data || [],
     project_review_files: reviewFiles.data || [],
     project_documents: documents.data || [],
     project_drawing_batches: drawingBatches.data || [],
     project_task_reports: taskReports.data || [],
+    work_sessions: workSessions.data || [],
   };
 }
 

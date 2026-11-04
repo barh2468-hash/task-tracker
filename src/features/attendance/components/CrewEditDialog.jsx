@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
-import { helperNames } from '../crewOptions.js';
+import { crewEditOptions, sameCrewMember } from '../../helpers/crew.js';
+import { useCrewHelpers } from '../../helpers/useCrewHelpers.js';
+import HelperDirectoryStatus from '../../helpers/HelperDirectoryStatus.jsx';
 import { supabase } from '../../../services/supabase.js';
 import { useTranslation } from 'react-i18next';
 import { t, useLanguage } from '../../language/LanguageContext.jsx';
@@ -11,6 +13,7 @@ export default function CrewEditDialog({ session, onClose, onSaved }) {
   useTranslation();
   const { language } = useLanguage();
   const { workers } = useProjects();
+  const helperDirectory = useCrewHelpers(true);
   const [crew, setCrew] = useState(session.crew_members || []);
   const [note, setNote] = useState(session.end_note || '');
   const [busy, setBusy] = useState(false);
@@ -27,13 +30,8 @@ export default function CrewEditDialog({ session, onClose, onSaved }) {
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [busy, onClose]);
-  const options = [
-    ...workers.filter((worker) => worker.id !== session.worker_id).map((worker) => ({ id: worker.id, name: worker.full_name, source: 'system' })),
-    ...helperNames.map((name) => ({ id: null, name, source: 'helper' })),
-  ];
-  const matches = (a, b) => a.source === b.source && (a.id ? a.id === b.id : a.name === b.name);
-  // Retain people in old reports even if they have left the employee directory.
-  for (const member of session.crew_members || []) if (!options.some((option) => matches(option, member))) options.push(member);
+  const options = crewEditOptions(workers, helperDirectory.helpers, session);
+  const matches = sameCrewMember;
   async function save(event) {
     event.preventDefault();
     if (busy) return;
@@ -64,6 +62,7 @@ export default function CrewEditDialog({ session, onClose, onSaved }) {
             onChange={(event) => setNote(event.target.value)} />
         </label>
         <small id="crew-edit-note-help">{t('ההערה נשמרת עם רישום העבודה ומופיעה בדוחות ובהיסטוריית הפרויקט.')}</small>
+        <HelperDirectoryStatus directory={helperDirectory} />
         <fieldset className="crewPicker" disabled={busy}><legend>{t('עובדים ועוזרים')}</legend><div className="crewOptions">
           {options.map((member) => <label className="crewOption" key={member.id || member.name}><input type="checkbox" checked={crew.some((item) => matches(item, member))} onChange={() => setCrew((current) => current.some((item) => matches(item, member)) ? current.filter((item) => !matches(item, member)) : [...current, member])} /><span>{member.name}</span></label>)}
         </div></fieldset>

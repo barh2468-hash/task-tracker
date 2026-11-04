@@ -5,7 +5,7 @@ import { transformSync } from 'esbuild';
 import { hydrateProjectTasks } from './projectGraph.js';
 import { readProjectPages } from './readProjectPages.js';
 
-function apiFixture({ failHistory = false, withoutReports = false } = {}) {
+function apiFixture({ failHistory = false, withoutReports = false, failWorkSessions = false } = {}) {
   const calls = [];
   const rows = {
     projects: [{ id: 'project', name: 'שם שהוזן' }],
@@ -15,12 +15,18 @@ function apiFixture({ failHistory = false, withoutReports = false } = {}) {
       { id: 'new', task_id: 'task', project_id: 'project', summary: 'Latest user text' },
       { id: 'unrelated', task_id: 'hidden', project_id: 'hidden' },
     ],
+    work_sessions: [
+      ...Array.from({ length: 145 }, (_, index) => ({ id: `session-${index}`, project_id: 'project',
+        end_note: `Original note ${index}`, profiles: { full_name: 'Reporter' } })),
+      { id: 'unrelated-session', project_id: 'hidden', end_note: 'Private note' },
+    ],
   };
   const supabase = { from(table) {
     const filters = [];
     let fields;
     const response = () => {
       calls.push({ table, fields, filters: [...filters] });
+      if (failWorkSessions && table === 'work_sessions') return { error: { code: '42501' }, status: 403 };
       if (failHistory && table === 'project_task_reports' && filters.some(([op]) => op === 'eq'))
         return { error: { code: '57014' }, status: 500 };
       return { data: (rows[table] || []).filter((row) => filters.every(([op, field, value]) =>
@@ -66,4 +72,23 @@ test('lists with no report pointers skip report requests', async () => {
 test('failure to read full report history rejects project details rather than implying empty history', async () => {
   const { api } = apiFixture({ failHistory: true });
   await assert.rejects(api.getProjectAssets('project'), (error) => error.code === '57014');
+});
+
+test('opening a project loads every page of its work sessions with current notes and reporter names', async () => {
+  const { api, calls } = apiFixture();
+  await api.getProjectsForManager();
+  assert.ok(!calls.some((call) => call.table === 'work_sessions'));
+  const assets = await api.getProjectAssets('project');
+  assert.equal(assets.work_sessions.length, 145);
+  assert.equal(assets.work_sessions[144].end_note, 'Original note 144');
+  assert.equal(assets.work_sessions[0].profiles.full_name, 'Reporter');
+  const reads = calls.filter((call) => call.table === 'work_sessions');
+  assert.equal(reads.length, 2);
+  assert.ok(reads.every((call) => call.fields.includes('profiles:worker_id(full_name)')));
+  assert.ok(reads.every((call) => JSON.stringify(call.filters) === JSON.stringify([['eq', 'project_id', 'project']])));
+});
+
+test('a denied work session query cannot produce a misleading empty project report', async () => {
+  const { api } = apiFixture({ failWorkSessions: true });
+  await assert.rejects(api.getProjectAssets('project'), (error) => error.code === '42501');
 });

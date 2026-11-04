@@ -43,6 +43,7 @@ import { findAssignedDrafter, isDrafterCandidate } from '../utils/drafters.js';
 import ContinuationReportDialog from './ContinuationReportDialog.jsx';
 import DrawingBatchesPanel from './DrawingBatchesPanel.jsx';
 import ProjectHistoryPanel from './ProjectHistoryPanel.jsx';
+import ProjectWorkNotes from './ProjectWorkNotes.jsx';
 import ProjectSectionTabs from './ProjectSectionTabs.jsx';
 import { useChat } from '../../chat/ChatContext.jsx';
 import useProjectDialog from '../hooks/useProjectDialog.js';
@@ -148,8 +149,9 @@ export default function ProjectCard({ project, onBack, initialTab }) {
     project_task_reports: [],
   });
   const detailTasks = tasksWithReportHistory(project.project_tasks || [], assets.project_task_reports || []);
-  const [assetsLoading, setAssetsLoading] = useState(false);
+  const [assetsLoading, setAssetsLoading] = useState(true);
   const [assetsError, setAssetsError] = useState(false);
+  const assetRequestRef = useRef(0);
   const assignedDrafterId = findAssignedDrafter(project)?.worker_id || '';
   const [selectedDrafterId, setSelectedDrafterId] = useState(assignedDrafterId);
   const projectResponsibles = workers.filter(isProjectTeamMember);
@@ -217,23 +219,25 @@ export default function ProjectCard({ project, onBack, initialTab }) {
   }
 
   async function refreshAssets() {
+    const request = ++assetRequestRef.current;
     setAssetsLoading(true);
     setAssetsError(false);
     try {
-      setAssets(await loadProjectAssets(project.id));
+      const nextAssets = await loadProjectAssets(project.id);
+      if (request === assetRequestRef.current) setAssets(nextAssets);
     } catch {
-      setAssetsError(true);
+      if (request === assetRequestRef.current) setAssetsError(true);
     } finally {
-      setAssetsLoading(false);
+      if (request === assetRequestRef.current) setAssetsLoading(false);
     }
   }
 
   const reportAssetKey = (project.project_tasks || []).map((task) => `${task.latest_report_id || ''}:${Boolean(task.pending_sync)}`).join(',');
   useEffect(() => {
-    if (!navigator.onLine) return;
     refreshAssets();
+    return () => { assetRequestRef.current += 1; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project.id, reportAssetKey]);
+  }, [project.id, reportAssetKey, projectHistory[0]?.id]);
 
   const isAssignedFieldWorker =
     profile?.role === 'field_worker' &&
@@ -648,8 +652,10 @@ export default function ProjectCard({ project, onBack, initialTab }) {
                       role="menuitem"
                       onClick={() => {
                         setMoreActionsOpen(false);
-                        exportProjectPdf({ ...project, ...assets }, projectHistoryPreview);
+                        exportProjectPdf({ ...project, ...assets }, projectHistoryPreview, language);
                       }}
+                      disabled={assetsLoading || assetsError || !Array.isArray(assets.work_sessions)}
+                      title={assetsLoading ? t('projectReport.loading') : assetsError || !Array.isArray(assets.work_sessions) ? t('projectReport.unavailable') : undefined}
                     >
                       <FileText size={16} /> {t('דוח PDF')}
                     </button>
@@ -777,6 +783,12 @@ export default function ProjectCard({ project, onBack, initialTab }) {
                     </details>
                   )}
                 </section>
+                <ProjectWorkNotes
+                  sessions={assets.work_sessions}
+                  loading={assetsLoading}
+                  error={assetsError}
+                  onRetry={refreshAssets}
+                />
                 <section className="projectOverviewTeam">
                   <header className="projectOverviewTeamHeader">
                     <h3>{t('צוות הפרויקט')}</h3>

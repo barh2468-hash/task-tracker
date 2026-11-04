@@ -7,7 +7,9 @@ import { Clock, MapPin, Square, Users, X } from 'lucide-react';
 import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useAttendance } from '../AttendanceContext.jsx';
-import { helperNames } from '../crewOptions.js';
+import { helperCrew } from '../../helpers/crew.js';
+import { useCrewHelpers } from '../../helpers/useCrewHelpers.js';
+import HelperDirectoryStatus from '../../helpers/HelperDirectoryStatus.jsx';
 import '../end-dialog.css';
 
 export default function ProjectWorkEndDialog() {
@@ -23,6 +25,7 @@ export default function ProjectWorkEndDialog() {
     endWork,
     openWorkDiary,
   } = useAttendance();
+  const helperDirectory = useCrewHelpers(Boolean(project));
   const [note, setNote] = useState('');
   const [selectedWorkerIds, setSelectedWorkerIds] = useState([]);
   const [selectedHelpers, setSelectedHelpers] = useState([]);
@@ -61,8 +64,7 @@ export default function ProjectWorkEndDialog() {
     const systemCrew = availableWorkers
       .filter((worker) => selectedWorkerIds.includes(worker.id))
       .map((worker) => ({ id: worker.id, name: worker.full_name, source: 'system' }));
-    const helperCrew = selectedHelpers.map((name) => ({ id: null, name, source: 'helper' }));
-    const result = await endWork({ endNote: note, crewMembers: [...systemCrew, ...helperCrew], dailyDraftingReady });
+    const result = await endWork({ endNote: note, crewMembers: [...systemCrew, ...helperCrew(selectedHelpers)], dailyDraftingReady });
     if (result?.success && project.requires_work_diary && showDiary) openWorkDiary(project);
   }
 
@@ -152,8 +154,9 @@ export default function ProjectWorkEndDialog() {
               <Users size={17} />
               {t('עוזרים שהיו איתי')}
             </legend>
+            <HelperDirectoryStatus directory={helperDirectory} />
             <div className="crewOptions">
-              {helperNames.map((name) => (
+              {helperDirectory.helpers.map(({ name }) => (
                 <label className="crewOption" key={name}>
                   <input
                     type="checkbox"

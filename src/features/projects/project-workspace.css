@@ -313,6 +313,43 @@
   gap: 8px;
   margin-bottom: 12px;
 }
+.projectWorkNotes {
+  grid-column: 1 / -1;
+  padding-block-end: 20px;
+  border-block-end: 1px solid #e4eaf0;
+}
+.projectWorkNotesList {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.projectWorkNotesList li {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e4eaf0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.projectWorkNoteMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  color: #60748a;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.projectWorkNoteMeta bdi {
+  color: var(--navy);
+  font-weight: 600;
+}
+.projectWorkNotesList p {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
 .project.projectWorkspace .projectOverviewTeamHeader h3 {
   margin: 0;
 }

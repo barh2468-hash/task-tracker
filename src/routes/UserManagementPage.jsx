@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
+import HelpersManagement from '../features/helpers/HelpersManagement.jsx';
 import {
   AlertTriangle,
   KeyRound,
@@ -65,6 +66,8 @@ async function functionErrorMessage(error, fallback) {
 
 export default function UserManagementPage() {
   useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const helpersTab = searchParams.get('tab') === 'helpers';
   const { isAdmin, profile: signedInProfile } = useAuth();
   const { setMessage } = useMessage();
   const [profiles, setProfiles] = useState([]);
@@ -79,7 +82,7 @@ export default function UserManagementPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isAdmin) return undefined;
+    if (!isAdmin || helpersTab) return undefined;
     let active = true;
     setLoading(true);
     listManagedUsers()
@@ -99,7 +102,7 @@ export default function UserManagementPage() {
     return () => {
       active = false;
     };
-  }, [isAdmin]);
+  }, [isAdmin, helpersTab]);
 
   const filteredProfiles = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
@@ -300,11 +303,6 @@ export default function UserManagementPage() {
 
   return (
     <div className="userManagementPage">
-      <DemoManagement usersRevision={profiles} />
-      <CreateClientUser onCreated={(created) => {
-        setProfiles((current) => sortProfiles([...current, created]));
-        setDrafts((current) => ({ ...current, [created.id]: createProfileDraft(created) }));
-      }} />
       <section className="userManagementIntro">
         <span className="userManagementIntroIcon"><ShieldCheck size={26} aria-hidden="true" /></span>
         <div>
@@ -312,6 +310,17 @@ export default function UserManagementPage() {
           <p>{t('מנהל ראשי יכול להזמין משתמשים, לעדכן שמות, כתובות דוא״ל ותפקידים ולשלוח קישורים לאיפוס סיסמה.')}</p>
         </div>
       </section>
+
+      <nav className="userManagementSections" aria-label={t('helpers.sections')}>
+        <button type="button" aria-pressed={!helpersTab} disabled={inviting || Boolean(busyId)} onClick={() => setSearchParams({ tab: 'users' })}>{t('helpers.accounts')}</button>
+        <button type="button" aria-pressed={helpersTab} disabled={inviting || Boolean(busyId)} onClick={() => setSearchParams({ tab: 'helpers' })}>{t('helpers.title')}</button>
+      </nav>
+      {helpersTab ? <HelpersManagement /> : <>
+      <DemoManagement usersRevision={profiles} />
+      <CreateClientUser onCreated={(created) => {
+        setProfiles((current) => sortProfiles([...current, created]));
+        setDrafts((current) => ({ ...current, [created.id]: createProfileDraft(created) }));
+      }} />
 
       <div className="userManagementToolbar">
         <label className="userManagementSearch">
@@ -550,6 +559,7 @@ export default function UserManagementPage() {
           })}
         </div>
       )}
+      </>}
     </div>
   );
 }

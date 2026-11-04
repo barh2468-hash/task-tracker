@@ -52,6 +52,7 @@ const PersonalNotesPage = lazy(() => import('./routes/PersonalNotesPage.jsx'));
 const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
 const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
 const AccountingYearEndPage = lazy(() => import('./routes/AccountingYearEndPage.jsx'));
+const AccountingPaymentsPage = lazy(() => import('./routes/AccountingPaymentsPage.jsx'));
 const AccountingFuelPage = lazy(() => import('./routes/AccountingFuelPage.jsx'));
 const AccountingTollsPage = lazy(() => import('./routes/AccountingTollsPage.jsx'));
 const AccountingIturanPage = lazy(() => import('./routes/AccountingIturanPage.jsx'));
@@ -386,6 +387,16 @@ export default function App() {
                     <RequireMainAccounting>
                       <Suspense fallback={<LoadingScreen />}>
                         <AccountingYearEndPage />
+                      </Suspense>
+                    </RequireMainAccounting>
+                  }
+                />
+                <Route
+                  path="accounting/payments"
+                  element={
+                    <RequireMainAccounting>
+                      <Suspense fallback={<LoadingScreen />}>
+                        <AccountingPaymentsPage />
                       </Suspense>
                     </RequireMainAccounting>
                   }

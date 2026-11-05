@@ -73,6 +73,7 @@ export default function ProjectDocumentsPanel({
   title = 'קבצי הפרויקט',
   eyebrow = 'מסמכים משותפים לפרויקט',
   compact = false,
+  emptyMessage = 'אין עדיין קבצים בפרויקט',
 }) {
   useTranslation();
   const { language } = useLanguage();
@@ -184,7 +185,7 @@ export default function ProjectDocumentsPanel({
         {documents.length === 0 ? (
           <div className="projectDocumentsEmpty">
             <FileText size={24} />
-            <span>{t('אין עדיין קבצים בפרויקט')}</span>
+            <span>{t(emptyMessage)}</span>
           </div>
         ) : (
           <div className="projectDocumentsList">

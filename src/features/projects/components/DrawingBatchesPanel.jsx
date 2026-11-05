@@ -6,7 +6,6 @@ import { useMemo, useState } from 'react';
 import {
   CheckCircle2,
   Clock3,
-  FileText,
   Layers3,
   PencilRuler,
   Play,
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react';
 import DrafterReviewBox from './DrafterReviewBox.jsx';
 import ReviewFilesPanel from './ReviewFilesPanel.jsx';
+import ProjectDocumentsPanel from './ProjectDocumentsPanel.jsx';
 
 const statusLabels = {
   pending_drafting: 'ממתינה לשרטוט',
@@ -59,6 +59,8 @@ export default function DrawingBatchesPanel({
   onUpdateStatus,
   onSendToReview,
   onDeleteReviewFile,
+  onUploadDocument,
+  canUploadDocuments,
 }) {
   useTranslation();
   const { language } = useLanguage();
@@ -160,18 +162,18 @@ export default function DrawingBatchesPanel({
                 </span>
               </div>
 
-              {batchDocuments.length > 0 && (
-                <div className="drawingBatchFiles">
-                  <b>
-                    <FileText size={16} /> {t('חומרים מהשטח')}
-                  </b>
-                  <ul>
-                    {batchDocuments.map((document) => (
-                      <li key={document.id}>{document.file_name}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <ProjectDocumentsPanel
+                documents={batchDocuments}
+                canUpload={canUploadDocuments}
+                canDelete={() => false}
+                onUpload={(file) => onUploadDocument(batch, file)}
+                defaultDocumentType="drawing_source"
+                lockedDocumentType="drawing_source"
+                title="חומרים מהשטח"
+                eyebrow="קבצים למנת השרטוט"
+                emptyMessage="אין עדיין קבצים במנה"
+                compact
+              />
 
               {batch.status === 'pending_drafting' && canDraft && (
                 <button

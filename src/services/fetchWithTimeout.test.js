@@ -13,6 +13,35 @@ function pendingFetch(t) {
   );
 }
 
+for (const method of ['POST', 'PUT']) {
+  test(`storage ${method} permits a slow PDF upload for two minutes without automatic retry`, async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const mocked = pendingFetch(t);
+    let settled = false;
+    const rejected = assert.rejects(fetchWithTimeout(
+      'https://example.supabase.co/storage/v1/object/project-documents/project/user/plan.pdf',
+      { method, body: new Blob(['pdf']) },
+    ), /Request timed out/).then(() => { settled = true; });
+    t.mock.timers.tick(7000);
+    await Promise.resolve();
+    assert.equal(settled, false);
+    t.mock.timers.tick(113000);
+    await rejected;
+    assert.equal(mocked.mock.callCount(), 1);
+  });
+}
+
+test('cancelling a storage upload still aborts immediately', async (t) => {
+  pendingFetch(t);
+  const controller = new AbortController();
+  const result = fetchWithTimeout('https://example.supabase.co/storage/v1/object/project-documents/plan.pdf', {
+    method: 'POST', signal: controller.signal,
+  });
+  const rejected = assert.rejects(result, /Cancelled by caller/);
+  controller.abort(new Error('Cancelled by caller'));
+  await rejected;
+});
+
 test('GPR synchronization can run past seven seconds but times out at ninety seconds', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const mocked = pendingFetch(t);
@@ -41,6 +70,8 @@ for (const [path, action] of [
   ['/rest/v1/projects', 'sync'],
   ['/functions/v1/gpr-microsoft', 'status'],
   ['/functions/v1/another-function', 'sync'],
+  ['/storage/v1/object/sign/project-documents/plan.pdf', 'sync'],
+  ['/storage/v1/object/list/project-documents', 'sync'],
 ]) {
   test(`ordinary POST ${path} (${action}) retains seven-second timeout and no retry`, async (t) => {
     t.mock.timers.enable({ apis: ['setTimeout'] });

@@ -20,15 +20,17 @@ import { createManagerNotification, createUserNotification } from '../notificati
 import { cacheOfflineData, getOfflineData, enqueueOfflineAction, resolveLegacyTaskActions } from '../../services/offlineStore.js';
 import { findAssignedDrafter, isDrafterCandidate } from './utils/drafters.js';
 import {
-  documentTypeAllowsImages,
   isPdfFile,
-  isSupportedImageFile,
   MAX_PROJECT_FILE_SIZE,
   projectFileMimeType,
+  projectDocumentValidationError,
 } from './utils/projectFiles.js';
 import { isManagerRole } from '../../utils/roles.js';
 import { getProjectAssignmentChanges } from './utils/assignments.js';
 import { t } from '../language/LanguageContext.jsx';
+import i18n from 'i18next';
+import { localeForLanguage } from '../language/locale.js';
+import { uploadContinuationAttachments } from './continuationAttachments.js';
 import { persistTaskReport } from '../../services/taskReports.js';
 import { validateTaskReport } from './task-reports/model.js';
 
@@ -257,6 +259,10 @@ const continuationReviewImpactLabels = {
   unsure: 'נדרשת החלטה של אחראי השרטוט',
 };
 
+function continuationFailure(errorKey, errorOptions) {
+  return { ok: false, errorKey, errorOptions, message: t(errorKey, errorOptions) };
+}
+
 export async function submitContinuationReport(project, report, profile) {
   const user = await authApi.getCurrentUser();
   if (!user || !project?.id || !profile) return { message: '', ok: false };
@@ -265,13 +271,10 @@ export async function submitContinuationReport(project, report, profile) {
     project.assigned_to === user.id ||
     (project.project_workers || []).some((assignment) => assignment.worker_id === user.id);
   if (!isManagerRole(profile.role) && !(profile.role === 'field_worker' && assignedFieldWorker)) {
-    return { message: 'אין לך הרשאה לדווח המשך עבודה בפרויקט הזה.', ok: false };
+    return continuationFailure('אין לך הרשאה לדווח המשך עבודה בפרויקט הזה.');
   }
   if (!navigator.onLine) {
-    return {
-      message: 'נדרש חיבור לאינטרנט כדי לשלוח דיווח המשך עבודה לשרטוט.',
-      ok: false,
-    };
+    return continuationFailure('נדרש חיבור לאינטרנט כדי לשלוח דיווח המשך עבודה לשרטוט.');
   }
 
   const summary = String(report?.summary || '').trim();
@@ -279,46 +282,82 @@ export async function submitContinuationReport(project, report, profile) {
   const updateType = continuationTypeLabels[report?.updateType];
   const reviewImpact = continuationReviewImpactLabels[report?.reviewImpact];
   if (summary.length < 5) {
-    return { message: 'יש לתאר בקצרה מה בוצע ומה צריך להעביר לשרטוט.', ok: false };
+    return continuationFailure('יש לתאר בקצרה מה בוצע ומה צריך להעביר לשרטוט.');
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(workDate) || !updateType || !reviewImpact) {
-    return { message: 'חלק מפרטי הדיווח אינם תקינים. יש לבדוק את השדות ולנסות שוב.', ok: false };
+    return continuationFailure('חלק מפרטי הדיווח אינם תקינים. יש לבדוק את השדות ולנסות שוב.');
+  }
+
+  const attachments = Array.from(report?.attachments || []);
+  for (const file of attachments) {
+    const validationError = projectDocumentValidationError(file, 'drawing_source');
+    if (validationError)
+      return {
+        ...continuationFailure('הקובץ {{name}} אינו תקין.', {
+          name: file.name,
+        }),
+        reasonKey: validationError,
+      };
   }
 
   const assignedDrafterId = findAssignedDrafter(project)?.worker_id || null;
-  const { data: drawingBatch, error } = await drawingBatchesApi.insertDrawingBatch({
-    project_id: project.id,
-    work_date: workDate,
-    update_type: report.updateType,
-    review_impact: report.reviewImpact,
-    summary,
-    status: 'pending_drafting',
-    created_by: user.id,
-    assigned_drafter: assignedDrafterId,
-    source_project_status: project.status,
-  });
-  if (error) return { message: `יצירת מנת השרטוט נכשלה: ${error.message}`, ok: false };
-
-  const formattedDate = new Date(`${workDate}T12:00:00`).toLocaleDateString('he-IL');
-  const attachments = Array.from(report?.attachments || []);
-  const attachmentResults = [];
-  for (const file of attachments) {
-    attachmentResults.push(
-      await uploadProjectDocument(project, file, profile, 'drawing_source', {
-        drawingBatchId: drawingBatch.id,
-        suppressNotifications: true,
-      }),
-    );
+  // A retry must resolve the saved batch under the current user's RLS and
+  // project scope, rather than inserting another batch or trusting client data.
+  const requestId = report.requestId || crypto.randomUUID();
+  let { data: drawingBatch, error } = report.drawingBatchId
+    ? await drawingBatchesApi.getDrawingBatch(project.id, report.drawingBatchId)
+    : await drawingBatchesApi.insertDrawingBatch({
+        id: requestId,
+        project_id: project.id,
+        work_date: workDate,
+        update_type: report.updateType,
+        review_impact: report.reviewImpact,
+        summary,
+        status: 'pending_drafting',
+        created_by: user.id,
+        assigned_drafter: assignedDrafterId,
+        source_project_status: project.status,
+      });
+  // If the server committed but its response was lost, the same draft UUID
+  // lets a retry recover that batch instead of creating a duplicate.
+  if (error && !report.drawingBatchId) {
+    const recovered = await drawingBatchesApi.getDrawingBatch(project.id, requestId);
+    if (recovered.data && !recovered.error) {
+      drawingBatch = recovered.data;
+      error = null;
+    }
   }
-  const failedAttachments = attachmentResults.filter((result) => !result?.ok).length;
+  if (error)
+    return continuationFailure('שמירת מנת השרטוט נכשלה: {{message}}', { message: error.message });
 
-  await statusHistoryApi.insertStatusHistory({
+  const locale = localeForLanguage(i18n.language);
+  const batchNumber = drawingBatch.batch_number.toLocaleString(locale);
+  const formattedDate = new Date(`${workDate}T12:00:00`).toLocaleDateString(locale);
+  const failedAttachments = await uploadContinuationAttachments(attachments, (file) =>
+    uploadProjectDocument(project, file, profile, 'drawing_source', {
+      drawingBatchId: drawingBatch.id,
+      suppressNotifications: true,
+    }),
+  );
+  if (failedAttachments.length) {
+    return {
+      message: t('מנה {{number}} נשמרה, אך {{count}} קבצים לא הועלו. נסה שוב באותה מנה.', {
+        number: batchNumber,
+        count: failedAttachments.length.toLocaleString(locale),
+      }),
+      ok: false,
+      drawingBatch,
+      failedAttachments,
+    };
+  }
+
+  const historyEntry = {
     project_id: project.id,
     old_status: null,
     new_status: 'נוצרה מנת שרטוט',
     changed_by: user.id,
     note: `מנה ${drawingBatch.batch_number} · ${formattedDate} · ${updateType} · ${reviewImpact} · ${summary}`,
-  });
+  };
 
   const requiresReviewUpdate = report.reviewImpact === 'changes_review';
   const notificationTitle = requiresReviewUpdate
@@ -327,12 +366,14 @@ export async function submitContinuationReport(project, report, profile) {
   const notificationBody =
     `${profile.full_name} דיווח על המשך עבודה מ-${formattedDate}. ` +
     `${updateType}. ${reviewImpact}. ${summary}` +
-    `${attachments.length ? ` צורפו ${attachments.length - failedAttachments} קבצים.` : ''}`;
+    `${attachments.length ? ` צורפו ${attachments.length} קבצים.` : ''}`;
 
   const effectiveDrafterId = drawingBatch.assigned_drafter;
   const recipients =
     effectiveDrafterId && effectiveDrafterId !== user.id ? [effectiveDrafterId] : [];
-  await Promise.all([
+  // These follow-up writes cannot turn saved files into an apparent failure.
+  const deliveries = await Promise.allSettled([
+    statusHistoryApi.insertStatusHistory(historyEntry),
     createManagerNotification(
       requiresReviewUpdate ? 'continuation_review_update' : 'continuation_report',
       notificationTitle,
@@ -349,13 +390,13 @@ export async function submitContinuationReport(project, report, profile) {
       ),
     ),
   ]);
+  for (const delivery of deliveries) {
+    if (delivery.status === 'rejected')
+      console.warn('Continuation follow-up failed:', delivery.reason);
+  }
 
   return {
-    message: failedAttachments
-      ? `מנת שרטוט ${drawingBatch.batch_number} נוצרה, אך ${failedAttachments} קבצים לא הועלו.`
-      : recipients.length
-        ? `מנת שרטוט ${drawingBatch.batch_number} נוצרה ונשלחה למנהל ולשרטט.`
-        : `מנת שרטוט ${drawingBatch.batch_number} נוצרה ונשלחה למנהל. עדיין לא משויך שרטט לפרויקט.`,
+    message: t('מנה {{number}} נשמרה והקבצים שנבחרו הועלו בהצלחה.', { number: batchNumber }),
     ok: true,
     drawingBatch,
   };
@@ -459,20 +500,8 @@ export async function uploadProjectDocument(
   if (!canUpload) return { message: t('אין לך הרשאה להעלות מסמכים לפרויקט הזה.') };
   if (!navigator.onLine) return { message: t('נדרש חיבור לאינטרנט כדי להעלות קובץ.') };
 
-  const pdfFile = isPdfFile(file);
-  const imageFile = isSupportedImageFile(file);
-  const allowsImages = documentTypeAllowsImages(documentType);
-  if (!pdfFile && !(allowsImages && imageFile)) {
-    return {
-      message: allowsImages
-        ? t('אפשר להעלות PDF או תמונה בפורמט JPG, PNG, WEBP או HEIC.')
-        : t('אפשר להעלות קובץ PDF בלבד.'),
-    };
-  }
-  if (!file.size) return { message: t('הקובץ ריק ולא ניתן להעלות אותו.') };
-  if (file.size > MAX_PROJECT_FILE_SIZE) {
-    return { message: t('הקובץ גדול מדי. הגודל המרבי הוא 20MB.') };
-  }
+  const validationError = projectDocumentValidationError(file, documentType);
+  if (validationError) return { message: t(validationError), ok: false };
 
   const mimeType = projectFileMimeType(file);
   const path = `${project.id}/${user.id}/${Date.now()}-${storageApi.safeFileName(file.name)}`;
@@ -481,7 +510,8 @@ export async function uploadProjectDocument(
     contentType: mimeType,
     cacheControl: '3600',
   });
-  if (uploadError) return { message: t('העלאת הקובץ נכשלה: {{message}}', { message: uploadError.message }) };
+  if (uploadError)
+    return { message: t('העלאת הקובץ נכשלה: {{message}}', { message: uploadError.message }) };
 
   const { error: insertError } = await projectDocumentsApi.insertProjectDocument({
     project_id: project.id,
@@ -495,39 +525,46 @@ export async function uploadProjectDocument(
   });
   if (insertError) {
     await storageApi.removeFiles('project-documents', [path]);
-    return { message: t('שמירת הקובץ בפרויקט נכשלה: {{message}}', { message: insertError.message }) };
+    return {
+      message: t('שמירת הקובץ בפרויקט נכשלה: {{message}}', { message: insertError.message }),
+    };
   }
 
-  await statusHistoryApi.insertStatusHistory({
-    project_id: project.id,
-    old_status: null,
-    new_status: 'הועלה מסמך',
-    changed_by: user.id,
-    note: `${documentType === 'boundary_sketch' ? 'סקיצת גבול עבודה' : documentType === 'drawing_correction' ? 'תיקוני שרטוט' : documentType === 'drawing_source' ? 'חומר לשרטוט' : 'מסמך כללי'}: ${file.name}`,
-  });
+  try {
+    await statusHistoryApi.insertStatusHistory({
+      project_id: project.id,
+      old_status: null,
+      new_status: 'הועלה מסמך',
+      changed_by: user.id,
+      note: `${documentType === 'boundary_sketch' ? 'סקיצת גבול עבודה' : documentType === 'drawing_correction' ? 'תיקוני שרטוט' : documentType === 'drawing_source' ? 'חומר לשרטוט' : 'מסמך כללי'}: ${file.name}`,
+    });
 
-  if (profile.role === 'field_worker' && !options.suppressNotifications) {
-    const documentPurpose =
-      documentType === 'drawing_correction' ? 'תיקוני שרטוט' : 'חומר לשרטוט';
-    await createManagerNotification(
-      'project_document_uploaded',
-      `מסמך חדש: ${project.name}`,
-      `${profile.full_name} העלה ${documentPurpose}: ${file.name}, לפרויקט ${project.name}.`,
-      project.id,
-    );
-
-    const assignedDrafterIds = getAssignedDrafterIds(project);
-    for (const drafterId of assignedDrafterIds) {
-      await createUserNotification(
-        drafterId,
-        'drawing_document_uploaded',
-        `${documentPurpose}: ${project.name}`,
-        `${profile.full_name} העלה עבורך את הקובץ ${file.name}.`,
+    if (profile.role === 'field_worker' && !options.suppressNotifications) {
+      const documentPurpose =
+        documentType === 'drawing_correction' ? 'תיקוני שרטוט' : 'חומר לשרטוט';
+      await createManagerNotification(
+        'project_document_uploaded',
+        `מסמך חדש: ${project.name}`,
+        `${profile.full_name} העלה ${documentPurpose}: ${file.name}, לפרויקט ${project.name}.`,
         project.id,
       );
-    }
-  }
 
+      const assignedDrafterIds = getAssignedDrafterIds(project);
+      for (const drafterId of assignedDrafterIds) {
+        await createUserNotification(
+          drafterId,
+          'drawing_document_uploaded',
+          `${documentPurpose}: ${project.name}`,
+          `${profile.full_name} העלה עבורך את הקובץ ${file.name}.`,
+          project.id,
+        );
+      }
+    }
+  } catch (error) {
+    // The file and its project row already exist. A history or notification
+    // failure must not cause the caller to upload the same file again.
+    console.warn('Document follow-up failed:', error);
+  }
   return { message: t('הקובץ הועלה ונשמר בפרויקט.'), ok: true };
 }
 

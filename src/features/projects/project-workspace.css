@@ -933,6 +933,17 @@
 }
 
 /* Unread messages in the project's discussion room. */
+.continuationUploadError {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #dc2626;
+  border-radius: 10px;
+  color: #991b1b;
+  background: #fef2f2;
+  overflow-wrap: anywhere;
+}
+
 .projectListChatBadge {
   margin-inline-start: 8px;
   padding: 2px 7px;

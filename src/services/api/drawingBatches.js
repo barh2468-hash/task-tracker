@@ -18,6 +18,15 @@ export function getDrawingBatches(projectId) {
     .order('batch_number', { ascending: false });
 }
 
+export function getDrawingBatch(projectId, drawingBatchId) {
+  return supabase
+    .from('project_drawing_batches')
+    .select(DRAWING_BATCH_SELECT)
+    .eq('project_id', projectId)
+    .eq('id', drawingBatchId)
+    .single();
+}
+
 export function insertDrawingBatch(payload) {
   return supabase
     .from('project_drawing_batches')

@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { CalendarDays, FileText, Paperclip, Send, X } from 'lucide-react';
-import { t } from '../../language/LanguageContext.jsx';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
 import { PDF_OR_IMAGE_ACCEPT } from '../utils/projectFiles.js';
 import useProjectDialog from '../hooks/useProjectDialog.js';
 
@@ -25,6 +26,7 @@ function todayInputValue() {
 
 export default function ContinuationReportDialog({ project, submitting, onClose, onSubmit }) {
   useTranslation();
+  const { language } = useLanguage();
   const dialogRef = useProjectDialog(true, () => {
     if (!submitting) onClose();
   });
@@ -33,8 +35,33 @@ export default function ContinuationReportDialog({ project, submitting, onClose,
   const [reviewImpact, setReviewImpact] = useState('no_change');
   const [summary, setSummary] = useState('');
   const [attachments, setAttachments] = useState([]);
+  const [savedBatch, setSavedBatch] = useState(null);
+  const [requestId] = useState(() => crypto.randomUUID());
+  const [failure, setFailure] = useState(null);
+  const detailsLocked = submitting || Boolean(savedBatch);
 
   const canSubmit = summary.trim().length >= 5 && workDate && !submitting;
+
+  async function submit() {
+    if (!canSubmit) return;
+    setFailure(null);
+    try {
+      const result = await onSubmit({
+        workDate,
+        updateType,
+        reviewImpact,
+        summary,
+        attachments,
+        drawingBatchId: savedBatch?.id,
+        requestId,
+      });
+      if (result?.drawingBatch) setSavedBatch(result.drawingBatch);
+      if (result?.failedAttachments) setAttachments(result.failedAttachments);
+      if (!result?.ok) setFailure(result || {});
+    } catch {
+      setFailure({});
+    }
+  }
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- the close button provides keyboard access
@@ -56,10 +83,14 @@ export default function ContinuationReportDialog({ project, submitting, onClose,
             <span className="projectDocumentsEyebrow">{t('מנת שרטוט חדשה')}</span>
             <h3 id={`continuation-report-title-${project.id}`}>{t('העברת המשך עבודה לשרטוט')}</h3>
             <p className="muted">
-              {t('תיווצר מנה עצמאית בפרויקט {{name}}, בלי לשנות את הסטטוס „{{status}}”.', {
-                name: project.name,
-                status: t(project.status),
-              })}
+              {savedBatch
+                ? t('השלמת קבצים למנה {{number}}', {
+                    number: savedBatch.batch_number.toLocaleString(localeForLanguage(language)),
+                  })
+                : t('תיווצר מנה עצמאית בפרויקט {{name}}, בלי לשנות את הסטטוס „{{status}}”.', {
+                    name: project.name,
+                    status: t(project.status),
+                  })}
             </p>
           </div>
           <button
@@ -82,7 +113,7 @@ export default function ContinuationReportDialog({ project, submitting, onClose,
                 type="date"
                 value={workDate}
                 max={todayInputValue()}
-                disabled={submitting}
+                disabled={detailsLocked}
                 onChange={(event) => setWorkDate(event.target.value)}
               />
             </span>
@@ -92,7 +123,7 @@ export default function ContinuationReportDialog({ project, submitting, onClose,
             <span>{t('סוג העדכון')}</span>
             <select
               value={updateType}
-              disabled={submitting}
+              disabled={detailsLocked}
               onChange={(event) => setUpdateType(event.target.value)}
             >
               {updateTypes.map((option) => (
@@ -108,7 +139,7 @@ export default function ContinuationReportDialog({ project, submitting, onClose,
           <span>{t('האם המידע החדש משפיע על השרטוט שנמצא בהגהה?')}</span>
           <select
             value={reviewImpact}
-            disabled={submitting}
+            disabled={detailsLocked}
             onChange={(event) => setReviewImpact(event.target.value)}
           >
             {reviewImpacts.map((option) => (
@@ -133,7 +164,11 @@ export default function ContinuationReportDialog({ project, submitting, onClose,
               multiple
               accept={PDF_OR_IMAGE_ACCEPT}
               disabled={submitting}
-              onChange={(event) => setAttachments(Array.from(event.target.files || []))}
+              onChange={(event) => {
+                const selectedFiles = Array.from(event.target.files || []);
+                setAttachments((files) => [...files, ...selectedFiles]);
+                event.target.value = '';
+              }}
             />
           </span>
         </label>
@@ -164,7 +199,7 @@ export default function ContinuationReportDialog({ project, submitting, onClose,
           <span>{t('מה בוצע ומה צריך להעביר לשרטוט?')}</span>
           <textarea
             value={summary}
-            disabled={submitting}
+            disabled={detailsLocked}
             maxLength={2000}
             onChange={(event) => setSummary(event.target.value)}
             placeholder={t('לדוגמה: הושלמו מדידות בצד המזרחי ונוספו שתי נקודות חיבור חדשות...')}
@@ -180,15 +215,39 @@ export default function ContinuationReportDialog({ project, submitting, onClose,
           )}
         </div>
 
+        {failure && (
+          <div className="continuationUploadError" role="alert">
+            <b>
+              {failure.errorKey
+                ? t(failure.errorKey, failure.errorOptions)
+                : savedBatch
+                  ? t('מנה {{number}} נשמרה, אך חלק מהקבצים לא הועלו.', {
+                      number: savedBatch.batch_number.toLocaleString(localeForLanguage(language)),
+                    })
+                  : t('שליחת הדיווח נכשלה. הפרטים והקבצים נשארו בחלון.')}
+            </b>
+            <span>
+              {t(
+                failure.reasonKey ||
+                  'הקבצים שנותרו ברשימה לא הועלו. בדוק את החיבור ואת הקבצים ונסה שוב. ניתן להעלות PDF או תמונה עד 20MB.',
+              )}
+            </span>
+          </div>
+        )}
+
         <div className="modalActions">
           <button
             type="button"
             className="projectPrimaryAction"
             disabled={!canSubmit}
-            onClick={() => onSubmit({ workDate, updateType, reviewImpact, summary, attachments })}
+            onClick={submit}
           >
             <Send size={17} />
-            {submitting ? t('יוצר מנת שרטוט...') : t('צור ושלח לשרטוט')}
+            {submitting
+              ? t('שומר דיווח ומעלה קבצים...')
+              : savedBatch
+                ? t('נסה שוב באותה מנה')
+                : t('צור ושלח לשרטוט')}
           </button>
           <button type="button" className="ghost" disabled={submitting} onClick={onClose}>
             {t('ביטול')}

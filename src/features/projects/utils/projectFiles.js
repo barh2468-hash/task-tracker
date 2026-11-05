@@ -4,6 +4,18 @@ export const PDF_ACCEPT = 'application/pdf,.pdf';
 export const PDF_OR_IMAGE_ACCEPT =
   'application/pdf,image/jpeg,image/png,image/webp,image/heic,.pdf,.jpg,.jpeg,.png,.webp,.heic';
 
+export function projectDocumentValidationError(file, documentType = 'general') {
+  const allowsImages = documentTypeAllowsImages(documentType);
+  if (!isPdfFile(file) && !(allowsImages && isSupportedImageFile(file))) {
+    return allowsImages
+      ? 'אפשר להעלות PDF או תמונה בפורמט JPG, PNG, WEBP או HEIC.'
+      : 'אפשר להעלות קובץ PDF בלבד.';
+  }
+  if (!file.size) return 'הקובץ ריק ולא ניתן להעלות אותו.';
+  if (file.size > MAX_PROJECT_FILE_SIZE) return 'הקובץ גדול מדי. הגודל המרבי הוא 20MB.';
+  return null;
+}
+
 const supportedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic']);
 const supportedImageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.heic'];
 

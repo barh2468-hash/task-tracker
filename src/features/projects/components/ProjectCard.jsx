@@ -1089,6 +1089,14 @@ export default function ProjectCard({ project, onBack, initialTab }) {
                     await deleteProjectReviewFile(file, project.id);
                     await refreshAssets();
                   }}
+                  onUploadDocument={async (batch, file) => {
+                    const result = await uploadProjectDocument(project, file, 'drawing_source', {
+                      drawingBatchId: batch.id,
+                    });
+                    if (result?.ok) await refreshAssets();
+                    return result;
+                  }}
+                  canUploadDocuments={canEditFieldData}
                 />
 
                 <ReviewFilesPanel
@@ -1155,11 +1163,12 @@ export default function ProjectCard({ project, onBack, initialTab }) {
               setContinuationSubmitting(true);
               try {
                 const result = await submitContinuationReport(project, report);
+                if (result?.drawingBatch) void refreshAssets();
                 if (result?.ok) {
-                  await refreshAssets();
                   setContinuationDialogOpen(false);
                   setActiveDetailTab('drawing-batches');
                 }
+                return result;
               } finally {
                 setContinuationSubmitting(false);
               }

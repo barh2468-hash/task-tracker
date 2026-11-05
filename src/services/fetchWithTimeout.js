@@ -1,11 +1,21 @@
 const REQUEST_TIMEOUT_MS = 7000;
 const GPR_SYNC_TIMEOUT_MS = 90000;
+const STORAGE_UPLOAD_TIMEOUT_MS = 120000;
 
 function timeoutForRequest(input, init, method) {
   try {
     const target = new URL(
       typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
     );
+    // Large PDFs on mobile connections need more time than small API reads.
+    // Writes still run once: retrying an uncertain upload can duplicate files.
+    if (
+      ['POST', 'PUT'].includes(method) &&
+      target.pathname.startsWith('/storage/v1/object/') &&
+      !/^\/storage\/v1\/object\/(sign|list|copy|move)(\/|$)/.test(target.pathname)
+    ) {
+      return STORAGE_UPLOAD_TIMEOUT_MS;
+    }
     if (
       method === 'POST' &&
       target.pathname === '/functions/v1/gpr-microsoft' &&

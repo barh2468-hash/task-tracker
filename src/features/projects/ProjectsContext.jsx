@@ -171,7 +171,7 @@ export function ProjectsProvider({ children }) {
     restoreProject: (project) => runMutation(projectsFeatureApi.restoreProject(project, profile)),
     updateStatus: runStatusMutation,
     submitContinuationReport: (project, report) =>
-      runMutation(projectsFeatureApi.submitContinuationReport(project, report, profile)),
+      runMutation(projectsFeatureApi.submitContinuationReport(project, report, profile), undefined, true),
     updateDrawingBatchStatus: (project, drawingBatch, newStatus) =>
       runMutation(
         projectsFeatureApi.updateDrawingBatchStatus(
@@ -195,8 +195,8 @@ export function ProjectsProvider({ children }) {
       runMutation(projectsFeatureApi.uploadPhoto(projectId, file, category)),
     deletePhoto: (photo, project) =>
       runMutation(projectsFeatureApi.deletePhoto(photo, project, profile)),
-    uploadProjectDocument: (project, file, documentType) =>
-      runMutation(projectsFeatureApi.uploadProjectDocument(project, file, profile, documentType)),
+    uploadProjectDocument: (project, file, documentType, options) =>
+      runMutation(projectsFeatureApi.uploadProjectDocument(project, file, profile, documentType, options)),
     deleteProjectDocument: (projectDocument, project) =>
       runMutation(projectsFeatureApi.deleteProjectDocument(projectDocument, project, profile)),
     assignProjectDrafter: (project, drafterId) =>

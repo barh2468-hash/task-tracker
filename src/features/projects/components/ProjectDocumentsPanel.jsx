@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 import { t, useLanguage } from '../../language/LanguageContext.jsx';
 import { localeForLanguage } from '../../language/locale.js';
-import { createSignedUrl } from '../../../services/api/storage.js';
+import { useSignedFileLinks } from '../hooks/useSignedFileLinks.js';
+import FileLinksNotice from './FileLinksNotice.jsx';
 import PdfPreviewModal from './PdfPreviewModal.jsx';
 import {
   documentTypeAllowsImages,
@@ -77,7 +78,8 @@ export default function ProjectDocumentsPanel({
 }) {
   useTranslation();
   const { language } = useLanguage();
-  const [links, setLinks] = useState({});
+  const fileLinks = useSignedFileLinks('project-documents', documents, true);
+  const { links } = fileLinks;
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [uploadError, setUploadError] = useState('');
@@ -85,36 +87,6 @@ export default function ProjectDocumentsPanel({
   const [documentType, setDocumentType] = useState(lockedDocumentType || defaultDocumentType);
   const [previewDocument, setPreviewDocument] = useState(null);
   const allowsImages = documentTypeAllowsImages(documentType);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadLinks() {
-      const entries = await Promise.all(
-        documents.map(async (document) => {
-          const [viewResult, downloadResult] = await Promise.all([
-            createSignedUrl('project-documents', document.file_path, 60 * 60),
-            createSignedUrl('project-documents', document.file_path, 60 * 60, {
-              download: document.file_name,
-            }),
-          ]);
-          return [
-            document.id,
-            {
-              view: viewResult.data?.signedUrl || '',
-              download: downloadResult.data?.signedUrl || '',
-            },
-          ];
-        }),
-      );
-      if (!cancelled) setLinks(Object.fromEntries(entries));
-    }
-
-    loadLinks();
-    return () => {
-      cancelled = true;
-    };
-  }, [documents]);
 
   useEffect(() => {
     if (!uploadOpen) return;
@@ -182,6 +154,7 @@ export default function ProjectDocumentsPanel({
           </div>
         </header>
 
+        <FileLinksNotice {...fileLinks} />
         {documents.length === 0 ? (
           <div className="projectDocumentsEmpty">
             <FileText size={24} />

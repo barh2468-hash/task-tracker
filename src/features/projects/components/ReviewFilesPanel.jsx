@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { t, useLanguage } from '../../language/LanguageContext.jsx';
 import { localeForLanguage } from '../../language/locale.js';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckCircle2, Eye, FileText, Trash2, X } from 'lucide-react';
-import { createSignedUrl } from '../../../services/api/storage.js';
+import { useSignedFileLinks } from '../hooks/useSignedFileLinks.js';
+import FileLinksNotice from './FileLinksNotice.jsx';
 import PdfPreviewModal from './PdfPreviewModal.jsx';
 import { getReviewFileVersions } from '../utils/reviewFiles.js';
 
@@ -18,7 +19,8 @@ export default function ReviewFilesPanel({
 }) {
   useTranslation();
   const { language } = useLanguage();
-  const [urls, setUrls] = useState({});
+  const fileLinks = useSignedFileLinks('project-review-files', files);
+  const { links } = fileLinks;
   const [previewFile, setPreviewFile] = useState(null);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [approving, setApproving] = useState(false);
@@ -33,22 +35,6 @@ export default function ReviewFilesPanel({
       setApproving(false);
     }
   }
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadUrls() {
-      const next = {};
-      for (const file of files) {
-        const { data } = await createSignedUrl('project-review-files', file.file_path, 60 * 60);
-        if (data?.signedUrl) next[file.id] = data.signedUrl;
-      }
-      if (!cancelled) setUrls(next);
-    }
-    loadUrls();
-    return () => {
-      cancelled = true;
-    };
-  }, [files]);
 
   if (!files.length) return null;
   return (
@@ -78,6 +64,7 @@ export default function ReviewFilesPanel({
         <p className="muted reviewFilesVersionHint">
           {t('הקבצים מההעלאה האחרונה הם העדכניים. קבצים מהעלאות קודמות נשמרים לצפייה.')}
         </p>
+        <FileLinksNotice {...fileLinks} />
         <div className="projectDocumentsList">
           {getReviewFileVersions(files).map(({ file, isSuperseded }) => (
             <article
@@ -104,12 +91,12 @@ export default function ReviewFilesPanel({
                 </small>
               </div>
               <div className="projectDocumentActions">
-                {urls[file.id] && (
+                {links[file.id]?.view && (
                   <button
                     type="button"
                     onClick={() =>
                       setPreviewFile({
-                        url: urls[file.id],
+                        url: links[file.id].view,
                         fileName: file.file_name || t('קובץ PDF'),
                       })
                     }

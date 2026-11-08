@@ -14,6 +14,7 @@ export function AuthProvider({ children }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [authMessage, setAuthMessage] = useState('');
+  const [profileAttempt, setProfileAttempt] = useState(0);
   const sessionUserIdRef = useRef(null);
 
   // Session bootstrap: initial getSession() + onAuthStateChange subscription,
@@ -117,7 +118,14 @@ export function AuthProvider({ children }) {
     // Intentionally keyed on the user id only, not the whole session object,
     // so a token refresh doesn't re-trigger profile resolution.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id]);
+  }, [session?.user?.id, profileAttempt]);
+
+  function retryProfile() {
+    if (!session?.user || profileLoading) return;
+    setAuthMessage('');
+    setProfileLoading(true);
+    setProfileAttempt((attempt) => attempt + 1);
+  }
 
   async function login(email, password) {
     setAuthMessage('');
@@ -197,6 +205,7 @@ export function AuthProvider({ children }) {
     authBusy,
     authMessage,
     setAuthMessage,
+    retryProfile,
     isManager,
     isAdmin,
     isDrafter,

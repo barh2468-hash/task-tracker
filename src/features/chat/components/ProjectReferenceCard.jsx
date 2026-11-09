@@ -4,6 +4,7 @@ import { t } from '../../language/LanguageContext.jsx';
 import StatusPill from '../../../components/StatusPill.jsx';
 import { projectDeepLinkPath } from '../../../utils/navigation.js';
 import { navigationLink, phoneLink } from '../../../utils/format.js';
+import { projectName } from '../../projects/utils/projectName.js';
 
 // A project linked in a message: what it is and where, plus one-tap
 // navigation and a call to the site contact. `project` is the reader's own
@@ -11,7 +12,7 @@ import { navigationLink, phoneLink } from '../../../utils/format.js';
 // the saved label is shown and opening it explains the missing access.
 export default function ProjectReferenceCard({ projectId, label, project }) {
   const navigate = useNavigate();
-  const name = project?.name || label || t('פרויקט');
+  const name = projectName(project) || label || t('פרויקט');
   const directions = navigationLink(project?.location);
   const call = phoneLink(project?.contact_phone);
   const owner = project?.profiles?.full_name;

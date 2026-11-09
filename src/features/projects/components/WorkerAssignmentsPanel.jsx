@@ -9,6 +9,7 @@ import { appStatuses, roleLabel } from '../../../services/supabase.js';
 import StatusPill from '../../../components/StatusPill.jsx';
 import { isManagerRole } from '../../../utils/roles.js';
 import { isProjectAssignedTo } from '../utils/assignments.js';
+import { projectName } from '../utils/projectName.js';
 
 export default function WorkerAssignmentsPanel({ onOpenProject, restoreState }) {
   useTranslation();
@@ -65,7 +66,7 @@ export default function WorkerAssignmentsPanel({ onOpenProject, restoreState }) 
         .filter((project) => !assignmentStatus || project.status === assignmentStatus)
         .filter((project) => {
           if (workerMatches) return true;
-          const projectText = `${project.name} ${project.client_name || ''} ${project.location} ${project.status}`;
+          const projectText = `${project.name} ${projectName(project)} ${project.client_name || ''} ${project.location} ${project.status}`;
           return projectText.toLowerCase().includes(normalizedSearch);
         })
         .sort((a, b) => a.name.localeCompare(b.name, locale));
@@ -173,7 +174,7 @@ export default function WorkerAssignmentsPanel({ onOpenProject, restoreState }) 
                   <div className="assignedProjectRow" key={project.id}>
                     <div className="assignedProjectHeading">
                       <div>
-                        <b>{project.name}</b>
+                        <b>{projectName(project)}</b>
                         <span>
                           {project.client_name || t('ללא לקוח')} · {project.location}
                         </span>

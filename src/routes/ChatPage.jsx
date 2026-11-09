@@ -32,6 +32,7 @@ import { messageReaders } from '../features/chat/receipts.js';
 import { roleLabel } from '../services/supabase.js';
 import { getStatusClass } from '../components/StatusPill.jsx';
 import { projectDiscussionPath } from '../utils/navigation.js';
+import { projectName } from '../features/projects/utils/projectName.js';
 
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -94,6 +95,10 @@ export default function ChatPage() {
   const profilesById = useMemo(
     () => new Map(workers.map((worker) => [worker.id, worker])),
     [workers],
+  );
+  const projectsById = useMemo(
+    () => new Map(projects.map((project) => [project.id, project])),
+    [projects],
   );
   const activeConversation = conversations.find((item) => item.id === activeConversationId) || null;
 
@@ -352,7 +357,7 @@ export default function ChatPage() {
     // so a quiet project's room is still one search away.
     if (searchText) {
       const matches = projects
-        .filter((project) => matchesSearch(project.name, project.location, project.client_name))
+        .filter((project) => matchesSearch(project.name, projectName(project), project.location, project.client_name))
         .map((project) => ({ project, room: projectRoomsByProjectId.get(project.id) }))
         .sort(
           (a, b) =>
@@ -360,14 +365,14 @@ export default function ChatPage() {
             String(b.room?.last_message_at || '').localeCompare(
               String(a.room?.last_message_at || ''),
             ) ||
-            String(a.project.name || '').localeCompare(String(b.project.name || ''), locale),
+            String(projectName(a.project) || '').localeCompare(String(projectName(b.project) || ''), locale),
         )
         .slice(0, 50);
       if (matches.length === 0) return <p className="chatHint">{t('לא נמצאו פרויקטים')}</p>;
       return matches.map(({ project, room }) =>
         renderProjectRow(
           project.id,
-          project.name,
+          projectName(project),
           project.status,
           room,
           project.is_archived
@@ -387,7 +392,12 @@ export default function ChatPage() {
       );
     }
     return projectRooms.map((room) =>
-      renderProjectRow(room.project_id, room.project_name, room.project_status, room),
+      renderProjectRow(
+        room.project_id,
+        projectName(projectsById.get(room.project_id)) || room.project_name,
+        room.project_status,
+        room,
+      ),
     );
   }
 

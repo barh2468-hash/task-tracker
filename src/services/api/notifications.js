@@ -16,7 +16,7 @@ export function getNotifications(userId, { offset = 0, limit = 80 } = {}) {
   return supabase
     .from('notifications')
     .select(
-      '*, profiles:created_by(full_name), projects:project_id(name), gpr_work_orders:gpr_order_id(title,order_number,deleted_at)',
+      '*, profiles:created_by(full_name), projects:project_id(name,name_translations), gpr_work_orders:gpr_order_id(title,order_number,deleted_at)',
     )
     .eq('recipient_id', userId)
     .eq('delivery_enabled', true)

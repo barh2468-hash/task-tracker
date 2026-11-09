@@ -18,6 +18,7 @@ import {
 } from '../features/projects/utils/assignments.js';
 import { assignmentReturnLocation } from '../features/projects/utils/assignmentNavigation.js';
 import { resolveProjectLink } from '../features/projects/projectLoader.js';
+import { projectName } from '../features/projects/utils/projectName.js';
 
 const PROJECT_BATCH_SIZE = 20;
 const LOAD_MORE_DELAY_MS = 650;
@@ -140,7 +141,7 @@ export default function ProjectsPage() {
   });
   const visibleProjects = categoryProjects.filter((p) => {
     const text =
-      `${p.name} ${p.location} ${p.contact_phone || ''} ${p.contact_email || ''} ${p.client_name || ''} ${p.description || ''} ${p.additional_notes || ''}`.toLowerCase();
+      `${p.name} ${projectName(p)} ${p.location} ${p.contact_phone || ''} ${p.contact_email || ''} ${p.client_name || ''} ${p.description || ''} ${p.additional_notes || ''}`.toLowerCase();
     const okQuery = !query || text.includes(query.toLowerCase());
     const okStatus = !statusFilter || p.status === statusFilter;
     return okQuery && okStatus;
@@ -329,11 +330,11 @@ export default function ProjectsPage() {
                   className={`projectListItem status-${getStatusClass(project.status)}`}
                   id={`open-project-${project.id}`}
                   onClick={() => openProject(project)}
-                  aria-label={t('פתיחת פרויקט {{name}}', { name: project.name })}
+                  aria-label={t('פתיחת פרויקט {{name}}', { name: projectName(project) })}
                 >
                   <span className="projectListItemName">
                     <b dir="auto">
-                      {project.name}
+                      {projectName(project)}
                       {chatUnread > 0 && (
                         <span
                           className="projectListChatBadge"

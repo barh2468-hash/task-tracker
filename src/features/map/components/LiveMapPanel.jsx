@@ -7,6 +7,7 @@ import { MapPin, FolderKanban } from 'lucide-react';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useAttendance } from '../../attendance/AttendanceContext.jsx';
 import { mapsLink, toLocalDateKey } from '../../../utils/format.js';
+import { projectName } from '../../projects/utils/projectName.js';
 
 export default function LiveMapPanel({ onOpenProject }) {
   useTranslation();
@@ -56,7 +57,7 @@ export default function LiveMapPanel({ onOpenProject }) {
         workerName: session.profiles?.full_name || t('עובד שטח'),
         projectId: session.source === 'project' ? session.project_id : null,
         projectName: session.source === 'project'
-          ? session.projects?.name || t('פרויקט')
+          ? projectName(session.projects) || t('פרויקט')
           : t('שעון נוכחות כללי'),
         projectLocation: session.projects?.location || '',
         lat,

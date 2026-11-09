@@ -31,6 +31,7 @@ import { messageReaders } from '../receipts.js';
 import { useRealtimeRefresh } from '../../../hooks/useRealtimeRefresh.js';
 import MessageBubble from './MessageBubble.jsx';
 import '../chat.css';
+import { projectName } from '../../projects/utils/projectName.js';
 
 const NEAR_BOTTOM_PX = 80;
 const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -399,7 +400,7 @@ export default function ChatRoom({
   const filteredProjects = projects
     .filter((project) => !project.is_archived)
     .filter((project) =>
-      `${project.name || ''} ${project.client_name || ''} ${project.location || ''}`
+      `${project.name || ''} ${projectName(project) || ''} ${project.client_name || ''} ${project.location || ''}`
         .toLowerCase()
         .includes(projectSearch.trim().toLowerCase()),
     );
@@ -583,7 +584,7 @@ export default function ChatRoom({
                 >
                   <FolderKanban size={18} />
                   <span>
-                    <b>{project.name}</b>
+                    <b>{projectName(project)}</b>
                     <small>{project.location || project.client_name || t('ללא מיקום')}</small>
                   </span>
                 </button>
@@ -620,7 +621,7 @@ export default function ChatRoom({
             <FolderKanban size={17} />
             <span>
               <small>{t('מצורף לפרויקט')}</small>
-              <b>{selectedProject.name}</b>
+              <b>{projectName(selectedProject)}</b>
             </span>
             <button
               type="button"

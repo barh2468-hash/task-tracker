@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Mail, Save, X } from 'lucide-react';
 import { t } from '../language/LanguageContext.jsx';
 import { emptyOrder, GPR_STATUSES, parseGprEmail, REQUIREMENT_KEYS } from './model.js';
+import { projectName } from '../projects/utils/projectName.js';
 
 export default function GprOrderForm({ order, mode, projects, onSave, onClose }) {
   useTranslation();
@@ -286,7 +287,7 @@ export default function GprOrderForm({ order, mode, projects, onSave, onClose })
                   <option value="">{t('gpr.noProject')}</option>
                   {(projects || []).map((project) => (
                     <option key={project.id} value={project.id}>
-                      {project.name}
+                      {projectName(project)}
                     </option>
                   ))}
                 </select>

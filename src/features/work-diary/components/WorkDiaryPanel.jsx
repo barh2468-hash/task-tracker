@@ -16,6 +16,7 @@ import SignaturePad from './SignaturePad.jsx';
 import { useAuth } from '../../auth/useAuth.js';
 import useFormDraft from '../../drafts/useFormDraft.js';
 import DraftNotice from '../../drafts/DraftNotice.jsx';
+import { projectName } from '../../projects/utils/projectName.js';
 
 function todayValue() {
   return new Date().toISOString().slice(0, 10);
@@ -280,7 +281,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
                   <span>{t('קבוצת מאיה')}</span>
                   <h2>{t('יומן עבודה חדש')}</h2>
                   <p>
-                    {project.name}
+                    {projectName(project)}
                     {' '}
                     {t('· המספר יינתן אוטומטית בשמירה')}
                   </p>

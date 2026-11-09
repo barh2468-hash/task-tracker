@@ -50,6 +50,8 @@ import useProjectDialog from '../hooks/useProjectDialog.js';
 import { isManagerRole } from '../../../utils/roles.js';
 import { getProjectTeamAssignments, isProjectTeamMember } from '../utils/assignments.js';
 import { tasksWithReportHistory } from '../task-reports/model.js';
+import { projectName } from '../utils/projectName.js';
+import { TRANSLATED_LANGUAGES, translationDraft } from '../../../utils/localizedField.js';
 
 const photoCategories = [
   'תמונת שטח',
@@ -72,8 +74,15 @@ function buildEditForm(project) {
     assigned_to: project.assigned_to || '',
     assigned_workers: getProjectTeamAssignments(project).map((assignment) => assignment.worker_id),
     requires_work_diary: Boolean(project.requires_work_diary),
+    name_translations: translationDraft(project, 'name'),
   };
 }
+
+const NAME_TRANSLATION_LABELS = {
+  en: 'שם הפרויקט באנגלית',
+  el: 'שם הפרויקט ביוונית',
+  pt: 'שם הפרויקט בפורטוגזית',
+};
 
 // Loaded on demand: keeps chat code (and chat.css, which must come after
 // globals.css) out of the projects page's initial bundle.
@@ -308,6 +317,31 @@ export default function ProjectCard({ project, onBack, initialTab }) {
               onChange={(e) => setEditProject({ ...editProject, name: e.target.value })}
             />
           </label>
+          {'name_translations' in project && (
+            <details className="wideField">
+              <summary>{t('שם הפרויקט בשפות אחרות')}</summary>
+              <p className="muted">
+                {t('השם בשפות האלה מוצג למשתמשים שבחרו בהן. שדה ריק מציג את השם בעברית.')}
+              </p>
+              <div className="formGrid">
+                {TRANSLATED_LANGUAGES.map((language) => (
+                  <label key={language}>
+                    {t(NAME_TRANSLATION_LABELS[language])}
+                    <input
+                      dir="auto"
+                      lang={language}
+                      value={editProject.name_translations[language]}
+                      placeholder={t('יוצג השם בעברית')}
+                      onChange={(e) => setEditProject({
+                        ...editProject,
+                        name_translations: { ...editProject.name_translations, [language]: e.target.value },
+                      })}
+                    />
+                  </label>
+                ))}
+              </div>
+            </details>
+          )}
           <label>
             {t('לקוח')}
 
@@ -678,7 +712,7 @@ export default function ProjectCard({ project, onBack, initialTab }) {
         </div>
         <header className="projectWorkspaceHeader">
           <h2 id={`project-title-${project.id}`} tabIndex={-1} dir="auto">
-            {project.name}
+            {projectName(project)}
           </h2>
           <p className="projectWorkspaceLocation" dir="auto">
             {project.location}

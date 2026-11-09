@@ -6,6 +6,7 @@ import useProjectDialog from '../hooks/useProjectDialog.js';
 import { PDF_OR_IMAGE_ACCEPT } from '../utils/projectFiles.js';
 import { validateTaskReport, outcomeLabels } from './model.js';
 import './task-reports.css';
+import { projectName } from '../utils/projectName.js';
 
 export default function TaskExecutionDialog({ task, project, onClose, onSubmit, loadAssets }) {
   useTranslation();
@@ -100,7 +101,7 @@ export default function TaskExecutionDialog({ task, project, onClose, onSubmit, 
           <h2 id="task-report-title">
             {t(task.is_done ? 'פתיחת משימה מחדש' : 'דיווח ביצוע משימה')}
           </h2>
-          <p>{project.name}</p>
+          <p>{projectName(project)}</p>
         </header>
         <div className="taskReportBody">
           <section className="taskReportRequest">

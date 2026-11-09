@@ -1,3 +1,4 @@
+import { projectName } from '../projects/utils/projectName.js';
 export function notificationText(notification, t) {
   if (notification.type === 'gpr_email_order_received') {
     const order = notification.gpr_work_orders;
@@ -16,7 +17,7 @@ export function notificationText(notification, t) {
 
   return {
     title: notification.projects?.name
-      ? t('ההגהה אושרה והפרויקט עבר לבקרה: {{name}}', { name: notification.projects.name })
+      ? t('ההגהה אושרה והפרויקט עבר לבקרה: {{name}}', { name: projectName(notification.projects) })
       : t('ההגהה אושרה והפרויקט עבר לבקרה'),
     body: notification.profiles?.full_name
       ? t('{{name}} אישר את ההגהה. הפרויקט עבר לבקרה.', { name: notification.profiles.full_name })

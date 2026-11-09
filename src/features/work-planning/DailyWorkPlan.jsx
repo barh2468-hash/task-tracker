@@ -14,6 +14,7 @@ import SharedPlanLoader from './SharedPlanLoader.jsx';
 import PublishedPlanImage from './PublishedPlanImage.jsx';
 import './work-planning.css';
 import './work-planning-refresh.css';
+import { projectName } from '../projects/utils/projectName.js';
 
 function WorkPlanTextarea(props) {
   // The hidden mirror gives the editor its full natural height before focus.
@@ -68,7 +69,7 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
   const sortedWorkers = [...new Set((registeredWorkers.length ? registeredWorkers : workers)
     .map((worker) => worker.full_name).filter(Boolean))].sort((a, b) => a.localeCompare(b, locale));
   const cellGroups = getWorkerCellGroups(rows, workers);
-  const activeProjects = projects.filter((project) => !project.is_archived).sort((a, b) => a.name.localeCompare(b.name, locale));
+  const activeProjects = projects.filter((project) => !project.is_archived).sort((a, b) => projectName(a).localeCompare(projectName(b), locale));
 
   useEffect(() => () => { copyRequestRef.current = null; }, []);
 
@@ -233,7 +234,7 @@ function PlanForDate({ date, onDateChange, storageScope, workers, projects, proj
         >
           <option value="">{t(choices.worker ? 'workPlan.assignedProjectPlaceholder' : 'workPlan.projectPlaceholder')}</option>
           {savedProject && <option value={row.projectId} disabled>{t('workPlan.savedProjectOption', { name: savedName })}</option>}
-          {choices.projects.map((project) => <option value={project.id} key={project.id}>{project.name}</option>)}
+          {choices.projects.map((project) => <option value={project.id} key={project.id}>{projectName(project)}</option>)}
         </select>
         <p id={assignmentDescriptionId} className="workPlanAssignmentHint">{t(descriptionKey, {
           name: workerName || row.leader,

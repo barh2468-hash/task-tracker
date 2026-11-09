@@ -26,6 +26,7 @@ import {
   projectDocumentValidationError,
 } from './utils/projectFiles.js';
 import { isManagerRole } from '../../utils/roles.js';
+import { mergeTranslationDraft } from '../../utils/localizedField.js';
 import { getProjectAssignmentChanges } from './utils/assignments.js';
 import { t } from '../language/LanguageContext.jsx';
 import i18n from 'i18next';
@@ -1151,6 +1152,17 @@ export async function saveProject(projectId, changes, profile, originalProject) 
     additional_notes: changes.additional_notes || null,
     assigned_to: nextAssignedTo,
     requires_work_diary: Boolean(changes.requires_work_diary),
+    // Only once the name_translations migration is applied.
+    ...(changes.name_translations && originalProject && 'name_translations' in originalProject
+      ? {
+          name_translations: mergeTranslationDraft(
+            originalProject.name_translations,
+            originalProject.name,
+            changes.name,
+            changes.name_translations,
+          ),
+        }
+      : {}),
   });
   if (error) return { message: error.message };
 

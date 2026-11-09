@@ -19,6 +19,7 @@ import { formatDuration, durationMinutes } from '../../../utils/format.js';
 import { getTodayAttendance } from '../utils/todayAttendance.js';
 import { exportDailySummaryExcel } from '../utils/exportDailySummaryExcel.js';
 import Stat from '../../../components/Stat.jsx';
+import { projectName } from '../../projects/utils/projectName.js';
 
 function ActivityMeta({ startedAt, endedAt, startLabel, endLabel, crewMembers = [] }) {
   return (
@@ -171,7 +172,7 @@ export default function TodayFieldPanel() {
               </b>
               <span>
                 {session.project_id
-                  ? session.projects?.name || t('פרויקט')
+                  ? projectName(session.projects) || t('פרויקט')
                   : t(attendanceTypeLabel[session.attendance_type] || 'נוכחות כללית')}{' '}
                 · {t(formatDuration(durationMinutes(session.started_at)))}
               </span>
@@ -237,7 +238,7 @@ export default function TodayFieldPanel() {
           <div className="listRow todayActivityRow" key={session.id}>
             <b>{session.profiles?.full_name || t('עובד')}</b>
             <span>
-              {session.projects?.name || t('פרויקט')} · {session.projects?.location || ''}
+              {projectName(session.projects) || t('פרויקט')} · {session.projects?.location || ''}
             </span>
             <ActivityMeta
               startedAt={session.started_at}

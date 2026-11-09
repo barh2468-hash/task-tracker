@@ -5,6 +5,7 @@ import { t, useLanguage } from '../../language/LanguageContext.jsx';
 import { localeForLanguage } from '../../language/locale.js';
 import { PDF_OR_IMAGE_ACCEPT } from '../utils/projectFiles.js';
 import useProjectDialog from '../hooks/useProjectDialog.js';
+import { projectName } from '../utils/projectName.js';
 
 const updateTypes = [
   { value: 'addition', label: 'תוספת לעבודה שכבר דווחה' },
@@ -88,7 +89,7 @@ export default function ContinuationReportDialog({ project, submitting, onClose,
                     number: savedBatch.batch_number.toLocaleString(localeForLanguage(language)),
                   })
                 : t('תיווצר מנה עצמאית בפרויקט {{name}}, בלי לשנות את הסטטוס „{{status}}”.', {
-                    name: project.name,
+                    name: projectName(project),
                     status: t(project.status),
                   })}
             </p>

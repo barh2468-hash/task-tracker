@@ -31,6 +31,7 @@ import {
 } from '../features/attendance/api.js';
 import { durationMinutes, formatDuration, toLocalDateKey } from '../utils/format.js';
 import SickLeaveDialog from '../features/attendance/components/SickLeaveDialog.jsx';
+import { projectName } from '../features/projects/utils/projectName.js';
 
 const typeIcons = {
   field: BriefcaseBusiness,
@@ -133,7 +134,7 @@ export default function AttendancePage() {
   const normalizedProjectQuery = projectQuery.trim().toLocaleLowerCase(locale);
   const filteredProjects = availableProjects.filter((project) => {
     if (!normalizedProjectQuery) return true;
-    return [project.name, project.location, project.client_name, project.reference_number]
+    return [project.name, projectName(project), project.location, project.client_name, project.reference_number]
       .filter(Boolean)
       .join(' ')
       .toLocaleLowerCase(locale)
@@ -296,10 +297,10 @@ export default function AttendancePage() {
           <small>
             {openSession
               ? linkedWorkSession?.projects?.name
-                ? `${t(attendanceTypeLabel[openSession.attendance_type])} · ${linkedWorkSession.projects.name}`
+                ? `${t(attendanceTypeLabel[openSession.attendance_type])} · ${projectName(linkedWorkSession.projects)}`
                 : t(attendanceTypeLabel[openSession.attendance_type])
               : selectedProject
-                ? `${t(selectedOption.label)} · ${selectedProject.name}`
+                ? `${t(selectedOption.label)} · ${projectName(selectedProject)}`
                 : t(selectedOption.label)}
           </small>
           <strong>{busy ? t('מעדכן...') : actionLabel}</strong>
@@ -442,7 +443,7 @@ export default function AttendancePage() {
                         <FolderKanban size={20} />
                       </span>
                       <span>
-                        <strong>{project.name}</strong>
+                        <strong>{projectName(project)}</strong>
                         <small>
                           {[project.location, project.client_name].filter(Boolean).join(' · ') ||
                             t('פרויקט פעיל')}

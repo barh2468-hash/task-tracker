@@ -29,7 +29,7 @@ export function getStatusChangesBetween(startIso, endIso, targetStatuses) {
   let query = supabase
     .from('status_history')
     .select(
-      '*, profiles:changed_by(full_name), projects:project_id(id,name,client_name,location,is_archived)',
+      '*, profiles:changed_by(full_name), projects:project_id(id,name,name_translations,client_name,location,is_archived)',
     )
     .gte('created_at', startIso)
     .lte('created_at', endIso);

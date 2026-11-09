@@ -18,6 +18,7 @@ import { useProjects } from '../ProjectsContext.jsx';
 import { isResultOk } from '../../../context/messageTone.js';
 import { getStatusClass } from '../../../components/StatusPill.jsx';
 import { getProjectTeamAssignments } from '../utils/assignments.js';
+import { projectName } from '../utils/projectName.js';
 
 export default function OpenTasksPanel({ onOpenProject }) {
   useTranslation();
@@ -49,7 +50,7 @@ export default function OpenTasksPanel({ onOpenProject }) {
         .filter(Boolean)
         .join(' ');
       const searchable =
-        `${task.title} ${task.description || ''} ${project.name} ${project.location} ${assignedNames}`.toLowerCase();
+        `${task.title} ${task.description || ''} ${project.name} ${projectName(project)} ${project.location} ${assignedNames}`.toLowerCase();
       return !query.trim() || searchable.includes(query.trim().toLowerCase());
     })
     .sort(
@@ -121,7 +122,7 @@ export default function OpenTasksPanel({ onOpenProject }) {
               <div className="openTaskMain">
                 <div className="openTaskProjectLine">
                   <button className="openTaskProjectButton" onClick={() => openProject(project)}>
-                    <FolderKanban size={16} /> {project.name}
+                    <FolderKanban size={16} /> {projectName(project)}
                   </button>
                   <span className={`pill ${getStatusClass(project.status)}`}>
                     {t(project.status)}

@@ -19,6 +19,7 @@ import {
   getProjectOrderNumber,
 } from '../utils/projectOrderNumber.js';
 import StatusPill from '../../../components/StatusPill.jsx';
+import { projectName } from '../utils/projectName.js';
 
 export default function ProjectStatusReport() {
   useTranslation();
@@ -205,7 +206,7 @@ export default function ProjectStatusReport() {
                       <FolderKanban size={17} />
                     </span>
                     <div>
-                      <b>{project.name}</b>
+                      <b>{projectName(project)}</b>
                       {project.is_archived && (
                         <small>
                           <Archive size={12} />

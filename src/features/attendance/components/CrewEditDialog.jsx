@@ -8,6 +8,7 @@ import { supabase } from '../../../services/supabase.js';
 import { useTranslation } from 'react-i18next';
 import { t, useLanguage } from '../../language/LanguageContext.jsx';
 import { localeForLanguage } from '../../language/locale.js';
+import { projectName } from '../../projects/utils/projectName.js';
 
 export default function CrewEditDialog({ session, onClose, onSaved }) {
   useTranslation();
@@ -52,7 +53,7 @@ export default function CrewEditDialog({ session, onClose, onSaved }) {
     <form className="attendanceEndModal crewEditModal" onSubmit={save}>
       <div className="attendanceEndHeader"><h2 id="crew-edit-title">{t('עדכון הצוות והערות לעבודה')}</h2></div>
       <div className="attendanceEndBody">
-        <p>{session.projects?.name} · {new Date(session.started_at).toLocaleDateString(localeForLanguage(language), { timeZone: 'Asia/Jerusalem' })}</p>
+        <p>{projectName(session.projects)} · {new Date(session.started_at).toLocaleDateString(localeForLanguage(language), { timeZone: 'Asia/Jerusalem' })}</p>
         <p className="muted">{t('אפשר לעדכן את הצוות ולהוסיף או לערוך הערות לעבודה. שעות העבודה וסגירת היום נשמרות.')}</p>
         <label className="crewEditNote" htmlFor="crew-edit-note">
           <span>{t('הערות לעבודה (לא חובה)')}</span>

@@ -19,7 +19,7 @@ export async function getPersonalAttendanceRange(userId, from, to) {
   const workTo = new Date(new Date(`${to}T00:00:00Z`).getTime() + 2 * 86400000).toISOString();
   const [attendance, work] = await Promise.all([
     readPages(() => supabase.from('attendance_sessions').select('*').eq('worker_id', userId).gte('attendance_date', from).lte('attendance_date', to).order('started_at', { ascending: false }).order('id')),
-    readPages(() => supabase.from('work_sessions').select('*,projects:project_id(name)').eq('worker_id', userId).gte('started_at', workFrom).lt('started_at', workTo).order('started_at', { ascending: false }).order('id')),
+    readPages(() => supabase.from('work_sessions').select('*,projects:project_id(name,name_translations)').eq('worker_id', userId).gte('started_at', workFrom).lt('started_at', workTo).order('started_at', { ascending: false }).order('id')),
   ]);
   return { attendance, work };
 }

@@ -384,6 +384,16 @@ const entries = [
   ['צור ושלח לשרטוט', 'Create and send to drafting', 'Δημιουργία και αποστολή για σχεδίαση'],
   ['מעלה קבצים {{progress}}', 'Uploading files {{progress}}', 'Μεταφόρτωση αρχείων {{progress}}'],
   ['ההעלאה נכשלה', 'Upload failed', 'Η μεταφόρτωση απέτυχε'],
+  ['שם הפרויקט בשפות אחרות', 'Project name in other languages', 'Όνομα έργου σε άλλες γλώσσες'],
+  [
+    'השם בשפות האלה מוצג למשתמשים שבחרו בהן. שדה ריק מציג את השם בעברית.',
+    'Shown to users who chose these languages. An empty field shows the Hebrew name.',
+    'Εμφανίζεται στους χρήστες που επέλεξαν αυτές τις γλώσσες. Ένα κενό πεδίο εμφανίζει το εβραϊκό όνομα.',
+  ],
+  ['שם הפרויקט באנגלית', 'Project name in English', 'Όνομα έργου στα αγγλικά'],
+  ['שם הפרויקט ביוונית', 'Project name in Greek', 'Όνομα έργου στα ελληνικά'],
+  ['שם הפרויקט בפורטוגזית', 'Project name in Portuguese', 'Όνομα έργου στα πορτογαλικά'],
+  ['יוצג השם בעברית', 'Shows the Hebrew name', 'Εμφανίζεται το εβραϊκό όνομα'],
 ];
 
 export const enProjectWorkspace = Object.fromEntries(entries.map(([key, en]) => [key, en]));

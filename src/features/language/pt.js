@@ -1702,5 +1702,11 @@ export const ptTranslations = {
   "אישור חופשה (אופציונלי)": "Comprovativo de férias (opcional)",
   "שמירת דיווח חופש": "Guardar registo de férias",
   "סגירת דיווח חופש": "Fechar registo de férias",
-  "ניתן לדווח על עד 92 ימי חופש בכל פעולה.": "Pode reportar até 92 dias de férias de cada vez."
+  "ניתן לדווח על עד 92 ימי חופש בכל פעולה.": "Pode reportar até 92 dias de férias de cada vez.",
+  "שם הפרויקט בשפות אחרות": "Nome do projeto noutros idiomas",
+  "השם בשפות האלה מוצג למשתמשים שבחרו בהן. שדה ריק מציג את השם בעברית.": "Mostrado aos utilizadores que escolheram estes idiomas. Um campo vazio mostra o nome em hebraico.",
+  "שם הפרויקט באנגלית": "Nome do projeto em inglês",
+  "שם הפרויקט ביוונית": "Nome do projeto em grego",
+  "שם הפרויקט בפורטוגזית": "Nome do projeto em português",
+  "יוצג השם בעברית": "Mostra o nome em hebraico"
 };

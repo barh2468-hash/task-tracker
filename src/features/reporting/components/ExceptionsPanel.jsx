@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/useAuth.js';
 import { useProjects } from '../../projects/ProjectsContext.jsx';
 import { useMessage } from '../../../context/MessageContext.jsx';
 import { buildProjectExceptions, exportExceptionsExcel } from '../utils/exceptions.js';
+import { projectName } from '../../projects/utils/projectName.js';
 
 export default function ExceptionsPanel() {
   useTranslation();
@@ -49,7 +50,7 @@ export default function ExceptionsPanel() {
               <b>{t(item.title)}</b>
               <p>{t(item.descriptionKey || item.description, item.descriptionValues)}</p>
               <span className="muted">
-                {item.project.name} · {item.project.location} ·{' '}
+                {projectName(item.project)} · {item.project.location} ·{' '}
                 {item.project.profiles?.full_name || t('לא משויך')}
               </span>
             </div>

@@ -11,6 +11,7 @@ import '../features/attendance/personal.css';
 import { useTranslation } from 'react-i18next';
 import { t, useLanguage } from '../features/language/LanguageContext.jsx';
 import { localeForLanguage } from '../features/language/locale.js';
+import { projectName } from '../features/projects/utils/projectName.js';
 
 export default function PersonalAttendancePage() {
   useTranslation();
@@ -76,7 +77,7 @@ export default function PersonalAttendancePage() {
     <div className="tableWrap"><table><thead><tr><th>{t('תאריך')}</th><th>{t('סוג')}</th><th>{t('התחלה')}</th><th>{t('סיום')}</th><th>{t('משך')}</th><th>{t('הערה')}</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td>{new Date(`${row.date}T12:00:00Z`).toLocaleDateString(locale, { timeZone: 'Asia/Jerusalem' })}</td><td>{t(attendanceTypeLabel[row.attendance_type] || row.attendance_type)}</td><td>{row.is_all_day ? t('יום מלא') : time(row.started_at)}</td><td>{row.is_all_day ? '—' : time(row.ended_at)}</td><td>{row.is_all_day ? '—' : duration(row.minutes)}</td><td>{row.end_note || '—'}</td></tr>)}</tbody></table></div>
     {!rows.length && <p className="empty">{t('אין דיווחי נוכחות בטווח שנבחר.')}</p>}
     <h3>{t('עבודה בפרויקטים ועדכון הצוות וההערות לאחר סגירה')}</h3>
-    {work.map((item) => <article className="personalEntry" key={item.id}><div><b>{item.projects?.name || t('פרויקט')}</b><p>{new Date(item.started_at).toLocaleDateString(locale, { timeZone: 'Asia/Jerusalem' })} · {time(item.started_at)}–{time(item.ended_at)}</p><small>{t('צוות:')} {(item.crew_members || []).map((member) => member.name).join(', ') || t('לא צוין')}</small>{item.end_note && <p className="personalNoteText">{t('הערות לעבודה: {{note}}', { note: item.end_note })}</p>}</div><button type="button" className="ghost" disabled={item.pending_sync} onClick={() => setEditing(item)}>{t('עריכת הצוות וההערות')}</button></article>)}
+    {work.map((item) => <article className="personalEntry" key={item.id}><div><b>{projectName(item.projects) || t('פרויקט')}</b><p>{new Date(item.started_at).toLocaleDateString(locale, { timeZone: 'Asia/Jerusalem' })} · {time(item.started_at)}–{time(item.ended_at)}</p><small>{t('צוות:')} {(item.crew_members || []).map((member) => member.name).join(', ') || t('לא צוין')}</small>{item.end_note && <p className="personalNoteText">{t('הערות לעבודה: {{note}}', { note: item.end_note })}</p>}</div><button type="button" className="ghost" disabled={item.pending_sync} onClick={() => setEditing(item)}>{t('עריכת הצוות וההערות')}</button></article>)}
     {!work.length && <p className="empty">{t('אין רישומי עבודה סגורים בטווח שנבחר.')}</p>}
     {editing && <CrewEditDialog session={editing} onClose={() => setEditing(null)} onSaved={() => Promise.all([loadWorkSessions(), reload()])} />}
   </section>;

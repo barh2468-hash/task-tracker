@@ -17,6 +17,7 @@ import {
   getProjectStatusChangesForDate,
   getRecentProjectStatusChanges,
 } from '../api.js';
+import { projectName } from '../../projects/utils/projectName.js';
 
 const ALL_STATUSES = 'all';
 const ROLLING_PERIOD = 'rolling';
@@ -233,7 +234,7 @@ export default function RecentStatusChangesPanel() {
                     <FolderKanban size={19} />
                   </span>
                   <div>
-                    <h3>{project?.name || t('פרויקט')}</h3>
+                    <h3>{projectName(project) || t('פרויקט')}</h3>
                     {(project?.client_name || project?.location) && (
                       <p>{[project.client_name, project.location].filter(Boolean).join(' · ')}</p>
                     )}

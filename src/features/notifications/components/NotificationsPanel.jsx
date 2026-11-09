@@ -12,6 +12,7 @@ import {
 } from '../management.js';
 import { useNotifications } from '../NotificationsContext.jsx';
 import '../notification-management.css';
+import { projectName } from '../../projects/utils/projectName.js';
 
 export default function NotificationsPanel({ onNavigate, settings, headerActions }) {
   useTranslation();
@@ -276,7 +277,7 @@ export default function NotificationsPanel({ onNavigate, settings, headerActions
                 )}
                 {text.body && <p dir="auto">{text.body}</p>}
                 <div className="notificationMetadata">
-                  {item.projects?.name && <span dir="auto">{item.projects.name}</span>}
+                  {item.projects?.name && <span dir="auto">{projectName(item.projects)}</span>}
                   {item.profiles?.full_name && <span dir="auto">{item.profiles.full_name}</span>}
                   <time dateTime={item.created_at}>
                     {new Date(item.created_at).toLocaleString(locale)}

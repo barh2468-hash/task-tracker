@@ -11,6 +11,7 @@ import { helperCrew } from '../../helpers/crew.js';
 import { useCrewHelpers } from '../../helpers/useCrewHelpers.js';
 import HelperDirectoryStatus from '../../helpers/HelperDirectoryStatus.jsx';
 import '../end-dialog.css';
+import { projectName } from '../../projects/utils/projectName.js';
 
 export default function ProjectWorkEndDialog() {
   useTranslation();
@@ -92,7 +93,7 @@ export default function ProjectWorkEndDialog() {
           </div>
           <div>
             <span>{t('סיום עבודה בפרויקט')}</span>
-            <h2 id="project-work-end-title">{project.name}</h2>
+            <h2 id="project-work-end-title">{projectName(project)}</h2>
             <p>
               {t('התחלה:')}
               {new Date(openSession.started_at).toLocaleTimeString(locale, {

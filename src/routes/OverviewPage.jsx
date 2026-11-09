@@ -21,6 +21,7 @@ import { projectDeepLinkPath } from '../utils/navigation.js';
 import StatsGrid from '../components/StatsGrid.jsx';
 import StatusPill from '../components/StatusPill.jsx';
 import { appStatuses } from '../services/supabase.js';
+import { projectName } from '../features/projects/utils/projectName.js';
 
 const issueLabels = {
   unassigned: 'ללא שיוך',
@@ -183,7 +184,7 @@ export default function OverviewPage() {
                         <span className="attentionAge">{issueAgeLabel(item)}</span>
                       )}
                     </div>
-                    <h3>{item.project.name}</h3>
+                    <h3>{projectName(item.project)}</h3>
                     <p>{t(item.descriptionKey || item.description, item.descriptionValues)}</p>
                     <div className="attentionItemFooter">
                       <span>
@@ -246,7 +247,7 @@ export default function OverviewPage() {
                     })}
                   </time>
                   <Link className="activityProjectLink" to={projectDeepLinkPath(item.project)}>
-                    {item.project.name}
+                    {projectName(item.project)}
                   </Link>
                   <div className="activityTransition">
                     {item.old_status && <span>{t(item.old_status)}</span>}

@@ -27,6 +27,7 @@ import { GprChecklist, GprQuickStatus } from './GprProgress.jsx';
 import GprDeleteDialog from './GprDeleteDialog.jsx';
 import '../projects/project-workspace.css';
 import './gpr.css';
+import { projectName } from '../projects/utils/projectName.js';
 
 export default function GprWorkspace({
   orders,
@@ -349,7 +350,7 @@ export default function GprWorkspace({
                   {t('gpr.project')}
                 </h3>
                 <p className="muted" dir="auto">
-                  {project?.name || t('gpr.noProject')}
+                  {projectName(project) || t('gpr.noProject')}
                 </p>
                 {project ? (
                   <button

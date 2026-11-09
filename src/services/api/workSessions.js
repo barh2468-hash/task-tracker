@@ -3,7 +3,7 @@ import { supabase } from '../supabase.js';
 export function getWorkSessions() {
   return supabase
     .from('work_sessions')
-    .select('*, profiles:worker_id(full_name,email), projects:project_id(name,client_name,location)')
+    .select('*, profiles:worker_id(full_name,email), projects:project_id(name,name_translations,client_name,location)')
     .order('started_at', { ascending: false });
 }
 

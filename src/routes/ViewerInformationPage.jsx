@@ -17,17 +17,12 @@ const datasets = {
   chat_messages: ['צ׳אט פנימי','created_at',{sender_id:'viewer.sender',project_id:'פרויקט',body:'viewer.body',created_at:'תאריך'}],
   notifications: ['התראות','created_at',{recipient_id:'viewer.recipient',title:'כותרת',body:'viewer.body',project_id:'פרויקט',created_at:'תאריך'}],
   personal_notes: ['viewer.notes','created_at',{owner_id:'viewer.owner',title:'כותרת',body:'viewer.body',project_id:'פרויקט',updated_at:'תאריך'}],
-  accounting_card_balances: ['viewer.balances','created_at',{year:'viewer.year',card_number:'viewer.card',label:'שם',plate_number:'מספר רכב',driver_name:'נהג',balance_ils:'viewer.balance',notes:'הערות'}],
-  accounting_vehicle_payroll_records: ['viewer.payroll','created_at',{year:'viewer.year',plate_number:'מספר רכב',card_number:'viewer.card',driver_assignments:'viewer.drivers',balance_trial_amount:'viewer.balance',notes:'הערות',extra_fields:'viewer.extra'}],
-  accounting_vehicle_usage_records: ['viewer.usage','created_at',{year:'viewer.year',plate_number:'מספר רכב',monthly_drivers:'viewer.drivers',vehicle_value_ils:'viewer.value'}],
   payment_devices: ['viewer.payments','created_at',{device_label:'שם',invoice_no:'מספר חשבונית',purchase_month:'viewer.month',monthly_payment:'viewer.monthly',total_payments:'viewer.totalPayments',balance:'viewer.balance',status:'סטטוס',notes:'הערות'}],
   project_manhole_layouts: ['פרישת שוחות','created_at',{project_name:'פרויקט',created_by_name:'שם מלא',manhole_number:'מספר שוחה',infrastructure:'תשתית',work_date:'תאריך',file_name:'שם קובץ'}],
 };
 const pathDatasets = {
   '/app/chat':'chat_messages','/app/notifications':'notifications','/app/users':'profiles',
   '/app/my-notes':'personal_notes','/app/manhole-layout':'project_manhole_layouts',
-  '/app/accounting/year-end':'accounting_card_balances',
-  '/app/accounting/fuel':'accounting_vehicle_usage_records',
   '/app/accounting/tolls':'payment_devices',
 };
 export const viewerDatasetForPath = (path) => pathDatasets[path];
@@ -41,7 +36,8 @@ export default function ViewerInformationPage({initialDataset = 'profiles'}) {
   const locale = localeForLanguage(language);
   const [params,setParams] = useSearchParams();
   const selected = params.get('dataset');
-  const dataset = Object.hasOwn(datasets, selected) ? selected : initialDataset;
+  const dataset = Object.hasOwn(datasets, selected) ? selected
+    : Object.hasOwn(datasets, initialDataset) ? initialDataset : 'profiles';
   const [label,order,fields] = datasets[dataset] || datasets.profiles;
   const [rows,setRows] = useState([]);
   const [loading,setLoading] = useState(true);

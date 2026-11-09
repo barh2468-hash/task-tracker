@@ -20,6 +20,7 @@ import PwaBootstrap from './features/pwa/components/PwaBootstrap.jsx';
 import OfflineSync from './features/offline/OfflineSync.jsx';
 import { LanguageProvider } from './features/language/LanguageContext.jsx';
 import { useAuth } from './features/auth/useAuth.js';
+import { viewerPathBlocked } from './features/auth/viewerRoutes.js';
 
 // Code-split the heavier, less-frequently-visited pages (Leaflet map, Excel/
 // CSV-export-heavy reports) so the initial bundle stays close to the
@@ -113,7 +114,7 @@ function AppProviders({ children }) {
 function AppRoot() {
   const { isAccounting, isDemo, isViewer } = useAuth();
   const location = useLocation();
-  if (isViewer && ['/app/attendance', '/app/my-attendance', '/app/my-vehicle', '/app/projects/new', '/app/client-preview'].includes(location.pathname)) return <Navigate to="/app/projects" replace />;
+  if (isViewer && (viewerPathBlocked(location.pathname) || ['/app/attendance', '/app/my-attendance', '/app/my-vehicle', '/app/projects/new', '/app/client-preview'].includes(location.pathname))) return <Navigate to="/app/projects" replace />;
   if (isDemo)
     return (
       <Suspense fallback={<LoadingScreen />}>

@@ -6,6 +6,11 @@ The server-owned Auth app metadata flag `maya_view_all: true`, together with the
 exact internal email and a demo profile, enables `viewer-read-api` for this account.
 Do not grant this flag through editable user metadata.
 
+Company vehicles (including related vehicle reports and files), GPR work orders
+and the published daily work plan are excluded from Johnny's access. Their
+navigation entries and direct routes are blocked, and their tables, nested
+relationships and vehicle-document signing are denied by the gateway.
+
 The gateway authenticates with Supabase Auth, verifies the current profile, then
 allows GET/HEAD requests to an explicit business-table list. It parses nested
 projections, excludes credentials and computed functions, and rejects every RPC,

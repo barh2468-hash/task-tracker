@@ -33,6 +33,24 @@ test('every write method and all RPC endpoints are rejected before forwarding',(
     assert.throws(()=>readRequest({path:'/rest/v1/rpc/create_manager_notifications',method}));
   assert.throws(()=>readRequest({path:'/functions/v1/send-push-notification',method:'POST'}));
 });
+
+test('fleet, GPR and daily planning are blocked including reports, embeds and file signing',()=>{
+  for (const table of ['vehicles','manager_vehicles','vehicle_assignments',
+    'vehicle_declaration_forms','vehicle_documents','vehicle_fines','vehicle_fuel_reports',
+    'vehicle_inspections','vehicle_insurance_policies','vehicle_insurance_quotes',
+    'vehicle_odometer_readings','vehicle_toll_subscriptions','gpr_work_orders',
+    'gpr_order_emails','work_plan_publications','accounting_card_balances',
+    'accounting_imports','accounting_vehicle_payroll_records','accounting_vehicle_usage_records']) {
+    for (const method of ['GET','HEAD'])
+      assert.throws(()=>readRequest({path:`/rest/v1/${table}?select=*`,method}),table);
+    assert.equal(validProjection(`hidden:${table}(*)`),false,table);
+    assert.equal(validProjection(`profiles(full_name,hidden:${table}(*))`),false,table);
+  }
+  assert.equal(validProjection('vehicle_id(*)'),false);
+  assert.equal(validProjection('file:document_id(*)'),false);
+  assert.throws(()=>readRequest({path:'/storage/v1/object/sign/vehicle-documents/report.pdf',method:'POST',body:{expiresIn:60}}));
+  assert.throws(()=>readRequest({path:'/storage/v1/object/sign/vehicle-documents',method:'POST',body:{expiresIn:60,paths:['report.pdf']}}));
+});
 test('credentials, duplicate projection parameters and external destinations are rejected',()=>{
   for(const path of ['/rest/v1/gpr_m365_connections','/rest/v1/push_subscriptions',
     '/rest/v1/gpr_m365_oauth_states','/rest/v1/projects?select=*&select=gpr_m365_connections(*)',

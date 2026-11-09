@@ -48,13 +48,10 @@ export default function DashboardNavigation({
     {item('/app/projects', 'כל הפרויקטים', FolderKanban)}
     {item('/app/projects?filter=archive', 'ארכיון', History)}
     {item('/app/assignments', 'לפי עובד', Users)}
-    {item('/app/work-plan', 'workPlan.title', ClipboardList)}
     {item('/app/tasks', 'משימות פתוחות', ClipboardList)}
     {item('/app/today', 'היום בשטח', HardHat)}
     {item('/app/map', 'מפה חיה', MapPin)}
     {item('/app/equipment', 'ציוד עובדי שטח', Wrench)}
-    {item('/app/vehicles', 'רכבי חברה', Car)}
-    {item('/app/gpr', 'gpr.title', Radar)}
     {item('/app/report', 'דוח שעות עבודה', Clock)}
     {item('/app/status-report', 'דוח סטטוס פרויקטים', ChartNoAxesCombined)}
     {item('/app/recent-status-changes', 'שינויי סטטוס אחרונים', Activity)}

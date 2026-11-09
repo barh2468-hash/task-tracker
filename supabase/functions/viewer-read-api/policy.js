@@ -6,13 +6,8 @@ export const TABLES = new Set([
   'project_documents','project_photos','project_review_files','project_drawing_batches',
   'project_drawing_batch_events','project_manhole_layouts','status_history',
   'work_diaries','work_sessions','attendance_sessions','sick_leave_certificates',
-  'work_plan_publications','crew_helpers','chat_conversations','chat_members','chat_messages',
-  'notifications','personal_notes','vehicles','manager_vehicles','vehicle_assignments',
-  'vehicle_declaration_forms','vehicle_documents','vehicle_fines','vehicle_fuel_reports',
-  'vehicle_inspections','vehicle_insurance_policies','vehicle_insurance_quotes',
-  'vehicle_odometer_readings','vehicle_toll_subscriptions','field_equipment_records',
-  'field_equipment_imports','gpr_work_orders','gpr_order_emails','accounting_card_balances',
-  'accounting_imports','accounting_vehicle_payroll_records','accounting_vehicle_usage_records',
+  'crew_helpers','chat_conversations','chat_members','chat_messages',
+  'notifications','personal_notes','field_equipment_records','field_equipment_imports',
   'payment_devices','payment_device_updates','demo_project_showcases','demo_case_studies',
   'demo_case_study_media','demo_project_access',
 ]);
@@ -20,10 +15,10 @@ const SAFE_RELATIONS = new Set([...TABLES,
   'assigned_to','worker_id','created_by','changed_by','uploaded_by','assigned_drafter',
   'recipient_id','sender_id','owner_id','user_id','driver_id','reported_by','entered_by',
   'requested_by','decided_by','approved_by','project_id','drawing_batch_id','task_id',
-  'latest_report_id','work_session_id','vehicle_id','document_id',
+  'latest_report_id','work_session_id',
 ]);
 const BUCKETS = new Set(['project-photos','project-documents','project-review-files',
-  'manhole-layouts','vehicle-documents','sick-leave-certificates','demo-case-studies']);
+  'manhole-layouts','sick-leave-certificates','demo-case-studies']);
 const identifier = /^[a-z_][a-z0-9_]*$/i;
 
 // Parse the small PostgREST projection grammar used by the app. Unknown embeds,

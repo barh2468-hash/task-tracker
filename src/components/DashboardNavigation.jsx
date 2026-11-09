@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Activity, AlertTriangle, Bell, Car, ChartNoAxesCombined, ChevronDown, ClipboardList,
   Clock, Download, FileText, FolderKanban, HardHat, History, LayoutDashboard,
-  BookOpen, Eye, Layers, MapPin, Radar, ShieldCheck, Wrench,
+  BookOpen, Eye, Layers, MapPin, Radar, ShieldCheck, Wrench, Users,
 } from 'lucide-react';
 import { t, useLanguage } from '../features/language/LanguageContext.jsx';
 import { localeForLanguage } from '../features/language/locale.js';
@@ -27,7 +27,7 @@ function NavigationItem({ label, icon: Icon, active, count, onClick }) {
 
 export default function DashboardNavigation({
   role, isManager, isAdmin, isDrafter, pathname, isProjectWorkspace, stats, unreadCount,
-  onOpenTab, secondaryOnly = false, isDemo = false,
+  onOpenTab, secondaryOnly = false, isDemo = false, isViewer = false,
 }) {
   useTranslation();
   const item = (path, label, icon, count) => (
@@ -42,6 +42,25 @@ export default function DashboardNavigation({
   );
   const reportPaths = ['/app/exceptions', '/app/status-report',
     '/app/recent-status-changes', '/app/history', '/app/report'];
+
+  if (isViewer) return <nav className="sidebarNav" aria-label={t('תפריט ראשי')}>
+    {item('/app/overview', 'סקירה כללית', LayoutDashboard)}
+    {item('/app/projects', 'כל הפרויקטים', FolderKanban)}
+    {item('/app/projects?filter=archive', 'ארכיון', History)}
+    {item('/app/assignments', 'לפי עובד', Users)}
+    {item('/app/work-plan', 'workPlan.title', ClipboardList)}
+    {item('/app/tasks', 'משימות פתוחות', ClipboardList)}
+    {item('/app/today', 'היום בשטח', HardHat)}
+    {item('/app/map', 'מפה חיה', MapPin)}
+    {item('/app/equipment', 'ציוד עובדי שטח', Wrench)}
+    {item('/app/vehicles', 'רכבי חברה', Car)}
+    {item('/app/gpr', 'gpr.title', Radar)}
+    {item('/app/report', 'דוח שעות עבודה', Clock)}
+    {item('/app/status-report', 'דוח סטטוס פרויקטים', ChartNoAxesCombined)}
+    {item('/app/recent-status-changes', 'שינויי סטטוס אחרונים', Activity)}
+    {item('/app/history', 'היסטוריה', History)}
+    {item('/app/viewer-information', 'viewer.records', FileText)}
+  </nav>;
 
   if (isDemo) return <>
     {!secondaryOnly && <header className="sidebarHeader">

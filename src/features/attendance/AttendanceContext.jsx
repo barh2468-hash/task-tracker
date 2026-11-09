@@ -10,7 +10,7 @@ import { cacheOfflineData, getOfflineData } from '../../services/offlineStore.js
 const AttendanceContext = createContext(null);
 
 export function AttendanceProvider({ children }) {
-  const { profile, isManager, session } = useAuth();
+  const { profile, canViewAll, isViewer, session } = useAuth();
   const { setMessage } = useMessage();
   const [workSessions, setWorkSessions] = useState([]);
   const [attendanceSessions, setAttendanceSessions] = useState([]);
@@ -25,7 +25,7 @@ export function AttendanceProvider({ children }) {
 
   async function loadWorkSessions() {
     try {
-      const data = await attendanceFeatureApi.getWorkSessions(isManager);
+      const data = await attendanceFeatureApi.getWorkSessions(canViewAll);
       setWorkSessions(data);
       await cacheOfflineData(`work-sessions:${session?.user?.id}`, data);
     } catch (error) {
@@ -40,7 +40,7 @@ export function AttendanceProvider({ children }) {
 
   async function loadAttendanceSessions() {
     try {
-      const data = await attendanceFeatureApi.getAttendanceSessions(isManager, session?.user?.id);
+      const data = await attendanceFeatureApi.getAttendanceSessions(canViewAll, session?.user?.id);
       setAttendanceAvailable(true);
       setAttendanceSessions(data);
       await cacheOfflineData(`attendance-sessions:${session?.user?.id}`, data);
@@ -64,7 +64,7 @@ export function AttendanceProvider({ children }) {
     let active = true;
     (async () => {
       try {
-        await attendanceFeatureApi.closeStaleSessions();
+        if (!isViewer) await attendanceFeatureApi.closeStaleSessions();
       } catch (error) {
         // The database schedule remains the source of truth. This call is a
         // recovery path for devices returning after midnight or a missed job.
@@ -84,12 +84,12 @@ export function AttendanceProvider({ children }) {
   }, [profile]);
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || isViewer) return;
 
     let midnightTimer;
     const reconcile = async () => {
       try {
-        await attendanceFeatureApi.closeStaleSessions();
+        if (!isViewer) await attendanceFeatureApi.closeStaleSessions();
         await Promise.all([loadWorkSessions(), loadAttendanceSessions()]);
       } catch (error) {
         console.warn(

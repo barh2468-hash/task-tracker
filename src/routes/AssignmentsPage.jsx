@@ -5,10 +5,10 @@ import WorkerAssignmentsPanel from '../features/projects/components/WorkerAssign
 import { assignmentProjectState } from '../features/projects/utils/assignmentNavigation.js';
 
 export default function AssignmentsPage() {
-  const { isManager } = useAuth();
+  const { canViewAll } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  if (!isManager) return <Navigate to="/app/projects" replace />;
+  if (!canViewAll) return <Navigate to="/app/projects" replace />;
   return (
     <WorkerAssignmentsPanel
       restoreState={location.state?.assignmentListRestore}

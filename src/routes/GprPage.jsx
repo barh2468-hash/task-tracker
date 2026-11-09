@@ -12,7 +12,8 @@ import { t } from '../features/language/LanguageContext.jsx';
 import { projectDeepLinkPath } from '../utils/navigation.js';
 
 export default function GprPage() {
-  const { isAdmin, session } = useAuth();
+  const { isAdmin, isViewer, session } = useAuth();
+  const canView = isAdmin || isViewer;
   const { projects } = useProjects();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -21,7 +22,7 @@ export default function GprPage() {
   const [error, setError] = useState('');
   const [emailConnected, setEmailConnected] = useState(false);
   const load = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!canView) return;
     try {
       setOrders(await getOrders());
       setError('');
@@ -30,27 +31,28 @@ export default function GprPage() {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, [canView]);
   useEffect(() => {
-    if (isAdmin) void load();
+    if (canView) void load();
     else setOrders([]);
-  }, [load, isAdmin]);
+  }, [load, canView]);
   useRealtimeRefresh({
-    enabled: isAdmin,
+    enabled: canView,
     channelName: 'gpr-work-orders',
     tables: ['gpr_work_orders'],
     onRefresh: load,
   });
-  if (!isAdmin) return <Navigate to="/app/projects" replace />;
+  if (!canView) return <Navigate to="/app/projects" replace />;
   return (
     <>
-      <Microsoft365Panel
+      {isAdmin && <Microsoft365Panel
         orders={orders.filter((order) => !order.deleted_at)}
         onChanged={load}
         onStatus={setEmailConnected}
         result={params.get('m365_result')}
-      />
+      />}
       <GprWorkspace
+        readOnly={isViewer}
         orders={orders}
         emailIntakeConnected={emailConnected}
         projects={projects}

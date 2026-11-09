@@ -86,13 +86,13 @@ export default function GprWorkCard({
           <ArrowLeft size={14} className="gprDirectional" />
         </button>
         {order.deleted_at ? (
-          <button className="ghost smallBtn" type="button" onClick={onRestore} disabled={busy}>
+          <button className="ghost smallBtn" type="button" onClick={onRestore} disabled={busy || !onRestore}>
             <RotateCcw size={14} />
             {t('gpr.restore')}
           </button>
         ) : (
           <>
-            <button className="ghost smallBtn" type="button" onClick={onEdit} disabled={busy}>
+            <button className="ghost smallBtn" type="button" onClick={onEdit} disabled={busy || !onEdit}>
               <Pencil size={14} />
               {t('gpr.edit')}
             </button>
@@ -100,7 +100,7 @@ export default function GprWorkCard({
               className="ghost smallBtn gprDeleteButton"
               type="button"
               onClick={onDelete}
-              disabled={busy}
+              disabled={busy || !onDelete}
               aria-label={t('gpr.deleteNamed', { name: orderName(order, t) })}
             >
               <Trash2 size={14} />

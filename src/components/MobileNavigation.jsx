@@ -65,7 +65,7 @@ function StaffMobileNavigation(props) {
 
 function MobileNavigationView({
   role, displayName, isManager, isAdmin, isDrafter, pathname, isProjectWorkspace, stats,
-  unreadChatCount, onOpenTab, onOpenMore, onLogout, isDemo = false, myAttendanceSessions,
+  unreadChatCount, onOpenTab, onOpenMore, onLogout, isDemo = false, isViewer = false, myAttendanceSessions,
 }) {
   useTranslation();
   const { language, setLanguage } = useLanguage();
@@ -108,14 +108,14 @@ function MobileNavigationView({
 
   const projectTab = {
     key: 'projects', label: 'פרויקטים', icon: FolderKanban,
-    path: `/app/projects?filter=${isManager ? 'all' : 'mine'}`, active: isProjectWorkspace,
+    path: `/app/projects?filter=${isManager || isViewer ? 'all' : 'mine'}`, active: isProjectWorkspace,
   };
   // Drafters keep their existing access: overview replaces the attendance shortcut.
   const tabs = isDemo ? [
     { ...projectTab, path: '/app/projects' },
     { key: 'cases', label: 'demo.caseStudies', icon: BookOpen, path: '/app/projects?view=cases' },
     { key: 'overview', label: 'סקירה', icon: LayoutDashboard, path: '/app/overview', center: true },
-  ] : isDrafter
+  ] : isDrafter || isViewer
     ? [projectTab,
       { key: 'history', label: 'היסטוריה', icon: History, path: '/app/history' },
       { key: 'overview', label: 'סקירה', icon: LayoutDashboard, path: '/app/overview', center: true }]
@@ -195,6 +195,7 @@ function MobileNavigationView({
         </div>
         <div className="mobileMoreContent">
           <DashboardNavigation
+            isViewer={isViewer}
             isDemo={isDemo}
             secondaryOnly
             role={role}
@@ -257,7 +258,7 @@ function MobileNavigationView({
               </button>
             </div>
           </section>
-          {!isDemo && <footer className="mobileMorePreferences">
+          {!isDemo && !isViewer && <footer className="mobileMorePreferences">
             <AppPreferences />
           </footer>}
         </div>

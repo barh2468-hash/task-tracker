@@ -72,10 +72,11 @@ function RequireMainAccounting({ children }) {
 
 // Vehicle management belongs to the manager role.
 function RequireVehicleAccess({ children }) {
-  const { isManager } = useAuth();
-  if (!isManager) return <Navigate to="/app" replace />;
+  const { canViewAll } = useAuth();
+  if (!canViewAll) return <Navigate to="/app" replace />;
   return children;
 }
+const ViewerInformationPage = lazy(() => import('./routes/ViewerInformationPage.jsx'));
 const UserManagementPage = lazy(() => import('./routes/UserManagementPage.jsx'));
 const DemoPortal = lazy(() => import('./features/demo/DemoPortal.jsx'));
 const ClientLibraryPreview = lazy(() => import('./features/demo/ClientLibraryPreview.jsx'));
@@ -84,16 +85,18 @@ const LocalDemoPreview = import.meta.env.DEV
   : null;
 
 function AppLanding() {
-  const { isAccounting, isAccountingMain, isDrafter } = useAuth();
+  const { isAccounting, isAccountingMain, isDrafter, isViewer } = useAuth();
+  if (isViewer) return <Navigate to="projects" replace />;
   if (isAccounting)
     return <Navigate to={isAccountingMain ? 'accounting/year-end' : 'accounting/fuel'} replace />;
   return <Navigate to={isDrafter ? 'projects' : 'attendance'} replace />;
 }
 
 function AppProviders({ children }) {
+  const { isViewer } = useAuth();
   return (
     <MessageProvider>
-      <OfflineSync />
+      {!isViewer && <OfflineSync />}
       <NotificationsProvider>
         <ChatProvider>
           <ProjectsProvider>
@@ -108,8 +111,9 @@ function AppProviders({ children }) {
 // Accounting has its own mini layout/routes — it doesn't need the dashboard's
 // projects/attendance/chat/notifications providers.
 function AppRoot() {
-  const { isAccounting, isDemo } = useAuth();
+  const { isAccounting, isDemo, isViewer } = useAuth();
   const location = useLocation();
+  if (isViewer && ['/app/attendance', '/app/my-attendance', '/app/my-vehicle', '/app/projects/new', '/app/client-preview'].includes(location.pathname)) return <Navigate to="/app/projects" replace />;
   if (isDemo)
     return (
       <Suspense fallback={<LoadingScreen />}>
@@ -220,6 +224,7 @@ export default function App() {
                   }
                 />
                 <Route path="overview" element={<OverviewPage />} />
+                <Route path="viewer-information" element={<Suspense fallback={<LoadingScreen />}><ViewerInformationPage /></Suspense>} />
                 <Route
                   path="work-plan"
                   element={

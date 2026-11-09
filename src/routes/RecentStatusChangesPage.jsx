@@ -3,7 +3,7 @@ import { useAuth } from '../features/auth/useAuth.js';
 import RecentStatusChangesPanel from '../features/reporting/components/RecentStatusChangesPanel.jsx';
 
 export default function RecentStatusChangesPage() {
-  const { isManager } = useAuth();
-  if (!isManager) return <Navigate to="/app/projects" replace />;
+  const { canViewAll } = useAuth();
+  if (!canViewAll) return <Navigate to="/app/projects" replace />;
   return <RecentStatusChangesPanel />;
 }

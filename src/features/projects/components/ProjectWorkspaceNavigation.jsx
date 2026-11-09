@@ -8,16 +8,16 @@ import { isProjectAssignedTo } from '../utils/assignments.js';
 
 export default function ProjectWorkspaceNavigation({ stats }) {
   useTranslation();
-  const { isManager, session } = useAuth();
+  const { isManager, canViewAll, session } = useAuth();
   const { projects, projectsLoaded } = useProjects();
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
 
-  const filter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
+  const filter = searchParams.get('filter') || (canViewAll ? 'all' : 'mine');
   const myProjectCount = projects.filter(
     (project) => !project.is_archived && isProjectAssignedTo(project, session?.user?.id),
   ).length;
-  const views = isManager ? [
+  const views = canViewAll ? [
     { filter: 'all', label: 'כל הפרויקטים', count: stats.total },
     { filter: 'mine', label: 'הפרויקטים שלי', count: myProjectCount },
     { filter: 'unassigned', label: 'ללא שיוך', count: stats.unassigned },

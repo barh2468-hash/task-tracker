@@ -24,7 +24,7 @@ const LOAD_MORE_DELAY_MS = 650;
 
 export default function ProjectsPage() {
   useTranslation();
-  const { isManager, session } = useAuth();
+  const { canViewAll, session } = useAuth();
   const { projects, projectsLoaded, projectsLoading, projectsVerified, projectsError, loadProjects } = useProjects();
   const { projectRoomsByProjectId } = useChat();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,7 +44,7 @@ export default function ProjectsPage() {
   const loadMoreRef = useRef(null);
   const loadMoreTimerRef = useRef(null);
 
-  const filter = searchParams.get('filter') || (isManager ? 'all' : 'mine');
+  const filter = searchParams.get('filter') || (canViewAll ? 'all' : 'mine');
   const statusFilter = searchParams.get('status') || '';
   const listViewKey = `${query}\u0000${filter}\u0000${statusFilter}`;
   const previousListViewKeyRef = useRef(listViewKey);
@@ -69,7 +69,7 @@ export default function ProjectsPage() {
       return;
     }
     setDeepLinkDenied(false);
-    const linkedFilter = selectedProject.is_archived ? 'archive' : isManager ? filter : 'mine';
+    const linkedFilter = selectedProject.is_archived ? 'archive' : canViewAll ? filter : 'mine';
     if (filter !== linkedFilter) {
       next.set('filter', linkedFilter);
       setSearchParams(next, { replace: true, state: location.state });
@@ -77,7 +77,7 @@ export default function ProjectsPage() {
   }, [
     filter,
     location.state,
-    isManager,
+    canViewAll,
     projects,
     projectsVerified,
     selectedProject,
@@ -96,7 +96,7 @@ export default function ProjectsPage() {
   }
 
   function closeProject() {
-    const origin = isManager && assignmentReturnLocation(location.state);
+    const origin = canViewAll && assignmentReturnLocation(location.state);
     if (origin) {
       navigate(
         { pathname: origin.pathname, search: origin.search },
@@ -135,7 +135,7 @@ export default function ProjectsPage() {
     const okTab =
       filter === 'unassigned'
         ? !hasProjectAssignment(p)
-        : filter !== 'mine' || !isManager || isProjectAssignedTo(p, session?.user?.id);
+        : filter !== 'mine' || !canViewAll || isProjectAssignedTo(p, session?.user?.id);
     return okArchive && okTab;
   });
   const visibleProjects = categoryProjects.filter((p) => {
@@ -259,7 +259,7 @@ export default function ProjectsPage() {
             <h2>{heading}</h2>
             <span
               className={
-                listLoading || query || statusFilter || !isManager
+                listLoading || query || statusFilter || !canViewAll
                   ? 'projectListCount'
                   : 'visuallyHidden'
               }

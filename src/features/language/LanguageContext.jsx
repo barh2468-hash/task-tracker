@@ -1,8 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { elTranslations, enTranslations, heTranslations, ptTranslations } from './resources.js';
 import { supportedLanguages } from './languages.js';
+import { languagePreferenceForUser, readLanguagePreference } from './accountLanguage.js';
 
 const LanguageContext = createContext(null);
 
@@ -60,13 +61,13 @@ export function t(key, options) {
 }
 
 function applyDocumentLanguage(language) {
-  localStorage.setItem('maya-language', language);
   document.documentElement.lang = language;
   document.documentElement.dir = language === 'he' ? 'rtl' : 'ltr';
   document.body.classList.toggle('language-en', language !== 'he');
 }
 
 export function LanguageProvider({ children }) {
+  const languageUserRef = useRef(null);
   const [language, setLanguage] = useState(() =>
     supportedLanguages.includes(localStorage.getItem('maya-language'))
       ? localStorage.getItem('maya-language')
@@ -78,15 +79,26 @@ export function LanguageProvider({ children }) {
   }, [language]);
 
   const changeLanguage = useCallback(async (nextLanguage) => {
-    if (!supportedLanguages.includes(nextLanguage) || nextLanguage === i18n.language) return;
+    if (!supportedLanguages.includes(nextLanguage)) return;
+    const {key}=languagePreferenceForUser(languageUserRef.current);
+    localStorage.setItem(key,nextLanguage);
     await i18n.changeLanguage(nextLanguage);
     applyDocumentLanguage(nextLanguage);
     setLanguage(nextLanguage);
   }, []);
 
+  const activateAccountLanguage = useCallback(async (userId) => {
+    languageUserRef.current = userId;
+    const nextLanguage = readLanguagePreference(localStorage,userId);
+    await i18n.changeLanguage(nextLanguage);
+    if (languageUserRef.current !== userId) return;
+    applyDocumentLanguage(nextLanguage);
+    setLanguage(nextLanguage);
+  }, []);
+
   const value = useMemo(
-    () => ({ language, setLanguage: changeLanguage }),
-    [changeLanguage, language],
+    () => ({ language, setLanguage: changeLanguage, activateAccountLanguage }),
+    [changeLanguage, language, activateAccountLanguage],
   );
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }

@@ -1,4 +1,4 @@
-import { t } from '../language/LanguageContext.jsx';
+import { t, useLanguage } from '../language/LanguageContext.jsx';
 import { createContext, useEffect, useRef, useState } from 'react';
 import { envReady } from '../../services/supabase.js';
 import { translateAuthError } from '../../utils/authErrors.js';
@@ -8,6 +8,7 @@ import { isAdminRole, isManagerRole, isViewerRole } from '../../utils/roles.js';
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const {activateAccountLanguage} = useLanguage();
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(envReady);
@@ -16,6 +17,11 @@ export function AuthProvider({ children }) {
   const [authMessage, setAuthMessage] = useState('');
   const [profileAttempt, setProfileAttempt] = useState(0);
   const sessionUserIdRef = useRef(null);
+  const languageUserId = session?.user?.id || null;
+
+  useEffect(() => {
+    void activateAccountLanguage(languageUserId);
+  }, [languageUserId, activateAccountLanguage]);
 
   // Session bootstrap: initial getSession() + onAuthStateChange subscription,
   // with a 15s timeout fallback in case the Supabase connection hangs.

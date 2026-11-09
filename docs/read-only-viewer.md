@@ -6,6 +6,10 @@ The server-owned Auth app metadata flag `maya_view_all: true`, together with the
 exact internal email and a demo profile, enables `viewer-read-api` for this account.
 Do not grant this flag through editable user metadata.
 
+Johnny's default UI language is English. Explicit language choices use his own
+`maya-language:user:<user-id>` browser preference. Other accounts retain their
+existing `maya-language` preference, including on a shared device.
+
 Company vehicles (including related vehicle reports and files), GPR work orders
 and the published daily work plan are excluded from Johnny's access. Their
 navigation entries and direct routes are blocked, and their tables, nested

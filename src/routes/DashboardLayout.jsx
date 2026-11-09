@@ -129,10 +129,10 @@ export default function DashboardLayout() {
     location.pathname === '/app/assignments';
   const navActive = (path) => location.pathname === path;
 
-  const tabTitle = getTabTitle(location.pathname, searchParams, isManager);
-  const tabSubtitle = getTabSubtitle(isManager, isDrafter);
+  const tabTitle = getTabTitle(location.pathname, searchParams, isManager || isViewer);
+  const tabSubtitle = isViewer ? t('viewer.role') : getTabSubtitle(isManager, isDrafter);
   const projectDetailOpen = location.pathname === '/app/projects' && searchParams.has('project');
-  const showHero = !isHeroSuppressed(location.pathname) && !projectDetailOpen;
+  const showHero = !isHeroSuppressed(location.pathname) && !projectDetailOpen && location.pathname !== '/app/viewer-information';
 
   return (
     <main
@@ -226,7 +226,7 @@ export default function DashboardLayout() {
         </aside>
         <section className="mainContent">
           {isViewer && <p className="card" role="status">{t('viewer.readOnly')}</p>}
-          {showHero && <DashboardHero title={tabTitle} subtitle={tabSubtitle} />}
+          {showHero && <DashboardHero title={tabTitle} subtitle={tabSubtitle} widget={isViewer ? null : undefined} />}
 
           {message && (
             <div

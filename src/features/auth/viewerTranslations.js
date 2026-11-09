@@ -1,4 +1,5 @@
 export const heViewer = {
+  'viewer.users':'משתמשים', 'viewer.notes':'הערות אישיות',
   'viewer.role': 'צופה — קריאה בלבד',
   'viewer.readOnly': 'גישת צפייה בלבד לכל הפרויקטים והמידע. אין אפשרות להוסיף, לערוך, למחוק או לשלוח הודעות.',
   'viewer.records': 'מידע נוסף',
@@ -18,6 +19,8 @@ export const heViewer = {
   'viewer.month': 'חודש', 'viewer.helpers': 'עוזרים', 'viewer.active': 'פעיל',
 };
 export const enViewer = {
+  'viewer.users':'Users', 'viewer.notes':'Personal notes',
+  'ציוד עובדי שטח':'Field employee equipment',
   'אימייל':'Email', 'שם':'Name', 'מספר חשבונית':'Invoice number', 'מספר שוחה':'Manhole number',
   'תשתית':'Infrastructure', 'שם קובץ':'File name', 'דוח שעות עבודה':'Working hours report',
   'דוח סטטוס פרויקטים':'Project status report', 'שינויי סטטוס אחרונים':'Recent status changes',
@@ -38,6 +41,8 @@ export const enViewer = {
   'viewer.month': 'Month', 'viewer.helpers': 'Helpers', 'viewer.active': 'Active',
 };
 export const elViewer = {
+  'viewer.users':'Χρήστες', 'viewer.notes':'Προσωπικές σημειώσεις',
+  'ציוד עובדי שטח':'Εξοπλισμός εργαζομένων πεδίου',
   'אימייל':'Email', 'שם':'Όνομα', 'מספר חשבונית':'Αριθμός τιμολογίου', 'מספר שוחה':'Αριθμός φρεατίου',
   'תשתית':'Υποδομή', 'שם קובץ':'Όνομα αρχείου', 'דוח שעות עבודה':'Αναφορά ωρών εργασίας',
   'דוח סטטוס פרויקטים':'Αναφορά κατάστασης έργων', 'שינויי סטטוס אחרונים':'Πρόσφατες αλλαγές κατάστασης',

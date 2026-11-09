@@ -12,11 +12,11 @@ import './viewer-information.css';
 
 // Explicit business fields; integration credentials are never requested.
 const datasets = {
-  profiles: ['ניהול משתמשים', 'created_at', {full_name:'שם מלא',email:'אימייל',role:'תפקיד'}],
+  profiles: ['viewer.users', 'created_at', {full_name:'שם מלא',email:'אימייל',role:'תפקיד'}],
   crew_helpers: ['viewer.helpers','created_at',{name:'שם',is_active:'viewer.active'}],
   chat_messages: ['צ׳אט פנימי','created_at',{sender_id:'viewer.sender',project_id:'פרויקט',body:'viewer.body',created_at:'תאריך'}],
   notifications: ['התראות','created_at',{recipient_id:'viewer.recipient',title:'כותרת',body:'viewer.body',project_id:'פרויקט',created_at:'תאריך'}],
-  personal_notes: ['ההערות שלי','created_at',{owner_id:'viewer.owner',title:'כותרת',body:'viewer.body',project_id:'פרויקט',updated_at:'תאריך'}],
+  personal_notes: ['viewer.notes','created_at',{owner_id:'viewer.owner',title:'כותרת',body:'viewer.body',project_id:'פרויקט',updated_at:'תאריך'}],
   accounting_card_balances: ['viewer.balances','created_at',{year:'viewer.year',card_number:'viewer.card',label:'שם',plate_number:'מספר רכב',driver_name:'נהג',balance_ils:'viewer.balance',notes:'הערות'}],
   accounting_vehicle_payroll_records: ['viewer.payroll','created_at',{year:'viewer.year',plate_number:'מספר רכב',card_number:'viewer.card',driver_assignments:'viewer.drivers',balance_trial_amount:'viewer.balance',notes:'הערות',extra_fields:'viewer.extra'}],
   accounting_vehicle_usage_records: ['viewer.usage','created_at',{year:'viewer.year',plate_number:'מספר רכב',monthly_drivers:'viewer.drivers',vehicle_value_ils:'viewer.value'}],
@@ -67,9 +67,9 @@ export default function ViewerInformationPage({initialDataset = 'profiles'}) {
     return () => {request.current += 1;};
   },[load]);
   if (!isViewer) return <Navigate to="/app/projects" replace />;
-  function value(field, raw) {
+  function value(field, raw, row) {
     if (raw == null || raw === '') return '—';
-    if (field === 'role') return t(roleLabel[raw] || raw);
+    if (field === 'role') return t(raw === 'demo' && row?.email === 'johnny-maya@clients.maya.invalid' ? 'viewer.role' : roleLabel[raw] || raw);
     if (field === 'status') return t(raw);
     if (field.endsWith('_at') || field === 'work_date') return new Intl.DateTimeFormat(locale,
       {timeZone:'Asia/Hebron',dateStyle:'medium',...(field.endsWith('_at') ? {timeStyle:'short'} : {})}).format(new Date(raw));
@@ -81,7 +81,7 @@ export default function ViewerInformationPage({initialDataset = 'profiles'}) {
     return raw;
   }
   const filtered = rows.filter(row => Object.keys(fields).some(field =>
-    String(value(field,row[field])).toLocaleLowerCase(locale).includes(query.toLocaleLowerCase(locale))));
+    String(value(field,row[field],row)).toLocaleLowerCase(locale).includes(query.toLocaleLowerCase(locale))));
   return <section className="card viewerInformation">
     <h2>{t(label)}</h2>
     <label>{t('viewer.select')}<select value={dataset} onChange={event=>setParams({dataset:event.target.value})}>
@@ -93,7 +93,7 @@ export default function ViewerInformationPage({initialDataset = 'profiles'}) {
     {filtered.map((row,index)=><article className="card" key={row.id}>
       <h3 dir="auto">{row.full_name || row.title || row.device_label || row.project_name || row.plate_number || t('viewer.record',{number:(index+1).toLocaleString(locale)})}</h3>
       {row.pdf_path && fileLinks.links[row.id]?.view && <a href={fileLinks.links[row.id].view} target="_blank" rel="noreferrer">{row.file_name}</a>}
-      <dl>{Object.entries(fields).filter(([field])=>row[field] != null).map(([field,title])=><div key={field}><dt>{t(title)}</dt><dd dir="auto">{value(field,row[field])}</dd></div>)}</dl>
+      <dl>{Object.entries(fields).filter(([field])=>row[field] != null).map(([field,title])=><div key={field}><dt>{t(title)}</dt><dd dir="auto">{value(field,row[field],row)}</dd></div>)}</dl>
     </article>)}
     {dataset === 'project_manhole_layouts' && <FileLinksNotice {...fileLinks} />}
     {loading && <p role="status">{t('טוען...')}</p>}

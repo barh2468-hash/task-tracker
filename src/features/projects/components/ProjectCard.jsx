@@ -95,7 +95,7 @@ export default function ProjectCard({ project, onBack, initialTab }) {
   const { language } = useLanguage();
   const assignmentRef = useRef(null);
   const [assigning, setAssigning] = useState(false);
-  const { profile, isManager, isDrafter, session } = useAuth();
+  const { profile, isManager, isDrafter, isViewer, session } = useAuth();
   const {
     historyItems,
     workers,
@@ -144,7 +144,8 @@ export default function ProjectCard({ project, onBack, initialTab }) {
   const [editing, setEditing] = useState(false);
   const [editSnapshot, setEditSnapshot] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
-  const { projectChatAvailable, projectRoomsByProjectId } = useChat();
+  const { projectChatAvailable: chatAvailable, projectRoomsByProjectId } = useChat();
+  const projectChatAvailable = chatAvailable && !isViewer;
   const requestedTabRef = useRef(DETAIL_TABS.includes(initialTab) ? initialTab : 'overview');
   const [activeDetailTab, setActiveDetailTab] = useState(requestedTabRef.current);
   const discussionUnread = Number(projectRoomsByProjectId.get(project.id)?.unread_count || 0);
@@ -253,9 +254,9 @@ export default function ProjectCard({ project, onBack, initialTab }) {
     (project.assigned_to === currentUserId ||
       (project.project_workers || []).some((assignment) => assignment.worker_id === currentUserId));
   const isReviewSent = project.status === REVIEW_STATUS;
-  const canManageReview = isManager || isDrafter || isDrafterCandidate(profile);
-  const canReportContinuation = !project.is_archived && (isManager || isAssignedFieldWorker);
-  const canEditFieldData = isManager || (isAssignedFieldWorker && !project.is_archived);
+  const canManageReview = !isViewer && (isManager || isDrafter || isDrafterCandidate(profile));
+  const canReportContinuation = !isViewer && !project.is_archived && (isManager || isAssignedFieldWorker);
+  const canEditFieldData = !isViewer && (isManager || (isAssignedFieldWorker && !project.is_archived));
 
   // A stray tap outside the modal must not throw away unsaved edits.
   const editDirty = editing && JSON.stringify(editProject) !== editSnapshot;
@@ -739,7 +740,7 @@ export default function ProjectCard({ project, onBack, initialTab }) {
                 <PlusCircle size={17} /> {t('דיווח חדש לשרטוט')}
               </button>
             ) : null}
-            {(!project.is_archived || isManager) && (
+            {!isViewer && (!project.is_archived || isManager) && (
               <button type="button" className="ghost" onClick={() => setStatusDialogOpen(true)}>
                 <MessageSquareText size={17} /> {t('עדכון סטטוס')}
               </button>
@@ -1045,7 +1046,7 @@ export default function ProjectCard({ project, onBack, initialTab }) {
                     currentUserName={currentUserName}
                     dialogClassName="projectDialogControls"
                     canDelete={isManager}
-                    canCreate={isManager || !project.is_archived}
+                    canCreate={!isViewer && (isManager || !project.is_archived)}
                   />
                 )}
               </div>
@@ -1057,10 +1058,10 @@ export default function ProjectCard({ project, onBack, initialTab }) {
                   isManager={isManager}
                   canAddTasks={canEditFieldData}
                   canCompleteTasks={
-                    isManager ||
+                    !isViewer && (isManager ||
                     (!project.is_archived &&
                       (project.assigned_to === currentUserId ||
-                        !!project.project_workers?.some((w) => w.worker_id === currentUserId)))
+                        !!project.project_workers?.some((w) => w.worker_id === currentUserId))))
                   }
                   showTaskForm={showTaskForm}
                   setShowTaskForm={setShowTaskForm}
@@ -1140,7 +1141,7 @@ export default function ProjectCard({ project, onBack, initialTab }) {
                     await deleteProjectReviewFile(file, project.id);
                     await refreshAssets();
                   }}
-                  canApprove={isReviewSent}
+                  canApprove={!isViewer && isReviewSent}
                   onApprove={() => updateStatus(project, REVIEW_COMPLETED_STATUS, '')}
                 />
 

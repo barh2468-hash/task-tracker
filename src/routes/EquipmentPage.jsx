@@ -191,7 +191,7 @@ function EquipmentAttentionPanel({ records, onEdit, onShowAll }) {
               <div className="equipmentIssueList">
                 {health.issues.map((issue) => <span key={issue}>{t(issue)}</span>)}
               </div>
-              <button type="button" onClick={() => onEdit(record)}>
+              <button type="button" disabled={!onEdit} onClick={() => onEdit(record)}>
                 <Pencil size={14} /> {t('בדיקה ועריכה')}
               </button>
             </article>
@@ -441,7 +441,7 @@ function EquipmentEditor({ draft, headers, sections, saving, error, onChange, on
 
 export default function EquipmentPage() {
   useTranslation();
-  const { profile, isManager } = useAuth();
+  const { profile, isManager, canViewAll } = useAuth();
   const { setMessage } = useMessage();
   const { language } = useLanguage();
   const fileInputRef = useRef(null);
@@ -461,7 +461,7 @@ export default function EquipmentPage() {
   const [savingRecord, setSavingRecord] = useState(false);
 
   useEffect(() => {
-    if (!isManager) return;
+    if (!canViewAll) return;
     let active = true;
     setLoading(true);
     loadLatestEquipmentSnapshot()
@@ -482,7 +482,7 @@ export default function EquipmentPage() {
     return () => {
       active = false;
     };
-  }, [isManager]);
+  }, [canViewAll]);
 
   useEffect(() => {
     if (!editor) return undefined;
@@ -689,7 +689,7 @@ export default function EquipmentPage() {
     }
   }
 
-  if (!isManager) return <Navigate to="/app" replace />;
+  if (!canViewAll) return <Navigate to="/app" replace />;
 
   const visibleRecords = activeView === 'attention' ? filteredAttentionRecords : filteredRecords;
   const visibleCount = activeView === 'inventory' ? filteredInventory.length : visibleRecords.length;
@@ -717,7 +717,7 @@ export default function EquipmentPage() {
             type="button"
             className="equipmentAddButton"
             onClick={() => openRecordEditor()}
-            disabled={!equipmentImport || importing || schemaMissing}
+            disabled={!isManager || !equipmentImport || importing || schemaMissing}
           >
             <Plus size={18} /> {t('הוספת עובד')}
           </button>
@@ -736,7 +736,7 @@ export default function EquipmentPage() {
               ref={fileInputRef}
               type="file"
               accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
-              disabled={importing || schemaMissing}
+              disabled={!isManager || importing || schemaMissing}
               onChange={importFile}
             />
           </label>
@@ -787,7 +787,7 @@ export default function EquipmentPage() {
 
       <EquipmentAttentionPanel
         records={records.filter((record) => getRecordHealth(record).issues.length > 0)}
-        onEdit={openRecordEditor}
+        onEdit={isManager ? openRecordEditor : undefined}
         onShowAll={() => {
           setActiveView('attention');
           setQuery('');
@@ -884,7 +884,7 @@ export default function EquipmentPage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={schemaMissing || importing}
+              disabled={!isManager || schemaMissing || importing}
             >
               <Upload size={17} /> {t('בחירת קובץ Excel או CSV')}
             </button>
@@ -948,6 +948,7 @@ export default function EquipmentPage() {
                           <button
                             type="button"
                             className="equipmentEditButton"
+                            disabled={!isManager}
                             onClick={() => openRecordEditor(record)}
                             aria-label={`${t('עריכת כרטיס ציוד')} ${record.worker_name}`}
                             title={t('עריכת כרטיס ציוד')}

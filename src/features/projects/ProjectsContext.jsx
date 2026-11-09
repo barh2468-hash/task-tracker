@@ -15,7 +15,7 @@ import { createProjectLoader, emptyProjectSnapshot, projectOwner } from './proje
 const ProjectsContext = createContext(null);
 
 export function ProjectsProvider({ children }) {
-  const { profile, isManager } = useAuth();
+  const { profile, canViewAll } = useAuth();
   const { setMessage } = useMessage();
   const { loadNotifications } = useNotifications();
   const [projectSnapshot, setProjectSnapshot] = useState(emptyProjectSnapshot);
@@ -53,7 +53,7 @@ export function ProjectsProvider({ children }) {
   }
 
   async function loadWorkers() {
-    const { data, error } = isManager
+    const { data, error } = canViewAll
       ? await profilesApi.getAllProfiles()
       : await profilesApi.getWorkerDirectory();
     if (error) {

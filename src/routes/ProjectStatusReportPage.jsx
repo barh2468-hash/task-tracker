@@ -3,7 +3,7 @@ import { useAuth } from '../features/auth/useAuth.js';
 import ProjectStatusReport from '../features/projects/components/ProjectStatusReport.jsx';
 
 export default function ProjectStatusReportPage() {
-  const { isManager } = useAuth();
-  if (!isManager) return <Navigate to="/app/projects" replace />;
+  const { canViewAll } = useAuth();
+  if (!canViewAll) return <Navigate to="/app/projects" replace />;
   return <ProjectStatusReport />;
 }

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { fetchWithTimeout } from './fetchWithTimeout.js';
+import { viewerFetch } from './viewerAccess.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -7,7 +8,7 @@ const anon = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.NEXT_PUBL
 export const envReady = Boolean(url && anon);
 
 export const supabase = createClient(url || 'https://missing.supabase.co', anon || 'missing-key', {
-  global: { fetch: fetchWithTimeout },
+  global: { fetch: viewerFetch(fetchWithTimeout, url || 'https://missing.supabase.co') },
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -46,6 +47,7 @@ export const statusProgress = {
 export const appStatuses = statuses;
 
 export const roleLabel = {
+  viewer: 'viewer.role',
   demo: 'demo.role',
   admin: 'מנהל ראשי',
   manager: 'מנהל מערכת',

@@ -32,7 +32,7 @@ import CreateClientUser from '../features/users/CreateClientUser.jsx';
 import { clientUsernameFromEmail } from '../../supabase/functions/_shared/client-login.js';
 import '../styles/user-management.css';
 
-const roleOptions = Object.keys(roleLabel);
+const roleOptions = Object.keys(roleLabel).filter((role) => role !== 'viewer');
 const emptyInvite = { fullName: '', email: '', role: 'field_worker' };
 const accountStatusLabel = {
   active: 'פעיל',

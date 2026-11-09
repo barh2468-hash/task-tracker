@@ -4,8 +4,8 @@ import { projectDeepLinkPath } from '../utils/navigation.js';
 import LiveMapPanel from '../features/map/components/LiveMapPanel.jsx';
 
 export default function LiveMapPage() {
-  const { isManager } = useAuth();
+  const { canViewAll } = useAuth();
   const navigate = useNavigate();
-  if (!isManager) return <Navigate to="/app/projects" replace />;
+  if (!canViewAll) return <Navigate to="/app/projects" replace />;
   return <LiveMapPanel onOpenProject={(project) => navigate(projectDeepLinkPath(project))} />;
 }

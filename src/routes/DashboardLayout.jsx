@@ -32,10 +32,11 @@ import { useLanguage } from '../features/language/LanguageContext.jsx';
 import { useChat } from '../features/chat/ChatContext.jsx';
 import { localeForLanguage } from '../features/language/locale.js';
 import { languageOptions } from '../features/language/languages.js';
+import ViewerInformationPage, { viewerDatasetForPath } from './ViewerInformationPage.jsx';
 
 export default function DashboardLayout() {
   useTranslation();
-  const { profile, session, isManager, isAdmin, isDrafter, logout } = useAuth();
+  const { profile, session, isManager, isAdmin, isDrafter, isViewer, logout } = useAuth();
   const { message, messageTone, setMessage } = useMessage();
   const ToastIcon = messageTone === 'error' ? AlertCircle : messageTone === 'info' ? Info : CheckCircle;
   const { unreadCount } = useNotifications();
@@ -128,10 +129,10 @@ export default function DashboardLayout() {
     location.pathname === '/app/assignments';
   const navActive = (path) => location.pathname === path;
 
-  const tabTitle = getTabTitle(location.pathname, searchParams, isManager);
-  const tabSubtitle = getTabSubtitle(isManager, isDrafter);
+  const tabTitle = getTabTitle(location.pathname, searchParams, isManager || isViewer);
+  const tabSubtitle = isViewer ? t('viewer.role') : getTabSubtitle(isManager, isDrafter);
   const projectDetailOpen = location.pathname === '/app/projects' && searchParams.has('project');
-  const showHero = !isHeroSuppressed(location.pathname) && !projectDetailOpen;
+  const showHero = !isHeroSuppressed(location.pathname) && !projectDetailOpen && location.pathname !== '/app/viewer-information';
 
   return (
     <main
@@ -158,7 +159,7 @@ export default function DashboardLayout() {
             <button
               ref={notificationBellRef}
               className={`notificationBell ${notificationsOpen ? 'active' : ''}`}
-              onClick={() => setNotificationsOpen((open) => !open)}
+              onClick={() => isViewer ? navigate('/app/notifications') : setNotificationsOpen((open) => !open)}
               title={t('התראות')}
               aria-expanded={notificationsOpen}
               aria-controls="notifications-popover"
@@ -186,7 +187,7 @@ export default function DashboardLayout() {
         aria-label={unreadCount > 0 ? `${t('התראות')} (${unreadCount})` : t('התראות')}
         aria-expanded={notificationsOpen}
         aria-controls="notifications-popover"
-        onClick={() => setNotificationsOpen((open) => !open)}
+        onClick={() => isViewer ? navigate('/app/notifications') : setNotificationsOpen((open) => !open)}
       >
         <Bell size={21} aria-hidden="true" />
         {unreadCount > 0 && <span aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span>}
@@ -211,7 +212,7 @@ export default function DashboardLayout() {
 
       <section className="container layout">
         <aside id="main-navigation" className="sidebar sidebarCompact" aria-label={t('תפריט ראשי')}>
-          <DashboardNavigation
+          <DashboardNavigation isViewer={isViewer}
             role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
             isManager={isManager}
             isAdmin={isAdmin}
@@ -224,7 +225,8 @@ export default function DashboardLayout() {
           />
         </aside>
         <section className="mainContent">
-          {showHero && <DashboardHero title={tabTitle} subtitle={tabSubtitle} />}
+          {isViewer && <p className="card" role="status">{t('viewer.readOnly')}</p>}
+          {showHero && <DashboardHero title={tabTitle} subtitle={tabSubtitle} widget={isViewer ? null : undefined} />}
 
           {message && (
             <div
@@ -247,7 +249,7 @@ export default function DashboardLayout() {
           )}
 
           {isProjectWorkspace && !projectDetailOpen && <ProjectWorkspaceNavigation stats={stats} />}
-          <Outlet />
+          {isViewer && viewerDatasetForPath(location.pathname) ? <ViewerInformationPage initialDataset={viewerDatasetForPath(location.pathname)} /> : <Outlet />}
         </section>
       </section>
 
@@ -276,7 +278,7 @@ export default function DashboardLayout() {
         {onlyProjectChatUnread && <span className="floatingChatDot" aria-hidden="true" />}
       </button>
 
-      <MobileNavigation
+      <MobileNavigation isViewer={isViewer}
         role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
         displayName={profile?.full_name || session?.user?.email}
         isManager={isManager}

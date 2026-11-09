@@ -9,7 +9,7 @@ import { useNotifications } from '../notifications/NotificationsContext.jsx';
 const ChatContext = createContext(null);
 
 export function ChatProvider({ children }) {
-  const { profile } = useAuth();
+  const { profile, isViewer } = useAuth();
   const { setMessage } = useMessage();
   const { unreadCount: unreadNotificationCount } = useNotifications();
   const [conversations, setConversations] = useState([]);
@@ -24,7 +24,7 @@ export function ChatProvider({ children }) {
   const projectChatAvailableRef = useRef(true);
 
   async function loadConversations() {
-    if (!profile) return [];
+    if (!profile || isViewer) return [];
     setChatLoading(true);
     try {
       const { data, error } = await chatApi.getChatConversations();
@@ -67,7 +67,7 @@ export function ChatProvider({ children }) {
   }
 
   async function loadProjectRooms() {
-    if (!profile || !projectChatAvailableRef.current) return [];
+    if (!profile || isViewer || !projectChatAvailableRef.current) return [];
     try {
       const { data, error } = await chatApi.getProjectChatInbox();
       if (error) throw error;

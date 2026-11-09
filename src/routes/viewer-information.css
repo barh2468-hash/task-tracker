@@ -1,0 +1,7 @@
+.viewerInformation { display:grid; gap:16px; min-width:0; }
+.viewerInformation label { display:grid; gap:6px; }
+.viewerInformation dl { display:grid; gap:12px; margin:0; }
+.viewerInformation dl > div { display:grid; grid-template-columns:minmax(100px, 1fr) minmax(0,3fr); gap:12px; }
+.viewerInformation dt { font-weight:600; }
+.viewerInformation dd { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }
+@media(max-width:600px) { .viewerInformation dl > div { grid-template-columns:1fr; gap:4px; } }

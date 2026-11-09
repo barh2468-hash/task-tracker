@@ -25,7 +25,7 @@ import {
   projectFileMimeType,
   projectDocumentValidationError,
 } from './utils/projectFiles.js';
-import { isManagerRole } from '../../utils/roles.js';
+import { canViewAllRole, isManagerRole } from '../../utils/roles.js';
 import { mergeTranslationDraft } from '../../utils/localizedField.js';
 import { getProjectAssignmentChanges } from './utils/assignments.js';
 import { t } from '../language/LanguageContext.jsx';
@@ -59,7 +59,7 @@ export async function getProjects(profile) {
     return data || [];
   }
 
-  if (!isManagerRole(profile.role)) {
+  if (!canViewAllRole(profile.role)) {
     const { data: extraAssignments, error: assignmentError } = await projectsApi.getProjectIdsForWorker(user.id);
     if (assignmentError) throw assignmentError;
     const extraIds = Array.from(new Set((extraAssignments || []).map((row) => row.project_id).filter(Boolean)));

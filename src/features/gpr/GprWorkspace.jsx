@@ -30,6 +30,7 @@ import './gpr.css';
 import { projectName } from '../projects/utils/projectName.js';
 
 export default function GprWorkspace({
+  readOnly = false,
   orders,
   emailIntakeConnected = false,
   projects = [],
@@ -87,13 +88,14 @@ export default function GprWorkspace({
         .includes(query.trim().toLocaleLowerCase(locale)),
   );
   async function save(form) {
+    if (readOnly) return;
     const result = await onSave(form);
     setEditor(null);
     setSaved(true);
     onSelect(result.id);
   }
   async function update(order, change) {
-    if (!onUpdate || order.deleted_at || pendingRef.current.has(order.id)) return;
+    if (readOnly || !onUpdate || order.deleted_at || pendingRef.current.has(order.id)) return;
     pendingRef.current.add(order.id);
     setPending([...pendingRef.current]);
     setProgressError('');
@@ -116,7 +118,7 @@ export default function GprWorkspace({
     }
   }
   async function changeDeleted(order, deleted) {
-    if (!onSetDeleted || pendingRef.current.has(order.id)) return;
+    if (readOnly || !onSetDeleted || pendingRef.current.has(order.id)) return;
     pendingRef.current.add(order.id);
     setPending([...pendingRef.current]);
     setDeleteError('');
@@ -219,7 +221,7 @@ export default function GprWorkspace({
                 <button
                   className="ghost smallBtn"
                   type="button"
-                  disabled={pending.includes(selected.id)}
+                  disabled={readOnly || pending.includes(selected.id)}
                   onClick={() => changeDeleted(selected, false)}
                 >
                   <RotateCcw size={16} />
@@ -229,7 +231,7 @@ export default function GprWorkspace({
                 <button
                   className="ghost smallBtn gprDeleteButton"
                   type="button"
-                  disabled={pending.includes(selected.id)}
+                  disabled={readOnly || pending.includes(selected.id)}
                   onClick={() => askDelete(selected)}
                 >
                   <Trash2 size={16} />
@@ -239,7 +241,7 @@ export default function GprWorkspace({
               <button
                 className="ghost smallBtn"
                 type="button"
-                disabled={Boolean(selected.deleted_at) || pending.includes(selected.id)}
+                disabled={readOnly || Boolean(selected.deleted_at) || pending.includes(selected.id)}
                 onClick={() => setEditor({ order: selected, mode: 'form' })}
               >
                 <Pencil size={16} />
@@ -254,7 +256,7 @@ export default function GprWorkspace({
             <GprQuickStatus
               order={selected}
               busy={Boolean(selected.deleted_at) || pending.includes(selected.id)}
-              onChange={(change) => update(selected, change)}
+              onChange={readOnly ? undefined : (change) => update(selected, change)}
             />
             <p>{t('gpr.autoSaveHelp')}</p>
           </div>
@@ -287,7 +289,7 @@ export default function GprWorkspace({
                 <GprChecklist
                   order={selected}
                   busy={Boolean(selected.deleted_at) || pending.includes(selected.id)}
-                  onChange={(change) => update(selected, change)}
+                  onChange={readOnly ? undefined : (change) => update(selected, change)}
                 />
               </section>
               {renderEmails?.(selected)}
@@ -366,12 +368,12 @@ export default function GprWorkspace({
                     <button
                       className="ghost smallBtn"
                       type="button"
-                      disabled={Boolean(selected.deleted_at)}
+                      disabled={readOnly || Boolean(selected.deleted_at)}
                       onClick={() => setEditor({ order: selected, mode: 'form' })}
                     >
                       {t('gpr.project')}
                     </button>
-                    {onNewProject && !selected.deleted_at && (
+                    {!readOnly && onNewProject && !selected.deleted_at && (
                       <button
                         className="ghost smallBtn"
                         type="button"
@@ -410,7 +412,7 @@ export default function GprWorkspace({
                 type="button"
                 className="ghost"
                 onClick={() => setEditor({ mode: 'email' })}
-                disabled={Boolean(error) || loading}
+                disabled={readOnly || Boolean(error) || loading}
               >
                 <Mail size={17} />
                 {t('gpr.paste')}
@@ -418,7 +420,7 @@ export default function GprWorkspace({
               <button
                 type="button"
                 onClick={() => setEditor({ mode: 'form' })}
-                disabled={Boolean(error) || loading}
+                disabled={readOnly || Boolean(error) || loading}
               >
                 <Plus size={18} />
                 {t('gpr.add')}
@@ -532,7 +534,7 @@ export default function GprWorkspace({
                   <button
                     type="button"
                     className="ghost smallBtn"
-                    onClick={() => setEditor({ mode: 'email' })}
+                    disabled={readOnly} onClick={() => setEditor({ mode: 'email' })}
                   >
                     <Mail size={16} />
                     {t('gpr.paste')}
@@ -547,14 +549,14 @@ export default function GprWorkspace({
                   key={order.id}
                   order={order}
                   busy={pending.includes(order.id)}
-                  onChange={(change) => update(order, change)}
+                  onChange={readOnly ? undefined : (change) => update(order, change)}
                   onOpen={() => {
                     setSaved(false);
                     onSelect(order.id);
                   }}
-                  onEdit={() => setEditor({ order, mode: 'form' })}
-                  onDelete={() => askDelete(order)}
-                  onRestore={() => changeDeleted(order, false)}
+                  onEdit={readOnly ? undefined : () => setEditor({ order, mode: 'form' })}
+                  onDelete={readOnly ? undefined : () => askDelete(order)}
+                  onRestore={readOnly ? undefined : () => changeDeleted(order, false)}
                 />
               ))}
             </div>
@@ -567,7 +569,7 @@ export default function GprWorkspace({
           )}
         </>
       )}
-      {editor && (
+      {!readOnly && editor && (
         <GprOrderForm
           order={editor.order}
           mode={editor.mode}

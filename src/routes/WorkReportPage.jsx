@@ -3,7 +3,7 @@ import { useAuth } from '../features/auth/useAuth.js';
 import WorkReportPanel from '../features/reporting/components/WorkReportPanel.jsx';
 
 export default function WorkReportPage() {
-  const { isManager } = useAuth();
-  if (!isManager) return <Navigate to="/app/projects" replace />;
+  const { canViewAll } = useAuth();
+  if (!canViewAll) return <Navigate to="/app/projects" replace />;
   return <WorkReportPanel />;
 }

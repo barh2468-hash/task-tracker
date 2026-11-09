@@ -6,7 +6,7 @@ function normalizedName(profile) {
 
 export function isDrafterCandidate(profile) {
   if (!profile) return false;
-  if (profile.role === 'demo') return false;
+  if (profile.role === 'demo' || profile.role === 'viewer') return false;
   if (profile.role === 'drafter') return true;
 
   const nameParts = normalizedName(profile).split(/\s+/).filter(Boolean);

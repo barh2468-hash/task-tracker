@@ -15,9 +15,11 @@ import { heClientLogin, enClientLogin, elClientLogin } from '../auth/translation
 import { languageNames } from './languages.js';
 import { heRecovery, enRecovery, elRecovery } from '../auth/recoveryTranslations.js';
 import { heAdditional, enAdditional, elAdditional } from './additionalTranslations.js';
+import { heViewer, enViewer, elViewer } from '../auth/viewerTranslations.js';
 export { ptTranslations } from './pt.js';
 
 export const heTranslations = {
+  ...heViewer,
   ...heRecovery,
   ...heWorkNotes,
   ...heHelpers,
@@ -35,6 +37,7 @@ export const heTranslations = {
 };
 
 export const enTranslations = {
+  ...enViewer,
   ...enRecovery,
   ...enWorkNotes,
   ...enHelpers,
@@ -1818,4 +1821,4 @@ const greekTranslations = {
     'Η εργασία "{{title}}" παραμένει ανοιχτή εδώ και {{days}} ημέρες.',
 };
 
-export const elTranslations = { ...enTranslations, ...elAdditional, ...elPersonalWorkflow, ...greekTranslations, ...elDrafts, ...elProjectWorkspace, ...elWorkPlanning, ...elGpr, ...elNotifications, ...elDemo, ...elClientLogin, ...elArticles, ...elTaskReports, ...elWorkNotes, ...elHelpers, ...elRecovery };
+export const elTranslations = { ...elViewer, ...enTranslations, ...elAdditional, ...elPersonalWorkflow, ...greekTranslations, ...elDrafts, ...elProjectWorkspace, ...elWorkPlanning, ...elGpr, ...elNotifications, ...elDemo, ...elClientLogin, ...elArticles, ...elTaskReports, ...elWorkNotes, ...elHelpers, ...elRecovery , ...elViewer };

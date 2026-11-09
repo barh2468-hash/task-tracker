@@ -1,13 +1,14 @@
-import { t } from '../language/LanguageContext.jsx';
+import { t, useLanguage } from '../language/LanguageContext.jsx';
 import { createContext, useEffect, useRef, useState } from 'react';
 import { envReady } from '../../services/supabase.js';
 import { translateAuthError } from '../../utils/authErrors.js';
 import * as authFeatureApi from './api.js';
-import { isAdminRole, isManagerRole } from '../../utils/roles.js';
+import { isAdminRole, isManagerRole, isViewerRole } from '../../utils/roles.js';
 
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const {activateAccountLanguage} = useLanguage();
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(envReady);
@@ -16,6 +17,11 @@ export function AuthProvider({ children }) {
   const [authMessage, setAuthMessage] = useState('');
   const [profileAttempt, setProfileAttempt] = useState(0);
   const sessionUserIdRef = useRef(null);
+  const languageUserId = session?.user?.id || null;
+
+  useEffect(() => {
+    void activateAccountLanguage(languageUserId);
+  }, [languageUserId, activateAccountLanguage]);
 
   // Session bootstrap: initial getSession() + onAuthStateChange subscription,
   // with a 15s timeout fallback in case the Supabase connection hangs.
@@ -192,6 +198,8 @@ export function AuthProvider({ children }) {
 
   const isManager = isManagerRole(profile?.role);
   const isAdmin = isAdminRole(profile?.role);
+  const isViewer = isViewerRole(profile?.role);
+  const canViewAll = isManager || isViewer;
   const isDrafter = profile?.role === 'drafter';
   const isDemo = profile?.role === 'demo';
   const isAccountingMain = profile?.role === 'accounting_main';
@@ -208,6 +216,8 @@ export function AuthProvider({ children }) {
     retryProfile,
     isManager,
     isAdmin,
+    isViewer,
+    canViewAll,
     isDrafter,
     isDemo,
     isAccounting,

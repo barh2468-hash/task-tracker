@@ -3,7 +3,14 @@ import webpush from 'npm:web-push@3.6.7';
 import { filterEnabledNotifications } from '../_shared/notificationPreferences.js';
 
 const headers = { 'Content-Type': 'application/json' };
-const APP_URL = 'https://infrastructure-tracker.vercel.app/app';
+// Preserve the configured production origin used by the deployed reminder.
+const APP_URL = `${(() => {
+  try {
+    return new URL(Deno.env.get('APP_URL') || '').origin;
+  } catch {
+    return 'https://maya-tasks.online';
+  }
+})()}/app`;
 
 function secureEquals(left: string, right: string) {
   const leftBytes = new TextEncoder().encode(left);
@@ -68,69 +75,80 @@ Deno.serve(async (req) => {
     const phases = [
       { type: 'attendance_reminder_first', minute: first, target: 'worker' },
       { type: 'attendance_reminder_repeat', minute: first + settings.repeat_after_minutes, target: 'worker' },
+      { type: 'attendance_reminder_final', minute: first + 2 * settings.repeat_after_minutes, target: 'worker' },
       { type: 'attendance_missing_escalation', minute: first + settings.escalation_after_minutes, target: 'manager' },
     ];
-    const phase = phases.find((item) => local.minutes >= item.minute && local.minutes < item.minute + 5);
-    if (!phase) return new Response(JSON.stringify({ ok: true, phase: 'waiting' }), { headers });
+    // The final worker reminder can coincide with the existing manager alert.
+    // Process every due phase so neither notification hides the other.
+    const duePhases = phases.filter((item) => local.minutes >= item.minute && local.minutes < item.minute + 5);
+    if (!duePhases.length) return new Response(JSON.stringify({ ok: true, phase: 'waiting' }), { headers });
 
-    const dayStart = `${local.date}T00:00:00.000Z`;
-    const [{ data: workers, error: workersError }, { data: sessions, error: sessionsError }] = await Promise.all([
-      db.from('profiles').select('id,full_name').eq('role', 'field_worker'),
-      db.from('attendance_sessions').select('worker_id').eq('attendance_date', local.date),
-    ]);
-    if (workersError) throw workersError;
-    if (sessionsError) throw sessionsError;
-    const presentIds = new Set((sessions || []).map((item) => item.worker_id));
-    const missingWorkers = (workers || []).filter((worker) => !presentIds.has(worker.id));
-    if (!missingWorkers.length) return new Response(JSON.stringify({ ok: true, phase: phase.type, missing: 0 }), { headers });
-
-    const { data: managers, error: managersError } = phase.target === 'manager'
-      ? await db.from('profiles').select('id').in('role', ['manager', 'admin'])
-      : { data: [], error: null };
-    if (managersError) throw managersError;
-
-    const newNotifications: Array<{ recipient_id: string; title: string; body: string }> = [];
-    for (const worker of missingWorkers) {
-      const recipients = phase.target === 'worker' ? [worker.id] : (managers || []).map((manager) => manager.id);
-      const title = phase.target === 'worker' ? 'תזכורת כניסה לעבודה' : `לא בוצעה כניסה: ${worker.full_name}`;
-      const body = phase.target === 'worker'
-        ? `${worker.full_name}, עדיין לא נרשמה כניסה לעבודה היום.`
-        : `${worker.full_name} עדיין לא ביצע כניסה לעבודה היום.`;
-      for (const recipientId of recipients) {
-        const { data: duplicate } = await db.from('notifications').select('id').eq('recipient_id', recipientId)
-          .eq('type', phase.type).eq('title', title).gte('created_at', dayStart).maybeSingle();
-        if (duplicate) continue;
-        const { error } = await db.from('notifications').insert({ recipient_id: recipientId, type: phase.type, title, body });
-        if (!error) newNotifications.push({ recipient_id: recipientId, title, body });
-      }
-    }
-
-    if (newNotifications.length && vapidPublicKey && vapidPrivateKey) {
-      const enabled = await filterEnabledNotifications(db, newNotifications.map((notice) => ({ ...notice, type: phase.type })));
-      const recipientIds = [...new Set(enabled.map((item) => item.recipient_id))];
-      if (!recipientIds.length) return new Response(JSON.stringify({ ok: true, phase: phase.type, sent: 0 }), { headers });
-      const [{ data: subscriptions }, { data: unread }] = await Promise.all([
-        db.from('push_subscriptions').select('id,user_id,endpoint,p256dh,auth').in('user_id', recipientIds),
-        db.from('notifications').select('recipient_id').in('recipient_id', recipientIds).eq('delivery_enabled', true).eq('is_read', false),
+    async function processPhase(phase: typeof phases[number]) {
+      const dayStart = `${local.date}T00:00:00.000Z`;
+      const [{ data: workers, error: workersError }, { data: sessions, error: sessionsError }] = await Promise.all([
+        db.from('profiles').select('id,full_name').eq('role', 'field_worker'),
+        db.from('attendance_sessions').select('worker_id').eq('attendance_date', local.date),
       ]);
-      const counts = new Map<string, number>();
-      for (const item of unread || []) counts.set(item.recipient_id, (counts.get(item.recipient_id) || 0) + 1);
-      webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
-      await Promise.all((subscriptions || []).map(async (subscription) => {
-        const notice = enabled.find((item) => item.recipient_id === subscription.user_id)!;
-        try {
-          await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } }, JSON.stringify({
-            title: notice.title, body: notice.body, url: APP_URL, tag: phase.type,
-            badgeCount: counts.get(subscription.user_id) || 1,
-          }), { TTL: 60 * 60 });
-        } catch (error) {
-          const status = Number((error as { statusCode?: number }).statusCode || 0);
-          if (status === 404 || status === 410) await db.from('push_subscriptions').delete().eq('id', subscription.id);
+      if (workersError) throw workersError;
+      if (sessionsError) throw sessionsError;
+      const presentIds = new Set((sessions || []).map((item) => item.worker_id));
+      const missingWorkers = (workers || []).filter((worker) => !presentIds.has(worker.id));
+      if (!missingWorkers.length) return { ok: true, phase: phase.type, missing: 0 };
+
+      const { data: managers, error: managersError } = phase.target === 'manager'
+        ? await db.from('profiles').select('id').in('role', ['manager', 'admin'])
+        : { data: [], error: null };
+      if (managersError) throw managersError;
+
+      const newNotifications: Array<{ recipient_id: string; title: string; body: string }> = [];
+      for (const worker of missingWorkers) {
+        const recipients = phase.target === 'worker' ? [worker.id] : (managers || []).map((manager) => manager.id);
+        const title = phase.target === 'worker' ? 'תזכורת כניסה לעבודה' : `לא בוצעה כניסה: ${worker.full_name}`;
+        const body = phase.target === 'worker'
+          ? `${worker.full_name}, עדיין לא נרשמה כניסה לעבודה היום.`
+          : `${worker.full_name} עדיין לא ביצע כניסה לעבודה היום.`;
+        for (const recipientId of recipients) {
+          const { data: duplicate } = await db.from('notifications').select('id').eq('recipient_id', recipientId)
+            .eq('type', phase.type).eq('title', title).gte('created_at', dayStart).maybeSingle();
+          if (duplicate) continue;
+          const { error } = await db.from('notifications').insert({ recipient_id: recipientId, type: phase.type, title, body });
+          if (!error) newNotifications.push({ recipient_id: recipientId, title, body });
         }
-      }));
+      }
+
+      if (newNotifications.length && vapidPublicKey && vapidPrivateKey) {
+        const enabled = await filterEnabledNotifications(db, newNotifications.map((notice) => ({ ...notice, type: phase.type })));
+        const recipientIds = [...new Set(enabled.map((item) => item.recipient_id))];
+        if (!recipientIds.length) return { ok: true, phase: phase.type, sent: 0 };
+        const [{ data: subscriptions }, { data: unread }] = await Promise.all([
+          db.from('push_subscriptions').select('id,user_id,endpoint,p256dh,auth').in('user_id', recipientIds),
+          db.from('notifications').select('recipient_id').in('recipient_id', recipientIds).eq('delivery_enabled', true).eq('is_read', false),
+        ]);
+        const counts = new Map<string, number>();
+        for (const item of unread || []) counts.set(item.recipient_id, (counts.get(item.recipient_id) || 0) + 1);
+        webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+        await Promise.all((subscriptions || []).map(async (subscription) => {
+          const notice = enabled.find((item) => item.recipient_id === subscription.user_id)!;
+          try {
+            await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } }, JSON.stringify({
+              title: notice.title, body: notice.body, url: APP_URL, tag: phase.type,
+              badgeCount: counts.get(subscription.user_id) || 1,
+            }), { TTL: 60 * 60 });
+          } catch (error) {
+            const status = Number((error as { statusCode?: number }).statusCode || 0);
+            if (status === 404 || status === 410) await db.from('push_subscriptions').delete().eq('id', subscription.id);
+          }
+        }));
+      }
+
+      return { ok: true, phase: phase.type, missing: missingWorkers.length, created: newNotifications.length };
     }
 
-    return new Response(JSON.stringify({ ok: true, phase: phase.type, missing: missingWorkers.length, created: newNotifications.length }), { headers });
+    const results = [];
+    for (const phase of duePhases) {
+      results.push(await processPhase(phase));
+    }
+    return new Response(JSON.stringify(results.length === 1 ? results[0] : { ok: true, phases: results }), { headers });
   } catch (error) {
     console.error('Attendance reminder failed:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500, headers });

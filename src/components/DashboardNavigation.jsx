@@ -7,6 +7,7 @@ import {
 import { t, useLanguage } from '../features/language/LanguageContext.jsx';
 import { localeForLanguage } from '../features/language/locale.js';
 import AppPreferences from './AppPreferences.jsx';
+import { canUseQuotes } from '../features/quotes/access.js';
 import '../styles/navigation.css';
 
 function NavigationItem({ label, icon: Icon, active, count, onClick }) {
@@ -27,7 +28,7 @@ function NavigationItem({ label, icon: Icon, active, count, onClick }) {
 
 export default function DashboardNavigation({
   role, isManager, isAdmin, isDrafter, pathname, isProjectWorkspace, stats, unreadCount,
-  onOpenTab, secondaryOnly = false, isDemo = false, isViewer = false,
+  quoteUserId, onOpenTab, secondaryOnly = false, isDemo = false, isViewer = false,
 }) {
   useTranslation();
   const item = (path, label, icon, count) => (
@@ -125,6 +126,7 @@ export default function DashboardNavigation({
             {item('/app/map', 'מפה חיה', MapPin)}
             {item('/app/equipment', 'ציוד עובדי שטח', Wrench)}
             {item('/app/vehicles', 'רכבי חברה', Car)}
+            {canUseQuotes(quoteUserId) && item('/app/quotes', 'quotes.title', FileText)}
           </div>
         )}
 

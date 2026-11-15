@@ -18,7 +18,7 @@ function timeoutForRequest(input, init, method) {
     }
     if (
       method === 'POST' &&
-      target.pathname === '/functions/v1/gpr-microsoft' &&
+      ['/functions/v1/gpr-microsoft','/functions/v1/quotes-microsoft'].includes(target.pathname) &&
       typeof init.body === 'string' &&
       JSON.parse(init.body)?.action === 'sync'
     ) {

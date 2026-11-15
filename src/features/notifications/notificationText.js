@@ -1,5 +1,6 @@
 import { projectName } from '../projects/utils/projectName.js';
 export function notificationText(notification, t) {
+  if(['quote_mail_received','quote_interested','quote_response','quote_no_response','quote_delivery_failed'].includes(notification.type))return {title:t(`quotes.notice.${notification.type.slice(6)}`),body:t('quotes.title')};
   if (notification.type === 'gpr_email_order_received') {
     const order = notification.gpr_work_orders;
     return {

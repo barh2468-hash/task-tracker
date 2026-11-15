@@ -64,7 +64,7 @@ function StaffMobileNavigation(props) {
 }
 
 function MobileNavigationView({
-  role, displayName, isManager, isAdmin, isDrafter, pathname, isProjectWorkspace, stats,
+  quoteUserId, role, displayName, isManager, isAdmin, isDrafter, pathname, isProjectWorkspace, stats,
   unreadChatCount, onOpenTab, onOpenMore, onLogout, isDemo = false, isViewer = false, myAttendanceSessions,
 }) {
   useTranslation();
@@ -194,7 +194,7 @@ function MobileNavigationView({
           </button>
         </div>
         <div className="mobileMoreContent">
-          <DashboardNavigation
+          <DashboardNavigation quoteUserId={quoteUserId}
             isViewer={isViewer}
             isDemo={isDemo}
             secondaryOnly

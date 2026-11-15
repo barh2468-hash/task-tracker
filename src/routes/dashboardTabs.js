@@ -2,6 +2,7 @@
 // the sidebar/hero title logic in the original page.tsx switched on a local
 // `tab` variable instead of a URL.
 export function getTabTitle(pathname, searchParams, isManager) {
+  if (pathname === '/app/quotes') return 'quotes.title';
   if (pathname === '/app/overview') return 'סקירה כללית';
   if (pathname === '/app/work-plan') return 'workPlan.title';
   if (pathname === '/app/attendance') return 'שעון נוכחות';
@@ -42,6 +43,7 @@ export function getTabSubtitle(isManager, isDrafter) {
 
 export function isHeroSuppressed(pathname) {
   return (
+    pathname === '/app/quotes' ||
     pathname === '/app/overview' ||
     pathname === '/app/work-plan' ||
     pathname === '/app/gpr' ||

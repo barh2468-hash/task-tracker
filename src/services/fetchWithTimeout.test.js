@@ -42,11 +42,11 @@ test('cancelling a storage upload still aborts immediately', async (t) => {
   await rejected;
 });
 
-test('GPR synchronization can run past seven seconds but times out at ninety seconds', async (t) => {
+for (const functionName of ['gpr-microsoft','quotes-microsoft']) test(`${functionName} synchronization can run past seven seconds but times out at ninety seconds`, async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const mocked = pendingFetch(t);
   let outcome = 'pending';
-  const result = fetchWithTimeout('https://example.supabase.co/functions/v1/gpr-microsoft', {
+  const result = fetchWithTimeout(`https://example.supabase.co/functions/v1/${functionName}`, {
     method: 'POST',
     body: JSON.stringify({ action: 'sync' }),
   }).then(

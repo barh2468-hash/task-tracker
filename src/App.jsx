@@ -35,6 +35,8 @@ const NewProjectPage = lazy(() => import('./routes/NewProjectPage.jsx'));
 const ProjectStatusReportPage = lazy(() => import('./routes/ProjectStatusReportPage.jsx'));
 const AssignmentsPage = lazy(() => import('./routes/AssignmentsPage.jsx'));
 const TasksPage = lazy(() => import('./routes/TasksPage.jsx'));
+const QuotesPage = lazy(() => import('./routes/QuotesPage.jsx'));
+const LocalQuotesPreview = import.meta.env.DEV ? lazy(() => import('./features/quotes/LocalQuotesPreview.jsx')) : null;
 const GprPage = lazy(() => import('./routes/GprPage.jsx'));
 const LocalGprPreview = import.meta.env.DEV
   ? lazy(() => import('./features/gpr/LocalGprPreview.jsx'))
@@ -131,6 +133,7 @@ function AppRoot() {
 }
 
 export default function App() {
+  if (import.meta.env.DEV && window.location.pathname === '/local/quotes') return <LanguageProvider><Suspense fallback={<LoadingScreen />}><LocalQuotesPreview /></Suspense></LanguageProvider>;
   if (import.meta.env.DEV && window.location.pathname === '/local/demo') {
     return (
       <LanguageProvider>
@@ -191,6 +194,7 @@ export default function App() {
                   }
                 />
                 <Route path="projects" element={<ProjectsPage />} />
+                <Route path="quotes" element={<Suspense fallback={<LoadingScreen />}><QuotesPage /></Suspense>} />
                 <Route path="client-preview" element={null} />
                 <Route
                   path="gpr"

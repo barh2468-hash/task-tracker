@@ -1,3 +1,4 @@
+import { ptQuotes } from '../quotes/pt.js';
 // Portuguese (Portugal). Keep full keys and interpolation tokens in sync with resources.js.
 import { languageNames } from './languages.js';
 import { ptRecovery } from '../auth/recoveryTranslations.js';
@@ -8,6 +9,7 @@ import { ptArticles } from '../demo/articleTranslations.js';
 import { ptClientLogin } from '../auth/translations.js';
 
 export const ptTranslations = {
+  ...ptQuotes,
   ...ptRecovery,
   'עדכון הצוות והערות לעבודה': 'Atualizar equipa e notas de trabalho',
   'אפשר לעדכן את הצוות ולהוסיף או לערוך הערות לעבודה. שעות העבודה וסגירת היום נשמרות.': 'Pode atualizar a equipa e adicionar ou editar notas de trabalho. As horas de trabalho e o encerramento da sessão são mantidos.',

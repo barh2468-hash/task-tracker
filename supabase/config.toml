@@ -1,5 +1,9 @@
 project_id = "qopsdkmzvncamjrxjwni"
 
+# Sessions and private quote access are checked by the handler; OAuth and cron authenticate separately.
+[functions.quotes-microsoft]
+verify_jwt = false
+
 # Scheduled report emails use x-cron-secret; manual calls validate the session
 # and require that the caller created the requested report.
 [functions.notify-task-done]

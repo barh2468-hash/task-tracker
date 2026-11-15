@@ -212,7 +212,7 @@ export default function DashboardLayout() {
 
       <section className="container layout">
         <aside id="main-navigation" className="sidebar sidebarCompact" aria-label={t('תפריט ראשי')}>
-          <DashboardNavigation isViewer={isViewer}
+          <DashboardNavigation quoteUserId={session?.user?.id} isViewer={isViewer}
             role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
             isManager={isManager}
             isAdmin={isAdmin}
@@ -278,7 +278,7 @@ export default function DashboardLayout() {
         {onlyProjectChatUnread && <span className="floatingChatDot" aria-hidden="true" />}
       </button>
 
-      <MobileNavigation isViewer={isViewer}
+      <MobileNavigation quoteUserId={session?.user?.id} isViewer={isViewer}
         role={profile ? t(roleLabel[profile.role]) : t('משתמש')}
         displayName={profile?.full_name || session?.user?.email}
         isManager={isManager}

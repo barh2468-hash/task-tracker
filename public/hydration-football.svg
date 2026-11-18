@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
+<defs>
+  <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#d9f5ff"/><stop offset="1" stop-color="#f5fcff"/></linearGradient>
+  <linearGradient id="grass" x2="0" y2="1"><stop stop-color="#91d8b0"/><stop offset="1" stop-color="#60ba94"/></linearGradient>
+  <linearGradient id="water" x2="1" y2="1"><stop stop-color="#7ee7f5"/><stop offset="1" stop-color="#219ac9"/></linearGradient>
+  <linearGradient id="glass" x2="1" y2="0"><stop stop-color="#fff" stop-opacity=".9"/><stop offset=".5" stop-color="#bceefa" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity=".85"/></linearGradient>
+  <radialGradient id="ball" cx=".3" cy=".2" r=".9"><stop stop-color="#fff"/><stop offset="1" stop-color="#d6e3e9"/></radialGradient>
+  <clipPath id="ballClip"><circle cx="485" cy="277" r="91"/></clipPath>
+</defs>
+<path fill="url(#sky)" d="M0 0h720v420H0z"/>
+<circle cx="584" cy="91" r="45" fill="#fff" opacity=".8"/>
+<path d="M0 295Q155 254 320 294T720 279V420H0Z" fill="url(#grass)"/>
+<path d="M0 370Q360 317 720 345M620 287l-49 133" fill="none" stroke="#fff" stroke-width="5" opacity=".45"/>
+<ellipse cx="356" cy="355" rx="239" ry="24" fill="#205d70" opacity=".12"/>
+<path d="M192 82h66v45q0 12 14 27l12 15q10 12 10 33v129q0 20-22 20h-94q-22 0-22-20V202q0-21 10-33l12-15q14-15 14-27Z" fill="url(#glass)" stroke="#63b9d4" stroke-width="3"/>
+<path d="M167 213q30-11 59 0t57 0v114q0 14-15 14h-86q-15 0-15-14Z" fill="url(#water)"/>
+<path d="M180 180v143" stroke="#fff" stroke-width="9" opacity=".65" stroke-linecap="round"/>
+<rect x="188" y="66" width="74" height="30" rx="8" fill="#0b7b9a"/>
+<path d="M201 73v15m12-15v15m12-15v15m12-15v15m12-15v15" stroke="#40abc4" stroke-width="3"/>
+<rect x="170" y="237" width="110" height="63" rx="8" fill="#eefcff"/>
+<path d="M225 247s-16 17-16 27a16 16 0 0 0 32 0c0-10-16-27-16-27" fill="#129cbb"/>
+<path d="M305 232h75l-9 108q-1 11-12 11h-33q-11 0-12-11Z" fill="url(#glass)" stroke="#6abbd1" stroke-width="3"/>
+<path d="M311 271q17-7 33 0t30 0l-6 66q-1 8-10 8h-30q-8 0-9-8Z" fill="url(#water)"/>
+<path d="m322 246 6 84" stroke="#fff" stroke-width="5" opacity=".75" stroke-linecap="round"/>
+<circle cx="485" cy="277" r="91" fill="url(#ball)" stroke="#b7ccd8" stroke-width="2"/>
+<g clip-path="url(#ballClip)" stroke="#607889" stroke-width="2" stroke-linejoin="round">
+  <path d="m481 239 35 23-12 40h-42l-13-40Z" fill="#18384e"/>
+  <path d="m424 193 26 17-8 29-31 6-19-29m154-18-19 27 14 29 33-1 10-27m-5 107-31-4-20 27 12 29 34 1m-155-28 29-11-4-33-32-12-21 23m69 85 8-31 32-6 23 25-10 26" fill="#18384e"/>
+  <path d="m450 210 31 29m-39 0 7 23m67 0 25-8m-14-29-32-37m53 141-44-27m-41 0-37 12m42 56-13-36m45 30 18-8m-107-111-14 33m177-25 18 26" fill="none"/>
+</g>
+<path d="m139 132 7 11m-20 9 13 1m168-29-6 11m17 3-9 4" stroke="#43abc6" stroke-width="4" stroke-linecap="round"/>
+<path d="m110 353 6-15 4 15m505 20 6-17 5 16m-23-34 4-12 4 13" fill="none" stroke="#389f78" stroke-width="3" stroke-linecap="round"/>
+</svg>

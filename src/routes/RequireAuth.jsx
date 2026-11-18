@@ -2,6 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../features/auth/useAuth.js';
 import { LoadingScreen } from './LoginPage.jsx';
 import ProfileRecovery from '../features/auth/components/ProfileRecovery.jsx';
+import HydrationReminder from '../features/hydration/HydrationReminder.jsx';
 
 export default function RequireAuth() {
   const { session, profile, authLoading, profileLoading } = useAuth();
@@ -9,5 +10,10 @@ export default function RequireAuth() {
   if (authLoading || profileLoading) return <LoadingScreen />;
   if (!session) return <Navigate to="/login" replace />;
   if (!profile) return <ProfileRecovery />;
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <HydrationReminder key={session.user.id} email={session.user.email} name={profile.full_name} />
+    </>
+  );
 }

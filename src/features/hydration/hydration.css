@@ -1,0 +1,72 @@
+.hydrationReminder {
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid #d7edf4;
+  border-radius: 28px;
+  background: #fff;
+  color: #10344a;
+  box-shadow: 0 28px 90px #061b3940;
+  text-align: center;
+  font-family: inherit;
+}
+.hydrationReminder::backdrop {
+  background: #071d38b8;
+  backdrop-filter: blur(6px);
+}
+.hydrationReminderHero { position: relative; background: #e8f8fe; }
+.hydrationReminderHero img { display: block; width: 100%; height: auto; }
+.hydrationReminder .hydrationReminderClose {
+  position: absolute;
+  inset-block-start: 14px;
+  inset-inline-end: 14px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  border: 1px solid #c9e3ec;
+  border-radius: 50%;
+  background: #fff;
+  color: #10344a;
+  font-family: inherit;
+  line-height: 1;
+  font-size: 30px;
+  cursor: pointer;
+}
+.hydrationReminderContent { padding: 26px 32px 32px; }
+.hydrationReminder .hydrationReminderEyebrow {
+  margin: 0 0 10px;
+  color: #08748c;
+  font-size: 14px;
+  font-weight: 800;
+}
+.hydrationReminder h2 { margin: 0; font-size: clamp(25px, 6vw, 34px); line-height: 1.25; overflow-wrap: anywhere; }
+.hydrationReminder #hydration-description { margin: 16px 0 24px; color: #4b6575; font-size: 17px; line-height: 1.7; }
+.hydrationReminder .hydrationReminderContinue {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  height: auto;
+  padding: 14px 20px;
+  border: 0;
+  border-radius: 16px;
+  background: #087f95;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  line-height: 1.5;
+  white-space: normal;
+  cursor: pointer;
+}
+.hydrationReminder .hydrationReminderContinue:hover { background: #06677a; }
+.hydrationReminder button:focus-visible { outline: 3px solid #10344a; outline-offset: 3px; }
+@media (max-width: 380px) {
+  .hydrationReminderContent { padding: 22px 20px 24px; }
+  .hydrationReminder #hydration-description { font-size: 16px; }
+}

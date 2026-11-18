@@ -1,3 +1,4 @@
+import { ptHydration } from '../hydration/translations.js';
 import { ptQuotes } from '../quotes/pt.js';
 // Portuguese (Portugal). Keep full keys and interpolation tokens in sync with resources.js.
 import { languageNames } from './languages.js';
@@ -9,6 +10,7 @@ import { ptArticles } from '../demo/articleTranslations.js';
 import { ptClientLogin } from '../auth/translations.js';
 
 export const ptTranslations = {
+  ...ptHydration,
   ...ptQuotes,
   ...ptRecovery,
   'עדכון הצוות והערות לעבודה': 'Atualizar equipa e notas de trabalho',

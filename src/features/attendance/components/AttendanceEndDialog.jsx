@@ -38,7 +38,6 @@ export default function AttendanceEndDialog() {
   const [selectedHelpers, setSelectedHelpers] = useState([]);
   const [markReadyForDrafting, setMarkReadyForDrafting] = useState(false);
   const [dailyDraftingReady, setDailyDraftingReady] = useState(false);
-  const [showDiary, setShowDiary] = useState(true);
 
   const openSession = sessions.find((item) => !item.ended_at && !item.is_all_day) || null;
   const linkedWorkSession = openSession
@@ -70,7 +69,6 @@ export default function AttendanceEndDialog() {
     setSelectedHelpers([]);
     setMarkReadyForDrafting(false);
     setDailyDraftingReady(false);
-    setShowDiary(true);
   }, [attendanceEndDialogOpen, openSession?.id]);
 
   if (!attendanceEndDialogOpen || typeof document === 'undefined' || !openSession) return null;
@@ -93,7 +91,7 @@ export default function AttendanceEndDialog() {
     if (result?.success && result.projectSessionClosed && markReadyForDrafting && canMarkReadyForDrafting) {
       void updateStatus(linkedProject, DRAFTING_STATUS, t('סומן כניתן להתחיל לשרטט בסיום העבודה בשטח.'));
     }
-    if (result?.success && result.projectSessionClosed && showDiary && linkedProject?.requires_work_diary) openWorkDiary(linkedProject);
+    if (result?.success && result.projectSessionClosed && linkedProject?.requires_work_diary) openWorkDiary(linkedProject);
   }
 
   return createPortal(
@@ -198,7 +196,7 @@ export default function AttendanceEndDialog() {
           </p>
         </div>
         {linkedProject && <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="attendance-daily-drafting-ready" aria-label={t('ניתן לשרטט את מה שעשיתי היום')}><input id="attendance-daily-drafting-ready" type="checkbox" checked={dailyDraftingReady} disabled={busy || markReadyForDrafting} onChange={(event) => setDailyDraftingReady(event.target.checked)} /><span><strong>{t('ניתן לשרטט את מה שעשיתי היום')}</strong><small>{t('תיווצר מנת שרטוט ותישלח התראה למנהלים. סטטוס הפרויקט נשמר.')}</small></span></label></div>}
-        {linkedProject?.requires_work_diary && <div className="attendanceEndPinned"><label className="draftingReadyToggle" htmlFor="attendance-exit-work-diary" aria-label={t('פתיחת יומן עבודה ביציאה מהפרויקט')}><input id="attendance-exit-work-diary" type="checkbox" checked={showDiary} disabled={busy} onChange={(event) => setShowDiary(event.target.checked)} /><span><strong>{t('פתיחת יומן עבודה ביציאה מהפרויקט')}</strong><small>{t('יומן העבודה ייפתח לאחר שמירת הסיום.')}</small></span></label></div>}
+        {linkedProject?.requires_work_diary && <p className="attendanceEndPinned attendanceDiaryNotice">{t('יומן העבודה ייפתח אוטומטית לאחר שמירת סיום העבודה.')}</p>}
         {canMarkReadyForDrafting && (
           <div className="attendanceEndPinned">
             <label className="draftingReadyToggle">

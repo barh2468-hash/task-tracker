@@ -88,7 +88,7 @@ const NAME_TRANSLATION_LABELS = {
 // globals.css) out of the projects page's initial bundle.
 const ProjectChatPanel = lazy(() => import('../../chat/components/ProjectChatPanel.jsx'));
 
-const DETAIL_TABS = ['overview', 'tasks', 'documents', 'drawing-batches', 'updates', 'discussion'];
+const DETAIL_TABS = ['overview', 'tasks', 'documents', 'work-diaries', 'drawing-batches', 'updates', 'discussion'];
 
 export default function ProjectCard({ project, onBack, initialTab }) {
   useTranslation();
@@ -766,6 +766,7 @@ export default function ProjectCard({ project, onBack, initialTab }) {
                 t('שרטוט והגהה'),
                 assets.project_drawing_batches.length + assets.project_review_files.length,
               ],
+              ['work-diaries', t('יומני עבודה'), null],
               ['updates', t('פעילות הפרויקט'), null],
               ...(projectChatAvailable ? [['discussion', t('דיון'), discussionUnread]] : []),
             ].map(([tab, label, count]) => (
@@ -1040,16 +1041,17 @@ export default function ProjectCard({ project, onBack, initialTab }) {
                   }}
                 />
 
-                {project.requires_work_diary && (
-                  <WorkDiaryPanel
-                    project={project}
-                    currentUserName={currentUserName}
-                    dialogClassName="projectDialogControls"
-                    canDelete={isManager}
-                    canCreate={!isViewer && (isManager || !project.is_archived)}
-                  />
-                )}
+
               </div>
+            )}
+            {activeDetailTab === 'work-diaries' && (
+              <WorkDiaryPanel
+                project={project}
+                currentUserName={currentUserName}
+                dialogClassName="projectDialogControls"
+                canDelete={isManager}
+                canCreate={!isViewer && (isManager || !project.is_archived)}
+              />
             )}
             {activeDetailTab === 'tasks' && (
               <div className="projectTabPanel">

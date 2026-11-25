@@ -1,4 +1,12 @@
 /* Longer translations must leave room for the fixed options and actions. */
+.attendanceDiaryNotice {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .attendanceEndModal.projectWorkEndModal {
   max-height: min(850px, calc(100dvh - 36px));
   min-height: 0;

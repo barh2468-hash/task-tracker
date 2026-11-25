@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { t } from '../../language/LanguageContext.jsx';
+import { t, useLanguage } from '../../language/LanguageContext.jsx';
+import { localeForLanguage } from '../../language/locale.js';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Download, FileSignature, PenLine, PlusCircle, Trash2, X } from 'lucide-react';
@@ -19,7 +20,8 @@ import DraftNotice from '../../drafts/DraftNotice.jsx';
 import { projectName } from '../../projects/utils/projectName.js';
 
 function todayValue() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
 function emptyDiary(project, teamLeadName) {
@@ -66,6 +68,8 @@ function emptyDiary(project, teamLeadName) {
 
 export default function WorkDiaryPanel({ project, currentUserName, canDelete, canCreate = true, autoOpen = false, onClose, dialogClassName = '' }) {
   useTranslation();
+  const { language } = useLanguage();
+  const locale = localeForLanguage(language);
   const { session } = useAuth();
   const [diaries, setDiaries] = useState([]);
   const [formOpen, setFormOpen] = useState(autoOpen);
@@ -81,14 +85,17 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState('');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(null);
+  const messageText = message ? t(message.key, Object.fromEntries(
+    Object.entries(message.options || {}).map(([key, value]) => [key, typeof value === 'number' ? value.toLocaleString(locale) : value]),
+  )) : '';
 
   async function loadDiaries() {
     setLoading(true);
     const { data, error } = await getWorkDiariesForProject(project.id);
     if (error) {
       console.warn('Work diaries load failed:', error.message);
-      setMessage(t('יומני העבודה עדיין לא הופעלו במסד הנתונים.'));
+      setMessage({ key: 'טעינת יומני העבודה נכשלה. נסה שוב.' });
       setDiaries([]);
     } else {
       setMessage('');
@@ -137,23 +144,26 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
   }
 
   async function saveDiary() {
-    if (saving || !draft.ready) return;
+    if (!canCreate || saving || !draft.ready) return;
     if (!form.work_date || !form.contact_name || !form.start_time || !form.end_time) {
-      setMessage(t('יש למלא תאריך, איש קשר ושעות התחלה וסיום.'));
+      setMessage({ key: 'יש למלא תאריך, איש קשר ושעות התחלה וסיום.' });
       return;
     }
     if (!form.customer_name || !form.team_lead_name) {
-      setMessage(t('יש למלא את שמות נציג הלקוח וראש צוות מאיה.'));
+      setMessage({ key: 'יש למלא את שמות נציג הלקוח וראש צוות מאיה.' });
       return;
     }
     if (!customerSignature || !teamLeadSignature) {
-      setMessage(t('חובה להשלים את שתי החתימות לפני שמירת היומן.'));
+      setMessage({ key: 'חובה להשלים את שתי החתימות לפני שמירת היומן.' });
       return;
     }
     setSaving(true);
     try {
       const user = await getCurrentUser();
-      if (!user) return;
+      if (!user) {
+        setMessage({ key: 'יש להתחבר מחדש כדי לשמור יומן עבודה.' });
+        return;
+      }
       const { data, error } = await insertWorkDiary({
         project_id: project.id,
         created_by: user.id,
@@ -166,9 +176,9 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
       await draft.clear();
       setFormOpen(false);
       onClose?.();
-      setMessage(t('יומן עבודה מספר {{value0}} נשמר ונחתם.', { value0: data.diary_number }));
+      setMessage({ key: 'יומן עבודה מספר {{value0}} נשמר ונחתם.', options: { value0: data.diary_number } });
     } catch (error) {
-      setMessage(t('שמירת היומן נכשלה: {{value0}}', { value0: error.message }));
+      setMessage({ key: 'שמירת היומן נכשלה: {{value0}}', options: { value0: error.message } });
     } finally {
       setSaving(false);
     }
@@ -177,7 +187,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
   async function deleteDiary(diary) {
     if (!canDelete || deletingId) return;
     const confirmed = window.confirm(
-      `למחוק את יומן העבודה ${diary.diary_number}? היומן והאפשרות להפיק ממנו PDF יימחקו לצמיתות.`,
+      t('למחוק את יומן העבודה {{number}}? היומן והאפשרות להפיק ממנו PDF יימחקו לצמיתות.', { number: diary.diary_number.toLocaleString(locale) }),
     );
     if (!confirmed) return;
 
@@ -187,12 +197,12 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
     setDeletingId('');
 
     if (error) {
-      setMessage(t('מחיקת יומן העבודה נכשלה: {{value0}}', { value0: error.message }));
+      setMessage({ key: 'מחיקת יומן העבודה נכשלה: {{value0}}', options: { value0: error.message } });
       return;
     }
 
     setDiaries((current) => current.filter((item) => item.id !== diary.id));
-    setMessage(t('יומן עבודה מספר {{value0}} וה-PDF שלו נמחקו.', { value0: diary.diary_number }));
+    setMessage({ key: 'יומן עבודה מספר {{value0}} וה-PDF שלו נמחקו.', options: { value0: diary.diary_number } });
   }
 
   return (
@@ -220,34 +230,32 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
         </button>}
       </header>
 
-      {message && <div className="workDiaryMessage">{message}</div>}
+      {message && <div className="workDiaryMessage" role="status">{messageText}{message.key === 'טעינת יומני העבודה נכשלה. נסה שוב.' && <button type="button" className="ghost smallBtn" disabled={loading} onClick={loadDiaries}>{t('נסה שוב')}</button>}</div>}
       {loading ? (
         <div className="muted">{t('טוען יומני עבודה...')}</div>
       ) : diaries.length ? (
         <div className="workDiaryList">
           {diaries.map((diary) => (
             <article className="workDiaryRow" key={diary.id}>
-              <div className="workDiaryNumber">#{diary.diary_number}</div>
+              <div className="workDiaryNumber">#{diary.diary_number.toLocaleString(locale)}</div>
               <div>
                 <b>
-                  {t('יומן עבודה')}
-                  {' '}
-                  {diary.diary_number}
+                  {t('יומן עבודה {{number}}', { number: diary.diary_number.toLocaleString(locale) })}
                 </b>
                 <span>
-                  {new Date(diary.form_data.work_date).toLocaleDateString('he-IL')} ·{' '}
-                  {diary.form_data.customer_name}
-                  {' '}
-                  {t('· נחתם על ידי')}
-                  {' '}
-                  {diary.profiles?.full_name || t('משתמש')}
+                  {t('{{date}} · {{customer}} · נחתם על ידי {{name}}', {
+                    date: new Date(`${diary.form_data.work_date}T12:00:00`).toLocaleDateString(locale),
+                    customer: diary.form_data.customer_name,
+                    name: diary.profiles?.full_name || t('משתמש'),
+                  })}
                 </span>
               </div>
               <div className="workDiaryRowActions">
                 <button
                   type="button"
                   className="ghost tinyBtn"
-                  onClick={() => exportWorkDiaryPdf(project, diary)}
+                  aria-label={t('הפקת PDF ליומן עבודה {{number}}', { number: diary.diary_number.toLocaleString(locale) })}
+                  onClick={() => exportWorkDiaryPdf(project, diary, { language, t })}
                 >
                   <Download size={15} /> PDF
                 </button>
@@ -269,12 +277,12 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
         <div className="workDiaryEmpty">{t('עדיין לא נוצר יומן עבודה לפרויקט זה.')}</div>
       )}
 
-      {formOpen &&
+      {canCreate && formOpen &&
         typeof document !== 'undefined' &&
         createPortal(
           // No click-outside-to-close: the diary holds signatures, so only the
           // explicit close/cancel buttons may discard it.
-          <div className="modalBackdrop workDiaryBackdrop" role="dialog" aria-modal="true">
+          <div className="modalBackdrop workDiaryBackdrop" role="dialog" aria-modal="true" aria-label={t('יומן עבודה חדש')}>
             <div className={`workDiaryModal ${dialogClassName}`}>
               <header className="workDiaryModalHeader">
                 <div>
@@ -536,7 +544,7 @@ export default function WorkDiaryPanel({ project, currentUserName, canDelete, ca
                 </fieldset>
               </div>
 
-              {message && <div className="workDiaryMessage stickyMessage">{message}</div>}
+              {message && <div className="workDiaryMessage stickyMessage" role="status">{messageText}</div>}
               <footer className="workDiaryActions">
                 <button className={dialogClassName ? 'projectPrimaryAction' : undefined} type="button" onClick={saveDiary} disabled={saving || !draft.ready}>
                   <PenLine size={17} /> {saving ? t('שומר...') : t('שמירה וסגירת היומן')}

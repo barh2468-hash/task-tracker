@@ -21,6 +21,8 @@ import OfflineSync from './features/offline/OfflineSync.jsx';
 import { LanguageProvider } from './features/language/LanguageContext.jsx';
 import { useAuth } from './features/auth/useAuth.js';
 import { viewerPathBlocked } from './features/auth/viewerRoutes.js';
+import PersonalAttendanceBoundary from './features/attendance/components/PersonalAttendanceBoundary.jsx';
+import { loadPersonalAttendancePage } from './features/attendance/loadPersonalAttendancePage.js';
 
 // Code-split the heavier, less-frequently-visited pages (Leaflet map, Excel/
 // CSV-export-heavy reports) so the initial bundle stays close to the
@@ -50,7 +52,7 @@ const ExceptionsPage = lazy(() => import('./routes/ExceptionsPage.jsx'));
 const WorkReportPage = lazy(() => import('./routes/WorkReportPage.jsx'));
 const ChatPage = lazy(() => import('./routes/ChatPage.jsx'));
 const AttendancePage = lazy(() => import('./routes/AttendancePage.jsx'));
-const PersonalAttendancePage = lazy(() => import('./routes/PersonalAttendancePage.jsx'));
+const PersonalAttendancePage = lazy(loadPersonalAttendancePage);
 const PersonalNotesPage = lazy(() => import('./routes/PersonalNotesPage.jsx'));
 const EquipmentPage = lazy(() => import('./routes/EquipmentPage.jsx'));
 const RecentStatusChangesPage = lazy(() => import('./routes/RecentStatusChangesPage.jsx'));
@@ -208,7 +210,7 @@ export default function App() {
                   path="my-attendance"
                   element={
                     <Suspense fallback={<LoadingScreen />}>
-                      <PersonalAttendancePage />
+                      <PersonalAttendanceBoundary><PersonalAttendancePage /></PersonalAttendanceBoundary>
                     </Suspense>
                   }
                 />

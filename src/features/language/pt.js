@@ -1,3 +1,4 @@
+import { ptAttendanceRecovery } from '../attendance/reportRecoveryTranslations.js';
 import { ptHydration } from '../hydration/translations.js';
 import { ptQuotes } from '../quotes/pt.js';
 // Portuguese (Portugal). Keep full keys and interpolation tokens in sync with resources.js.
@@ -10,6 +11,7 @@ import { ptArticles } from '../demo/articleTranslations.js';
 import { ptClientLogin } from '../auth/translations.js';
 
 export const ptTranslations = {
+  ...ptAttendanceRecovery,
   ...ptHydration,
   ...ptQuotes,
   ...ptRecovery,
